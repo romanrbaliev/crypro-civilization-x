@@ -79,7 +79,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         const resourceName = state.resources[resourceId]?.name || resourceId;
         return (
           <div key={effectId} className="text-blue-600 text-[10px]">
-            +{boostPercent}% к эффективности {resourceName}
+            +{boostPercent}% к скорости накопления {resourceName}
           </div>
         );
       } else if (effectId.includes('Max')) {

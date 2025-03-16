@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, Resource } from './types';
 import { initialState } from './initialState';
 
@@ -144,6 +145,25 @@ const checkUnlocks = (state: GameState): GameState => {
   }
   
   return newState;
+};
+
+// Функция для обновления максимальных значений ресурсов
+const updateResourceMaxValues = (state: GameState): GameState => {
+  const newResources = { ...state.resources };
+  
+  for (const resourceId in newResources) {
+    const resource = newResources[resourceId];
+    const baseMax = initialState.resources[resourceId].max;
+    newResources[resourceId] = {
+      ...resource,
+      max: calculateResourceMax(state, resourceId, baseMax)
+    };
+  }
+  
+  return {
+    ...state,
+    resources: newResources
+  };
 };
 
 // Главный редьюсер игры
@@ -393,19 +413,25 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           eventBus.dispatchEvent(customEvent);
         }
 
-        return {
+        const newState = {
           ...state,
           resources: newResources,
           buildings: newBuildings,
           upgrades: newUpgrades
         };
+        
+        // Обновляем максимальные значения ресурсов после применения изменений
+        return updateResourceMaxValues(newState);
       }
       
-      return {
+      // Для всех зданий обновляем максимальные значения ресурсов
+      const stateWithBuilding = {
         ...state,
         resources: newResources,
         buildings: newBuildings
       };
+      
+      return updateResourceMaxValues(stateWithBuilding);
     }
     
     // Покупка улучшения
@@ -442,21 +468,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         }
       };
       
-      // Пересчитываем максимальные значения ресурсов с учетом улучшений
-      const updatedResources = { ...newResources };
-      for (const resourceId in updatedResources) {
-        const resource = updatedResources[resourceId];
-        const baseMax = initialState.resources[resourceId].max;
-        updatedResources[resourceId] = {
-          ...resource,
-          max: calculateResourceMax(
-            { ...state, upgrades: newUpgrades },
-            resourceId,
-            baseMax
-          )
-        };
-      }
-
       // Если приобретены "Основы блокчейна", разблокируем криптокошелек
       if (upgradeId === 'basicBlockchain') {
         const newBuildings = {
@@ -468,20 +479,26 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         };
 
         console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
-
-        return {
+        
+        const newState = {
           ...state,
-          resources: updatedResources,
+          resources: newResources,
           upgrades: newUpgrades,
           buildings: newBuildings
         };
+        
+        // Обновляем максимальные значения ресурсов
+        return updateResourceMaxValues(newState);
       }
       
-      return {
+      // Для любого улучшения обновляем максимальные значения ресурсов
+      const updatedState = {
         ...state,
-        resources: updatedResources,
+        resources: newResources,
         upgrades: newUpgrades
       };
+      
+      return updateResourceMaxValues(updatedState);
     }
     
     // Разблокировка фичи
@@ -596,7 +613,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Майнинг вычислительной мощности
     case "MINE_COMPUTING_POWER": {
-      // Проверяем, достаточно ли вычислите��ьной мощности
+      // Проверяем, достаточно ли вычислительной мощности
       if (state.resources.computingPower.value < 50) {
         return state;
       }
@@ -655,10 +672,36 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         applyKnowledge: state.counters.applyKnowledge + 1
       };
       
-      return {
+      const newState = {
         ...state,
         resources: newResources,
         counters: newCounters
+      };
+      
+      // Проверяем, нужно ли разблокировать "Практика"
+      let unlocks = { ...newState.unlocks };
+      if (newCounters.applyKnowledge === 2) {
+        unlocks.practice = true;
+        
+        // Если практика разблокирована, также разблокируем здание "practice"
+        const newBuildings = {
+          ...newState.buildings,
+          practice: {
+            ...newState.buildings.practice,
+            unlocked: true
+          }
+        };
+        
+        return {
+          ...newState,
+          unlocks,
+          buildings: newBuildings
+        };
+      }
+      
+      return {
+        ...newState,
+        unlocks
       };
     }
     
@@ -666,4 +709,3 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return state;
   }
 };
-

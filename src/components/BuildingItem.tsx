@@ -105,34 +105,34 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   
   return (
     <div className="p-2 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow mb-2">
-      <div className="building-header">
-        <div className="flex items-center gap-2">
+      <div className="building-header flex justify-between items-center">
+        <div className="flex items-start flex-col">
           <h3 className="font-semibold text-[12px]">{name}</h3>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  onClick={handlePurchase} 
-                  disabled={!canAfford()}
-                  variant={canAfford() ? "default" : "outline"}
-                  size="sm"
-                  className="text-[10px] h-7 px-2"
-                >
-                  Построить
-                </Button>
-              </TooltipTrigger>
-              {!canAfford() && (
-                <TooltipContent side="left">
-                  <p className="text-[10px]">Недостаточно ресурсов</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <div className="text-[12px] font-medium">Количество: {count}</div>
         </div>
-        <div className="text-[12px] font-medium">{count}</div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                onClick={handlePurchase} 
+                disabled={!canAfford()}
+                variant={canAfford() ? "default" : "outline"}
+                size="sm"
+                className="text-[10px] h-7 px-2"
+              >
+                Построить
+              </Button>
+            </TooltipTrigger>
+            {!canAfford() && (
+              <TooltipContent side="left">
+                <p className="text-[10px]">Недостаточно ресурсов</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
       
-      <div className="building-details">
+      <div className="building-details mt-1">
         <p className="text-[10px] text-gray-600 mb-1 w-full">{description}</p>
         <div className="flex flex-col gap-1 text-[10px] w-full">
           {renderCost()}

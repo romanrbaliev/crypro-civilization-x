@@ -1,3 +1,4 @@
+
 import { Resource, Building, Upgrade, GameState, Counters } from './types';
 
 // Начальные здания
@@ -55,7 +56,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { usdtMax: 50, knowledgeMax: 25 },
     count: 0,
     unlocked: false,
-    requirements: { knowledge: 20 } // Базовое требование, будет переопределено в редьюсере
+    requirements: { basicBlockchain: 1 } // Требуется покупка улучшения "Основы блокчейна"
   },
   internetConnection: {
     id: "internetConnection",
