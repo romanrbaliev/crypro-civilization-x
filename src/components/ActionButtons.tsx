@@ -34,10 +34,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   };
   
   const handleApplyKnowledge = () => {
-    const resource = state.resources.knowledge;
-    if (resource.value >= 10) {
-      dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: -10 } });
-      dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: 1 } });
+    dispatch({ type: "APPLY_KNOWLEDGE" });
+    
+    // Уведомляем пользователя о результате
+    if (state.resources.knowledge.value >= 10) {
+      onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
       
       // Разблокируем USDT после первого использования "Применить знания"
       if (!state.resources.usdt.unlocked) {
@@ -46,7 +47,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
       }
       
       // Счетчик применений знаний для разблокировки Практики
-      dispatch({ type: "INCREMENT_COUNTER", payload: { counterId: "applyKnowledge" } });
       
       // Разблокируем кнопку "Практика" после второго применения знаний
       if (state.counters?.applyKnowledge === 1) {  // Значит это второе применение
@@ -78,9 +78,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   };
   
   const handleMining = () => {
+    dispatch({ type: "MINE_COMPUTING_POWER" });
+    
     if (state.resources.computingPower.value >= 50) {
-      dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "computingPower", amount: -50 } });
-      dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: 1 } });
+      onAddEvent("Вы успешно обменяли 50 вычислительной мощности на 5 USDT!", "success");
       
       // Разблокируем автомайнер после первого использования майнинга
       if (!state.buildings.autoMiner.unlocked) {
@@ -114,7 +115,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         {shouldShowApplyKnowledge && (
           <Button
             className="action-button w-full"
-            variant="secondary"
+            variant={state.resources.knowledge.value >= 10 ? "default" : "outline"}
             onClick={handleApplyKnowledge}
             disabled={state.resources.knowledge.value < 10}
           >
@@ -125,7 +126,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         {shouldShowPractice && (
           <Button
             className="action-button w-full"
-            variant="outline"
+            variant={canAffordPractice ? "default" : "outline"}
             onClick={handleActivatePractice}
             disabled={!canAffordPractice}
           >
@@ -136,7 +137,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         {shouldShowMining && (
           <Button
             className="action-button w-full"
-            variant="outline"
+            variant={state.resources.computingPower.value >= 50 ? "default" : "outline"}
             onClick={handleMining}
             disabled={state.resources.computingPower.value < 50}
           >

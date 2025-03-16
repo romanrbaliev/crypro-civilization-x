@@ -1,585 +1,430 @@
-import { GameState, GameAction, Building } from './types';
-import { initialState, initialResources } from './initialState';
-import { toast } from 'sonner';
 
-// Функция для добавления события в журнал
-const addGameEvent = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
-  const eventBus = window.gameEventBus;
-  if (eventBus) {
-    const customEvent = new CustomEvent('game-event', { 
-      detail: { message, type }
-    });
-    eventBus.dispatchEvent(customEvent);
-  }
-};
+import { GameState, GameAction, Resource } from './types';
+import { initialState } from './initialState';
 
-// Функция для проверки, может ли игрок позволить себе здание
-export const canAffordBuilding = (state: GameState, building: Building): boolean => {
-  for (const [resourceId, cost] of Object.entries(building.cost)) {
-    const resource = state.resources[resourceId];
-    const actualCost = cost * Math.pow(building.costMultiplier, building.count);
-    
-    if (resource.value < actualCost) {
+// Функция для проверки, достаточно ли ресурсов для покупки
+const hasEnoughResources = (
+  state: GameState,
+  costs: { [key: string]: number }
+): boolean => {
+  for (const [resourceId, amount] of Object.entries(costs)) {
+    if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
       return false;
     }
   }
   return true;
 };
 
-// Время для автомайнера (в миллисекундах)
-const AUTO_MINER_INTERVAL = 5000; // 5 секунд
+// Функция для вычисления максимальных значений ресурсов с учётом бонусов
+const calculateResourceMax = (
+  state: GameState,
+  resourceId: string,
+  baseMax: number
+): number => {
+  let maxBoost = 1;
+  
+  // Проверяем бонусы от улучшений
+  for (const upgradeId in state.upgrades) {
+    const upgrade = state.upgrades[upgradeId];
+    if (upgrade.purchased) {
+      const boostKey = `${resourceId}MaxBoost`;
+      if (upgrade.effect[boostKey]) {
+        maxBoost += upgrade.effect[boostKey];
+      }
+    }
+  }
+  
+  // Проверяем бонусы от зданий
+  for (const buildingId in state.buildings) {
+    const building = state.buildings[buildingId];
+    const maxKey = `${resourceId}Max`;
+    if (building.count > 0 && building.production[maxKey]) {
+      baseMax += building.production[maxKey] * building.count;
+    }
+  }
+  
+  return baseMax * maxBoost;
+};
 
-// Редуктор для обработки действий
-export const gameReducer = (state: GameState, action: GameAction): GameState => {
+// Проверка выполнения требований для разблокировки
+const meetsRequirements = (
+  state: GameState,
+  requirements: { [key: string]: number }
+): boolean => {
+  for (const [resourceId, amount] of Object.entries(requirements)) {
+    if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Функция проверки требований для зданий и улучшений
+const checkUnlocks = (state: GameState): GameState => {
+  const newState = { ...state };
+  
+  // Проверка зданий
+  for (const buildingId in newState.buildings) {
+    const building = newState.buildings[buildingId];
+    if (!building.unlocked && building.requirements) {
+      const requirementsMet = meetsRequirements(newState, building.requirements);
+      if (requirementsMet) {
+        // Разблокируем здание
+        newState.buildings[buildingId] = {
+          ...building,
+          unlocked: true
+        };
+        console.log(`Здание ${buildingId} разблокировано из-за выполнения требований`);
+      }
+    }
+  }
+  
+  // Проверка улучшений
+  for (const upgradeId in newState.upgrades) {
+    const upgrade = newState.upgrades[upgradeId];
+    if (!upgrade.unlocked && upgrade.requirements) {
+      const requirementsMet = meetsRequirements(newState, upgrade.requirements);
+      if (requirementsMet) {
+        // Разблокируем улучшение
+        newState.upgrades[upgradeId] = {
+          ...upgrade,
+          unlocked: true
+        };
+        console.log(`Улучшение ${upgradeId} разблокировано из-за выполнения требований`);
+      }
+    }
+  }
+  
+  return newState;
+};
+
+// Главный редьюсер игры
+export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
+  console.log('Received action:', action.type);
+  
   switch (action.type) {
+    // Инкремент ресурса
     case "INCREMENT_RESOURCE": {
       const { resourceId, amount } = action.payload;
       
-      // Проверяем, что ресурс существует
+      // Если ресурс не существует, возвращаем текущее состояние
       if (!state.resources[resourceId]) {
-        console.error(`Ресурс ${resourceId} не существует!`);
         return state;
       }
       
-      const resource = state.resources[resourceId];
+      const currentValue = state.resources[resourceId].value;
+      const maxValue = state.resources[resourceId].max;
       
-      if (!resource.unlocked && amount > 0) {
-        console.log(`Ресурс ${resourceId} не разблокирован!`);
-        return state;
+      // Вычисляем новое значение, но не выше максимального
+      let newValue = currentValue + amount;
+      if (maxValue !== Infinity && newValue > maxValue) {
+        newValue = maxValue;
       }
       
-      console.log(`Изменение ресурса ${resourceId}: ${resource.value} -> ${resource.value + amount}`);
+      // Не позволяем опуститься ниже нуля
+      if (newValue < 0) {
+        newValue = 0;
+      }
       
-      // Новое значение ресурса, ограниченное максимумом
-      const newValue = Math.min(resource.value + amount, resource.max);
+      // Выводим сообщение в консоль для отладки
+      console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue}`);
       
-      // Копируем все ресурсы для изменения
-      const newResources = {
-        ...state.resources,
-        [resourceId]: {
-          ...resource,
-          value: newValue
+      const newState = {
+        ...state,
+        resources: {
+          ...state.resources,
+          [resourceId]: {
+            ...state.resources[resourceId],
+            value: newValue
+          }
         }
       };
       
-      // Копируем состояние разблокировок для изменения
-      let newUnlocks = { ...state.unlocks };
-      let newBuildings = { ...state.buildings };
-      let newUpgrades = { ...state.upgrades };
-      let newCounters = { ...state.counters };
-      
-      // Проверка для отображения сообщения после 3 кликов
-      if (resourceId === "knowledge" && amount > 0) {
-        const studyClicksCount = (state.counters.studyClicks || 0) + 1;
-        newCounters.studyClicks = studyClicksCount;
-        
-        // После 3 кликов показываем сообщение
-        if (studyClicksCount === 3) {
-          addGameEvent("Вы начинаете понимать основы криптовалют! Скоро вы сможете применить свои знания.", "info");
-          newUnlocks.applyKnowledge = true;
-          toast.success("Открыта новая функция: Применить знания");
-          addGameEvent("Открыта новая функция: Применить знания", "success");
-        }
-      }
-      
-      // Если USDT достиг 11, открываем Генератор
-      if (resourceId === "usdt" && newValue >= 11 && !state.buildings.generator.unlocked) {
-        newBuildings.generator.unlocked = true;
-        toast.success("Открыто новое оборудование: Генератор");
-        addGameEvent("Открыто новое оборудование: Генератор", "success");
-        addGameEvent("Генератор позволяет вырабатывать электричество, необходимое для других устройств", "info");
-      }
-      
-      // Если накоплено 10 электричества, открываем Домашний компьютер
-      if (resourceId === "electricity" && newValue >= 10 && !state.buildings.homeComputer.unlocked) {
-        newBuildings.homeComputer.unlocked = true;
-        toast.success("Открыто новое оборудование: Домашний компьютер");
-        addGameEvent("Открыто новое оборудование: Домашний компьютер", "success");
-        addGameEvent("Домашний компьютер потребляет 1 электричество/сек и производит вычислительную мощность", "info");
-      }
-      
-      return {
-        ...state,
-        resources: newResources,
-        unlocks: newUnlocks,
-        buildings: newBuildings,
-        upgrades: newUpgrades,
-        counters: newCounters
-      };
+      // Проверяем условия для разблокировки зданий и улучшений
+      return checkUnlocks(newState);
     }
     
-    case "UNLOCK_RESOURCE": {
-      const { resourceId } = action.payload;
-      
-      if (!state.resources[resourceId]) {
-        console.error(`Ресурс ${resourceId} не существует!`);
-        return state;
-      }
-      
-      const newResources = {
-        ...state.resources,
-        [resourceId]: {
-          ...state.resources[resourceId],
-          unlocked: true
-        }
-      };
-
-      // Добавляем уведомление в журнал
-      addGameEvent(`Открыт новый ресурс: ${newResources[resourceId].name}`, "success");
-      
-      return {
-        ...state,
-        resources: newResources
-      };
-    }
-    
-    case "INCREMENT_COUNTER": {
-      const { counterId } = action.payload;
-      
-      if (!state.counters) {
-        console.error("Счетчики не инициализированы!");
-        return state;
-      }
-      
-      const newCounters = {
-        ...state.counters,
-        [counterId]: (state.counters[counterId] || 0) + 1
-      };
-      
-      // Проверяем, нужно ли разблокировать кнопку "Практика" после 2-го применения знаний
-      let newUnlocks = { ...state.unlocks };
-      if (counterId === "applyKnowledge" && newCounters.applyKnowledge === 2 && !state.unlocks.practice) {
-        newUnlocks.practice = true;
-        toast.success("Открыта новая функция: Практика");
-        addGameEvent("Открыта новая функция: Практика", "success");
-        addGameEvent("Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
-      }
-      
-      return {
-        ...state,
-        counters: newCounters,
-        unlocks: newUnlocks
-      };
-    }
-    
+    // Обновление ресурсов (выполняется каждый тик)
     case "UPDATE_RESOURCES": {
-      const now = Date.now();
-      const deltaTime = (now - state.lastUpdate) / 1000; // в секундах
+      // Получаем текущее время для расчета прошедшего времени
+      const currentTime = Date.now();
+      const deltaTime = (currentTime - state.lastUpdate) / 1000; // в секундах
       
-      // Если прошло менее 0.1 секунды, не обновляем
-      if (deltaTime < 0.1) return state;
+      // Копируем текущие ресурсы
+      let newResources = { ...state.resources };
+      let newEventMessages = { ...state.eventMessages };
       
-      const newResources = { ...state.resources };
-      
-      // Сбрасываем значение perSecond для всех ресурсов, чтобы корректно посчитать заново
-      for (const resourceId in newResources) {
-        newResources[resourceId].perSecond = 0;
-      }
-      
-      // Объект для отслеживания, какие здания не работают из-за нехватки ресурсов
-      const inactiveBuildings = {};
-      let resourceShortageMessage = null;
-      
-      // Проверяем, хватает ли электричества для Домашнего компьютера
-      const homeComputerCount = state.buildings.homeComputer.count;
-      if (homeComputerCount > 0) {
-        const electricityPerComputer = 1; // Потребление электричества на один компьютер
-        const totalElectricityNeeded = electricityPerComputer * homeComputerCount;
-        
-        // Если электричества недостаточно, компьютеры не будут работать
-        if (newResources.electricity.value < electricityPerComputer) {
-          inactiveBuildings['homeComputer'] = true;
-          
-          // Если нехватка электричества и ещё не было уведомления
-          if (!state.eventMessages.electricityShortage) {
-            resourceShortageMessage = "Нехватка электричества! Компьютеры остановлены. Включите генераторы или купите новые.";
-          }
-        } else {
-          // Вычитаем потребляемое электричество, но не больше чем есть
-          const actualElectricityToUse = Math.min(totalElectricityNeeded * deltaTime, newResources.electricity.value);
-          newResources.electricity.value -= actualElectricityToUse;
-          newResources.electricity.perSecond -= totalElectricityNeeded;
-          
-          // Если раньше был недостаток, но теперь электричества хватает
-          if (state.eventMessages.electricityShortage) {
-            resourceShortageMessage = "Подача электричества восстановлена, компьютеры снова работают.";
-          }
-        }
-      }
-      
-      // Особая логика для Автомайнера
-      const autoMinerCount = state.buildings.autoMiner.count;
-      if (autoMinerCount > 0) {
-        const timeSinceLastUpdate = now - state.lastUpdate;
-        const miningCycles = Math.floor(timeSinceLastUpdate / AUTO_MINER_INTERVAL);
-        
-        if (miningCycles > 0) {
-          // Для каждого цикла каждый автомайнер пытается использовать 50 вычислительной мощности
-          for (let i = 0; i < miningCycles; i++) {
-            const requiredPower = 50 * autoMinerCount;
-            if (newResources.computingPower.value >= requiredPower) {
-              newResources.computingPower.value -= requiredPower;
-              // Изменено с 1 на 5 USDT за 50 единиц вычислительной мощности
-              newResources.usdt.value = Math.min(
-                newResources.usdt.value + (5 * autoMinerCount),
-                newResources.usdt.max
-              );
-            } else {
-              // Не хватает вычислительной мощности
-              break;
-            }
-          }
-        }
-        
-        // Обновляем perSecond для отображения (приблизительно)
-        const miningRatePerSecond = autoMinerCount / (AUTO_MINER_INTERVAL / 1000);
-        newResources.computingPower.perSecond -= 50 * miningRatePerSecond;
-        // Изменено с 1 на 5 USDT
-        newResources.usdt.perSecond += 5 * miningRatePerSecond;
-      }
-      
-      // Применяем производство от зданий
-      for (const building of Object.values(state.buildings)) {
-        if (building.count === 0) continue;
-        
-        // Пропускаем здания, которые не работают из-за нехватки ресурсов
-        if (inactiveBuildings[building.id]) continue;
-        
-        // Специальная обработка для автомайнера - уже обработано выше
-        if (building.id === "autoMiner") continue;
-        
-        for (const [resourceId, amount] of Object.entries(building.production)) {
-          // Проверяем, содержит ли производство изменение максимального значения
-          if (resourceId.includes('Max')) {
-            const actualResourceId = resourceId.replace('Max', '');
-            if (newResources[actualResourceId]) {
-              // Не обновляем ресурсы здесь, только расчитываем новый максимум
-              continue;
-            }
-          } else if (resourceId.includes('Boost')) {
-            // Обрабатываем бонусы производства
-            continue;
-          } else if (newResources[resourceId]) {
-            // Обычные ресурсы: производство в секунду * количество зданий * дельта времени
-            const resourceAmount = amount * building.count * deltaTime;
-            newResources[resourceId].value = Math.min(
-              newResources[resourceId].value + resourceAmount,
-              newResources[resourceId].max
-            );
-            newResources[resourceId].perSecond += amount * building.count;
-          }
-        }
-      }
-      
-      // Обновляем максимальные значения ресурсов на основе зданий
-      for (const building of Object.values(state.buildings)) {
-        if (building.count === 0) continue;
-        
-        for (const [resourceId, amount] of Object.entries(building.production)) {
-          if (resourceId.includes('Max')) {
-            const actualResourceId = resourceId.replace('Max', '');
-            if (newResources[actualResourceId]) {
-              // Обновляем максимальное значение ресурса на основе базового значения и количества зданий
-              const baseMax = initialResources[actualResourceId].max;
-              newResources[actualResourceId].max = baseMax + amount * building.count;
-            }
-          }
-        }
-      }
-      
-      // Обновляем бонусы к производству
+      // Расчет производства/потребления ресурсов
+      let electricityProduction = 0;
+      let electricityConsumption = 0;
       let knowledgeBoost = 1;
-      let usdtMaxBoost = 1;
-      let knowledgeMaxBoost = 1;
+      let electricityShortage = false;
       
-      // Проверяем здания, дающие бонусы
-      for (const building of Object.values(state.buildings)) {
-        if (building.count === 0) continue;
-        
-        for (const [resourceId, amount] of Object.entries(building.production)) {
-          if (resourceId === 'knowledgeBoost') {
-            knowledgeBoost += amount * building.count;
-          }
+      // Рассчитываем производство электричества
+      for (const buildingId in state.buildings) {
+        const building = state.buildings[buildingId];
+        if (building.count > 0 && building.production.electricity) {
+          electricityProduction += building.production.electricity * building.count;
         }
       }
       
-      // Проверяем апгрейды, дающие бонусы
-      for (const upgrade of Object.values(state.upgrades)) {
-        if (!upgrade.purchased) continue;
-        
-        for (const [effectId, amount] of Object.entries(upgrade.effect)) {
-          if (effectId === 'knowledgeBoost') {
-            knowledgeBoost += Number(amount);  // Используем точное значение: 0.1 = 10%
-          } else if (effectId === 'usdtMaxBoost') {
-            usdtMaxBoost += Number(amount);  // Используем точное значение: 0.25 = 25%
-          } else if (effectId === 'knowledgeMaxBoost') {
-            knowledgeMaxBoost += Number(amount);  // Используем точное значение: 0.5 = 50%
-          }
+      // Проверяем бонусы к производству знаний от улучшений
+      for (const upgradeId in state.upgrades) {
+        const upgrade = state.upgrades[upgradeId];
+        if (upgrade.purchased && upgrade.effect.knowledgeBoost) {
+          knowledgeBoost += upgrade.effect.knowledgeBoost;
         }
       }
       
-      // Применяем бонусы
-      if (knowledgeBoost !== 1) {
-        for (const building of Object.values(state.buildings)) {
-          if (building.count === 0) continue;
+      // Рассчитываем потребление электричества домашними компьютерами
+      if (state.buildings.homeComputer.count > 0) {
+        electricityConsumption = state.buildings.homeComputer.count; // 1 эл/сек на компьютер
+      }
+      
+      // Проверяем, достаточно ли электричества
+      const currentElectricity = newResources.electricity.value;
+      const requiredElectricity = electricityConsumption * deltaTime;
+      
+      if (requiredElectricity > 0 && requiredElectricity > currentElectricity) {
+        // Недостаточно электричества
+        electricityShortage = true;
+        newEventMessages.electricityShortage = true;
+      } else {
+        newEventMessages.electricityShortage = false;
+      }
+      
+      // Обновляем ресурсы
+      for (const resourceId in newResources) {
+        let production = 0;
+        
+        // Рассчитываем базовое производство от зданий
+        for (const buildingId in state.buildings) {
+          const building = state.buildings[buildingId];
           
-          if (building.production.knowledge) {
-            const boostedProduction = building.production.knowledge * knowledgeBoost;
-            newResources.knowledge.perSecond += boostedProduction * building.count;
-            
-            // Корректируем уже накопленное значение с учетом бонуса
-            const resourceAmount = building.production.knowledge * building.count * deltaTime * knowledgeBoost;
-            newResources.knowledge.value = Math.min(
-              newResources.knowledge.value + resourceAmount - (building.production.knowledge * building.count * deltaTime),
-              newResources.knowledge.max
-            );
+          // Если это домашний компьютер и не хватает электричества, не производим вычислительную мощность
+          if (buildingId === 'homeComputer' && resourceId === 'computingPower' && electricityShortage) {
+            continue;
           }
-        }
-      }
-      
-      // Применяем бонус к максимальному хранению знаний
-      if (knowledgeMaxBoost !== 1) {
-        const baseMax = initialResources.knowledge.max;
-        newResources.knowledge.max = baseMax * knowledgeMaxBoost;
-      }
-      
-      if (usdtMaxBoost !== 1) {
-        // Применяем бонус только к базовому значению + бонусы от зданий
-        const baseMax = initialResources.usdt.max;
-        let buildingBonus = 0;
-        
-        // Считаем бонусы от зданий
-        for (const building of Object.values(state.buildings)) {
-          if (building.count === 0) continue;
           
-          for (const [resourceId, amount] of Object.entries(building.production)) {
-            if (resourceId === 'usdtMax') {
-              buildingBonus += amount * building.count;
-            }
+          if (building.count > 0 && building.production[resourceId]) {
+            production += building.production[resourceId] * building.count;
           }
         }
         
-        newResources.usdt.max = (baseMax + buildingBonus) * usdtMaxBoost;
-      }
-      
-      // Проверяем условия открытия новых апгрейдов
-      const newUpgrades = { ...state.upgrades };
-      const newBuildings = { ...state.buildings };
-      
-      // "Основы блокчейна" доступно после покупки генератора
-      if (state.buildings.generator.count > 0 && !newUpgrades.basicBlockchain.unlocked) {
-        newUpgrades.basicBlockchain.unlocked = true;
-        toast.success(`Новое исследование доступно: ${newUpgrades.basicBlockchain.name}`);
-        addGameEvent(`Новое исследование доступно: ${newUpgrades.basicBlockchain.name}`, "success");
-      }
-      
-      // Криптокошелек доступен только после покупки исследования "Основы блокчейна"
-      if (state.upgrades.basicBlockchain.purchased && !newBuildings.cryptoWallet.unlocked) {
-        newBuildings.cryptoWallet.unlocked = true;
-        toast.success(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`);
-        addGameEvent(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`, "success");
-      }
-      
-      // Исследование Безопасность криптокошельков доступно только после покупки Криптокошелька
-      if (state.buildings.cryptoWallet.count > 0 && !newUpgrades.walletSecurity.unlocked) {
-        newUpgrades.walletSecurity.unlocked = true;
-        toast.success(`Новое исследование доступно: ${newUpgrades.walletSecurity.name}`);
-        addGameEvent(`Новое исследование доступно: ${newUpgrades.walletSecurity.name}`, "success");
-      }
-      
-      // Открываем вычислительную мощность если есть домашний компьютер
-      if (state.buildings.homeComputer.count > 0 && !newResources.computingPower.unlocked) {
-        newResources.computingPower.unlocked = true;
-        toast.success("Открыт новый ресурс: Вычислительная мощность");
-        addGameEvent("Открыт новый ресурс: Вычислительная мощность", "success");
-      }
-      
-      // Открываем электричество если есть генератор
-      if (state.buildings.generator.count > 0 && !newResources.electricity.unlocked) {
-        newResources.electricity.unlocked = true;
-        toast.success("Открыт новый ресурс: Электричество");
-        addGameEvent("Открыт новый ресурс: Электричество", "success");
-      }
-      
-      // Подготавливаем сообщения о состоянии ресурсов
-      const eventMessages = { ...state.eventMessages };
-      
-      if (resourceShortageMessage) {
-        // Обновляем статус нехватки электричества
-        eventMessages.electricityShortage = !state.eventMessages.electricityShortage;
-        addGameEvent(resourceShortageMessage, eventMessages.electricityShortage ? "error" : "success");
+        // Применяем бонусы для знаний
+        if (resourceId === 'knowledge') {
+          production *= knowledgeBoost;
+        }
         
-        return {
-          ...state,
-          resources: newResources,
-          lastUpdate: now,
-          upgrades: newUpgrades,
-          buildings: newBuildings,
-          eventMessages
+        // Обрабатываем специальные случаи
+        if (resourceId === 'electricity') {
+          // Добавляем производство и вычитаем потребление
+          if (!electricityShortage) {
+            production = electricityProduction - electricityConsumption;
+          } else {
+            production = electricityProduction;
+          }
+        }
+        
+        // Обработка автомайнера
+        if (resourceId === 'usdt' && state.buildings.autoMiner.count > 0) {
+          // Автоматическая конвертация вычислительной мощности в USDT каждые 5 секунд
+          const lastFiveSeconds = Math.floor(state.lastUpdate / 5000);
+          const currentFiveSeconds = Math.floor(currentTime / 5000);
+          
+          if (lastFiveSeconds !== currentFiveSeconds && newResources.computingPower.value >= 50) {
+            newResources.computingPower.value -= 50;
+            newResources.usdt.value += 5;
+          }
+        }
+        
+        // Рассчитываем новое значение ресурса
+        const resource = newResources[resourceId];
+        let newValue = resource.value + production * deltaTime;
+        
+        // Ограничиваем максимальным значением
+        if (resource.max !== Infinity && newValue > resource.max) {
+          newValue = resource.max;
+        }
+        
+        // Не позволяем опуститься ниже нуля
+        if (newValue < 0) {
+          newValue = 0;
+        }
+        
+        // Обновляем значение и скорость производства
+        newResources[resourceId] = {
+          ...resource,
+          value: newValue,
+          perSecond: production
         };
       }
       
       return {
         ...state,
         resources: newResources,
-        lastUpdate: now,
-        upgrades: newUpgrades,
-        buildings: newBuildings
+        lastUpdate: currentTime,
+        eventMessages: newEventMessages
       };
     }
     
-    case "SET_BUILDING_UNLOCKED": {
-      const { buildingId, unlocked } = action.payload;
-      
-      if (!state.buildings[buildingId]) {
-        console.error(`Здание ${buildingId} не найдено!`);
-        return state;
-      }
-      
-      const newBuildings = {
-        ...state.buildings,
-        [buildingId]: {
-          ...state.buildings[buildingId],
-          unlocked
-        }
-      };
-      
-      console.log(`Здание ${buildingId} теперь ${unlocked ? 'разблокировано' : 'заблокировано'}`);
-      
-      return {
-        ...state,
-        buildings: newBuildings
-      };
-    }
-    
-    case "RESTART_COMPUTERS": {
-      // Если компьютеры были остановлены из-за нехватки электричества,
-      // пробуем их перезапустить
-      if (state.eventMessages.electricityShortage) {
-        addGameEvent("Попытка перезапуска компьютеров...", "info");
-        
-        // Проверяем, есть ли сейчас электричество
-        const electricity = state.resources.electricity.value;
-        if (electricity <= 0) {
-          addGameEvent("Недостаточно электричества для запуска компьютеров", "error");
-          return state;
-        }
-        
-        // Если есть электричество, сбрасываем флаг нехватки
-        return {
-          ...state,
-          eventMessages: {
-            ...state.eventMessages,
-            electricityShortage: false
-          }
-        };
-      }
-      
-      return state;
-    }
-    
+    // Покупка здания
     case "PURCHASE_BUILDING": {
       const { buildingId } = action.payload;
       const building = state.buildings[buildingId];
       
-      if (!building) {
-        console.error(`Building ${buildingId} not found!`);
+      // Если здание не существует или не разблокировано, возвращаем текущее состояние
+      if (!building || !building.unlocked) {
+        console.log(`Попытка покупки здания ${buildingId}, но оно не существует или не разблокировано`);
         return state;
       }
       
-      console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}, достаточно ресурсов: ${canAffordBuilding(state, building)}`);
+      // Рассчитываем стоимость здания с учетом уже построенных
+      const currentCost: { [key: string]: number } = {};
+      for (const [resourceId, baseCost] of Object.entries(building.cost)) {
+        currentCost[resourceId] = baseCost * Math.pow(building.costMultiplier, building.count);
+      }
       
-      // Проверяем, разблокировано ли здание
-      if (!building.unlocked) {
-        console.log(`Building ${buildingId} is not unlocked yet!`);
+      // Проверяем, хватает ли ресурсов
+      const canAfford = hasEnoughResources(state, currentCost);
+      console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}, достаточно ресурсов: ${canAfford}`);
+      
+      if (!canAfford) {
         return state;
       }
       
-      // Проверяем, есть ли достаточно ресурсов для покупки
-      if (!canAffordBuilding(state, building)) {
-        toast.error(`Недостаточно ресурсов для покупки ${building.name}`);
-        addGameEvent(`Недостаточно ресурсов для покупки ${building.name}`, "error");
-        return state;
-      }
-      
-      // Вычитаем стоимость здания из ресурсов
+      // Вычитаем ресурсы
       const newResources = { ...state.resources };
-      for (const [resourceId, cost] of Object.entries(building.cost)) {
-        const actualCost = cost * Math.pow(building.costMultiplier, building.count);
-        newResources[resourceId].value -= actualCost;
-        console.log(`Вычитаем ${actualCost} ${resourceId} за покупку здания ${buildingId}`);
-      }
-      
-      // Увеличиваем количество здания
-      const newBuildings = { ...state.buildings };
-      newBuildings[buildingId].count += 1;
-      
-      // Обновляем состояние
-      let newState = {
-        ...state,
-        resources: newResources,
-        buildings: newBuildings
-      };
-      
-      // Добавляем событие в журнал
-      addGameEvent(`Здание ${building.name} построено`, "success");
-      
-      // Обновляем флаги и отключаем кнопку Майнинг при покупке автомайнера
-      let newUnlocks = { ...state.unlocks };
-      if (buildingId === "autoMiner") {
-        newUnlocks.mining = false;
-        newState = {
-          ...newState,
-          unlocks: newUnlocks
+      for (const [resourceId, cost] of Object.entries(currentCost)) {
+        console.log(`Вычитаем ${cost} ${resourceId} за покупку здания ${buildingId}`);
+        newResources[resourceId] = {
+          ...newResources[resourceId],
+          value: newResources[resourceId].value - cost
         };
       }
       
-      // Если это первая Практика, показываем сообщение
-      if (buildingId === "practice" && building.count === 0) {
-        addGameEvent("Чтобы увеличить скорость накопления знаний, используйте Практику, а также изучайте различные исследования.", "info");
-      }
-      
-      console.log(`Здание ${buildingId} построено, новое количество: ${newBuildings[buildingId].count}`);
-      return newState;
-    }
-    
-    case "PURCHASE_UPGRADE": {
-      const { upgradeId } = action.payload;
-      const upgrade = state.upgrades[upgradeId];
-      
-      if (!upgrade.unlocked || upgrade.purchased) return state;
-      
-      // Проверяем, есть ли достаточно ресурсов для покупки
-      for (const [resourceId, cost] of Object.entries(upgrade.cost)) {
-        const resource = state.resources[resourceId];
-        
-        if (resource.value < cost) {
-          toast.error(`Недостаточно ${resource.name} для исследования ${upgrade.name}`);
-          addGameEvent(`Недостаточно ${resource.name} для исследования ${upgrade.name}`, "error");
-          return state;
+      // Увеличиваем количество зданий
+      const newBuildings = {
+        ...state.buildings,
+        [buildingId]: {
+          ...building,
+          count: building.count + 1
         }
+      };
+      
+      console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
+      
+      // Если построен первый генератор, разблокируем электричество
+      if (buildingId === 'generator' && building.count === 0) {
+        newResources.electricity = {
+          ...newResources.electricity,
+          unlocked: true
+        };
+
+        // Также разблокируем исследование "Основы блокчейна"
+        const newUpgrades = {
+          ...state.upgrades,
+          basicBlockchain: {
+            ...state.upgrades.basicBlockchain,
+            unlocked: true
+          }
+        };
+
+        console.log("Разблокировано электричество из-за постройки генератора");
+        console.log("Разблокировано исследование 'Основы блокчейна' из-за постройки генератора");
+
+        return {
+          ...state,
+          resources: newResources,
+          buildings: newBuildings,
+          upgrades: newUpgrades
+        };
       }
-      
-      // Вычитаем стоимость апгрейда из ресурсов
-      const newResources = { ...state.resources };
-      for (const [resourceId, cost] of Object.entries(upgrade.cost)) {
-        newResources[resourceId].value -= cost;
-      }
-      
-      // Отмечаем апгрейд как купленный
-      const newUpgrades = { ...state.upgrades };
-      newUpgrades[upgradeId].purchased = true;
-      
-      // Добавляем событие о покупке апгрейда
-      addGameEvent(`Исследование "${upgrade.name}" успешно завершено`, "success");
       
       return {
         ...state,
         resources: newResources,
+        buildings: newBuildings
+      };
+    }
+    
+    // Покупка улучшения
+    case "PURCHASE_UPGRADE": {
+      const { upgradeId } = action.payload;
+      const upgrade = state.upgrades[upgradeId];
+      
+      // Если улучшение не существует, не разблокировано или уже куплено, возвращаем текущее состояние
+      if (!upgrade || !upgrade.unlocked || upgrade.purchased) {
+        return state;
+      }
+      
+      // Проверяем, хватает ли ресурсов
+      const canAfford = hasEnoughResources(state, upgrade.cost);
+      if (!canAfford) {
+        return state;
+      }
+      
+      // Вычитаем ресурсы
+      const newResources = { ...state.resources };
+      for (const [resourceId, cost] of Object.entries(upgrade.cost)) {
+        newResources[resourceId] = {
+          ...newResources[resourceId],
+          value: newResources[resourceId].value - cost
+        };
+      }
+      
+      // Помечаем улучшение как купленное
+      const newUpgrades = {
+        ...state.upgrades,
+        [upgradeId]: {
+          ...upgrade,
+          purchased: true
+        }
+      };
+      
+      // Пересчитываем максимальные значения ресурсов с учетом улучшений
+      const updatedResources = { ...newResources };
+      for (const resourceId in updatedResources) {
+        const resource = updatedResources[resourceId];
+        const baseMax = initialState.resources[resourceId].max;
+        updatedResources[resourceId] = {
+          ...resource,
+          max: calculateResourceMax(
+            { ...state, upgrades: newUpgrades },
+            resourceId,
+            baseMax
+          )
+        };
+      }
+
+      // Если приобретены "Основы блокчейна", разблокируем криптокошелек
+      if (upgradeId === 'basicBlockchain') {
+        const newBuildings = {
+          ...state.buildings,
+          cryptoWallet: {
+            ...state.buildings.cryptoWallet,
+            unlocked: true
+          }
+        };
+
+        console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
+
+        return {
+          ...state,
+          resources: updatedResources,
+          upgrades: newUpgrades,
+          buildings: newBuildings
+        };
+      }
+      
+      return {
+        ...state,
+        resources: updatedResources,
         upgrades: newUpgrades
       };
     }
     
+    // Разблокировка фичи
     case "UNLOCK_FEATURE": {
       const { featureId } = action.payload;
       
@@ -592,6 +437,60 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
     
+    // Разблокировка ресурса
+    case "UNLOCK_RESOURCE": {
+      const { resourceId } = action.payload;
+      
+      if (!state.resources[resourceId]) {
+        return state;
+      }
+      
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          [resourceId]: {
+            ...state.resources[resourceId],
+            unlocked: true
+          }
+        }
+      };
+    }
+    
+    // Установка разблокировки здания
+    case "SET_BUILDING_UNLOCKED": {
+      const { buildingId, unlocked } = action.payload;
+      
+      if (!state.buildings[buildingId]) {
+        return state;
+      }
+      
+      return {
+        ...state,
+        buildings: {
+          ...state.buildings,
+          [buildingId]: {
+            ...state.buildings[buildingId],
+            unlocked
+          }
+        }
+      };
+    }
+    
+    // Инкремент счетчика
+    case "INCREMENT_COUNTER": {
+      const { counterId } = action.payload;
+      
+      return {
+        ...state,
+        counters: {
+          ...state.counters,
+          [counterId]: (state.counters[counterId] || 0) + 1
+        }
+      };
+    }
+    
+    // Запуск игры
     case "START_GAME": {
       return {
         ...state,
@@ -600,6 +499,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
     
+    // Загрузка сохраненной игры
     case "LOAD_GAME": {
       return {
         ...action.payload,
@@ -607,15 +507,41 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
     
+    // Престиж (перезапуск с бонусами)
+    case "PRESTIGE": {
+      // Рассчитываем очки престижа
+      const prestigePoints = Math.floor(
+        Math.log(state.resources.usdt.value / 1000) * 10
+      );
+      
+      return {
+        ...initialState,
+        prestigePoints: state.prestigePoints + Math.max(0, prestigePoints),
+        gameStarted: true,
+        lastUpdate: Date.now()
+      };
+    }
+    
+    // Перезапуск компьютеров
+    case "RESTART_COMPUTERS": {
+      // Перезапускаем компьютеры после нехватки электричества
+      return {
+        ...state,
+        eventMessages: {
+          ...state.eventMessages,
+          electricityShortage: false
+        }
+      };
+    }
+    
+    // Майнинг вычислительной мощности
     case "MINE_COMPUTING_POWER": {
-      // ����роверяем, достаточно ли вычислительной мощности
+      // Проверяем, достаточно ли вычислительной мощности
       if (state.resources.computingPower.value < 50) {
-        toast.error("Недостаточно вычислительной мощности для майнинга");
-        addGameEvent("Недостаточно вычислительной мощности для майнинга", "error");
         return state;
       }
       
-      // Вычитаем вычислительную мощность, добавляем USDT
+      // Вычитаем вычислительную мощность и добавляем USDT
       const newResources = {
         ...state.resources,
         computingPower: {
@@ -624,27 +550,25 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         },
         usdt: {
           ...state.resources.usdt,
-          value: Math.min(state.resources.usdt.value + 5, state.resources.usdt.max)
+          value: state.resources.usdt.value + 5, // Увеличено до 5 USDT
+          unlocked: true // Важно: убедимся, что usdt разблокирован
         }
       };
+      
+      // Если это первый майнинг, разблокируем автомайнер
+      let newBuildings = { ...state.buildings };
+      if (state.counters.mining === 0) {
+        newBuildings.autoMiner = {
+          ...newBuildings.autoMiner,
+          unlocked: true
+        };
+      }
       
       // Увеличиваем счетчик майнинга
       const newCounters = {
         ...state.counters,
-        mining: (state.counters.mining || 0) + 1
+        mining: state.counters.mining + 1
       };
-      
-      // Разблокируем Автомайнер после первого майнинга
-      let newBuildings = { ...state.buildings };
-      if (newCounters.mining === 1 && !state.buildings.autoMiner.unlocked) {
-        newBuildings.autoMiner.unlocked = true;
-        toast.success("Открыто новое оборудование: Автомайнер");
-        addGameEvent("Открыто новое оборудование: Автомайнер", "success");
-        addGameEvent("Автомайнер автоматически обменивает 50 единиц вычислительной мощности на 5 USDT каждые 5 секунд", "info");
-      }
-      
-      // Добавляем сообщение о майнинге
-      addGameEvent("Майнинг: -50 вычислительной мощности, +5 USDT", "success");
       
       return {
         ...state,
@@ -654,70 +578,34 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
     
+    // Применение знаний
     case "APPLY_KNOWLEDGE": {
       // Проверяем, достаточно ли знаний
       if (state.resources.knowledge.value < 10) {
-        toast.error("Недостаточно знаний для применения");
-        addGameEvent("Недостаточно знаний для применения", "error");
         return state;
       }
       
-      // Увеличиваем счетчик применения знаний
-      const newCounters = {
-        ...state.counters,
-        applyKnowledge: (state.counters.applyKnowledge || 0) + 1
-      };
-      
-      // Создаем копию ресурсов
-      let newResources = { ...state.resources };
-      
-      // Вычитаем знания
-      newResources.knowledge = {
-        ...state.resources.knowledge,
-        value: state.resources.knowledge.value - 10
-      };
-      
-      // Разблокируем USDT при первом применении знаний
-      if (!state.resources.usdt.unlocked) {
-        // Разблокируем USDT и устанавливаем значение 1
-        newResources.usdt = {
+      // Вычитаем знания и добавляем USDT
+      const newResources = {
+        ...state.resources,
+        knowledge: {
+          ...state.resources.knowledge,
+          value: state.resources.knowledge.value - 10
+        },
+        usdt: {
           ...state.resources.usdt,
-          unlocked: true,
-          value: 1
-        };
-        toast.success("Открыт новый ресурс: USDT");
-        addGameEvent("Открыт новый ресурс: USDT", "success");
-      } else {
-        // Если USDT уже разблокирован, то просто увеличиваем значение
-        newResources.usdt = {
-          ...state.resources.usdt,
-          value: Math.min(state.resources.usdt.value + 1, state.resources.usdt.max)
-        };
-      }
+          value: state.resources.usdt.value + 1,
+          unlocked: true  // Важно: убедимся, что usdt разблокирован
+        }
+      };
       
       return {
         ...state,
         resources: newResources,
-        counters: newCounters
-      };
-    }
-    
-    case "PRESTIGE": {
-      // Расс��итываем очки престижа на основе текущего прогресса
-      const totalWorth = Object.values(state.resources).reduce((sum, resource) => {
-        return sum + resource.value;
-      }, 0);
-      
-      const newPrestigePoints = state.prestigePoints + Math.floor(Math.log(totalWorth / 1000 + 1) * 10);
-      
-      toast.success(`Криптозима! Вы получили ${newPrestigePoints - state.prestigePoints} очков криптомудрости`);
-      addGameEvent(`Криптозима! Вы получили ${newPrestigePoints - state.prestigePoints} очков криптомудрости`, "success");
-      
-      // Возвращаемся к начальному состоянию, но сохраняем очки престижа
-      return {
-        ...initialState,
-        prestigePoints: newPrestigePoints,
-        lastUpdate: Date.now()
+        counters: {
+          ...state.counters,
+          applyKnowledge: state.counters.applyKnowledge + 1
+        }
       };
     }
     
