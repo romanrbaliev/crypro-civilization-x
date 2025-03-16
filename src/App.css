@@ -147,13 +147,15 @@ body, html {
   padding: 0.5rem;
 }
 
-/* Новые стили для специального форматирования */
+/* Стили для ресурсов (обновленные) */
 .resource-name {
-  font-size: 5px !important;
+  font-size: 0.44rem !important;
+  font-weight: medium;
 }
 
 .resource-count {
-  font-size: 5px !important;
+  font-size: 0.44rem !important;
+  font-weight: medium;
 }
 
 .section-title {

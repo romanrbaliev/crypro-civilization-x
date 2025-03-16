@@ -244,15 +244,15 @@ const GameScreen = () => {
                 <div key={resource.id} className="border-b pb-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center">
-                      <span className="font-medium resource-name">{resource.name}</span>
+                      <span className="resource-name">{resource.name}</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium resource-count">
+                      <div className="resource-count">
                         {resource.value.toFixed(0)}
                         {resource.max !== Infinity && `/${resource.max.toFixed(0)}`}
                       </div>
                       {resource.perSecond > 0 && (
-                        <div className="text-[5px] text-green-600">+{resource.perSecond.toFixed(2)}/сек</div>
+                        <div className="text-[0.44rem] text-green-600">+{resource.perSecond.toFixed(2)}/сек</div>
                       )}
                     </div>
                   </div>
