@@ -18,14 +18,14 @@ const ResourceForecast: React.FC<ResourceForecastProps> = ({ resource, targetVal
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center space-x-1 text-xs text-muted-foreground cursor-help">
-              <Clock className="h-2.5 w-2.5" />
+            <div className="flex items-center space-x-1 text-[7px] text-muted-foreground cursor-help">
+              <Clock className="h-2 w-2" />
               <span>{label}: ∞</span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="top">
-            <p className="text-xs">Нет активного производства {resource.name}</p>
-            <p className="text-xs">Постройте здания или исследуйте улучшения</p>
+            <p className="text-[7px]">Нет активного производства {resource.name}</p>
+            <p className="text-[7px]">Постройте здания или исследуйте улучшения</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -38,13 +38,13 @@ const ResourceForecast: React.FC<ResourceForecastProps> = ({ resource, targetVal
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center space-x-1 text-xs text-green-600 cursor-help">
-              <Clock className="h-2.5 w-2.5" />
+            <div className="flex items-center space-x-1 text-[7px] text-green-600 cursor-help">
+              <Clock className="h-2 w-2" />
               <span>{label}: Готово!</span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="top">
-            <p className="text-xs">У вас уже есть необходимое количество {resource.name}</p>
+            <p className="text-[7px]">У вас уже есть необходимое количество {resource.name}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -58,14 +58,14 @@ const ResourceForecast: React.FC<ResourceForecastProps> = ({ resource, targetVal
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center space-x-1 text-xs text-muted-foreground cursor-help">
-            <Clock className="h-2.5 w-2.5" />
+          <div className="flex items-center space-x-1 text-[7px] text-muted-foreground cursor-help">
+            <Clock className="h-2 w-2" />
             <span>{label}: {timeToReach}</span>
           </div>
         </TooltipTrigger>
         <TooltipContent side="top">
-          <p className="text-xs">Время до достижения {formatNumber(targetValue)} {resource.name}</p>
-          <p className="text-xs">При текущей скорости {formatNumber(resource.perSecond)}/сек</p>
+          <p className="text-[7px]">Время до достижения {formatNumber(targetValue)} {resource.name}</p>
+          <p className="text-[7px]">При текущей скорости {formatNumber(resource.perSecond)}/сек</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -47,14 +46,12 @@ const GameScreen = () => {
   const [clickCount, setClickCount] = useState(0);
   const [selectedTab, setSelectedTab] = useState("buildings");
   
-  // Если игра еще не начата, перенаправляем на стартовую страницу
   useEffect(() => {
     if (!state.gameStarted) {
       navigate("/");
     }
   }, [state.gameStarted, navigate]);
   
-  // Добавление события в журнал
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
       id: generateId(),
@@ -66,9 +63,7 @@ const GameScreen = () => {
     setEventLog(prev => [...prev, newEvent]);
   };
   
-  // Обработчики событий
   const handleStudyCrypto = () => {
-    // Отправляем действие для увеличения знаний
     dispatch({ 
       type: "INCREMENT_RESOURCE", 
       payload: { 
@@ -77,14 +72,11 @@ const GameScreen = () => {
       } 
     });
     
-    // Для верификации, выведем уведомление
     console.log("Изучение крипты: +1 знание");
     
-    // Отслеживаем количество кликов для обучения
     setClickCount(prev => {
       const newCount = prev + 1;
       
-      // Подсказки для нового игрока
       if (newCount === 3) {
         addEvent("Вы начинаете понимать основы криптовалют!", "info");
       } else if (newCount === 10) {
@@ -101,7 +93,6 @@ const GameScreen = () => {
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: -10 } });
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: 1 } });
       
-      // Добавляем событие
       addEvent("Вы конвертировали знания в USDT", "success");
     } else {
       toast.error("Недостаточно знаний! Нужно минимум 10.");
@@ -109,22 +100,18 @@ const GameScreen = () => {
     }
   };
   
-  // Получаем списки ресурсов, зданий и апгрейдов
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
   const unlockedBuildings = Object.values(state.buildings).filter(b => b.unlocked);
   const unlockedUpgrades = Object.values(state.upgrades).filter(u => u.unlocked && !u.purchased);
   const purchasedUpgrades = Object.values(state.upgrades).filter(u => u.purchased);
   
-  // Обработчик закрытия интро
   const handleCloseIntro = () => {
     setShowIntro(false);
     dispatch({ type: "START_GAME" });
     
-    // Добавляем первое событие в журнал
     addEvent("Добро пожаловать в мир криптовалют! Начните с изучения основ.", "info");
   };
   
-  // Цели для отображения прогнозов
   const getResourceTargets = () => {
     return {
       knowledge: state.unlocks.applyKnowledge ? 10 : 5,
@@ -134,12 +121,10 @@ const GameScreen = () => {
   
   const resourceTargets = getResourceTargets();
   
-  // Для отладки: выводим текущее значение ресурса знаний
   useEffect(() => {
     console.log("Текущее значение знаний:", state.resources.knowledge.value);
   }, [state.resources.knowledge.value]);
   
-  // Интро для новых игроков
   if (showIntro) {
     return (
       <div className="min-h-screen flex flex-col bg-white">
@@ -171,7 +156,6 @@ const GameScreen = () => {
   
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      {/* Верхняя панель */}
       <header className="bg-white border-b shadow-sm p-2 flex-shrink-0">
         <div className="flex justify-between items-center px-2">
           <div className="flex items-center">
@@ -231,48 +215,44 @@ const GameScreen = () => {
         </div>
       </header>
       
-      {/* Основной контент - двухколоночная сетка */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Левая колонка (40%) - Разделы и Ресурсы */}
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
-          {/* Верхняя часть - Разделы/Категории (вертикально) */}
           <div className="border-b">
             <div className="flex flex-col">
               <Button 
                 variant={selectedTab === "buildings" ? "default" : "ghost"} 
-                className="justify-start rounded-none text-sm h-9 px-3"
+                className="justify-start rounded-none text-xs h-7 px-3"
                 onClick={() => setSelectedTab("buildings")}
               >
-                <Building className="h-3.5 w-3.5 mr-2" />
+                <Building className="h-3 w-3 mr-2" />
                 Здания
               </Button>
               <Button 
                 variant={selectedTab === "research" ? "default" : "ghost"} 
-                className="justify-start rounded-none text-sm h-9 px-3"
+                className="justify-start rounded-none text-xs h-7 px-3"
                 onClick={() => setSelectedTab("research")}
               >
-                <Lightbulb className="h-3.5 w-3.5 mr-2" />
+                <Lightbulb className="h-3 w-3 mr-2" />
                 Исследования
               </Button>
             </div>
           </div>
           
-          {/* Нижняя часть - Ресурсы */}
           <div className="flex-1 overflow-auto p-2">
             <div className="space-y-2">
               {unlockedResources.map(resource => (
                 <div key={resource.id} className="border-b pb-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center">
-                      <span className="font-medium text-sm">{resource.name}</span>
+                      <span className="font-medium text-xs">{resource.name}</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium text-sm">
+                      <div className="font-medium text-xs">
                         {resource.value.toFixed(0)}
                         {resource.max !== Infinity && `/${resource.max.toFixed(0)}`}
                       </div>
                       {resource.perSecond > 0 && (
-                        <div className="text-xs text-green-600">+{resource.perSecond.toFixed(2)}/сек</div>
+                        <div className="text-[7px] text-green-600">+{resource.perSecond.toFixed(2)}/сек</div>
                       )}
                     </div>
                   </div>
@@ -282,16 +262,14 @@ const GameScreen = () => {
           </div>
         </div>
         
-        {/* Правая колонка (60%) - Содержимое выбранного раздела */}
         <div className="w-3/5 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2">
             {selectedTab === "buildings" && (
               <div className="space-y-3">
-                {/* Кнопки действий вверху */}
                 <div className="bg-white rounded-lg p-3 space-y-3">
-                  <h2 className="font-semibold text-sm mb-2">Действия</h2>
+                  <h2 className="font-semibold text-xs mb-2">Действия</h2>
                   <Button
-                    className="w-full text-sm"
+                    className="w-full text-xs"
                     onClick={handleStudyCrypto}
                   >
                     Изучить крипту
@@ -300,7 +278,7 @@ const GameScreen = () => {
                   {state.unlocks.applyKnowledge && (
                     <div className="space-y-2">
                       <Button
-                        className="w-full text-sm"
+                        className="w-full text-xs"
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}
@@ -319,10 +297,9 @@ const GameScreen = () => {
                   )}
                 </div>
                 
-                {/* Список доступных зданий */}
                 {unlockedBuildings.length > 0 ? (
                   <div className="space-y-2">
-                    <h2 className="font-semibold text-sm">Доступные здания</h2>
+                    <h2 className="font-semibold text-xs">Доступные здания</h2>
                     {unlockedBuildings.map(building => (
                       <BuildingItem 
                         key={building.id} 
@@ -334,7 +311,7 @@ const GameScreen = () => {
                 ) : (
                   <div className="text-center py-6 text-gray-500">
                     <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                    <p className="text-sm">У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
+                    <p className="text-xs">У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
                     
                     {state.resources.knowledge.value < 15 && state.resources.knowledge.perSecond > 0 && (
                       <div className="mt-3">
@@ -352,11 +329,11 @@ const GameScreen = () => {
             
             {selectedTab === "research" && (
               <div className="space-y-3">
-                <h2 className="font-semibold text-sm">Исследования</h2>
+                <h2 className="font-semibold text-xs">Исследования</h2>
                 
                 {unlockedUpgrades.length > 0 ? (
                   <div>
-                    <h3 className="font-medium text-xs mb-2">Доступные исследования</h3>
+                    <h3 className="font-medium text-[9px] mb-2">Доступные исследования</h3>
                     <div className="space-y-2">
                       {unlockedUpgrades.map(upgrade => (
                         <UpgradeItem 
@@ -370,7 +347,7 @@ const GameScreen = () => {
                 ) : (
                   <div className="text-center py-6 text-gray-500">
                     <Lightbulb className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                    <p className="text-sm">У вас пока нет доступных исследований.<br />Продолжайте набирать знания и ресурсы.</p>
+                    <p className="text-xs">У вас пока нет доступных исследований.<br />Продолжайте набирать знания и ресурсы.</p>
                     
                     {state.resources.knowledge.value < 45 && state.resources.knowledge.perSecond > 0 && (
                       <div className="mt-3">
@@ -386,7 +363,7 @@ const GameScreen = () => {
                 
                 {purchasedUpgrades.length > 0 && (
                   <div className="mt-3">
-                    <h3 className="font-medium text-xs mb-2">Завершенные исследования</h3>
+                    <h3 className="font-medium text-[9px] mb-2">Завершенные исследования</h3>
                     <div className="space-y-2">
                       {purchasedUpgrades.map(upgrade => (
                         <UpgradeItem key={upgrade.id} upgrade={upgrade} />
@@ -400,7 +377,6 @@ const GameScreen = () => {
         </div>
       </div>
       
-      {/* Нижний журнал событий на всю ширину экрана */}
       <div className="h-28 border-t bg-white flex-shrink-0">
         <EventLog events={eventLog} />
       </div>

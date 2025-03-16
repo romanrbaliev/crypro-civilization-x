@@ -17,16 +17,17 @@ interface EventLogProps {
 const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  // Автоматическая прокрутка вниз при новых событиях
+  // Автоматическая прокрутка вверх при новых событиях
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollArea = scrollAreaRef.current;
-      scrollArea.scrollTop = scrollArea.scrollHeight;
+      scrollArea.scrollTop = 0;
     }
   }, [events]);
   
-  // Отображаем только последние N событий
-  const displayEvents = events.slice(-maxEvents);
+  // Отображаем только последние N событий и переворачиваем их порядок,
+  // чтобы новые события были вверху
+  const displayEvents = [...events.slice(-maxEvents)].reverse();
   
   // Форматирование времени события
   const formatTime = (timestamp: number): string => {
@@ -52,7 +53,7 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
   return (
     <div className="h-full p-2">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="font-bold">Журнал событий</h2>
+        <h2 className="font-bold text-xs">Журнал событий</h2>
         <div className="text-xs text-gray-500">
           {displayEvents.length} {displayEvents.length === 1 ? 'событие' : 
             (displayEvents.length >= 2 && displayEvents.length <= 4) ? 'события' : 'событий'}
@@ -65,14 +66,14 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
             displayEvents.map(event => (
               <div 
                 key={event.id} 
-                className={`text-sm p-1.5 border-l-2 ${getEventStyle(event.type)} bg-gray-50 animate-fade-in`}
+                className={`text-xs p-1.5 border-l-2 ${getEventStyle(event.type)} bg-gray-50 animate-fade-in`}
               >
                 <span className="text-xs text-gray-500 mr-2">{formatTime(event.timestamp)}</span>
                 {event.message}
               </div>
             ))
           ) : (
-            <div className="text-center text-gray-500 py-4">
+            <div className="text-center text-gray-500 py-4 text-xs">
               Пока нет событий
             </div>
           )}
