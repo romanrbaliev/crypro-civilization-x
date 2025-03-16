@@ -35,6 +35,12 @@ export interface Building {
   requirements?: { [key: string]: number };
 }
 
+// Сообщения событий
+export interface EventMessages {
+  electricityShortage?: boolean;
+  // Добавьте здесь другие типы системных сообщений по необходимости
+}
+
 // Структура состояния игры
 export interface GameState {
   resources: { [key: string]: Resource };
@@ -45,6 +51,7 @@ export interface GameState {
   gameStarted: boolean;
   prestigePoints: number;
   phase: number;
+  eventMessages: EventMessages;
 }
 
 // Типы действий

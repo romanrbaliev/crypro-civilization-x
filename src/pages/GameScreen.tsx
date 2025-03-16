@@ -71,16 +71,15 @@ const GameScreen = () => {
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
   
   const handleResetGame = () => {
-    localStorage.removeItem("cryptoCivilizationSave");
+    localStorage.removeItem("cryptoCivGame");
     window.location.reload();
   };
   
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      <header className="bg-white border-b shadow-sm p-2 flex-shrink-0">
-        <div className="flex justify-between items-center px-2">
+      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0">
+        <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <h1 className="text-base font-bold">Crypto Civilization</h1>
             {state.prestigePoints > 0 && (
               <div className="flex items-center space-x-1 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
                 <Trophy className="h-3 w-3" />
@@ -89,7 +88,7 @@ const GameScreen = () => {
             )}
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-between w-full px-2">
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs">

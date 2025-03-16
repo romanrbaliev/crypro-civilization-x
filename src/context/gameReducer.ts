@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, Building } from './types';
 import { initialState } from './initialState';
 import { toast } from 'sonner';
@@ -61,11 +60,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         toast.success("Открыта новая функция: Применить знания");
       }
       
-      // Если получен первый USDT, разблокируем здание "Практика"
-      if (resourceId === "usdt" && newValue >= 1 && !state.buildings.practice.unlocked) {
-        newBuildings.practice.unlocked = true;
-        toast.success("Открыта новая функция: Практика");
-      }
+      // Убираем автоматическое открытие практики, это будет сделано после первого применения знаний
       
       // Если USDT достиг 20, открываем Генератор
       if (resourceId === "usdt" && newValue >= 20 && !state.buildings.generator.unlocked) {
@@ -105,9 +100,63 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
       const newResources = { ...state.resources };
       
+      // Сбрасываем значение perSecond для всех ресурсов, чтобы корректно посчитать заново
+      for (const resourceId in newResources) {
+        newResources[resourceId].perSecond = 0;
+      }
+      
+      // Объект для отслеживания, какие здания не работают из-за нехватки ресурсов
+      const inactiveBuildings = {};
+      
+      // Проверяем, хватает ли электричества для Домашнего компьютера
+      const homeComputerCount = state.buildings.homeComputer.count;
+      if (homeComputerCount > 0) {
+        const electricityPerComputer = 1; // Потребление электричества на один компьютер
+        const totalElectricityNeeded = electricityPerComputer * homeComputerCount;
+        
+        // Если электричества недостаточно, компьютеры не будут работать
+        if (newResources.electricity.value < totalElectricityNeeded * deltaTime) {
+          inactiveBuildings['homeComputer'] = true;
+          
+          // Если нехватка электричества, добавляем сообщение в журнал событий
+          if (!state.eventMessages.electricityShortage) {
+            toast.error("Нехватка электричества! Компьютеры не работают.");
+            // Устанавливаем флаг, чтобы не спамить сообщениями
+            return {
+              ...state,
+              eventMessages: {
+                ...state.eventMessages,
+                electricityShortage: true
+              }
+            };
+          }
+        } else {
+          // Вычитаем потребляемое электричество
+          newResources.electricity.value -= totalElectricityNeeded * deltaTime;
+          newResources.electricity.perSecond -= totalElectricityNeeded;
+          
+          // Если раньше был недостаток, но теперь электричества хватает
+          if (state.eventMessages.electricityShortage) {
+            toast.success("Подача электричества восстановлена, компьютеры снова работают.");
+            return {
+              ...state,
+              resources: newResources,
+              eventMessages: {
+                ...state.eventMessages,
+                electricityShortage: false
+              },
+              lastUpdate: now
+            };
+          }
+        }
+      }
+      
       // Применяем производство от зданий
       for (const building of Object.values(state.buildings)) {
         if (building.count === 0) continue;
+        
+        // Пропускаем здания, которые не работают из-за нехватки ресурсов
+        if (inactiveBuildings[building.id]) continue;
         
         for (const [resourceId, amount] of Object.entries(building.production)) {
           // Проверяем, содержит ли производство изменение максимального значения
@@ -127,22 +176,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
               newResources[resourceId].value + resourceAmount,
               newResources[resourceId].max
             );
-            newResources[resourceId].perSecond = amount * building.count;
+            newResources[resourceId].perSecond += amount * building.count;
           }
-        }
-      }
-      
-      // Обрабатываем потребление электричества домашним компьютером
-      if (state.buildings.homeComputer.count > 0) {
-        const electricityConsumption = 1 * state.buildings.homeComputer.count * deltaTime;
-        
-        // Потребляем электричество
-        if (newResources.electricity.value >= electricityConsumption) {
-          newResources.electricity.value -= electricityConsumption;
-        } else {
-          // Если электричества недостаточно, компьютер не работает и не производит вычислительную мощность
-          newResources.computingPower.perSecond = 0;
-          // Сообщение о нехватке электричества будет добавлено позже
         }
       }
       
@@ -196,7 +231,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           
           if (building.production.knowledge) {
             const boostedProduction = building.production.knowledge * knowledgeBoost;
-            newResources.knowledge.perSecond = boostedProduction * building.count;
+            newResources.knowledge.perSecond += boostedProduction * building.count;
           }
         }
       }
@@ -237,7 +272,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           }
         }
         
-        if (canUnlock) {
+        if (canUnlock && building.id !== "practice") { // Убираем автоматическое открытие практики
           building.unlocked = true;
           toast.success(`Новое оборудование доступно: ${building.name}`);
         }

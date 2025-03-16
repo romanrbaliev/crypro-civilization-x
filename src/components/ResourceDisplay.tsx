@@ -13,6 +13,7 @@ interface ResourceDisplayProps {
 const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = false }) => {
   const { id, name, icon, value, perSecond, max } = resource;
   const percentage = max === Infinity ? 100 : (value / max) * 100;
+  const isNegative = perSecond < 0;
   
   if (compact) {
     return (
@@ -27,9 +28,9 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = f
           <TooltipContent side="bottom">
             <div className="space-y-1">
               <p className="font-semibold">{name}</p>
-              {perSecond > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  +{formatNumber(perSecond)}/сек
+              {perSecond !== 0 && (
+                <p className={`text-xs ${isNegative ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {isNegative ? '' : '+'}{formatNumber(perSecond)}/сек
                 </p>
               )}
               {max !== Infinity && (
@@ -53,8 +54,10 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = f
         </div>
         <div className="text-right">
           <div className="font-medium resource-value">{formatNumber(value)}</div>
-          {perSecond > 0 && (
-            <div className="resource-per-second">+{formatNumber(perSecond)}/сек</div>
+          {perSecond !== 0 && (
+            <div className={`resource-per-second ${isNegative ? 'text-red-600' : ''}`}>
+              {isNegative ? '' : '+'}{formatNumber(perSecond)}/сек
+            </div>
           )}
         </div>
       </div>

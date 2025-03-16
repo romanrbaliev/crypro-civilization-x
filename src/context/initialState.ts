@@ -155,5 +155,6 @@ export const initialState: GameState = {
   lastUpdate: Date.now(),
   gameStarted: false,
   prestigePoints: 0,
-  phase: 1
+  phase: 1,
+  eventMessages: {}
 };
