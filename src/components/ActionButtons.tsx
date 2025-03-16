@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
 import {
@@ -24,6 +24,14 @@ interface ActionButtonsProps {
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) => {
   const { state, dispatch } = useGame();
+  
+  // Эффект для отправки сообщения о появлении кнопки "Практиковаться"
+  useEffect(() => {
+    if (state.unlocks.practice) {
+      onAddEvent("Функция 'Практика' разблокирована", "info");
+      onAddEvent("Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
+    }
+  }, [state.unlocks.practice, onAddEvent]);
   
   // Обработка клика по кнопке "Изучить крипту"
   const handleLearnClick = () => {
@@ -116,8 +124,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
         </div>
       )}
       
-      {/* Показываем кнопку практики, если она разблокирована и здание ещё не куплено */}
-      {state.unlocks.practice && state.buildings.practice.count === 0 && (
+      {/* Показываем кнопку практики, если она разблокирована */}
+      {state.unlocks.practice && (
         <div>
           <TooltipProvider>
             <Tooltip>
@@ -127,7 +135,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
                   className="w-full"
                   variant={isButtonEnabled("usdt", 10) ? "default" : "outline"}
                   size="sm"
-                  disabled={!isButtonEnabled("usdt", 10)}
+                  disabled={!isButtonEnabled("usdt", 10) || state.buildings.practice.count > 0}
                 >
                   <BookOpen className="mr-2 h-4 w-4" />
                   Практиковаться
@@ -136,6 +144,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
               {!isButtonEnabled("usdt", 10) && (
                 <TooltipContent>
                   <p>Требуется 10 USDT</p>
+                </TooltipContent>
+              )}
+              {state.buildings.practice.count > 0 && (
+                <TooltipContent>
+                  <p>Вы уже практикуетесь</p>
                 </TooltipContent>
               )}
             </Tooltip>

@@ -900,8 +900,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         }
       }
       
-      // Разблокируем практику после ВТОРОГО применения знаний
-      if (newCounters.applyKnowledge === 1) {
+      // Разблокируем практику после второго применения знаний
+      if (state.counters.applyKnowledge === 1) {
         const eventBus = window.gameEventBus;
         if (eventBus) {
           const customEvent = new CustomEvent('game-event', {
@@ -911,20 +911,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             }
           });
           eventBus.dispatchEvent(customEvent);
-          
-          // Добавляем дополнительное сообщение с пояснением
-          setTimeout(() => {
-            const detailEvent = new CustomEvent('game-event', {
-              detail: {
-                message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
-                type: "info"
-              }
-            });
-            eventBus.dispatchEvent(detailEvent);
-          }, 200);
         }
         
-        // Разблокируем здание practice
         return {
           ...state,
           resources: newResources,
@@ -932,13 +920,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           unlocks: {
             ...state.unlocks,
             practice: true
-          },
-          buildings: {
-            ...state.buildings,
-            practice: {
-              ...state.buildings.practice,
-              unlocked: true
-            }
           }
         };
       }
