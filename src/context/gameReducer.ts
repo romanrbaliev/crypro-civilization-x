@@ -366,11 +366,18 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const newUpgrades = { ...state.upgrades };
       const newBuildings = { ...state.buildings };
       
-      // "Основы блокчейна" доступно после покупки домашнего компьютера
-      if (state.buildings.homeComputer.count > 0 && !newUpgrades.basicBlockchain.unlocked) {
+      // "Основы блокчейна" доступно после покупки генератора
+      if (state.buildings.generator.count > 0 && !newUpgrades.basicBlockchain.unlocked) {
         newUpgrades.basicBlockchain.unlocked = true;
         toast.success(`Новое исследование доступно: ${newUpgrades.basicBlockchain.name}`);
         addGameEvent(`Новое исследование доступно: ${newUpgrades.basicBlockchain.name}`, "success");
+      }
+      
+      // Криптокошелек доступен только после покупки исследования "Основы блокчейна"
+      if (state.upgrades.basicBlockchain.purchased && !newBuildings.cryptoWallet.unlocked) {
+        newBuildings.cryptoWallet.unlocked = true;
+        toast.success(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`);
+        addGameEvent(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`, "success");
       }
       
       // Исследование Безопасность криптокошельков доступно только после покупки Криптокошелька
@@ -392,13 +399,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         newResources.electricity.unlocked = true;
         toast.success("Открыт новый ресурс: Электричество");
         addGameEvent("Открыт новый ресурс: Электричество", "success");
-      }
-      
-      // Криптокошелек доступен только после покупки Автомайнера
-      if (state.buildings.autoMiner.count > 0 && !newBuildings.cryptoWallet.unlocked) {
-        newBuildings.cryptoWallet.unlocked = true;
-        toast.success(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`);
-        addGameEvent(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`, "success");
       }
       
       // Подготавливаем сообщения о состоянии ресурсов
@@ -608,7 +608,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     
     case "MINE_COMPUTING_POWER": {
-      // Проверяем, достаточно ли вычислительной мощности
+      // ����роверяем, достаточно ли вычислительной мощности
       if (state.resources.computingPower.value < 50) {
         toast.error("Недостаточно вычислительной мощности для майнинга");
         addGameEvent("Недостаточно вычислительной мощности для майнинга", "error");
@@ -679,14 +679,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
       // Разблокируем USDT при первом применении знаний
       if (!state.resources.usdt.unlocked) {
+        // Разблокируем USDT и устанавливаем значение 1
         newResources.usdt = {
           ...state.resources.usdt,
           unlocked: true,
-          value: 1 // Устанавливаем значение 1 при первом применении
+          value: 1
         };
         toast.success("Открыт новый ресурс: USDT");
         addGameEvent("Открыт новый ресурс: USDT", "success");
       } else {
+        // Если USDT уже разблокирован, то просто увеличиваем значение
         newResources.usdt = {
           ...state.resources.usdt,
           value: Math.min(state.resources.usdt.value + 1, state.resources.usdt.max)
@@ -701,7 +703,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     
     case "PRESTIGE": {
-      // Рассчитываем очки престижа на основе текущего прогресса
+      // Расс��итываем очки престижа на основе текущего прогресса
       const totalWorth = Object.values(state.resources).reduce((sum, resource) => {
         return sum + resource.value;
       }, 0);

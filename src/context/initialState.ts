@@ -23,7 +23,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { electricity: 0.5 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 11 } // Изменено с 20 на 11
+    requirements: { usdt: 11 }
   },
   homeComputer: {
     id: "homeComputer",
@@ -34,7 +34,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { computingPower: 2 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 25, electricity: 10 } // Изменено требование электричества с "уже есть 10" на "достигнуть 10"
+    requirements: { electricity: 10 }
   },
   autoMiner: {
     id: "autoMiner",
@@ -53,7 +53,7 @@ export const initialBuildings: { [key: string]: Building } = {
     description: "Увеличивает максимальное хранение USDT и знаний",
     cost: { usdt: 15, knowledge: 25 },
     costMultiplier: 1.2,
-    production: { usdtMax: 50, knowledgeMax: 25 }, // Добавлен эффект +25% к максимальному хранению знаний
+    production: { usdtMax: 50, knowledgeMax: 25 },
     count: 0,
     unlocked: false,
     requirements: { knowledge: 20 }
@@ -78,7 +78,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Основы блокчейна",
     description: "Открывает базовые механики криптовалют и увеличивает хранилище знаний",
     cost: { knowledge: 50 },
-    effect: { knowledgeBoost: 0.1, knowledgeMaxBoost: 0.5 }, // Добавлен эффект +50% к максимальному хранению знаний
+    effect: { knowledgeBoost: 0.1, knowledgeMaxBoost: 0.5 },
     unlocked: false,
     purchased: false,
     requirements: { knowledge: 45 }
