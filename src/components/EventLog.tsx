@@ -50,23 +50,29 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
   };
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <h2 className="font-bold text-lg mb-3">Журнал событий</h2>
+    <div className="h-full p-2">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-bold">Журнал событий</h2>
+        <div className="text-xs text-gray-500">
+          {displayEvents.length} {displayEvents.length === 1 ? 'событие' : 
+            (displayEvents.length >= 2 && displayEvents.length <= 4) ? 'события' : 'событий'}
+        </div>
+      </div>
       
-      <ScrollArea className="h-[200px]" ref={scrollAreaRef}>
-        <div className="space-y-2">
+      <ScrollArea className="h-[calc(100%-28px)]" ref={scrollAreaRef}>
+        <div className="space-y-1 pr-2">
           {displayEvents.length > 0 ? (
             displayEvents.map(event => (
               <div 
                 key={event.id} 
-                className={`text-sm p-2 border-l-2 ${getEventStyle(event.type)} animate-fade-in`}
+                className={`text-sm p-1.5 border-l-2 ${getEventStyle(event.type)} bg-gray-50 animate-fade-in`}
               >
                 <span className="text-xs text-gray-500 mr-2">{formatTime(event.timestamp)}</span>
                 {event.message}
               </div>
             ))
           ) : (
-            <div className="text-center text-gray-500 py-6">
+            <div className="text-center text-gray-500 py-4">
               Пока нет событий
             </div>
           )}
