@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, Resource } from './types';
 import { initialState } from './initialState';
 
@@ -234,13 +233,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           eventBus.dispatchEvent(customEvent);
           
           // Добавляем дополнительное пояснение
-          const detailEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message: "Накопите 10 знаний, чтобы применить их и получить USDT", 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => {
+            const detailEvent = new CustomEvent('game-event', { 
+              detail: { 
+                message: "Накопите 10 знаний, чтобы применить их и получить USDT", 
+                type: "info" 
+              } 
+            });
+            eventBus.dispatchEvent(detailEvent);
+          }, 200);
         }
         
         return {
@@ -300,9 +301,38 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       if (requiredElectricity > 0 && requiredElectricity > currentElectricity) {
         // Недостаточно электричества
         electricityShortage = true;
-        newEventMessages.electricityShortage = true;
+        
+        // Отправляем уведомление о нехватке электричества только если состояние изменилось
+        if (!state.eventMessages.electricityShortage) {
+          newEventMessages.electricityShortage = true;
+          const eventBus = window.gameEventBus;
+          if (eventBus) {
+            const customEvent = new CustomEvent('game-event', { 
+              detail: { 
+                message: "Нехватка электричества! Компьютеры остановлены. Включите генераторы или купите новые.", 
+                type: "error" 
+              } 
+            });
+            eventBus.dispatchEvent(customEvent);
+          }
+        }
       } else {
-        newEventMessages.electricityShortage = false;
+        // Достаточно электричества, проверяем изменение состояния
+        if (state.eventMessages.electricityShortage) {
+          newEventMessages.electricityShortage = false;
+          const eventBus = window.gameEventBus;
+          if (eventBus) {
+            const customEvent = new CustomEvent('game-event', { 
+              detail: { 
+                message: "Подача электричества восстановлена, компьютеры снова работают.", 
+                type: "success" 
+              } 
+            });
+            eventBus.dispatchEvent(customEvent);
+          }
+        } else {
+          newEventMessages.electricityShortage = false;
+        }
       }
       
       // Обновляем ресурсы
@@ -426,7 +456,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
       
-      // Если построен генератор, разблокируем электричество и основы блокчейна
+      // Если построен генератор, разблокируем электричество
       if (buildingId === 'generator' && building.count === 0) {
         newResources.electricity = {
           ...newResources.electricity,
@@ -445,6 +475,28 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             } 
           });
           eventBus.dispatchEvent(customEvent);
+          
+          // Сообщаем об открытии исследования "Основы блокчейна"
+          setTimeout(() => {
+            const researchEvent = new CustomEvent('game-event', { 
+              detail: { 
+                message: "Разблокировано исследование 'Основы блокчейна'", 
+                type: "info" 
+              } 
+            });
+            eventBus.dispatchEvent(researchEvent);
+            
+            // Добавляем описательное сообщение об исследовании
+            setTimeout(() => {
+              const detailEvent = new CustomEvent('game-event', { 
+                detail: { 
+                  message: "Изучите основы блокчейна, чтобы получить +50% к максимальному хранению знаний", 
+                  type: "info" 
+                } 
+              });
+              eventBus.dispatchEvent(detailEvent);
+            }, 200);
+          }, 200);
         }
 
         // Разблокируем исследование "Основы блокчейна"
@@ -458,26 +510,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
 
         console.log("Разблокировано исследование 'Основы блокчейна' из-за постройки генератора");
 
-        // Отправляем сообщение о разблокировке исследования
-        if (eventBus) {
-          const researchEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message: "Разблокировано исследование 'Основы блокчейна'", 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(researchEvent);
-          
-          // Добавляем описательное сообщение об исследовании
-          const detailEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message: "Изучите основы блокчейна, чтобы получить +50% к максимальному хранению знаний", 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
-        }
-
         const stateWithUpgrades = {
           ...state,
           resources: newResources,
@@ -487,6 +519,39 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         
         // Обновляем максимальные значения ресурсов после применения изменений
         return updateResourceMaxValues(stateWithUpgrades);
+      }
+      
+      // Если построен домашний компьютер, разблокируем вычислительную мощность
+      if (buildingId === 'homeComputer' && building.count === 0) {
+        newResources.computingPower = {
+          ...newResources.computingPower,
+          unlocked: true
+        };
+
+        console.log("Разблокирована вычислительная мощность из-за постройки домашнего компьютера");
+
+        // Отправляем сообщение о разблокировке вычислительной мощности
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Разблокирован новый ресурс: Вычислительная мощность", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(customEvent);
+          
+          // Добавляем пояснение о новом ресурсе
+          setTimeout(() => {
+            const detailEvent = new CustomEvent('game-event', { 
+              detail: { 
+                message: "Вычислительная мощность может использоваться для майнинга USDT", 
+                type: "info" 
+              } 
+            });
+            eventBus.dispatchEvent(detailEvent);
+          }, 200);
+        }
       }
       
       // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошельков"
@@ -514,13 +579,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           eventBus.dispatchEvent(customEvent);
           
           // Добавляем описательное сообщение об исследовании
-          const detailEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message: "Изучите безопасность криптокошельков, чтобы увеличить максимальное хранение USDT на 25%", 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => {
+            const detailEvent = new CustomEvent('game-event', { 
+              detail: { 
+                message: "Изучите безопасность криптокошельков, чтобы увеличить максимальное хранение USDT на 25%", 
+                type: "info" 
+              } 
+            });
+            eventBus.dispatchEvent(detailEvent);
+          }, 200);
         }
 
         const stateWithUpgrades = {
@@ -602,13 +669,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           eventBus.dispatchEvent(customEvent);
           
           // Добавляем описательное сообщение о криптокошельке
-          const detailEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message: "Криптокошелек увеличивает максимальное хранение USDT и знаний", 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => {
+            const detailEvent = new CustomEvent('game-event', { 
+              detail: { 
+                message: "Криптокошелек увеличивает максимальное хранение USDT и знаний", 
+                type: "info" 
+              } 
+            });
+            eventBus.dispatchEvent(detailEvent);
+          }, 200);
         }
         
         const newState = {
@@ -832,7 +901,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       }
       
       // Разблокируем практику после ВТОРОГО применения знаний
-      if (newCounters.applyKnowledge === 2) {
+      if (newCounters.applyKnowledge === 1) {
         const eventBus = window.gameEventBus;
         if (eventBus) {
           const customEvent = new CustomEvent('game-event', {
@@ -844,13 +913,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           eventBus.dispatchEvent(customEvent);
           
           // Добавляем дополнительное сообщение с пояснением
-          const detailEvent = new CustomEvent('game-event', {
-            detail: {
-              message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
-              type: "info"
-            }
-          });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => {
+            const detailEvent = new CustomEvent('game-event', {
+              detail: {
+                message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
+                type: "info"
+              }
+            });
+            eventBus.dispatchEvent(detailEvent);
+          }, 200);
         }
         
         // Разблокируем здание practice
@@ -861,6 +932,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           unlocks: {
             ...state.unlocks,
             practice: true
+          },
+          buildings: {
+            ...state.buildings,
+            practice: {
+              ...state.buildings.practice,
+              unlocked: true
+            }
           }
         };
       }

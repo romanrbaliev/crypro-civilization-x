@@ -43,11 +43,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     }
     
     dispatch({ type: "APPLY_KNOWLEDGE" });
-    
-    // Отправляем сообщение только при первом применении знаний
-    if (state.counters.applyKnowledge === 0) {
-      onAddEvent("Вы применили знания и получили 1 USDT", "success");
-    }
   };
   
   // Обработка клика по кнопке "Практиковаться"
@@ -69,7 +64,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     }
     
     dispatch({ type: "MINE_COMPUTING_POWER" });
-    onAddEvent("Вы успешно добыли 5 USDT используя вычислительную мощность!", "success");
   };
   
   // Функция для проверки доступности кнопки
@@ -123,7 +117,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       )}
       
       {/* Показываем кнопку практики, если она разблокирована */}
-      {state.unlocks.practice && (
+      {state.unlocks.practice && state.buildings.practice.count === 0 && (
         <div>
           <TooltipProvider>
             <Tooltip>

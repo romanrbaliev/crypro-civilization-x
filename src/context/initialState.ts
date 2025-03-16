@@ -79,7 +79,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     description: "Открывает базовые механики криптовалют и увеличивает хранилище знаний",
     cost: { knowledge: 50 },
     effect: { knowledgeBoost: 0.1, knowledgeMaxBoost: 0.5 }, // +50% к максимальному хранению знаний
-    unlocked: false,
+    unlocked: false, // Важно: разблокировка только после покупки генератора
     purchased: false,
     requirements: { generatorCount: 1 } // Требуется наличие хотя бы одного генератора
   },
