@@ -1,10 +1,10 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import ResourceForecast from "@/components/ResourceForecast";
 import BuildingItem from "@/components/BuildingItem";
-import { Building, Resource, useGame } from "@/context/GameContext";
+import { Building as BuildingType, Resource, useGame } from "@/context/GameContext";
 import { toast } from "sonner";
+import { Building as BuildingIcon } from "lucide-react";
 
 interface BuildingsTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -140,7 +140,7 @@ const BuildingsTab: React.FC<BuildingsTabProps> = ({ onAddEvent }) => {
 const EmptyBuildingsState = ({ knowledge, knowledgePerSecond }: { knowledge: Resource, knowledgePerSecond: number }) => {
   return (
     <div className="text-center py-6 text-gray-500">
-      <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
+      <BuildingIcon className="h-10 w-10 mx-auto mb-3 opacity-20" />
       <p className="text-xs">У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
       
       {knowledge.value < 15 && knowledgePerSecond > 0 && (
