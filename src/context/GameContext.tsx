@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { toast } from "sonner";
 import { resources } from "@/utils/gameConfig";
@@ -228,16 +227,39 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case "INCREMENT_RESOURCE": {
       const { resourceId, amount } = action.payload;
+      
+      // Проверяем, что ресурс существует
+      if (!state.resources[resourceId]) {
+        console.error(`Ресурс ${resourceId} не существует!`);
+        return state;
+      }
+      
       const resource = state.resources[resourceId];
       
-      if (!resource.unlocked) return state;
+      if (!resource.unlocked) {
+        console.log(`Ресурс ${resourceId} не разблокирован!`);
+        return state;
+      }
       
-      // Проверяем, не превышает ли значение максимум
+      console.log(`Изменение ресурса ${resourceId}: ${resource.value} -> ${resource.value + amount}`);
+      
+      // Новое значение ресурса, ограниченное максимумом
       const newValue = Math.min(resource.value + amount, resource.max);
       
-      // Проверяем ключевые пороги для отпирания функций
+      // Копируем все ресурсы для изменения
+      const newResources = {
+        ...state.resources,
+        [resourceId]: {
+          ...resource,
+          value: newValue
+        }
+      };
+      
+      // Копируем состояние разблокировок для изменения
       let newUnlocks = { ...state.unlocks };
-      let newResources = { ...state.resources };
+      let newBuildings = { ...state.buildings };
+      
+      // Проверяем условия разблокировки новых функций на основе изменения ресурсов
       
       // Если знания достигли 10, открываем кнопку "Применить знания"
       if (resourceId === "knowledge" && newValue >= 10 && !state.unlocks.applyKnowledge) {
@@ -247,82 +269,37 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       
       // Если знания достигли 15, открываем здание "Практика"
       if (resourceId === "knowledge" && newValue >= 15 && !state.unlocks.practice) {
-        const newBuildings = { ...state.buildings };
         newBuildings.practice.unlocked = true;
         newUnlocks.practice = true;
         toast.success("Открыта новая функция: Практика");
-        return {
-          ...state,
-          resources: {
-            ...state.resources,
-            [resourceId]: {
-              ...resource,
-              value: newValue
-            }
-          },
-          buildings: newBuildings,
-          unlocks: newUnlocks
-        };
       }
       
       // Если USDT достиг 20, открываем Генератор
       if (resourceId === "usdt" && newValue >= 20 && !state.buildings.generator.unlocked) {
-        const newBuildings = { ...state.buildings };
         newBuildings.generator.unlocked = true;
         toast.success("Открыто новое здание: Генератор");
-        return {
-          ...state,
-          resources: {
-            ...state.resources,
-            [resourceId]: {
-              ...resource,
-              value: newValue
-            }
-          },
-          buildings: newBuildings,
-          unlocks: newUnlocks
-        };
       }
       
       // Если USDT и электричество достигли нужных значений, открываем Домашний компьютер
       if ((resourceId === "usdt" && newValue >= 25 && state.resources.electricity.value >= 10) ||
           (resourceId === "electricity" && newValue >= 10 && state.resources.usdt.value >= 25)) {
         if (!state.buildings.homeComputer.unlocked) {
-          const newBuildings = { ...state.buildings };
           newBuildings.homeComputer.unlocked = true;
           toast.success("Открыто новое здание: Домашний компьютер");
-          return {
-            ...state,
-            resources: {
-              ...state.resources,
-              [resourceId]: {
-                ...resource,
-                value: newValue
-              }
-            },
-            buildings: newBuildings,
-            unlocks: newUnlocks
-          };
         }
       }
       
       // Открываем USDT если ещё не открыт и уже есть знания
-      if (resourceId === "knowledge" && newValue >= 5 && !state.resources.usdt.unlocked) {
+      if (resourceId === "knowledge" && newValue >= 5 && !newResources.usdt.unlocked) {
         newResources.usdt.unlocked = true;
         toast.success("Открыт новый ресурс: USDT");
       }
       
       return {
         ...state,
-        resources: {
-          ...state.resources,
-          [resourceId]: {
-            ...resource,
-            value: newValue
-          },
-          ...newResources
-        },
-        unlocks: newUnlocks
+        resources: newResources,
+        unlocks: newUnlocks,
+        buildings: newBuildings
       };
     }
     
