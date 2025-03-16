@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, Building } from './types';
 import { initialState } from './initialState';
 import { toast } from 'sonner';
@@ -320,7 +319,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         console.log("Практика успешно приобретена, обновляем состояние");
       }
       
-      toast.success(`Построено: ${building.name}`);
+      // Убрано уведомление о покупке здания
       
       return {
         ...state,
@@ -355,7 +354,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const newUpgrades = { ...state.upgrades };
       newUpgrades[upgradeId].purchased = true;
       
-      toast.success(`Исследовано: ${upgrade.name}`);
+      // Убрано уведомление о покупке апгрейда
       
       return {
         ...state,

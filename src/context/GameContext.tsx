@@ -3,7 +3,6 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
-import { toast } from 'sonner';
 
 // Экспортируем типы для использования в других компонентах
 export type { Resource, Building, Upgrade };
@@ -118,11 +117,10 @@ function loadGameState(): GameState | null {
     // Обновляем временную метку
     mergedState.lastUpdate = Date.now();
     
-    toast.success('Игра загружена успешно!');
+    // Убираем сообщение о загрузке прогресса
     return mergedState;
   } catch (error) {
     console.error('Failed to load game state from localStorage:', error);
-    toast.error('Не удалось загрузить сохраненную игру');
     return null;
   }
 }

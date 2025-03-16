@@ -25,9 +25,8 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
     }
   }, [events]);
   
-  // Отображаем только последние N событий и переворачиваем их порядок,
-  // чтобы новые события были вверху
-  const displayEvents = [...events.slice(-maxEvents)].reverse();
+  // Отображаем только последние N событий
+  const displayEvents = events.slice(-maxEvents);
   
   // Форматирование времени события
   const formatTime = (timestamp: number): string => {

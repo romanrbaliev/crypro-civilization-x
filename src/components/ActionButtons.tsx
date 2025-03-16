@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useGame } from "@/context/GameContext";
-import ResourceForecast from "@/components/ResourceForecast";
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
@@ -69,18 +68,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const canAffordPractice = state.resources.usdt.value >= actualPracticeCost;
 
   return (
-    <div className="bg-white rounded-lg p-3 space-y-3 mt-auto">
+    <div className="bg-white rounded-lg p-3 space-y-3">
       <div className="flex flex-col space-y-2">
-        {shouldShowPractice && (
-          <Button
-            className="action-button w-full"
-            variant="outline"
-            onClick={handleActivatePractice}
-            disabled={!canAffordPractice}
-          >
-            Практика
-          </Button>
-        )}
+        <Button
+          className="action-button w-full"
+          onClick={handleStudyCrypto}
+        >
+          Изучить крипту
+        </Button>
         
         {state.unlocks.applyKnowledge && (
           <Button
@@ -93,21 +88,17 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           </Button>
         )}
         
-        <Button
-          className="action-button w-full"
-          onClick={handleStudyCrypto}
-        >
-          Изучить крипту
-        </Button>
+        {shouldShowPractice && (
+          <Button
+            className="action-button w-full"
+            variant="outline"
+            onClick={handleActivatePractice}
+            disabled={!canAffordPractice}
+          >
+            Практика
+          </Button>
+        )}
       </div>
-      
-      {state.unlocks.applyKnowledge && state.resources.knowledge.perSecond > 0 && (
-        <ResourceForecast 
-          resource={state.resources.knowledge} 
-          targetValue={10} 
-          label="До конвертации" 
-        />
-      )}
     </div>
   );
 };

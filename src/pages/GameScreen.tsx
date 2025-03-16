@@ -73,9 +73,13 @@ const GameScreen = () => {
       
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
-          {/* Показываем табы только если есть открытые функции */}
+          <div className="flex-1 overflow-auto p-2">
+            <ResourceList resources={unlockedResources} />
+          </div>
+          
+          {/* Перемещаем табы в нижнюю часть левой колонки */}
           {(hasUnlockedBuildings || hasUnlockedResearch) && (
-            <div className="border-b">
+            <div className="border-t mt-auto">
               <div className="flex flex-col">
                 {hasUnlockedBuildings && (
                   <Button 
@@ -100,15 +104,11 @@ const GameScreen = () => {
               </div>
             </div>
           )}
-          
-          <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={unlockedResources} />
-          </div>
         </div>
         
         <div className="w-3/5 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2 flex flex-col">
-            <div className="flex-1">
+            <div className="flex-1 overflow-auto">
               {selectedTab === "buildings" && hasUnlockedBuildings && (
                 <BuildingsTab onAddEvent={addEvent} />
               )}
@@ -118,8 +118,10 @@ const GameScreen = () => {
               )}
             </div>
             
-            {/* Кнопки действий всегда видны внизу правой колонки */}
-            <ActionButtons onAddEvent={addEvent} />
+            {/* Фиксируем кнопки действий внизу правой колонки */}
+            <div className="mt-auto sticky bottom-0 bg-white pb-2 pt-1">
+              <ActionButtons onAddEvent={addEvent} />
+            </div>
           </div>
         </div>
       </div>

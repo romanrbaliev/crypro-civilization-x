@@ -1,3 +1,4 @@
+
 body, html {
   margin: 0;
   padding: 0;
@@ -191,4 +192,23 @@ body, html {
 /* Контент зданий и исследований */
 .building-content {
   font-size: 0.65rem;
+}
+
+/* Фиксированные элементы */
+.sticky-bottom {
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  padding-bottom: 0.5rem;
+  padding-top: 0.25rem;
+  z-index: 10;
+}
+
+/* Фиксированные разделы */
+.tabs-fixed-bottom {
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  z-index: 10;
+  border-top: 1px solid #e5e7eb;
 }
