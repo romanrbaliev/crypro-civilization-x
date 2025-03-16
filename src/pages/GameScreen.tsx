@@ -106,6 +106,11 @@ const GameScreen = () => {
     if (state.resources.usdt.value >= 10) {
       dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
       
+      dispatch({ 
+        type: "SET_BUILDING_UNLOCKED", 
+        payload: { buildingId: "practice", unlocked: true } 
+      });
+      
       dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
       
       addEvent("Вы начали практиковаться! Теперь знания накапливаются автоматически.", "success");
@@ -307,7 +312,7 @@ const GameScreen = () => {
                       onClick={handleActivatePractice}
                       disabled={state.buildings.practice.count > 0}
                     >
-                      Практика
+                      Практика ({state.resources.usdt.value >= 10 ? "10 USDT" : "недостаточно USDT"})
                     </Button>
                   </div>
                   

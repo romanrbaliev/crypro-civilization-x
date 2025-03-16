@@ -57,6 +57,7 @@ type GameAction =
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
+  | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
   | { type: "START_GAME" }
   | { type: "LOAD_GAME"; payload: GameState }
   | { type: "PRESTIGE" };
@@ -339,7 +340,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         }
       }
       
-      // Обновляем максимальные значения ресурсов на основе здан��й
+      // Обновляем максимальные значения ресурсов на основе зданий
       for (const building of Object.values(state.buildings)) {
         if (building.count === 0) continue;
         
@@ -442,7 +443,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         toast.success("Открыт новый ресурс: Электричество");
       }
       
-      // Открывае�� вычислительную мощность если есть домашний компьютер
+      // Открываем вычислительную мощность если есть домашний компьютер
       if (state.buildings.homeComputer.count > 0 && !newResources.computingPower.unlocked) {
         newResources.computingPower.unlocked = true;
         toast.success("Открыт новый ресурс: Вычислительная мощность");
@@ -457,6 +458,30 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
     }
     
+    case "SET_BUILDING_UNLOCKED": {
+      const { buildingId, unlocked } = action.payload;
+      
+      if (!state.buildings[buildingId]) {
+        console.error(`Здание ${buildingId} не найдено!`);
+        return state;
+      }
+      
+      const newBuildings = {
+        ...state.buildings,
+        [buildingId]: {
+          ...state.buildings[buildingId],
+          unlocked
+        }
+      };
+      
+      console.log(`Здание ${buildingId} теперь ${unlocked ? 'разблокировано' : 'заблокировано'}`);
+      
+      return {
+        ...state,
+        buildings: newBuildings
+      };
+    }
+    
     case "PURCHASE_BUILDING": {
       const { buildingId } = action.payload;
       const building = state.buildings[buildingId];
@@ -466,9 +491,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         return state;
       }
       
+      console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}`);
+      
       // Проверяем, разблокировано ли здание
-      // Для здания practice не требуется проверка на разблокировку
-      if (!building.unlocked && buildingId !== "practice") {
+      if (!building.unlocked) {
         console.log(`Building ${buildingId} is not unlocked yet!`);
         return state;
       }
@@ -493,13 +519,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       
       // Увеличиваем количество здания
       const newBuildings = { ...state.buildings };
-      
-      // Специальная обработка для здания "practice"
-      if (buildingId === "practice") {
-        // Разблокируем здание "practice", если оно ещё не разблокировано
-        newBuildings[buildingId].unlocked = true;
-      }
-      
       newBuildings[buildingId].count += 1;
       
       // Обновляем производство ресурсов сразу после покупки здания
@@ -509,6 +528,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newResources.knowledge.perSecond += productionAmount;
         
         // Убедимся, что разблокирован нужный флаг
+        console.log("Практика успешно приобретена, обновляем состояние");
         return {
           ...state,
           resources: newResources,
