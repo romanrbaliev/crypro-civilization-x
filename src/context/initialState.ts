@@ -100,7 +100,7 @@ export const initialResources: { [key: string]: Resource } = {
   knowledge: {
     id: "knowledge",
     name: "Знания о крипте",
-    icon: "🧠",
+    icon: "",
     value: 0,
     perSecond: 0,
     unlocked: true,
@@ -109,7 +109,7 @@ export const initialResources: { [key: string]: Resource } = {
   usdt: {
     id: "usdt",
     name: "USDT",
-    icon: "💰",
+    icon: "",
     value: 0,
     perSecond: 0,
     unlocked: false,
@@ -118,7 +118,7 @@ export const initialResources: { [key: string]: Resource } = {
   electricity: {
     id: "electricity",
     name: "Электричество",
-    icon: "⚡",
+    icon: "",
     value: 0,
     perSecond: 0,
     unlocked: false,
@@ -127,7 +127,7 @@ export const initialResources: { [key: string]: Resource } = {
   computingPower: {
     id: "computingPower",
     name: "Вычислительная мощность",
-    icon: "💻",
+    icon: "",
     value: 0,
     perSecond: 0,
     unlocked: false,
@@ -136,7 +136,7 @@ export const initialResources: { [key: string]: Resource } = {
   reputation: {
     id: "reputation",
     name: "Репутация",
-    icon: "⭐",
+    icon: "",
     value: 0,
     perSecond: 0,
     unlocked: false,

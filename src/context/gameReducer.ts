@@ -57,12 +57,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       let newBuildings = { ...state.buildings };
       let newUpgrades = { ...state.upgrades };
       
-      // Проверяем условия разблокировки новых функций на основе изменения ресурсов
-      
-      // Не открываем кнопку "Применить знания" автоматически - теперь это делается через счетчик кликов
-      
-      // Проверяем условия для автоматического открытия функций
-      
       // Если USDT достиг 20, открываем Генератор
       if (resourceId === "usdt" && newValue >= 20 && !state.buildings.generator.unlocked) {
         newBuildings.generator.unlocked = true;
@@ -142,6 +136,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
       // Объект для отслеживания, какие здания не работают из-за нехватки ресурсов
       const inactiveBuildings = {};
+      let resourceShortageMessage = null;
       
       // Проверяем, хватает ли электричества для Домашнего компьютера
       const homeComputerCount = state.buildings.homeComputer.count;
@@ -150,38 +145,22 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         const totalElectricityNeeded = electricityPerComputer * homeComputerCount;
         
         // Если электричества недостаточно, компьютеры не будут работать
-        if (newResources.electricity.value < totalElectricityNeeded * deltaTime) {
+        if (newResources.electricity.value < electricityPerComputer) {
           inactiveBuildings['homeComputer'] = true;
           
-          // Если нехватка электричества, добавляем сообщение в журнал событий
+          // Если нехватка электричества и ещё не было уведомления
           if (!state.eventMessages.electricityShortage) {
-            toast.error("Нехватка электричества! Компьютеры не работают.");
-            // Устанавливаем флаг, чтобы не спамить сообщениями
-            return {
-              ...state,
-              eventMessages: {
-                ...state.eventMessages,
-                electricityShortage: true
-              }
-            };
+            resourceShortageMessage = "Нехватка электричества! Компьютеры остановлены. Включите генераторы или купите новые.";
           }
         } else {
-          // Вычитаем потребляемое электричество
-          newResources.electricity.value -= totalElectricityNeeded * deltaTime;
+          // Вычитаем потребляемое электричество, но не больше чем есть
+          const actualElectricityToUse = Math.min(totalElectricityNeeded * deltaTime, newResources.electricity.value);
+          newResources.electricity.value -= actualElectricityToUse;
           newResources.electricity.perSecond -= totalElectricityNeeded;
           
           // Если раньше был недостаток, но теперь электричества хватает
           if (state.eventMessages.electricityShortage) {
-            toast.success("Подача электричества восстановлена, компьютеры снова работают.");
-            return {
-              ...state,
-              resources: newResources,
-              eventMessages: {
-                ...state.eventMessages,
-                electricityShortage: false
-              },
-              lastUpdate: now
-            };
+            resourceShortageMessage = "Подача электричества восстановлена, компьютеры снова работают.";
           }
         }
       }
@@ -193,10 +172,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         const miningCycles = Math.floor(timeSinceLastUpdate / AUTO_MINER_INTERVAL);
         
         if (miningCycles > 0) {
-          // Для каждого цикла каждый автомайнер потребляет 50 вычислительной мощности и производит 1 USDT
+          // Для каждого цикла каждый автомайнер пытается использовать 50 вычислительной мощности
           for (let i = 0; i < miningCycles; i++) {
-            if (newResources.computingPower.value >= 50 * autoMinerCount) {
-              newResources.computingPower.value -= 50 * autoMinerCount;
+            const requiredPower = 50 * autoMinerCount;
+            if (newResources.computingPower.value >= requiredPower) {
+              newResources.computingPower.value -= requiredPower;
               newResources.usdt.value = Math.min(
                 newResources.usdt.value + autoMinerCount,
                 newResources.usdt.max
@@ -209,8 +189,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         }
         
         // Обновляем perSecond для отображения (приблизительно)
-        newResources.computingPower.perSecond -= (50 * autoMinerCount) / (AUTO_MINER_INTERVAL / 1000);
-        newResources.usdt.perSecond += autoMinerCount / (AUTO_MINER_INTERVAL / 1000);
+        const miningRatePerSecond = autoMinerCount / (AUTO_MINER_INTERVAL / 1000);
+        newResources.computingPower.perSecond -= 50 * miningRatePerSecond;
+        newResources.usdt.perSecond += miningRatePerSecond;
       }
       
       // Применяем производство от зданий
@@ -254,9 +235,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           if (resourceId.includes('Max')) {
             const actualResourceId = resourceId.replace('Max', '');
             if (newResources[actualResourceId]) {
-              // Меняем только начальное значение + количество, не учитываем исследования
-              newResources[actualResourceId].max = initialResources[actualResourceId].max + 
-                amount * building.count;
+              // Обновляем максимальное значение ресурса на основе базового значения и количества зданий
+              const baseMax = initialResources[actualResourceId].max;
+              newResources[actualResourceId].max = baseMax + amount * building.count;
             }
           }
         }
@@ -283,9 +264,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         
         for (const [effectId, amount] of Object.entries(upgrade.effect)) {
           if (effectId === 'knowledgeBoost') {
-            knowledgeBoost += amount;  // Используем точное значение: 0.1 = 10%
+            knowledgeBoost += Number(amount);  // Используем точное значение: 0.1 = 10%
           } else if (effectId === 'usdtMaxBoost') {
-            usdtMaxBoost += amount;  // Используем точное значение: 0.25 = 25%
+            usdtMaxBoost += Number(amount);  // Используем точное значение: 0.25 = 25%
           }
         }
       }
@@ -311,14 +292,20 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
       if (usdtMaxBoost !== 1) {
         // Применяем бонус только к базовому значению + бонусы от зданий
-        const baseMax = newResources.usdt.max;
-        newResources.usdt.max = baseMax * usdtMaxBoost;
+        const baseMax = newResources.usdt.max / usdtMaxBoost; // Убираем предыдущий бонус
+        newResources.usdt.max = baseMax * usdtMaxBoost; // Применяем актуальный бонус
       }
       
       // Проверяем условия открытия новых апгрейдов
       const newUpgrades = { ...state.upgrades };
+      const newBuildings = { ...state.buildings };
       
-      // Специальная логика открытия апгрейдов
+      // "Основы блокчейна" доступно после покупки домашнего компьютера
+      if (state.buildings.homeComputer.count > 0 && !newUpgrades.basicBlockchain.unlocked) {
+        newUpgrades.basicBlockchain.unlocked = true;
+        toast.success(`Новое исследование доступно: ${newUpgrades.basicBlockchain.name}`);
+      }
+      
       // Исследование Безопасность криптокошельков доступно только после покупки Криптокошелька
       if (state.buildings.cryptoWallet.count > 0 && !newUpgrades.walletSecurity.unlocked) {
         newUpgrades.walletSecurity.unlocked = true;
@@ -337,13 +324,26 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         toast.success("Открыт новый ресурс: Электричество");
       }
       
-      // Проверяем условия открытия новых зданий (кроме специальных)
-      const newBuildings = { ...state.buildings };
-      
       // Криптокошелек доступен только после покупки Автомайнера
       if (state.buildings.autoMiner.count > 0 && !newBuildings.cryptoWallet.unlocked) {
         newBuildings.cryptoWallet.unlocked = true;
         toast.success(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`);
+      }
+      
+      // Подготавливаем сообщения о состоянии ресурсов
+      const eventMessages = { ...state.eventMessages };
+      
+      if (resourceShortageMessage) {
+        // Обновляем статус нехватки электричества
+        eventMessages.electricityShortage = !state.eventMessages.electricityShortage;
+        return {
+          ...state,
+          resources: newResources,
+          lastUpdate: now,
+          upgrades: newUpgrades,
+          buildings: newBuildings,
+          eventMessages
+        };
       }
       
       return {

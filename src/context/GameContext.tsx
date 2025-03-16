@@ -41,6 +41,26 @@ export function GameProvider({ children }: GameProviderProps) {
   // Используем useReducer для управления состоянием игры
   const [state, dispatch] = useReducer(gameReducer, loadedState || initialState);
   
+  // Следим за изменениями в eventMessages для показа системных сообщений
+  useEffect(() => {
+    if (state.eventMessages.electricityShortage !== undefined) {
+      const message = state.eventMessages.electricityShortage 
+        ? "Нехватка электричества! Компьютеры остановлены. Включите генераторы или купите новые."
+        : "Подача электричества восстановлена, компьютеры снова работают.";
+        
+      const eventBus = window.gameEventBus;
+      if (eventBus) {
+        const customEvent = new CustomEvent('game-event', { 
+          detail: { 
+            message, 
+            type: state.eventMessages.electricityShortage ? "error" : "success" 
+          } 
+        });
+        eventBus.dispatchEvent(customEvent);
+      }
+    }
+  }, [state.eventMessages]);
+  
   // Добавляем новые сообщения при открытии возможностей
   useEffect(() => {
     const eventBus = document.createElement('div');

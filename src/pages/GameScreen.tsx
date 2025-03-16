@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
-import { Building, Lightbulb, Info, Trash2, Settings, Trophy } from "lucide-react";
+import { Building, Lightbulb, Info, Trash2, Settings } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
 import Header from "@/components/Header";
@@ -59,6 +59,25 @@ const GameScreen = () => {
     setEventLog(prev => [newEvent, ...prev]);
   };
   
+  // Слушаем события от системы
+  useEffect(() => {
+    const handleGameEvent = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail) {
+        const { message, type } = event.detail;
+        addEvent(message, type);
+      }
+    };
+    
+    const eventBus = window.gameEventBus;
+    if (eventBus) {
+      eventBus.addEventListener('game-event', handleGameEvent);
+      
+      return () => {
+        eventBus.removeEventListener('game-event', handleGameEvent);
+      };
+    }
+  }, []);
+  
   // Выбираем начальную вкладку в зависимости от открытых функций
   useEffect(() => {
     if (hasUnlockedBuildings) {
@@ -77,21 +96,13 @@ const GameScreen = () => {
   
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            {state.prestigePoints > 0 && (
-              <div className="flex items-center space-x-1 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
-                <Trophy className="h-3 w-3" />
-                <span className="text-xs font-medium">{state.prestigePoints}</span>
-              </div>
-            )}
-          </div>
-          
+      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
+        <div className="flex justify-between items-center h-full">
+          <div className="flex-1"></div>
           <div className="flex items-center justify-between w-full px-2">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs">
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
                   Как играть
                 </Button>
               </DialogTrigger>
@@ -123,11 +134,11 @@ const GameScreen = () => {
                   <TabsContent value="resources" className="space-y-4 mt-4">
                     <h4 className="font-semibold">Основные ресурсы</h4>
                     <ul className="space-y-2 text-sm">
-                      <li><strong>🧠 Знания о крипте</strong> - базовый ресурс для исследований и обмена на USDT.</li>
-                      <li><strong>💰 USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
-                      <li><strong>⚡ Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
-                      <li><strong>💻 Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
-                      <li><strong>⭐ Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
+                      <li><strong>Знания о крипте</strong> - базовый ресурс для исследований и обмена на USDT.</li>
+                      <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
+                      <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
+                      <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
+                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
                     </ul>
                   </TabsContent>
                   
@@ -147,7 +158,7 @@ const GameScreen = () => {
             
             <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs">
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
                   Сбросить прогресс
                 </Button>
               </DialogTrigger>
@@ -171,7 +182,7 @@ const GameScreen = () => {
             
             <Dialog open={showSettings} onOpenChange={setShowSettings}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs">
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
                   Настройки
                 </Button>
               </DialogTrigger>
@@ -192,6 +203,7 @@ const GameScreen = () => {
               </DialogContent>
             </Dialog>
           </div>
+          <div className="flex-1"></div>
         </div>
       </header>
       

@@ -29,7 +29,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     if (clickCount === 2) {
       console.log("Разблокировка применения знаний из-за достижения 3 кликов");
       dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "applyKnowledge" } });
-      onAddEvent("Вы начинаете понимать основы криптовалют! Теперь вы можете применить свои знания.", "info");
+      onAddEvent("Вы начинаете понимать основы криптовалют! Скоро вы сможете применить свои знания.", "info");
     }
   };
   
@@ -70,7 +70,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
       
       if (state.buildings.practice.count === 0) { // Первая активация
         onAddEvent("Вы запустили фоновое накопление знаний! Теперь знания будут накапливаться автоматически.", "success");
-        onAddEvent("Чтобы увеличить скорость накопления знаний, вы можете построить больше единиц Практики или улучшить эффективность через исследования.", "info");
+        onAddEvent("Чтобы увеличить скорость накопления знаний, используйте Практику, а также изучайте различные исследования.", "info");
       }
     } else {
       onAddEvent("Не удалось начать практику - не хватает USDT", "error");
@@ -95,7 +95,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
 
   const shouldShowApplyKnowledge = state.unlocks.applyKnowledge;
   const shouldShowPractice = state.buildings.practice.unlocked;
-  const shouldShowMining = state.resources.computingPower.unlocked;
+  const shouldShowMining = state.resources.computingPower.unlocked && state.buildings.autoMiner.count === 0;
   
   const actualPracticeCost = state.buildings.practice.cost.usdt * 
     Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count);
