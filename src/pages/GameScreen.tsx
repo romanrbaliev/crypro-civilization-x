@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -252,7 +253,7 @@ const GameScreen = () => {
                         {resource.max !== Infinity && `/${resource.max.toFixed(0)}`}
                       </div>
                       {resource.perSecond > 0 && (
-                        <div className="text-[7px] text-green-600">+{resource.perSecond.toFixed(2)}/сек</div>
+                        <div className="text-[5px] text-green-600">+{resource.perSecond.toFixed(2)}/сек</div>
                       )}
                     </div>
                   </div>
@@ -387,4 +388,3 @@ const GameScreen = () => {
 };
 
 export default GameScreen;
-
