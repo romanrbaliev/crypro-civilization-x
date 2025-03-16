@@ -1,9 +1,8 @@
 
 import React from "react";
-import { Building } from "@/context/GameContext";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/utils/helpers";
-import { useGame } from "@/context/GameContext";
+import { useGame, Building } from "@/context/GameContext";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -29,7 +28,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   // Проверка, достаточно ли ресурсов для покупки
   const canAfford = () => {
     for (const [resourceId, baseCost] of Object.entries(cost)) {
-      const actualCost = baseCost * Math.pow(costMultiplier, count);
+      const actualCost = Number(baseCost) * Math.pow(Number(costMultiplier), count);
       if (!state.resources[resourceId] || state.resources[resourceId].value < actualCost) {
         return false;
       }
@@ -41,7 +40,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   const renderCost = () => {
     return Object.entries(cost).map(([resourceId, baseCost]) => {
       const resource = state.resources[resourceId];
-      const actualCost = baseCost * Math.pow(costMultiplier, count);
+      const actualCost = Number(baseCost) * Math.pow(Number(costMultiplier), count);
       const hasEnough = resource && resource.value >= actualCost;
       
       return (
@@ -57,7 +56,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     return Object.entries(production).map(([resourceId, amount]) => {
       // Для специальных модификаторов (бонусы, максимумы и т.д.)
       if (resourceId.includes('Boost')) {
-        const boostPercent = amount * 100;
+        const boostPercent = Number(amount) * 100;
         return (
           <div key={resourceId} className="text-green-600 text-[10px]">
             +{boostPercent}% к производству
@@ -69,7 +68,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         if (resource) {
           return (
             <div key={resourceId} className="text-blue-600 text-[10px]">
-              +{formatNumber(amount)} к максимуму {resource.name}
+              +{formatNumber(Number(amount))} к максимуму {resource.name}
             </div>
           );
         }
@@ -81,7 +80,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       if (resource) {
         return (
           <div key={resourceId} className="text-green-600 text-[10px]">
-            +{formatNumber(amount)}/сек {resource.name}
+            +{formatNumber(Number(amount))}/сек {resource.name}
           </div>
         );
       }

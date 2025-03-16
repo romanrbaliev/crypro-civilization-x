@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Resource } from "@/context/GameContext";
 import { formatNumber } from "@/utils/helpers";
+import { Resource } from "@/context/GameContext";
 
 interface ResourceListProps {
   resources: Resource[];

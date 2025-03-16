@@ -1,9 +1,12 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { GameState, GameAction } from './types';
+import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
 import { toast } from 'sonner';
+
+// Экспортируем типы для использования в других компонентах
+export type { Resource, Building, Upgrade };
 
 // Создаем контекст с начальным значением
 interface GameContextProps {

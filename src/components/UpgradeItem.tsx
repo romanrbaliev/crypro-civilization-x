@@ -1,9 +1,8 @@
 
 import React from "react";
-import { Upgrade } from "@/context/GameContext";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/utils/helpers";
-import { useGame } from "@/context/GameContext";
+import { useGame, Upgrade } from "@/context/GameContext";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -29,7 +28,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   // Проверка, достаточно ли ресурсов для покупки
   const canAfford = () => {
     for (const [resourceId, amount] of Object.entries(cost)) {
-      if (state.resources[resourceId].value < amount) {
+      if (state.resources[resourceId].value < Number(amount)) {
         return false;
       }
     }
@@ -40,11 +39,11 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const renderCost = () => {
     return Object.entries(cost).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
-      const hasEnough = resource.value >= amount;
+      const hasEnough = resource.value >= Number(amount);
       
       return (
         <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
-          {formatNumber(amount)} {resource.name}
+          {formatNumber(Number(amount))} {resource.name}
         </div>
       );
     });
@@ -54,14 +53,14 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const renderEffects = () => {
     return Object.entries(effect).map(([effectId, amount]) => {
       if (effectId.includes('Boost')) {
-        const boostPercent = amount * 100;
+        const boostPercent = Number(amount) * 100;
         return (
           <div key={effectId} className="text-blue-600 text-[10px]">
             +{boostPercent}% к эффективности
           </div>
         );
       } else if (effectId === 'conversionRate') {
-        const boostPercent = amount * 100;
+        const boostPercent = Number(amount) * 100;
         return (
           <div key={effectId} className="text-blue-600 text-[10px]">
             +{boostPercent}% к конверсии

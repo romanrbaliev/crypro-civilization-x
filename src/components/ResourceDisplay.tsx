@@ -1,9 +1,8 @@
 
 import React from "react";
-import { Resource } from "@/context/GameContext";
 import { formatNumber } from "@/utils/helpers";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { Resource } from "@/context/GameContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ResourceDisplayProps {

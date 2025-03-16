@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import ResourceForecast from "@/components/ResourceForecast";
 import BuildingItem from "@/components/BuildingItem";
-import { Building as BuildingType, Resource, useGame } from "@/context/GameContext";
+import { Building, Resource, useGame } from "@/context/GameContext";
 import { toast } from "sonner";
 import { Building as BuildingIcon } from "lucide-react";
 
