@@ -299,12 +299,11 @@ const GameScreen = () => {
                       </Button>
                     )}
                     
-                    {state.unlocks.practice && !state.buildings.practice.count && (
+                    {state.resources.usdt.value >= 10 && !state.buildings.practice.count && (
                       <Button
                         className="action-button w-full"
                         variant="outline"
                         onClick={handleActivatePractice}
-                        disabled={state.resources.usdt.value < 10}
                       >
                         Практика
                       </Button>
