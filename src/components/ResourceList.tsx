@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Resource } from "@/context/GameContext";
-import { formatNumber } from "@/utils/helpers";
+import { Resource } from "@/context/types";
+import ResourceDisplay from "./ResourceDisplay";
 import { Separator } from "@/components/ui/separator";
 
 interface ResourceListProps {
@@ -9,48 +9,26 @@ interface ResourceListProps {
 }
 
 const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
-  return (
-    <div className="space-y-1">
-      <h2 className="text-sm font-medium mb-2">Ресурсы</h2>
-      <div>
-        {resources.map((resource, index) => (
-          <React.Fragment key={resource.id}>
-            {index > 0 && <Separator className="my-1" />}
-            <div className="py-1.5">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <span className="font-medium text-[0.65rem]">{resource.name}:</span>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium text-[0.65rem]">
-                    {formatNumber(resource.value)}
-                    {resource.max !== Infinity && (
-                      <span className="text-gray-500">
-                        /{formatNumber(resource.max)}
-                      </span>
-                    )}
-                  </div>
-                  <div 
-                    className={`text-[0.6rem] ${
-                      resource.perSecond < 0 
-                        ? 'text-red-500' 
-                        : resource.perSecond > 0 
-                          ? 'text-green-600' 
-                          : 'text-gray-500'
-                    }`}
-                  >
-                    {resource.perSecond !== 0 && (
-                      resource.perSecond > 0 
-                        ? `+${formatNumber(resource.perSecond)}/сек` 
-                        : `${formatNumber(resource.perSecond)}/сек`
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </React.Fragment>
-        ))}
+  if (resources.length === 0) {
+    return (
+      <div className="text-center py-4 text-sm text-gray-500">
+        Нет доступных ресурсов
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0.5 text-xs">
+      {resources.map((resource, index) => (
+        <React.Fragment key={resource.id}>
+          <div className="py-1.5">
+            <ResourceDisplay resource={resource} />
+          </div>
+          {index < resources.length - 1 && (
+            <Separator className="my-0.5" />
+          )}
+        </React.Fragment>
+      ))}
     </div>
   );
 };

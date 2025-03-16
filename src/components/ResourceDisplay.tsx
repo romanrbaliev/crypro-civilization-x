@@ -1,73 +1,68 @@
 
 import React from "react";
-import { formatNumber } from "@/utils/helpers";
-import { Progress } from "@/components/ui/progress";
-import { Resource } from "@/context/GameContext";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Resource } from "@/context/types";
+import ResourceForecast from "./ResourceForecast";
 
 interface ResourceDisplayProps {
   resource: Resource;
-  compact?: boolean;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = false }) => {
-  const { id, name, value, perSecond, max } = resource;
-  const percentage = max === Infinity ? 100 : (value / max) * 100;
-  const isNegative = perSecond < 0;
+const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
+  const { id, name, value, max, rate } = resource;
   
-  if (compact) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-              <span className="font-medium">{formatNumber(value)}</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <div className="space-y-1">
-              <p className="font-semibold">{name}</p>
-              {perSecond !== 0 && (
-                <p className={`text-xs ${isNegative ? 'text-red-600' : 'text-muted-foreground'}`}>
-                  {isNegative ? '' : '+'}{formatNumber(perSecond)}/сек
-                </p>
-              )}
-              {max !== Infinity && (
-                <p className="text-xs text-muted-foreground">
-                  {formatNumber(value)}/{formatNumber(max)}
-                </p>
-              )}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
+  // Определяем отрицательную скорость производства
+  const isNegativeRate = rate < 0;
+  
+  // Расчет процента заполнения
+  const fillPercentage = max === Infinity ? 0 : Math.min(100, (value / max) * 100);
+  
+  // Форматирование значений
+  const formatValue = (val: number): string => {
+    if (val >= 1000000) {
+      return `${(val / 1000000).toFixed(2)}M`;
+    } else if (val >= 1000) {
+      return `${(val / 1000).toFixed(2)}K`;
+    } else {
+      return val.toFixed(2);
+    }
+  };
+  
+  // Определяем классы для отображения прогресса
+  const progressColorClass = fillPercentage > 90 
+    ? "bg-red-500" 
+    : fillPercentage > 70 
+      ? "bg-yellow-500" 
+      : "bg-blue-500";
   
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <span className="font-medium resource-name">{name}</span>
-        </div>
-        <div className="text-right">
-          <div className="font-medium resource-value">{formatNumber(value)}</div>
-          {perSecond !== 0 && (
-            <div className={`resource-per-second ${isNegative ? 'text-red-600' : ''}`}>
-              {isNegative ? '' : '+'}{formatNumber(perSecond)}/сек
-            </div>
-          )}
+    <div className="w-full text-xs">
+      <div className="flex justify-between items-center mb-0.5">
+        <div className="font-medium">{name}</div>
+        <div className="text-gray-600">
+          {formatValue(value)}
+          {max !== Infinity && ` / ${formatValue(max)}`}
         </div>
       </div>
       
       {max !== Infinity && (
-        <div className="relative">
-          <Progress value={percentage} className="h-2" />
-          <div className="resource-value text-gray-500 mt-0.5 text-right">
-            {formatNumber(value)}/{formatNumber(max)}
-          </div>
+        <div className="w-full h-1.5 bg-gray-100 rounded-full mb-0.5">
+          <div 
+            className={`h-1.5 rounded-full ${progressColorClass}`} 
+            style={{ width: `${fillPercentage}%` }}
+          ></div>
         </div>
       )}
+      
+      <div className="flex items-center justify-between">
+        <div className={`text-xs ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
+          {isNegativeRate ? "-" : "+"}{Math.abs(rate).toFixed(2)}/сек
+        </div>
+        
+        {/* Показываем прогноз только если есть изменение скорости */}
+        {rate !== 0 && (
+          <ResourceForecast resource={resource} />
+        )}
+      </div>
     </div>
   );
 };

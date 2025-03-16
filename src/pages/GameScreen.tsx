@@ -56,7 +56,18 @@ const GameScreen = () => {
       type
     };
     
-    setEventLog(prev => [newEvent, ...prev]);
+    setEventLog(prev => {
+      // Проверяем, есть ли уже такое сообщение в последних событиях
+      const isDuplicate = prev.slice(0, 5).some(
+        event => event.message === message && Date.now() - event.timestamp < 3000
+      );
+      
+      if (isDuplicate) {
+        return prev; // Не добавляем дубликат
+      }
+      
+      return [newEvent, ...prev];
+    });
   };
   
   // Слушаем события от системы
@@ -68,12 +79,21 @@ const GameScreen = () => {
       }
     };
     
+    const handleDetailEvent = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail) {
+        const { message, type } = event.detail;
+        addEvent(message, type);
+      }
+    };
+    
     const eventBus = window.gameEventBus;
     if (eventBus) {
       eventBus.addEventListener('game-event', handleGameEvent);
+      eventBus.addEventListener('game-event-detail', handleDetailEvent);
       
       return () => {
         eventBus.removeEventListener('game-event', handleGameEvent);
+        eventBus.removeEventListener('game-event-detail', handleDetailEvent);
       };
     }
   }, []);
