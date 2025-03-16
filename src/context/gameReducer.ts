@@ -421,10 +421,16 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         return state;
       }
       
+      // Проверяем, не достигнут ли максимум зданий (если он задан)
+      if (building.maxCount !== undefined && building.count >= building.maxCount) {
+        console.log(`Достигнут максимум зданий ${buildingId}: ${building.count}/${building.maxCount}`);
+        return state;
+      }
+      
       // Рассчитываем стоимость здания с учетом уже построенных
       const currentCost: { [key: string]: number } = {};
       for (const [resourceId, baseCost] of Object.entries(building.cost)) {
-        currentCost[resourceId] = baseCost * Math.pow(building.costMultiplier, building.count);
+        currentCost[resourceId] = Math.floor(baseCost * Math.pow(building.costMultiplier, building.count));
       }
       
       // Проверяем, хватает ли ресурсов
@@ -455,6 +461,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       };
       
       console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
+      
+      // Специальная логика для практики: увеличиваем производство знаний с каждым уровнем
+      if (buildingId === 'practice') {
+        // Базовое производство 0.63, каждый следующий уровень добавляет еще 0.63
+        newBuildings.practice.production = { 
+          knowledge: 0.63 * (building.count + 1) 
+        };
+        console.log(`Уровень практики увеличен. Новая скорость накопления знаний: ${newBuildings.practice.production.knowledge}`);
+      }
       
       // Если построен генератор, разблокируем электричество
       if (buildingId === 'generator' && building.count === 0) {

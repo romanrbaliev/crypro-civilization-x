@@ -57,37 +57,31 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   
   // Обработка клика по кнопке "Практиковаться"
   const handlePractice = () => {
-    console.log("Нажата кнопка Практиковаться. USDT:", state.resources.usdt.value);
+    // Рассчитываем текущую стоимость с учетом уже купленных уровней практики
+    const building = state.buildings.practice;
+    const currentCost = Math.floor(building.cost.usdt * Math.pow(building.costMultiplier, building.count));
     
-    if (state.resources.usdt.value < 10) {
-      onAddEvent("Недостаточно USDT! Требуется 10 единиц.", "error");
-      return;
-    }
+    console.log(`Нажата кнопка Практиковаться. USDT: ${state.resources.usdt.value}, Требуется: ${currentCost}`);
     
-    if (state.buildings.practice.count > 0) {
-      onAddEvent("Вы уже практикуетесь!", "info");
+    if (state.resources.usdt.value < currentCost) {
+      onAddEvent(`Недостаточно USDT! Требуется ${currentCost} единиц.`, "error");
       return;
     }
     
     // Покупаем здание practice
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
-    onAddEvent("Вы начали практиковаться! Теперь знания будут накапливаться автоматически.", "success");
-  };
-  
-  // Обработка клика по кнопке "Майнить вычислительную мощность"
-  const handleMineClick = () => {
-    if (state.resources.computingPower.value < 50) {
-      onAddEvent("Недостаточно вычислительной мощности! Требуется 50 единиц.", "error");
-      return;
-    }
-    
-    dispatch({ type: "MINE_COMPUTING_POWER" });
+    onAddEvent(`Вы повысили уровень практики до ${building.count + 1}! Скорость накопления знаний увеличена.`, "success");
   };
   
   // Функция для проверки доступности кнопки
   const isButtonEnabled = (requiredResource: string, amount: number): boolean => {
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
   };
+  
+  // Рассчитываем текущую стоимость практики
+  const practiceCurrentCost = state.buildings.practice 
+    ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count)) 
+    : 10;
   
   // Проверка, есть ли автомайнер, чтобы скрыть кнопку майнинга
   const hasAutoMiner = state.buildings.autoMiner.count > 0;
@@ -143,22 +137,17 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
                 <Button
                   onClick={handlePractice}
                   className="w-full"
-                  variant={isButtonEnabled("usdt", 10) ? "default" : "outline"}
+                  variant={isButtonEnabled("usdt", practiceCurrentCost) ? "default" : "outline"}
                   size="sm"
-                  disabled={!isButtonEnabled("usdt", 10) || state.buildings.practice.count > 0}
+                  disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
                 >
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Практиковаться
+                  Практиковаться ({practiceCurrentCost} USDT)
                 </Button>
               </TooltipTrigger>
-              {!isButtonEnabled("usdt", 10) && (
+              {!isButtonEnabled("usdt", practiceCurrentCost) && (
                 <TooltipContent>
-                  <p>Требуется 10 USDT</p>
-                </TooltipContent>
-              )}
-              {state.buildings.practice.count > 0 && (
-                <TooltipContent>
-                  <p>Вы уже практикуетесь</p>
+                  <p>Требуется {practiceCurrentCost} USDT</p>
                 </TooltipContent>
               )}
             </Tooltip>

@@ -1,4 +1,3 @@
-
 // Типы ресурсов
 export interface Resource {
   id: string;
@@ -33,6 +32,7 @@ export interface Building {
   count: number;
   unlocked: boolean;
   requirements?: { [key: string]: number };
+  maxCount?: number; // Добавляем поле для максимального количества зданий
 }
 
 // Сообщения событий
@@ -78,4 +78,3 @@ export type GameAction =
   | { type: "RESTART_COMPUTERS" }
   | { type: "MINE_COMPUTING_POWER" }
   | { type: "APPLY_KNOWLEDGE" };
-

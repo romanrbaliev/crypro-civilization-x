@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counters } from './types';
 
 // Начальные здания
@@ -12,7 +11,8 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { knowledge: 0.63 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 10 }
+    requirements: { usdt: 10 },
+    maxCount: Infinity
   },
   generator: {
     id: "generator",
@@ -23,7 +23,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { electricity: 0.5 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 11 } // Требуется 11 USDT для открытия
+    requirements: { usdt: 11 }
   },
   homeComputer: {
     id: "homeComputer",
@@ -34,7 +34,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { computingPower: 2 },
     count: 0,
     unlocked: false,
-    requirements: { electricity: 10 } // Требуется 10 электричества для открытия
+    requirements: { electricity: 10 }
   },
   autoMiner: {
     id: "autoMiner",
@@ -42,10 +42,10 @@ export const initialBuildings: { [key: string]: Building } = {
     description: "Автоматически конвертирует вычислительную мощность в USDT",
     cost: { usdt: 50 },
     costMultiplier: 1.2,
-    production: {}, // Особая логика в UPDATE_RESOURCES
+    production: {},
     count: 0,
     unlocked: false,
-    requirements: { computingPower: 50 } // Требуется вычислительная мощность
+    requirements: { computingPower: 50 }
   },
   cryptoWallet: {
     id: "cryptoWallet",
@@ -56,7 +56,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { usdtMax: 50, knowledgeMax: 25 },
     count: 0,
     unlocked: false,
-    requirements: { basicBlockchain: 1 } // Требуется покупка улучшения "Основы блокчейна"
+    requirements: { basicBlockchain: 1 }
   },
   internetConnection: {
     id: "internetConnection",
@@ -78,10 +78,10 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Основы блокчейна",
     description: "Открывает базовые механики криптовалют и увеличивает хранилище знаний",
     cost: { knowledge: 50 },
-    effect: { knowledgeBoost: 0.1, knowledgeMaxBoost: 0.5 }, // +50% к максимальному хранению знаний
-    unlocked: false, // Важно: разблокировка только после покупки генератора
+    effect: { knowledgeBoost: 0.1, knowledgeMaxBoost: 0.5 },
+    unlocked: false,
     purchased: false,
-    requirements: { generatorCount: 1 } // Требуется наличие хотя бы одного генератора
+    requirements: { generatorCount: 1 }
   },
   walletSecurity: {
     id: "walletSecurity",
@@ -91,7 +91,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     effect: { usdtMaxBoost: 0.25 },
     unlocked: false,
     purchased: false,
-    requirements: { cryptoWalletCount: 1 } // Требует наличия хотя бы одного криптокошелька
+    requirements: { cryptoWalletCount: 1 }
   }
 };
 
