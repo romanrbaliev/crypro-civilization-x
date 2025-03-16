@@ -3,8 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import StartScreen from "./pages/StartScreen";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import GameScreen from "./pages/GameScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
@@ -46,8 +45,7 @@ const App = () => {
           <Sonner position="top-center" />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<StartScreen />} />
-              <Route path="/game" element={<GameScreen />} />
+              <Route path="/" element={<GameScreen />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

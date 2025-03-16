@@ -41,6 +41,66 @@ export function GameProvider({ children }: GameProviderProps) {
   // Используем useReducer для управления состоянием игры
   const [state, dispatch] = useReducer(gameReducer, loadedState || initialState);
   
+  // Добавляем новые сообщения при открытии возможностей
+  useEffect(() => {
+    const eventBus = document.createElement('div');
+    
+    const handleToastShow = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail?.message) {
+        const message = event.detail.message;
+        
+        // Добавляем описания к новым функциям
+        if (message.includes("Открыта новая функция: Применить знания")) {
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Накопите 10 знаний, чтобы применить их и получить USDT",
+              type: "info"
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }
+        else if (message.includes("Открыта новая функция: Практика")) {
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
+              type: "info"
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }
+        else if (message.includes("Открыто новое оборудование: Генератор")) {
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Генератор позволяет вырабатывать электричество, необходимое для других устройств",
+              type: "info"
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }
+        else if (message.includes("Открыто новое оборудование: Домашний компьютер")) {
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Домашний компьютер потребляет 1 электричество/сек и производит вычислительную мощность",
+              type: "info"
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }
+      }
+    };
+    
+    // Слушаем события показа toast
+    document.addEventListener('toast-show', handleToastShow);
+    
+    // Предоставляем доступ к шине событий
+    window.gameEventBus = eventBus;
+    
+    return () => {
+      document.removeEventListener('toast-show', handleToastShow);
+      delete window.gameEventBus;
+    };
+  }, []);
+  
   // Обновляем ресурсы каждую секунду
   useEffect(() => {
     // Запускаем только если игра началась
@@ -117,10 +177,16 @@ function loadGameState(): GameState | null {
     // Обновляем временную метку
     mergedState.lastUpdate = Date.now();
     
-    // Убираем сообщение о загрузке прогресса
     return mergedState;
   } catch (error) {
     console.error('Failed to load game state from localStorage:', error);
     return null;
+  }
+}
+
+// Объявляем для TypeScript
+declare global {
+  interface Window {
+    gameEventBus?: HTMLDivElement;
   }
 }

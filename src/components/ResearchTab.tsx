@@ -2,7 +2,6 @@
 import React from "react";
 import { Lightbulb } from "lucide-react";
 import UpgradeItem from "@/components/UpgradeItem";
-import ResourceForecast from "@/components/ResourceForecast";
 import { Resource, Upgrade, useGame } from "@/context/GameContext";
 
 interface ResearchTabProps {
@@ -17,8 +16,9 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
 
   return (
     <div className="space-y-3">
-      {unlockedUpgrades.length > 0 ? (
+      {unlockedUpgrades.length > 0 && (
         <div>
+          <h3 className="font-medium text-[9px] mb-2">Доступные исследования</h3>
           <div className="space-y-2 building-content">
             {unlockedUpgrades.map(upgrade => (
               <UpgradeItem 
@@ -29,11 +29,6 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
             ))}
           </div>
         </div>
-      ) : (
-        <EmptyResearchState 
-          knowledge={state.resources.knowledge}
-          knowledgePerSecond={state.resources.knowledge.perSecond}
-        />
       )}
       
       {purchasedUpgrades.length > 0 && (
@@ -46,23 +41,11 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-const EmptyResearchState = ({ knowledge, knowledgePerSecond }: { knowledge: Resource, knowledgePerSecond: number }) => {
-  return (
-    <div className="text-center py-6 text-gray-500">
-      <Lightbulb className="h-10 w-10 mx-auto mb-3 opacity-20" />
-      <p className="text-xs">У вас пока нет доступных исследований.<br />Продолжайте набирать знания и ресурсы.</p>
       
-      {knowledge.value < 45 && knowledgePerSecond > 0 && (
-        <div className="mt-3">
-          <ResourceForecast 
-            resource={knowledge} 
-            targetValue={45} 
-            label="До открытия исследования «Основы блокчейна»" 
-          />
+      {unlockedUpgrades.length === 0 && purchasedUpgrades.length === 0 && (
+        <div className="text-center py-6 text-gray-500">
+          <Lightbulb className="h-10 w-10 mx-auto mb-3 opacity-20" />
+          <p className="text-xs">Продолжайте накапливать знания для открытия исследований.</p>
         </div>
       )}
     </div>

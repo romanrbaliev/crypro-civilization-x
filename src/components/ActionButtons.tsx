@@ -41,8 +41,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     if (resource.value >= 10) {
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: -10 } });
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: 1 } });
-      
-      onAddEvent("Вы конвертировали знания в USDT", "success");
     } else {
       toast.error("Недостаточно знаний! Нужно минимум 10.");
       onAddEvent("Не удалось применить знания - нужно больше изучать", "error");
@@ -54,8 +52,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     
     if (state.resources.usdt.value >= 10) {
       dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
-      
-      onAddEvent("Вы начали практиковаться! Теперь знания накапливаются автоматически.", "success");
     } else {
       toast.error("Недостаточно USDT! Нужно минимум 10.");
       onAddEvent("Не удалось начать практику - не хватает USDT", "error");

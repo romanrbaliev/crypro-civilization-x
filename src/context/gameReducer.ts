@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, Building } from './types';
 import { initialState } from './initialState';
 import { toast } from 'sonner';
@@ -69,7 +70,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Если USDT достиг 20, открываем Генератор
       if (resourceId === "usdt" && newValue >= 20 && !state.buildings.generator.unlocked) {
         newBuildings.generator.unlocked = true;
-        toast.success("Открыто новое здание: Генератор");
+        toast.success("Открыто новое оборудование: Генератор");
       }
       
       // Если USDT и электричество достигли нужных значений, открываем Домашний компьютер
@@ -77,7 +78,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           (resourceId === "electricity" && newValue >= 10 && state.resources.usdt.value >= 25)) {
         if (!state.buildings.homeComputer.unlocked) {
           newBuildings.homeComputer.unlocked = true;
-          toast.success("Открыто новое здание: Домашний компьютер");
+          toast.success("Открыто новое оборудование: Домашний компьютер");
         }
       }
       
@@ -128,6 +129,20 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
             );
             newResources[resourceId].perSecond = amount * building.count;
           }
+        }
+      }
+      
+      // Обрабатываем потребление электричества домашним компьютером
+      if (state.buildings.homeComputer.count > 0) {
+        const electricityConsumption = 1 * state.buildings.homeComputer.count * deltaTime;
+        
+        // Потребляем электричество
+        if (newResources.electricity.value >= electricityConsumption) {
+          newResources.electricity.value -= electricityConsumption;
+        } else {
+          // Если электричества недостаточно, компьютер не работает и не производит вычислительную мощность
+          newResources.computingPower.perSecond = 0;
+          // Сообщение о нехватке электричества будет добавлено позже
         }
       }
       
@@ -224,7 +239,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         
         if (canUnlock) {
           building.unlocked = true;
-          toast.success(`Новое здание доступно: ${building.name}`);
+          toast.success(`Новое оборудование доступно: ${building.name}`);
         }
       }
       

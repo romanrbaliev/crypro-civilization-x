@@ -5,11 +5,11 @@ import BuildingItem from "@/components/BuildingItem";
 import ResourceForecast from "@/components/ResourceForecast";
 import { Building, Resource, useGame } from "@/context/GameContext";
 
-interface BuildingsTabProps {
+interface EquipmentTabProps {
   onAddEvent: (message: string, type: string) => void;
 }
 
-const BuildingsTab: React.FC<BuildingsTabProps> = ({ onAddEvent }) => {
+const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
   const unlockedBuildings = Object.values(state.buildings)
@@ -23,7 +23,7 @@ const BuildingsTab: React.FC<BuildingsTabProps> = ({ onAddEvent }) => {
             <BuildingItem 
               key={building.id} 
               building={building} 
-              onPurchase={() => onAddEvent(`Построено здание: ${building.name}`, "success")} 
+              onPurchase={() => onAddEvent(`Построено оборудование: ${building.name}`, "success")} 
             />
           ))}
         </div>
@@ -41,14 +41,14 @@ const EmptyBuildingsState = ({ knowledge, knowledgePerSecond }: { knowledge: Res
   return (
     <div className="text-center py-6 text-gray-500">
       <BuildingIcon className="h-10 w-10 mx-auto mb-3 opacity-20" />
-      <p className="text-xs">У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
+      <p className="text-xs">У вас пока нет доступного оборудования.<br />Продолжайте набирать знания и ресурсы.</p>
       
       {knowledge.value < 15 && knowledgePerSecond > 0 && (
         <div className="mt-3">
           <ResourceForecast 
             resource={knowledge} 
             targetValue={15} 
-            label="До открытия здания «Практика»" 
+            label="До открытия «Практика»" 
           />
         </div>
       )}
@@ -56,4 +56,4 @@ const EmptyBuildingsState = ({ knowledge, knowledgePerSecond }: { knowledge: Res
   );
 };
 
-export default BuildingsTab;
+export default EquipmentTab;
