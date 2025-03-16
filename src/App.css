@@ -1,4 +1,3 @@
-
 body, html {
   margin: 0;
   padding: 0;
@@ -163,22 +162,24 @@ body, html {
 }
 
 /* Стили для кнопок действий */
-.action-button {
-  transform: scale(0.5);
-  transform-origin: left center;
-  height: auto !important;
-  min-height: 20px !important;
-  font-size: 7px !important;
-  white-space: nowrap;
-  width: 48% !important;
-  display: inline-block !important;
+.actions-container {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.actions-container {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.25rem;
-  flex-direction: row;
+.action-button {
+  transform: scale(0.6);
+  transform-origin: center;
+  height: auto !important;
+  min-height: 24px !important;
+  font-size: 8px !important;
+  white-space: nowrap;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Заголовки секций */
