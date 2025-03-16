@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -104,7 +103,6 @@ const GameScreen = () => {
   const handleActivatePractice = () => {
     if (state.resources.usdt.value >= 10) {
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: -10 } });
-      // Заменяем "UNLOCK_BUILDING" на "UNLOCK_FEATURE"
       dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
       dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
       
@@ -284,7 +282,7 @@ const GameScreen = () => {
                 <div className="bg-white rounded-lg p-3 space-y-3">
                   <div className="actions-container">
                     <Button
-                      className="action-button"
+                      className="action-button w-full mb-2"
                       onClick={handleStudyCrypto}
                     >
                       Изучить крипту
@@ -292,7 +290,7 @@ const GameScreen = () => {
                     
                     {state.unlocks.applyKnowledge && (
                       <Button
-                        className="action-button"
+                        className="action-button w-full mb-2"
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}
@@ -301,9 +299,9 @@ const GameScreen = () => {
                       </Button>
                     )}
                     
-                    {state.unlocks.practice && !state.buildings.practice.unlocked && (
+                    {state.unlocks.practice && !state.buildings.practice.count && (
                       <Button
-                        className="action-button"
+                        className="action-button w-full"
                         variant="outline"
                         onClick={handleActivatePractice}
                         disabled={state.resources.usdt.value < 10}
