@@ -1,4 +1,3 @@
-
 // Форматирование чисел для отображения
 export const formatNumber = (num: number): string => {
   if (num === Infinity) return "∞";
@@ -77,4 +76,35 @@ export const checkUnlockConditions = (
     }
   }
   return true;
+};
+
+// Расчет эффективности производства с учетом бонусов
+export const calculateEfficiency = (
+  baseValue: number,
+  boostPercent: number
+): number => {
+  return baseValue * (1 + boostPercent / 100);
+};
+
+// Функция для проверки, может ли игрок позволить себе покупку
+export const canAfford = (
+  resources: { [key: string]: number },
+  costs: { [key: string]: number }
+): boolean => {
+  for (const [resourceId, cost] of Object.entries(costs)) {
+    if (!resources[resourceId] || resources[resourceId] < cost) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Функция для получения следующего уровня прогресса
+export const getNextMilestone = (currentScore: number, milestones: number[]): number => {
+  for (const milestone of milestones) {
+    if (milestone > currentScore) {
+      return milestone;
+    }
+  }
+  return Infinity;
 };

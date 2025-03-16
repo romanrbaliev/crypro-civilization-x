@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import ResourceDisplay from "@/components/ResourceDisplay";
 import BuildingItem from "@/components/BuildingItem";
 import UpgradeItem from "@/components/UpgradeItem";
+import ResourceForecast from "@/components/ResourceForecast";
+import EventLog, { GameEvent } from "@/components/EventLog";
+import { calculateTimeToReach, generateId } from "@/utils/helpers";
 import { BitcoinIcon, ArrowLeft, ChevronUp, LayoutGrid, Lightbulb, Trophy, Settings } from "lucide-react";
 import {
   Tabs,
@@ -29,6 +32,8 @@ const GameScreen = () => {
   const { state, dispatch } = useGame();
   const navigate = useNavigate();
   const [showIntro, setShowIntro] = useState(!state.gameStarted);
+  const [eventLog, setEventLog] = useState<GameEvent[]>([]);
+  const [clickCount, setClickCount] = useState(0);
   
   // Если игра еще не начата, перенаправляем на стартовую страницу
   useEffect(() => {
@@ -37,9 +42,35 @@ const GameScreen = () => {
     }
   }, [state.gameStarted, navigate]);
   
+  // Добавление события в журнал
+  const addEvent = (message: string, type: GameEvent["type"] = "info") => {
+    const newEvent: GameEvent = {
+      id: generateId(),
+      timestamp: Date.now(),
+      message,
+      type
+    };
+    
+    setEventLog(prev => [...prev, newEvent]);
+  };
+  
   // Обработчики событий
   const handleStudyCrypto = () => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
+    
+    // Отслеживаем количество кликов для обучения
+    setClickCount(prev => {
+      const newCount = prev + 1;
+      
+      // Подсказки для нового игрока
+      if (newCount === 3) {
+        addEvent("Вы начинаете понимать основы криптовалют!", "info");
+      } else if (newCount === 10) {
+        addEvent("Продолжайте изучать, чтобы применить знания на практике", "info");
+      }
+      
+      return newCount;
+    });
   };
   
   const handleApplyKnowledge = () => {
@@ -47,8 +78,12 @@ const GameScreen = () => {
     if (resource.value >= 10) {
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: -10 } });
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: 1 } });
+      
+      // Добавляем событие
+      addEvent("Вы конвертировали знания в USDT", "success");
     } else {
       toast.error("Недостаточно знаний! Нужно минимум 10.");
+      addEvent("Не удалось применить знания - нужно больше изучать", "error");
     }
   };
   
@@ -62,7 +97,20 @@ const GameScreen = () => {
   const handleCloseIntro = () => {
     setShowIntro(false);
     dispatch({ type: "START_GAME" });
+    
+    // Добавляем первое событие в журнал
+    addEvent("Добро пожаловать в мир криптовалют! Начните с изучения основ.", "info");
   };
+  
+  // Цели для отображения прогнозов
+  const getResourceTargets = () => {
+    return {
+      knowledge: state.unlocks.applyKnowledge ? 10 : 5,
+      usdt: state.buildings.generator.unlocked ? 25 : 10
+    };
+  };
+  
+  const resourceTargets = getResourceTargets();
   
   // Интро для новых игроков
   if (showIntro) {
@@ -170,7 +218,7 @@ const GameScreen = () => {
       {/* Основное содержимое */}
       <main className="flex-1 container mx-auto p-4 md:flex gap-6">
         {/* Левая панель (действия и статистика) */}
-        <div className="md:w-1/3 lg:w-1/4 mb-6 md:mb-0">
+        <div className="md:w-1/3 lg:w-1/4 mb-6 md:mb-0 space-y-4">
           <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
             <h2 className="font-bold text-lg mb-4">Действия</h2>
             
@@ -183,14 +231,24 @@ const GameScreen = () => {
               </Button>
               
               {state.unlocks.applyKnowledge && (
-                <Button
-                  className="w-full"
-                  variant="secondary"
-                  onClick={handleApplyKnowledge}
-                  disabled={state.resources.knowledge.value < 10}
-                >
-                  💰 Применить знания (10 🧠 → 1 💰)
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    className="w-full"
+                    variant="secondary"
+                    onClick={handleApplyKnowledge}
+                    disabled={state.resources.knowledge.value < 10}
+                  >
+                    💰 Применить знания (10 🧠 → 1 💰)
+                  </Button>
+                  
+                  {state.resources.knowledge.perSecond > 0 && (
+                    <ResourceForecast 
+                      resource={state.resources.knowledge} 
+                      targetValue={10} 
+                      label="До конвертации" 
+                    />
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -204,6 +262,8 @@ const GameScreen = () => {
               ))}
             </div>
           </div>
+          
+          <EventLog events={eventLog} />
         </div>
         
         {/* Правая панель (здания, исследования и т.д.) */}
@@ -224,13 +284,23 @@ const GameScreen = () => {
               {unlockedBuildings.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {unlockedBuildings.map(building => (
-                    <BuildingItem key={building.id} building={building} />
+                    <BuildingItem key={building.id} building={building} onPurchase={() => addEvent(`Построено здание: ${building.name}`, "success")} />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <LayoutGrid className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p>У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
+                  
+                  {state.resources.knowledge.value < 15 && state.resources.knowledge.perSecond > 0 && (
+                    <div className="mt-4">
+                      <ResourceForecast 
+                        resource={state.resources.knowledge} 
+                        targetValue={15} 
+                        label="До открытия здания «Практика»" 
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
@@ -242,7 +312,7 @@ const GameScreen = () => {
                     <h3 className="font-medium text-lg mb-3">Доступные исследования</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {unlockedUpgrades.map(upgrade => (
-                        <UpgradeItem key={upgrade.id} upgrade={upgrade} />
+                        <UpgradeItem key={upgrade.id} upgrade={upgrade} onPurchase={() => addEvent(`Завершено исследование: ${upgrade.name}`, "success")} />
                       ))}
                     </div>
                   </div>
@@ -263,6 +333,16 @@ const GameScreen = () => {
                   <div className="text-center py-12 text-gray-500">
                     <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-20" />
                     <p>У вас пока нет доступных исследований.<br />Продолжайте набирать знания и ресурсы.</p>
+                    
+                    {state.resources.knowledge.value < 45 && state.resources.knowledge.perSecond > 0 && (
+                      <div className="mt-4">
+                        <ResourceForecast 
+                          resource={state.resources.knowledge} 
+                          targetValue={45} 
+                          label="До открытия исследования «Основы блокчейна»" 
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

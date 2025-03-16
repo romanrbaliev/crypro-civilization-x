@@ -13,14 +13,16 @@ import {
 
 interface BuildingItemProps {
   building: Building;
+  onPurchase?: () => void;
 }
 
-const BuildingItem: React.FC<BuildingItemProps> = ({ building }) => {
+const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => {
   const { state, dispatch } = useGame();
   const { id, name, description, cost, costMultiplier, production, count } = building;
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: id } });
+    if (onPurchase) onPurchase();
   };
   
   // Проверка, достаточно ли ресурсов для покупки

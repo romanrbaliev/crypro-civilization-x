@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Upgrade } from "@/context/GameContext";
 import { Button } from "@/components/ui/button";
@@ -14,14 +13,16 @@ import { Sparkles } from "lucide-react";
 
 interface UpgradeItemProps {
   upgrade: Upgrade;
+  onPurchase?: () => void;
 }
 
-const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade }) => {
+const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const { state, dispatch } = useGame();
   const { id, name, description, cost, effect, purchased } = upgrade;
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: id } });
+    if (onPurchase) onPurchase();
   };
   
   // Проверка, достаточно ли ресурсов для покупки
