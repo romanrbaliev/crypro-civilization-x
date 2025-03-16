@@ -1,3 +1,4 @@
+
 body, html {
   margin: 0;
   padding: 0;
@@ -145,3 +146,31 @@ body, html {
 .card-compact {
   padding: 0.5rem;
 }
+
+/* Новые стили для специального форматирования */
+.resource-name {
+  font-size: 0.3rem;
+}
+
+.resource-count {
+  font-size: 0.3rem;
+}
+
+.section-title {
+  font-size: 0.4rem;
+}
+
+.action-button {
+  transform: scale(0.5);
+  transform-origin: left center;
+  height: auto !important;
+  min-height: 20px !important;
+  font-size: 0.6rem !important;
+  white-space: nowrap;
+}
+
+.buildings-title {
+  font-size: 0.67rem;
+  font-weight: 600;
+}
+

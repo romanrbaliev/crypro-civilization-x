@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -60,7 +61,7 @@ const GameScreen = () => {
       type
     };
     
-    setEventLog(prev => [...prev, newEvent]);
+    setEventLog(prev => [newEvent, ...prev]);
   };
   
   const handleStudyCrypto = () => {
@@ -221,7 +222,7 @@ const GameScreen = () => {
             <div className="flex flex-col">
               <Button 
                 variant={selectedTab === "buildings" ? "default" : "ghost"} 
-                className="justify-start rounded-none text-xs h-7 px-3"
+                className="justify-start rounded-none section-title h-6 px-3"
                 onClick={() => setSelectedTab("buildings")}
               >
                 <Building className="h-3 w-3 mr-2" />
@@ -229,7 +230,7 @@ const GameScreen = () => {
               </Button>
               <Button 
                 variant={selectedTab === "research" ? "default" : "ghost"} 
-                className="justify-start rounded-none text-xs h-7 px-3"
+                className="justify-start rounded-none section-title h-6 px-3"
                 onClick={() => setSelectedTab("research")}
               >
                 <Lightbulb className="h-3 w-3 mr-2" />
@@ -244,10 +245,10 @@ const GameScreen = () => {
                 <div key={resource.id} className="border-b pb-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center">
-                      <span className="font-medium text-xs">{resource.name}</span>
+                      <span className="font-medium resource-name">{resource.name}</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium text-xs">
+                      <div className="font-medium resource-count">
                         {resource.value.toFixed(0)}
                         {resource.max !== Infinity && `/${resource.max.toFixed(0)}`}
                       </div>
@@ -269,7 +270,7 @@ const GameScreen = () => {
                 <div className="bg-white rounded-lg p-3 space-y-3">
                   <h2 className="font-semibold text-xs mb-2">Действия</h2>
                   <Button
-                    className="w-full text-xs"
+                    className="w-full action-button"
                     onClick={handleStudyCrypto}
                   >
                     Изучить крипту
@@ -278,12 +279,12 @@ const GameScreen = () => {
                   {state.unlocks.applyKnowledge && (
                     <div className="space-y-2">
                       <Button
-                        className="w-full text-xs"
+                        className="w-full action-button"
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}
                       >
-                        Применить знания (10 Знаний → 1 USDT)
+                        Применить знания
                       </Button>
                       
                       {state.resources.knowledge.perSecond > 0 && (
@@ -299,7 +300,7 @@ const GameScreen = () => {
                 
                 {unlockedBuildings.length > 0 ? (
                   <div className="space-y-2">
-                    <h2 className="font-semibold text-xs">Доступные здания</h2>
+                    <h2 className="font-semibold buildings-title">Доступные здания</h2>
                     {unlockedBuildings.map(building => (
                       <BuildingItem 
                         key={building.id} 
@@ -329,7 +330,7 @@ const GameScreen = () => {
             
             {selectedTab === "research" && (
               <div className="space-y-3">
-                <h2 className="font-semibold text-xs">Исследования</h2>
+                <h2 className="font-semibold buildings-title">Исследования</h2>
                 
                 {unlockedUpgrades.length > 0 ? (
                   <div>
@@ -377,7 +378,7 @@ const GameScreen = () => {
         </div>
       </div>
       
-      <div className="h-28 border-t bg-white flex-shrink-0">
+      <div className="h-24 border-t bg-white flex-shrink-0">
         <EventLog events={eventLog} />
       </div>
     </div>
