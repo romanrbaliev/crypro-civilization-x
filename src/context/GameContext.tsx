@@ -72,8 +72,8 @@ const initialBuildings: { [key: string]: Building } = {
     costMultiplier: 1.15,
     production: { knowledge: 0.63 },
     count: 0,
-    unlocked: true,
-    requirements: { knowledge: 15 }
+    unlocked: false,
+    requirements: { usdt: 1 }
   },
   generator: {
     id: "generator",
@@ -262,16 +262,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       
       // Проверяем условия разблокировки новых функций на основе изменения ресурсов
       
-      // Если знания достигли 10, открываем кн��пку "Применить знания"
+      // Если знания достигли 10, открываем кнопку "Применить знания"
       if (resourceId === "knowledge" && newValue >= 10 && !state.unlocks.applyKnowledge) {
         newUnlocks.applyKnowledge = true;
         toast.success("Открыта новая функция: Применить знания");
       }
       
-      // Если знания достигли 15, открываем здание "Практика"
-      if (resourceId === "knowledge" && newValue >= 15 && !state.unlocks.practice) {
+      // Если получен первый USDT, разблокируем здание "Практика"
+      if (resourceId === "usdt" && newValue >= 1 && !state.buildings.practice.unlocked) {
         newBuildings.practice.unlocked = true;
-        newUnlocks.practice = true;
         toast.success("Открыта новая функция: Практика");
       }
       
@@ -491,7 +490,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         return state;
       }
       
-      console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}, достаточно USDT: ${state.resources.usdt.value >= building.cost.usdt}`);
+      console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}, достаточно ресурсов: ${canAffordBuilding(state, building)}`);
       
       // Проверяем, разблокировано ли здание
       if (!building.unlocked) {
@@ -500,15 +499,21 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       }
       
       // Проверяем, есть ли достаточно ресурсов для покупки
-      for (const [resourceId, cost] of Object.entries(building.cost)) {
-        const resource = state.resources[resourceId];
-        const actualCost = cost * Math.pow(building.costMultiplier, building.count);
-        
-        if (resource.value < actualCost) {
-          toast.error(`Недостаточно ${resource.name} для покупки ${building.name}`);
-          console.log(`Недостаточно ресурса ${resourceId}: имеется ${resource.value}, требуется ${actualCost}`);
-          return state;
+      function canAffordBuilding(state: GameState, building: Building): boolean {
+        for (const [resourceId, cost] of Object.entries(building.cost)) {
+          const resource = state.resources[resourceId];
+          const actualCost = cost * Math.pow(building.costMultiplier, building.count);
+          
+          if (resource.value < actualCost) {
+            return false;
+          }
         }
+        return true;
+      }
+      
+      if (!canAffordBuilding(state, building)) {
+        toast.error(`Недостаточно ресурсов для покупки ${building.name}`);
+        return state;
       }
       
       // Вычитаем стоимость здания из ресурсов
@@ -530,17 +535,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         const productionAmount = building.production.knowledge || 0;
         newResources.knowledge.perSecond += productionAmount;
         
-        // Убедимся, что разблокирован нужный флаг
+        // Убедимся, что здание остается разблокированным для следующих покупок
         console.log("Практика успешно приобретена, обновляем состояние");
-        return {
-          ...state,
-          resources: newResources,
-          buildings: newBuildings,
-          unlocks: {
-            ...state.unlocks,
-            practice: true
-          }
-        };
       }
       
       toast.success(`Построено: ${building.name}`);

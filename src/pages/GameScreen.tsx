@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -105,16 +104,6 @@ const GameScreen = () => {
     console.log("Активация практики. USDT:", state.resources.usdt.value, "Здание уже построено:", state.buildings.practice.count > 0);
     
     if (state.resources.usdt.value >= 10) {
-      // Убедиться, что здание разблокировано
-      dispatch({ 
-        type: "SET_BUILDING_UNLOCKED", 
-        payload: { buildingId: "practice", unlocked: true } 
-      });
-      
-      // Разблокируем функцию
-      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
-      
-      // Покупаем здание
       dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
       
       addEvent("Вы начали практиковаться! Теперь знания накапливаются автоматически.", "success");
@@ -145,6 +134,11 @@ const GameScreen = () => {
   };
   
   const resourceTargets = getResourceTargets();
+  
+  const shouldShowPractice = state.resources.usdt.unlocked;
+  const actualPracticeCost = state.buildings.practice.cost.usdt * 
+    Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count);
+  const canAffordPractice = state.resources.usdt.value >= actualPracticeCost;
   
   useEffect(() => {
     console.log("Текущее значение знаний:", state.resources.knowledge.value);
@@ -310,14 +304,16 @@ const GameScreen = () => {
                       </Button>
                     )}
                     
-                    <Button
-                      className="action-button w-full"
-                      variant="outline"
-                      onClick={handleActivatePractice}
-                      disabled={state.buildings.practice.count > 0}
-                    >
-                      Практика ({state.resources.usdt.value >= 10 ? "10 USDT" : "недостаточно USDT"})
-                    </Button>
+                    {shouldShowPractice && (
+                      <Button
+                        className="action-button w-full"
+                        variant="outline"
+                        onClick={handleActivatePractice}
+                        disabled={!canAffordPractice}
+                      >
+                        Практика
+                      </Button>
+                    )}
                   </div>
                   
                   {state.unlocks.applyKnowledge && state.resources.knowledge.perSecond > 0 && (
