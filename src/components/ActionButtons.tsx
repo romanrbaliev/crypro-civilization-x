@@ -69,7 +69,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const canAffordPractice = state.resources.usdt.value >= actualPracticeCost;
 
   return (
-    <div className="p-3 space-y-3 border-t bg-white">
+    <div className="space-y-3">
       <div className="actions-container">
         <Button
           className="action-button w-full mb-2"

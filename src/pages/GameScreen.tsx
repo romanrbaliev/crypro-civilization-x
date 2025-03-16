@@ -63,9 +63,10 @@ const GameScreen = () => {
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <Header prestigePoints={state.prestigePoints} />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="border-b">
-          <div className="flex flex-col">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Левая колонка: Здания и Исследования */}
+        <div className="w-7/12 flex flex-col overflow-hidden border-r">
+          <div className="border-b flex">
             {hasBuildingsUnlocked && (
               <Button 
                 variant={selectedTab === "buildings" ? "default" : "ghost"} 
@@ -87,21 +88,28 @@ const GameScreen = () => {
               </Button>
             )}
           </div>
+          
+          <div className="flex-1 overflow-auto p-2">
+            {selectedTab === "buildings" && hasBuildingsUnlocked && (
+              <BuildingsTab onAddEvent={addEvent} />
+            )}
+            
+            {selectedTab === "research" && hasResearchUnlocked && (
+              <ResearchTab onAddEvent={addEvent} />
+            )}
+          </div>
         </div>
         
-        <div className="flex-1 overflow-auto p-2">
-          <ResourceList resources={unlockedResources} />
+        {/* Правая колонка: Ресурсы и Действия */}
+        <div className="w-5/12 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto p-2">
+            <ResourceList resources={unlockedResources} />
+          </div>
           
-          {selectedTab === "buildings" && hasBuildingsUnlocked && (
-            <BuildingsTab onAddEvent={addEvent} />
-          )}
-          
-          {selectedTab === "research" && hasResearchUnlocked && (
-            <ResearchTab onAddEvent={addEvent} />
-          )}
+          <div className="action-buttons-container">
+            <ActionButtons onAddEvent={addEvent} />
+          </div>
         </div>
-        
-        <ActionButtons onAddEvent={addEvent} />
       </div>
       
       <div className="h-24 border-t bg-white flex-shrink-0">
