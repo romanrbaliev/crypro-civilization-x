@@ -1,230 +1,23 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { toast } from "sonner";
-import { resources } from "@/utils/gameConfig";
 
-// Типы ресурсов
-export interface Resource {
-  id: string;
-  name: string;
-  icon: string;
-  value: number;
-  perSecond: number;
-  unlocked: boolean;
-  max: number;
-}
+import { GameState, GameAction, Building } from './types';
+import { initialState } from './initialState';
+import { toast } from 'sonner';
 
-// Типы апгрейдов
-export interface Upgrade {
-  id: string;
-  name: string;
-  description: string;
-  cost: { [key: string]: number };
-  effect: { [key: string]: number };
-  unlocked: boolean;
-  purchased: boolean;
-  requirements?: { [key: string]: number };
-}
-
-// Типы зданий
-export interface Building {
-  id: string;
-  name: string;
-  description: string;
-  cost: { [key: string]: number };
-  costMultiplier: number;
-  production: { [key: string]: number };
-  count: number;
-  unlocked: boolean;
-  requirements?: { [key: string]: number };
-}
-
-// Структура состояния игры
-interface GameState {
-  resources: { [key: string]: Resource };
-  upgrades: { [key: string]: Upgrade };
-  buildings: { [key: string]: Building };
-  unlocks: { [key: string]: boolean };
-  lastUpdate: number;
-  gameStarted: boolean;
-  prestigePoints: number;
-  phase: number;
-}
-
-// Типы действий
-type GameAction =
-  | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
-  | { type: "UPDATE_RESOURCES" }
-  | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
-  | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
-  | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
-  | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
-  | { type: "START_GAME" }
-  | { type: "LOAD_GAME"; payload: GameState }
-  | { type: "PRESTIGE" };
-
-// Начальное состояние игры
-const initialBuildings: { [key: string]: Building } = {
-  practice: {
-    id: "practice",
-    name: "Практика",
-    description: "Автоматически изучать криптовалюту",
-    cost: { usdt: 10 },
-    costMultiplier: 1.15,
-    production: { knowledge: 0.63 },
-    count: 0,
-    unlocked: false,
-    requirements: { usdt: 1 }
-  },
-  generator: {
-    id: "generator",
-    name: "Генератор",
-    description: "Производит электричество для ваших устройств",
-    cost: { usdt: 25 },
-    costMultiplier: 1.15,
-    production: { electricity: 0.5 },
-    count: 0,
-    unlocked: false,
-    requirements: { usdt: 20 }
-  },
-  homeComputer: {
-    id: "homeComputer",
-    name: "Домашний компьютер",
-    description: "Обеспечивает вычислительную мощность",
-    cost: { usdt: 30, electricity: 5 },
-    costMultiplier: 1.15,
-    production: { computingPower: 2 },
-    count: 0,
-    unlocked: false,
-    requirements: { usdt: 25, electricity: 10 }
-  },
-  cryptoWallet: {
-    id: "cryptoWallet",
-    name: "Криптокошелек",
-    description: "Увеличивает максимальное хранение USDT",
-    cost: { usdt: 15, knowledge: 25 },
-    costMultiplier: 1.2,
-    production: { usdtMax: 50 },
-    count: 0,
-    unlocked: false,
-    requirements: { knowledge: 20 }
-  },
-  internetConnection: {
-    id: "internetConnection",
-    name: "Интернет-канал",
-    description: "Ускоряет получение знаний",
-    cost: { usdt: 50 },
-    costMultiplier: 1.3,
-    production: { knowledgeBoost: 0.2 },
-    count: 0,
-    unlocked: false,
-    requirements: { usdt: 45 }
-  }
-};
-
-const initialUpgrades: { [key: string]: Upgrade } = {
-  basicBlockchain: {
-    id: "basicBlockchain",
-    name: "Основы блокчейна",
-    description: "Открывает базовые механики криптовалют",
-    cost: { knowledge: 50 },
-    effect: { knowledgeBoost: 0.1 },
-    unlocked: false,
-    purchased: false,
-    requirements: { knowledge: 45 }
-  },
-  cryptoTrading: {
-    id: "cryptoTrading",
-    name: "Криптовалютный трейдинг",
-    description: "Открывает возможность обмена между криптовалютами",
-    cost: { knowledge: 100, usdt: 20 },
-    effect: { conversionRate: 0.15 },
-    unlocked: false,
-    purchased: false,
-    requirements: { knowledge: 80, usdt: 15 }
-  },
-  walletSecurity: {
-    id: "walletSecurity",
-    name: "Безопасность криптокошельков",
-    description: "Увеличивает максимальное хранение криптовалют",
-    cost: { knowledge: 75 },
-    effect: { usdtMaxBoost: 0.25 },
-    unlocked: false,
-    purchased: false,
-    requirements: { knowledge: 70 }
-  }
-};
-
-const initialState: GameState = {
-  resources: {
-    knowledge: {
-      id: "knowledge",
-      name: "Знания о крипте",
-      icon: "🧠",
-      value: 0,
-      perSecond: 0,
-      unlocked: true,
-      max: 100
-    },
-    usdt: {
-      id: "usdt",
-      name: "USDT",
-      icon: "💰",
-      value: 0,
-      perSecond: 0,
-      unlocked: false,
-      max: 50
-    },
-    electricity: {
-      id: "electricity",
-      name: "Электричество",
-      icon: "⚡",
-      value: 0,
-      perSecond: 0,
-      unlocked: false,
-      max: 1000
-    },
-    computingPower: {
-      id: "computingPower",
-      name: "Вычислительная мощность",
-      icon: "💻",
-      value: 0,
-      perSecond: 0,
-      unlocked: false,
-      max: 1000
-    },
-    reputation: {
-      id: "reputation",
-      name: "Репутация",
-      icon: "⭐",
-      value: 0,
-      perSecond: 0,
-      unlocked: false,
-      max: Infinity
+// Функция для проверки, может ли игрок позволить себе здание
+export const canAffordBuilding = (state: GameState, building: Building): boolean => {
+  for (const [resourceId, cost] of Object.entries(building.cost)) {
+    const resource = state.resources[resourceId];
+    const actualCost = cost * Math.pow(building.costMultiplier, building.count);
+    
+    if (resource.value < actualCost) {
+      return false;
     }
-  },
-  buildings: initialBuildings,
-  upgrades: initialUpgrades,
-  unlocks: {
-    applyKnowledge: false,
-    practice: false
-  },
-  lastUpdate: Date.now(),
-  gameStarted: false,
-  prestigePoints: 0,
-  phase: 1
+  }
+  return true;
 };
-
-// Создание контекста
-const GameContext = createContext<{
-  state: GameState;
-  dispatch: React.Dispatch<GameAction>;
-}>({
-  state: initialState,
-  dispatch: () => null
-});
 
 // Редуктор для обработки действий
-const gameReducer = (state: GameState, action: GameAction): GameState => {
+export const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case "INCREMENT_RESOURCE": {
       const { resourceId, amount } = action.payload;
@@ -499,18 +292,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       }
       
       // Проверяем, есть ли достаточно ресурсов для покупки
-      function canAffordBuilding(state: GameState, building: Building): boolean {
-        for (const [resourceId, cost] of Object.entries(building.cost)) {
-          const resource = state.resources[resourceId];
-          const actualCost = cost * Math.pow(building.costMultiplier, building.count);
-          
-          if (resource.value < actualCost) {
-            return false;
-          }
-        }
-        return true;
-      }
-      
       if (!canAffordBuilding(state, building)) {
         toast.error(`Недостаточно ресурсов для покупки ${building.name}`);
         return state;
@@ -632,63 +413,3 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       return state;
   }
 };
-
-// Провайдер для контекста
-export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
-  
-  // Загрузка игры из localStorage при монтировании
-  useEffect(() => {
-    const savedGame = localStorage.getItem("cryptoCivilizationSave");
-    if (savedGame) {
-      try {
-        const parsedSave = JSON.parse(savedGame);
-        dispatch({ type: "LOAD_GAME", payload: parsedSave });
-        toast.success("Игра загружена");
-      } catch (error) {
-        console.error("Ошибка загрузки игры:", error);
-        toast.error("Ошибка загрузки игры");
-      }
-    }
-  }, []);
-  
-  // Периодическое обновление ресурсов
-  useEffect(() => {
-    if (!state.gameStarted) return;
-    
-    const intervalId = setInterval(() => {
-      dispatch({ type: "UPDATE_RESOURCES" });
-    }, 1000);
-    
-    return () => clearInterval(intervalId);
-  }, [state.gameStarted]);
-  
-  // Сохранение игры в localStorage при изменении состояния
-  useEffect(() => {
-    if (!state.gameStarted) return;
-    
-    const saveGame = () => {
-      localStorage.setItem("cryptoCivilizationSave", JSON.stringify(state));
-    };
-    
-    // Сохраняем игру каждые 30 секунд
-    const saveIntervalId = setInterval(saveGame, 30000);
-    
-    // Также сохраняем при закрытии/перезагрузке страницы
-    window.addEventListener("beforeunload", saveGame);
-    
-    return () => {
-      clearInterval(saveIntervalId);
-      window.removeEventListener("beforeunload", saveGame);
-    };
-  }, [state]);
-  
-  return (
-    <GameContext.Provider value={{ state, dispatch }}>
-      {children}
-    </GameContext.Provider>
-  );
-};
-
-// Хук для использования контекста
-export const useGame = () => useContext(GameContext);
