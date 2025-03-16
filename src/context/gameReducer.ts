@@ -394,7 +394,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           newValue = 0;
         }
         
-        // Обновляем значение и скорость производства
+        // Обновляем значение �� скорость производства
         newResources[resourceId] = {
           ...resource,
           value: newValue,
@@ -464,9 +464,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       // Специальная логика для практики: увеличиваем производство знаний с каждым уровнем
       if (buildingId === 'practice') {
-        // Базовое производство 0.63, каждый следующий уровень добавляет еще 0.63
+        // Каждый уровень практики дает фиксированные 0.63 знаний/сек
+        // Общее производство не умножается на уровень, а всегда равно 0.63
         newBuildings.practice.production = { 
-          knowledge: 0.63 * (building.count + 1) 
+          knowledge: 0.63
         };
         console.log(`Уровень практики увеличен. Новая скорость накопления знаний: ${newBuildings.practice.production.knowledge}`);
       }
@@ -480,7 +481,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
 
         console.log("Разблокировано электричество из-за постройки генератора");
 
-        // Отправляем сообщение о разблокировке электричества
+        // Отправляем сообщение о разблокировке электричест��а
         const eventBus = window.gameEventBus;
         if (eventBus) {
           const customEvent = new CustomEvent('game-event', { 
@@ -569,7 +570,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         }
       }
       
-      // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошельков"
+      // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошель��ов"
       if (buildingId === 'cryptoWallet' && building.count === 0) {
         // Разблокируем исследование "Безопасность криптокошельков"
         const newUpgrades = {

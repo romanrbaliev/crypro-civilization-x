@@ -126,7 +126,7 @@ export const initialResources: { [key: string]: Resource } = {
   },
   computingPower: {
     id: "computingPower",
-    name: "Вычислительная мощность",
+    name: "Вычислительная мощно��ть",
     icon: "",
     value: 0,
     perSecond: 0,
