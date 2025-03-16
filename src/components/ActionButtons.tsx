@@ -6,9 +6,6 @@ import {
   Brain,
   MousePointerClick,
   Cpu,
-  BarChart,
-  Activity,
-  FlaskConical,
   BookOpen
 } from "lucide-react";
 import {
@@ -73,6 +70,16 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     onAddEvent(`Вы повысили уровень практики до ${building.count + 1}! Скорость накопления знаний увеличена.`, "success");
   };
   
+  // Обработка клика по кнопке "Майнить USDT"
+  const handleMineClick = () => {
+    if (state.resources.computingPower.value < 50) {
+      onAddEvent("Недостаточно вычислительной мощности! Требуется 50 единиц.", "error");
+      return;
+    }
+    
+    dispatch({ type: "MINE_COMPUTING_POWER" });
+  };
+  
   // Функция для проверки доступности кнопки
   const isButtonEnabled = (requiredResource: string, amount: number): boolean => {
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
@@ -82,6 +89,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   const practiceCurrentCost = state.buildings.practice 
     ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count)) 
     : 10;
+  
+  // Получаем текущий уровень практики
+  const practiceCurrentLevel = state.buildings.practice ? state.buildings.practice.count : 0;
   
   // Проверка, есть ли автомайнер, чтобы скрыть кнопку майнинга
   const hasAutoMiner = state.buildings.autoMiner.count > 0;
@@ -142,7 +152,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
                   disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
                 >
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Практиковаться ({practiceCurrentCost} USDT)
+                  Практиковаться (Уровень {practiceCurrentLevel})
                 </Button>
               </TooltipTrigger>
               {!isButtonEnabled("usdt", practiceCurrentCost) && (
