@@ -50,12 +50,12 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = f
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <span className="text-xl">{icon}</span>
-          <span className="font-medium">{name}</span>
+          <span className="font-medium resource-name">{name}</span>
         </div>
         <div className="text-right">
-          <div className="font-medium">{formatNumber(value)}</div>
+          <div className="font-medium resource-value">{formatNumber(value)}</div>
           {perSecond > 0 && (
-            <div className="text-xs text-green-600">+{formatNumber(perSecond)}/сек</div>
+            <div className="resource-per-second">+{formatNumber(perSecond)}/сек</div>
           )}
         </div>
       </div>
@@ -63,7 +63,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = f
       {max !== Infinity && (
         <div className="relative">
           <Progress value={percentage} className="h-2" />
-          <div className="text-xs text-gray-500 mt-0.5 text-right">
+          <div className="resource-value text-gray-500 mt-0.5 text-right">
             {formatNumber(value)}/{formatNumber(max)}
           </div>
         </div>

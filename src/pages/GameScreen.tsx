@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -38,34 +37,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-
-// Внедряем стили непосредственно внутри компонента для гарантированного применения
-const styles = {
-  resourceName: {
-    fontSize: '11px', 
-    fontWeight: 'medium',
-  },
-  resourceValue: {
-    fontSize: '11px', 
-    fontWeight: 'bold',
-  },
-  resourcePerSecond: {
-    fontSize: '9px',
-    color: '#16a34a',
-  },
-  actionButtonsContainer: {
-    display: 'flex',
-    flexDirection: 'row',
-    gap: '8px',
-    width: '100%',
-  },
-  actionButton: {
-    flex: 1,
-    fontSize: '10px',
-    padding: '6px 10px',
-    height: 'auto',
-  }
-};
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -129,8 +100,22 @@ const GameScreen = () => {
     }
   };
   
+  const handleActivatePractice = () => {
+    if (state.resources.usdt.value >= 10) {
+      dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: -10 } });
+      dispatch({ type: "UNLOCK_BUILDING", payload: { buildingId: "practice" } });
+      dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
+      
+      addEvent("Вы начали практиковаться! Теперь знания накапливаются автоматически.", "success");
+    } else {
+      toast.error("Недостаточно USDT! Нужно минимум 10.");
+      addEvent("Не удалось начать практику - не хватает USDT", "error");
+    }
+  };
+  
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
-  const unlockedBuildings = Object.values(state.buildings).filter(b => b.unlocked);
+  const unlockedBuildings = Object.values(state.buildings)
+    .filter(b => b.unlocked && b.id !== "practice");
   const unlockedUpgrades = Object.values(state.upgrades).filter(u => u.unlocked && !u.purchased);
   const purchasedUpgrades = Object.values(state.upgrades).filter(u => u.purchased);
   
@@ -273,14 +258,14 @@ const GameScreen = () => {
                 <div key={resource.id} className="border-b pb-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center">
-                      <span style={styles.resourceName}>{resource.name}</span>
+                      <span className="resource-name">{resource.name}</span>
                     </div>
                     <div className="text-right">
-                      <div style={styles.resourceValue}>
+                      <div className="resource-value">
                         {Math.floor(resource.value)}/{resource.max !== Infinity ? Math.floor(resource.max) : '∞'}
                       </div>
                       {resource.perSecond > 0 && (
-                        <div style={styles.resourcePerSecond}>+{resource.perSecond.toFixed(2)}/сек</div>
+                        <div className="resource-per-second">+{resource.perSecond.toFixed(2)}/сек</div>
                       )}
                     </div>
                   </div>
@@ -295,10 +280,9 @@ const GameScreen = () => {
             {selectedTab === "buildings" && (
               <div className="space-y-3">
                 <div className="bg-white rounded-lg p-3 space-y-3">
-                  <h2 className="font-semibold section-header mb-2">Действия</h2>
-                  <div style={styles.actionButtonsContainer}>
+                  <div className="actions-container">
                     <Button
-                      style={styles.actionButton}
+                      className="action-button"
                       onClick={handleStudyCrypto}
                     >
                       Изучить крипту
@@ -306,12 +290,23 @@ const GameScreen = () => {
                     
                     {state.unlocks.applyKnowledge && (
                       <Button
-                        style={styles.actionButton}
+                        className="action-button"
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}
                       >
                         Применить знания
+                      </Button>
+                    )}
+                    
+                    {state.unlocks.practice && !state.buildings.practice.unlocked && (
+                      <Button
+                        className="action-button"
+                        variant="outline"
+                        onClick={handleActivatePractice}
+                        disabled={state.resources.usdt.value < 10}
+                      >
+                        Практика
                       </Button>
                     )}
                   </div>
@@ -325,10 +320,9 @@ const GameScreen = () => {
                   )}
                 </div>
                 
-                {unlockedBuildings.length > 0 ? (
-                  <div className="space-y-2">
-                    <h2 className="font-semibold section-header">Доступные здания</h2>
-                    <div className="building-content">
+                <div className="building-container">
+                  {unlockedBuildings.length > 0 ? (
+                    <div className="space-y-2">
                       {unlockedBuildings.map(building => (
                         <BuildingItem 
                           key={building.id} 
@@ -337,33 +331,30 @@ const GameScreen = () => {
                         />
                       ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-gray-500">
-                    <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                    <p className="text-xs">У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
-                    
-                    {state.resources.knowledge.value < 15 && state.resources.knowledge.perSecond > 0 && (
-                      <div className="mt-3">
-                        <ResourceForecast 
-                          resource={state.resources.knowledge} 
-                          targetValue={15} 
-                          label="До открытия здания «Практика»" 
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center py-6 text-gray-500">
+                      <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                      <p className="text-xs">У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
+                      
+                      {state.resources.knowledge.value < 15 && state.resources.knowledge.perSecond > 0 && (
+                        <div className="mt-3">
+                          <ResourceForecast 
+                            resource={state.resources.knowledge} 
+                            targetValue={15} 
+                            label="До открытия здания «Практика»" 
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             
             {selectedTab === "research" && (
               <div className="space-y-3">
-                <h2 className="font-semibold section-header">Исследования</h2>
-                
                 {unlockedUpgrades.length > 0 ? (
                   <div>
-                    <h3 className="font-medium text-[9px] mb-2">Доступные исследования</h3>
                     <div className="space-y-2 building-content">
                       {unlockedUpgrades.map(upgrade => (
                         <UpgradeItem 

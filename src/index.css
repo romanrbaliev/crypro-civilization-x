@@ -77,8 +77,12 @@
 }
 
 /* Специальные стили для игровых элементов */
-.resource-name, .resource-value {
+.resource-name {
   font-size: 11px !important;
+}
+
+.resource-value {
+  font-size: 9px !important; /* Уменьшаем размер до такого же как у скорости накопления */
 }
 
 .resource-per-second {
@@ -90,11 +94,32 @@
   font-size: 10px !important;
   padding: 6px 10px !important;
   height: auto !important;
+  width: 100% !important;
+  margin-bottom: 5px !important;
 }
 
 .actions-container {
   display: flex !important;
-  flex-direction: row !important;
+  flex-direction: column !important; /* Меняем на вертикальное расположение */
   gap: 8px !important;
   width: 100% !important;
+}
+
+.building-container {
+  padding-top: 5px !important;
+}
+
+.building-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 5px !important;
+}
+
+.building-details {
+  width: 100% !important;
+}
+
+.building-button {
+  margin-left: 0 !important;
 }

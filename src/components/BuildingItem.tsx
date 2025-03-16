@@ -90,20 +90,9 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   
   return (
     <div className="p-2 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow mb-2">
-      <div className="flex justify-between items-start">
-        <div>
+      <div className="building-header">
+        <div className="flex items-center gap-2">
           <h3 className="font-semibold text-[12px]">{name}</h3>
-          <p className="text-[10px] text-gray-600 mb-1">{description}</p>
-          <div className="flex flex-col gap-1 text-[10px]">
-            {renderCost()}
-          </div>
-          <div className="mt-1 text-[10px]">
-            {renderProduction()}
-          </div>
-        </div>
-        
-        <div className="flex flex-col items-end">
-          <div className="text-[12px] font-medium mb-2">{count}</div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -124,6 +113,17 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
               )}
             </Tooltip>
           </TooltipProvider>
+        </div>
+        <div className="text-[12px] font-medium">{count}</div>
+      </div>
+      
+      <div className="building-details">
+        <p className="text-[10px] text-gray-600 mb-1 w-full">{description}</p>
+        <div className="flex flex-col gap-1 text-[10px] w-full">
+          {renderCost()}
+        </div>
+        <div className="mt-1 text-[10px] w-full">
+          {renderProduction()}
         </div>
       </div>
     </div>
