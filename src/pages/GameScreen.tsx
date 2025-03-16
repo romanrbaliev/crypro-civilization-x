@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -269,9 +268,9 @@ const GameScreen = () => {
               <div className="space-y-3">
                 <div className="bg-white rounded-lg p-3 space-y-3">
                   <h2 className="font-semibold section-header mb-2">Действия</h2>
-                  <div className="actions-container">
+                  <div className="flex justify-between items-center gap-2">
                     <Button
-                      className="action-button"
+                      className="action-button w-1/2"
                       onClick={handleStudyCrypto}
                     >
                       Изучить крипту
@@ -279,7 +278,7 @@ const GameScreen = () => {
                     
                     {state.unlocks.applyKnowledge && (
                       <Button
-                        className="action-button"
+                        className="action-button w-1/2"
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}
@@ -388,3 +387,4 @@ const GameScreen = () => {
 };
 
 export default GameScreen;
+

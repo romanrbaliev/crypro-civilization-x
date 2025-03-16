@@ -1,3 +1,4 @@
+
 body, html {
   margin: 0;
   padding: 0;
@@ -148,11 +149,11 @@ body, html {
 
 /* Новые стили для специального форматирования */
 .resource-name {
-  font-size: 0.2rem;
+  font-size: 5px;
 }
 
 .resource-count {
-  font-size: 0.2rem;
+  font-size: 5px;
 }
 
 .section-title {
@@ -165,7 +166,7 @@ body, html {
   transform-origin: left center;
   height: auto !important;
   min-height: 20px !important;
-  font-size: 0.4rem !important;
+  font-size: 5px !important;
   white-space: nowrap;
   width: 48% !important;
   display: inline-block !important;
@@ -175,6 +176,7 @@ body, html {
   display: flex;
   justify-content: space-between;
   gap: 0.25rem;
+  flex-direction: row;
 }
 
 /* Заголовки секций */
