@@ -180,7 +180,7 @@ const GameScreen = () => {
             </Button>
             <div className="ml-2 flex items-center space-x-2">
               <BitcoinIcon className="h-5 w-5 text-amber-500" />
-              <h1 className="text-lg font-bold">Crypto Civilization</h1>
+              <h1 className="text-base font-bold">Crypto Civilization</h1>
             </div>
           </div>
           
@@ -235,34 +235,39 @@ const GameScreen = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Левая колонка (40%) - Разделы и Ресурсы */}
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
-          {/* Верхняя часть - Разделы/Категории */}
+          {/* Верхняя часть - Разделы/Категории (вертикально) */}
           <div className="border-b">
-            <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-              <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger value="buildings" className="flex items-center">
-                  <Building className="h-4 w-4 mr-2" />
-                  Здания
-                </TabsTrigger>
-                <TabsTrigger value="research" className="flex items-center">
-                  <Lightbulb className="h-4 w-4 mr-2" />
-                  Исследования
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex flex-col">
+              <Button 
+                variant={selectedTab === "buildings" ? "default" : "ghost"} 
+                className="justify-start rounded-none text-sm h-9 px-3"
+                onClick={() => setSelectedTab("buildings")}
+              >
+                <Building className="h-3.5 w-3.5 mr-2" />
+                Здания
+              </Button>
+              <Button 
+                variant={selectedTab === "research" ? "default" : "ghost"} 
+                className="justify-start rounded-none text-sm h-9 px-3"
+                onClick={() => setSelectedTab("research")}
+              >
+                <Lightbulb className="h-3.5 w-3.5 mr-2" />
+                Исследования
+              </Button>
+            </div>
           </div>
           
           {/* Нижняя часть - Ресурсы */}
           <div className="flex-1 overflow-auto p-2">
-            <div className="space-y-3">
+            <div className="space-y-2">
               {unlockedResources.map(resource => (
                 <div key={resource.id} className="border-b pb-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center">
-                      <span className="text-xl mr-2">{resource.icon}</span>
-                      <span className="font-medium">{resource.name}</span>
+                      <span className="font-medium text-sm">{resource.name}</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium">
+                      <div className="font-medium text-sm">
                         {resource.value.toFixed(0)}
                         {resource.max !== Infinity && `/${resource.max.toFixed(0)}`}
                       </div>
@@ -284,23 +289,23 @@ const GameScreen = () => {
               <div className="space-y-3">
                 {/* Кнопки действий вверху */}
                 <div className="bg-white rounded-lg p-3 space-y-3">
-                  <h2 className="font-semibold text-lg mb-2">Действия</h2>
+                  <h2 className="font-semibold text-sm mb-2">Действия</h2>
                   <Button
-                    className="w-full"
+                    className="w-full text-sm"
                     onClick={handleStudyCrypto}
                   >
-                    🧠 Изучить крипту
+                    Изучить крипту
                   </Button>
                   
                   {state.unlocks.applyKnowledge && (
                     <div className="space-y-2">
                       <Button
-                        className="w-full"
+                        className="w-full text-sm"
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}
                       >
-                        💰 Применить знания (10 🧠 → 1 💰)
+                        Применить знания (10 Знаний → 1 USDT)
                       </Button>
                       
                       {state.resources.knowledge.perSecond > 0 && (
@@ -317,7 +322,7 @@ const GameScreen = () => {
                 {/* Список доступных зданий */}
                 {unlockedBuildings.length > 0 ? (
                   <div className="space-y-2">
-                    <h2 className="font-semibold text-lg">Доступные здания</h2>
+                    <h2 className="font-semibold text-sm">Доступные здания</h2>
                     {unlockedBuildings.map(building => (
                       <BuildingItem 
                         key={building.id} 
@@ -327,12 +332,12 @@ const GameScreen = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Building className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                    <p>У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
+                  <div className="text-center py-6 text-gray-500">
+                    <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">У вас пока нет доступных зданий.<br />Продолжайте набирать знания и ресурсы.</p>
                     
                     {state.resources.knowledge.value < 15 && state.resources.knowledge.perSecond > 0 && (
-                      <div className="mt-4">
+                      <div className="mt-3">
                         <ResourceForecast 
                           resource={state.resources.knowledge} 
                           targetValue={15} 
@@ -347,11 +352,11 @@ const GameScreen = () => {
             
             {selectedTab === "research" && (
               <div className="space-y-3">
-                <h2 className="font-semibold text-lg">Исследования</h2>
+                <h2 className="font-semibold text-sm">Исследования</h2>
                 
                 {unlockedUpgrades.length > 0 ? (
                   <div>
-                    <h3 className="font-medium mb-2">Доступные исследования</h3>
+                    <h3 className="font-medium text-xs mb-2">Доступные исследования</h3>
                     <div className="space-y-2">
                       {unlockedUpgrades.map(upgrade => (
                         <UpgradeItem 
@@ -363,12 +368,12 @@ const GameScreen = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                    <p>У вас пока нет доступных исследований.<br />Продолжайте набирать знания и ресурсы.</p>
+                  <div className="text-center py-6 text-gray-500">
+                    <Lightbulb className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">У вас пока нет доступных исследований.<br />Продолжайте набирать знания и ресурсы.</p>
                     
                     {state.resources.knowledge.value < 45 && state.resources.knowledge.perSecond > 0 && (
-                      <div className="mt-4">
+                      <div className="mt-3">
                         <ResourceForecast 
                           resource={state.resources.knowledge} 
                           targetValue={45} 
@@ -380,8 +385,8 @@ const GameScreen = () => {
                 )}
                 
                 {purchasedUpgrades.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="font-medium mb-2">Завершенные исследования</h3>
+                  <div className="mt-3">
+                    <h3 className="font-medium text-xs mb-2">Завершенные исследования</h3>
                     <div className="space-y-2">
                       {purchasedUpgrades.map(upgrade => (
                         <UpgradeItem key={upgrade.id} upgrade={upgrade} />
@@ -396,7 +401,7 @@ const GameScreen = () => {
       </div>
       
       {/* Нижний журнал событий на всю ширину экрана */}
-      <div className="h-40 border-t bg-white flex-shrink-0">
+      <div className="h-28 border-t bg-white flex-shrink-0">
         <EventLog events={eventLog} />
       </div>
     </div>
