@@ -17,6 +17,17 @@ export const GameEventSystem: React.FC = () => {
       if (event instanceof CustomEvent && event.detail?.message) {
         const message = event.detail.message;
         
+        // Предотвращаем дублирование сообщений, проверяя, 
+        // не отправляем ли мы детальное сообщение для уже отправленного события
+        if (message.startsWith("Накопите") || 
+            message.startsWith("Генератор позволяет") ||
+            message.startsWith("Домашний компьютер потребляет") ||
+            message.startsWith("Автомайнер автоматически") ||
+            message.startsWith("Исследование дает")) {
+          return; // Не отправляем дополнительное сообщение
+        }
+        
+        // Для новых событий добавляем детальные пояснения
         if (message.includes("Открыта новая функция: Применить знания")) {
           const detailEvent = new CustomEvent('game-event', { 
             detail: { 
