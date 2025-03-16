@@ -23,15 +23,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     
     console.log("Изучение крипты: +1 знание");
     
-    // Используем useEffect вместо обновления state внутри обработчика событий
-    // чтобы избежать предупреждения React о setState в рендере
-    if (clickCount === 2) {
-      onAddEvent("Вы начинаете понимать основы криптовалют!", "info");
-    } else if (clickCount === 9) {
-      onAddEvent("Продолжайте изучать, чтобы применить знания на практике", "info");
-    }
-    
     setClickCount(prev => prev + 1);
+    
+    // После 3 нажатий разблокируем кнопку "Применить знания"
+    if (clickCount === 2) {
+      console.log("Разблокировка применения знаний из-за достижения 3 кликов");
+      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "applyKnowledge" } });
+      onAddEvent("Вы начинаете понимать основы криптовалют! Теперь вы можете применить свои знания.", "info");
+    }
   };
   
   const handleApplyKnowledge = () => {
@@ -40,17 +39,26 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: -10 } });
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: 1 } });
       
-      // Разблокируем здание "practice" после первого использования "Применить знания"
-      if (!state.buildings.practice.unlocked) {
+      // Разблокируем USDT после первого использования "Применить знания"
+      if (!state.resources.usdt.unlocked) {
+        dispatch({ type: "UNLOCK_RESOURCE", payload: { resourceId: "usdt" } });
+        onAddEvent("Вы получили первый USDT!", "success");
+      }
+      
+      // Счетчик применений знаний для разблокировки Практики
+      dispatch({ type: "INCREMENT_COUNTER", payload: { counterId: "applyKnowledge" } });
+      
+      // Разблокируем кнопку "Практика" после второго применения знаний
+      if (state.counters?.applyKnowledge === 1) {  // Значит это второе применение
         dispatch({ 
           type: "SET_BUILDING_UNLOCKED", 
           payload: { buildingId: "practice", unlocked: true } 
         });
-        onAddEvent("Вы получили первый USDT! Теперь доступна функция 'Практика'.", "success");
+        onAddEvent("После применения знаний открыта функция 'Практика'!", "success");
         onAddEvent("Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
       }
     } else {
-      onAddEvent("Не удалось применить знания - нужно больше изучать", "error");
+      onAddEvent("Не удалось применить знания - нужно больше изучать (минимум 10 знаний)", "error");
     }
   };
   
@@ -59,12 +67,36 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     
     if (state.resources.usdt.value >= 10) {
       dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
+      
+      if (state.buildings.practice.count === 0) { // Первая активация
+        onAddEvent("Вы запустили фоновое накопление знаний! Теперь знания будут накапливаться автоматически.", "success");
+        onAddEvent("Чтобы увеличить скорость накопления знаний, вы можете построить больше единиц Практики или улучшить эффективность через исследования.", "info");
+      }
     } else {
       onAddEvent("Не удалось начать практику - не хватает USDT", "error");
     }
   };
+  
+  const handleMining = () => {
+    if (state.resources.computingPower.value >= 50) {
+      dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "computingPower", amount: -50 } });
+      dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: 1 } });
+      
+      // Разблокируем автомайнер после первого использования майнинга
+      if (!state.buildings.autoMiner.unlocked) {
+        dispatch({ type: "SET_BUILDING_UNLOCKED", payload: { buildingId: "autoMiner", unlocked: true } });
+        onAddEvent("Открыто новое оборудование: Автомайнер!", "success");
+        onAddEvent("Автомайнер позволяет автоматически обменивать вычислительную мощность на USDT", "info");
+      }
+    } else {
+      onAddEvent("Недостаточно вычислительной мощности для майнинга", "error");
+    }
+  };
 
+  const shouldShowApplyKnowledge = state.unlocks.applyKnowledge;
   const shouldShowPractice = state.buildings.practice.unlocked;
+  const shouldShowMining = state.resources.computingPower.unlocked;
+  
   const actualPracticeCost = state.buildings.practice.cost.usdt * 
     Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count);
   const canAffordPractice = state.resources.usdt.value >= actualPracticeCost;
@@ -79,7 +111,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           Изучить крипту
         </Button>
         
-        {state.unlocks.applyKnowledge && (
+        {shouldShowApplyKnowledge && (
           <Button
             className="action-button w-full"
             variant="secondary"
@@ -98,6 +130,17 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
             disabled={!canAffordPractice}
           >
             Практика
+          </Button>
+        )}
+        
+        {shouldShowMining && (
+          <Button
+            className="action-button w-full"
+            variant="outline"
+            onClick={handleMining}
+            disabled={state.resources.computingPower.value < 50}
+          >
+            Майнинг
           </Button>
         )}
       </div>

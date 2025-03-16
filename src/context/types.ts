@@ -41,6 +41,13 @@ export interface EventMessages {
   // Добавьте здесь другие типы системных сообщений по необходимости
 }
 
+// Счетчики действий
+export interface Counters {
+  applyKnowledge: number;
+  mining: number;
+  [key: string]: number;
+}
+
 // Структура состояния игры
 export interface GameState {
   resources: { [key: string]: Resource };
@@ -52,6 +59,7 @@ export interface GameState {
   prestigePoints: number;
   phase: number;
   eventMessages: EventMessages;
+  counters: Counters;
 }
 
 // Типы действий
@@ -61,7 +69,9 @@ export type GameAction =
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
+  | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }
   | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
+  | { type: "INCREMENT_COUNTER"; payload: { counterId: string } }
   | { type: "START_GAME" }
   | { type: "LOAD_GAME"; payload: GameState }
   | { type: "PRESTIGE" };

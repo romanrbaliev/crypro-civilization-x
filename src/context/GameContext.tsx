@@ -59,7 +59,7 @@ export function GameProvider({ children }: GameProviderProps) {
           });
           eventBus.dispatchEvent(detailEvent);
         }
-        else if (message.includes("Открыта новая функция: Практика")) {
+        else if (message.includes("После применения знаний открыта функция 'Практика'")) {
           const detailEvent = new CustomEvent('game-event', { 
             detail: { 
               message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
@@ -81,6 +81,24 @@ export function GameProvider({ children }: GameProviderProps) {
           const detailEvent = new CustomEvent('game-event', { 
             detail: { 
               message: "Домашний компьютер потребляет 1 электричество/сек и производит вычислительную мощность",
+              type: "info"
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }
+        else if (message.includes("Открыто новое оборудование: Автомайнер")) {
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Автомайнер автоматически обменивает 50 единиц вычислительной мощности на 1 USDT каждые 5 секунд",
+              type: "info"
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }
+        else if (message.includes("Открыто новое оборудование: Криптокошелек")) {
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Криптокошелек увеличивает максимальное количество USDT, которое вы можете хранить",
               type: "info"
             } 
           });
@@ -171,6 +189,10 @@ function loadGameState(): GameState | null {
       unlocks: {
         ...initialState.unlocks,
         ...state.unlocks
+      },
+      counters: {
+        ...initialState.counters,
+        ...state.counters
       }
     };
     

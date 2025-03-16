@@ -16,8 +16,7 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
         return (
           <div key={resource.id} className="border-b pb-2">
             <div className="flex justify-between items-start">
-              <div className="flex items-center">
-                <span className="text-lg mr-2">{resource.icon}</span>
+              <div>
                 <span className="resource-name">{resource.name}</span>
               </div>
               <div className="text-right">

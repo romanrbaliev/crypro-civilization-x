@@ -1,5 +1,5 @@
 
-import { Resource, Building, Upgrade, GameState } from './types';
+import { Resource, Building, Upgrade, GameState, Counters } from './types';
 
 // Начальные здания
 export const initialBuildings: { [key: string]: Building } = {
@@ -36,6 +36,17 @@ export const initialBuildings: { [key: string]: Building } = {
     unlocked: false,
     requirements: { usdt: 25, electricity: 10 }
   },
+  autoMiner: {
+    id: "autoMiner",
+    name: "Автомайнер",
+    description: "Автоматически конвертирует вычислительную мощность в USDT",
+    cost: { usdt: 50 },
+    costMultiplier: 1.2,
+    production: {}, // Особая логика в UPDATE_RESOURCES
+    count: 0,
+    unlocked: false,
+    requirements: {}
+  },
   cryptoWallet: {
     id: "cryptoWallet",
     name: "Криптокошелек",
@@ -67,20 +78,10 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Основы блокчейна",
     description: "Открывает базовые механики криптовалют",
     cost: { knowledge: 50 },
-    effect: { knowledgeBoost: 0.1 },
+    effect: { knowledgeBoost: 0.1 }, // 10% boost
     unlocked: false,
     purchased: false,
     requirements: { knowledge: 45 }
-  },
-  cryptoTrading: {
-    id: "cryptoTrading",
-    name: "Криптовалютный трейдинг",
-    description: "Открывает возможность обмена между криптовалютами",
-    cost: { knowledge: 100, usdt: 20 },
-    effect: { conversionRate: 0.15 },
-    unlocked: false,
-    purchased: false,
-    requirements: { knowledge: 80, usdt: 15 }
   },
   walletSecurity: {
     id: "walletSecurity",
@@ -143,6 +144,12 @@ export const initialResources: { [key: string]: Resource } = {
   }
 };
 
+// Начальные счетчики
+export const initialCounters: Counters = {
+  applyKnowledge: 0,
+  mining: 0
+};
+
 // Начальное состояние игры
 export const initialState: GameState = {
   resources: initialResources,
@@ -156,5 +163,6 @@ export const initialState: GameState = {
   gameStarted: false,
   prestigePoints: 0,
   phase: 1,
-  eventMessages: {}
+  eventMessages: {},
+  counters: initialCounters
 };

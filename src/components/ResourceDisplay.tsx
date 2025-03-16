@@ -11,7 +11,7 @@ interface ResourceDisplayProps {
 }
 
 const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = false }) => {
-  const { id, name, icon, value, perSecond, max } = resource;
+  const { id, name, value, perSecond, max } = resource;
   const percentage = max === Infinity ? 100 : (value / max) * 100;
   const isNegative = perSecond < 0;
   
@@ -21,7 +21,6 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = f
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-              <span className="text-xl">{icon}</span>
               <span className="font-medium">{formatNumber(value)}</span>
             </div>
           </TooltipTrigger>
@@ -49,7 +48,6 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, compact = f
     <div className="space-y-1">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <span className="text-xl">{icon}</span>
           <span className="font-medium resource-name">{name}</span>
         </div>
         <div className="text-right">

@@ -1,5 +1,6 @@
+
 import { GameState, GameAction, Building } from './types';
-import { initialState } from './initialState';
+import { initialState, initialResources } from './initialState';
 import { toast } from 'sonner';
 
 // Функция для проверки, может ли игрок позволить себе здание
@@ -15,6 +16,9 @@ export const canAffordBuilding = (state: GameState, building: Building): boolean
   return true;
 };
 
+// Время для автомайнера (в миллисекундах)
+const AUTO_MINER_INTERVAL = 5000; // 5 секунд
+
 // Редуктор для обработки действий
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
@@ -29,7 +33,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
       const resource = state.resources[resourceId];
       
-      if (!resource.unlocked) {
+      if (!resource.unlocked && amount > 0) {
         console.log(`Ресурс ${resourceId} не разблокирован!`);
         return state;
       }
@@ -51,16 +55,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Копируем состояние разблокировок для изменения
       let newUnlocks = { ...state.unlocks };
       let newBuildings = { ...state.buildings };
+      let newUpgrades = { ...state.upgrades };
       
       // Проверяем условия разблокировки новых функций на основе изменения ресурсов
       
-      // Если знания достигли 10, открываем кнопку "Применить знания"
-      if (resourceId === "knowledge" && newValue >= 10 && !state.unlocks.applyKnowledge) {
-        newUnlocks.applyKnowledge = true;
-        toast.success("Открыта новая функция: Применить знания");
-      }
+      // Не открываем кнопку "Применить знания" автоматически - теперь это делается через счетчик кликов
       
-      // Убираем автоматическое открытие практики, это будет сделано после первого применения знаний
+      // Проверяем условия для автоматического открытия функций
       
       // Если USDT достиг 20, открываем Генератор
       if (resourceId === "usdt" && newValue >= 20 && !state.buildings.generator.unlocked) {
@@ -77,17 +78,51 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         }
       }
       
-      // Открываем USDT если ещё не открыт и уже есть знания
-      if (resourceId === "knowledge" && newValue >= 5 && !newResources.usdt.unlocked) {
-        newResources.usdt.unlocked = true;
-        toast.success("Открыт новый ресурс: USDT");
-      }
-      
       return {
         ...state,
         resources: newResources,
         unlocks: newUnlocks,
-        buildings: newBuildings
+        buildings: newBuildings,
+        upgrades: newUpgrades
+      };
+    }
+    
+    case "UNLOCK_RESOURCE": {
+      const { resourceId } = action.payload;
+      
+      if (!state.resources[resourceId]) {
+        console.error(`Ресурс ${resourceId} не существует!`);
+        return state;
+      }
+      
+      const newResources = {
+        ...state.resources,
+        [resourceId]: {
+          ...state.resources[resourceId],
+          unlocked: true
+        }
+      };
+      
+      return {
+        ...state,
+        resources: newResources
+      };
+    }
+    
+    case "INCREMENT_COUNTER": {
+      const { counterId } = action.payload;
+      
+      if (!state.counters) {
+        console.error("Счетчики не инициализированы!");
+        return state;
+      }
+      
+      return {
+        ...state,
+        counters: {
+          ...state.counters,
+          [counterId]: (state.counters[counterId] || 0) + 1
+        }
       };
     }
     
@@ -151,12 +186,42 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         }
       }
       
+      // Особая логика для Автомайнера
+      const autoMinerCount = state.buildings.autoMiner.count;
+      if (autoMinerCount > 0) {
+        const timeSinceLastUpdate = now - state.lastUpdate;
+        const miningCycles = Math.floor(timeSinceLastUpdate / AUTO_MINER_INTERVAL);
+        
+        if (miningCycles > 0) {
+          // Для каждого цикла каждый автомайнер потребляет 50 вычислительной мощности и производит 1 USDT
+          for (let i = 0; i < miningCycles; i++) {
+            if (newResources.computingPower.value >= 50 * autoMinerCount) {
+              newResources.computingPower.value -= 50 * autoMinerCount;
+              newResources.usdt.value = Math.min(
+                newResources.usdt.value + autoMinerCount,
+                newResources.usdt.max
+              );
+            } else {
+              // Не хватает вычислительной мощности
+              break;
+            }
+          }
+        }
+        
+        // Обновляем perSecond для отображения (приблизительно)
+        newResources.computingPower.perSecond -= (50 * autoMinerCount) / (AUTO_MINER_INTERVAL / 1000);
+        newResources.usdt.perSecond += autoMinerCount / (AUTO_MINER_INTERVAL / 1000);
+      }
+      
       // Применяем производство от зданий
       for (const building of Object.values(state.buildings)) {
         if (building.count === 0) continue;
         
         // Пропускаем здания, которые не работают из-за нехватки ресурсов
         if (inactiveBuildings[building.id]) continue;
+        
+        // Специальная обработка для автомайнера - уже обработано выше
+        if (building.id === "autoMiner") continue;
         
         for (const [resourceId, amount] of Object.entries(building.production)) {
           // Проверяем, содержит ли производство изменение максимального значения
@@ -189,7 +254,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           if (resourceId.includes('Max')) {
             const actualResourceId = resourceId.replace('Max', '');
             if (newResources[actualResourceId]) {
-              newResources[actualResourceId].max = initialState.resources[actualResourceId].max + 
+              // Меняем только начальное значение + количество, не учитываем исследования
+              newResources[actualResourceId].max = initialResources[actualResourceId].max + 
                 amount * building.count;
             }
           }
@@ -217,9 +283,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         
         for (const [effectId, amount] of Object.entries(upgrade.effect)) {
           if (effectId === 'knowledgeBoost') {
-            knowledgeBoost += amount;
+            knowledgeBoost += amount;  // Используем точное значение: 0.1 = 10%
           } else if (effectId === 'usdtMaxBoost') {
-            usdtMaxBoost += amount;
+            usdtMaxBoost += amount;  // Используем точное значение: 0.25 = 25%
           }
         }
       }
@@ -232,50 +298,37 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           if (building.production.knowledge) {
             const boostedProduction = building.production.knowledge * knowledgeBoost;
             newResources.knowledge.perSecond += boostedProduction * building.count;
+            
+            // Корректируем уже накопленное значение с учетом бонуса
+            const resourceAmount = building.production.knowledge * building.count * deltaTime * knowledgeBoost;
+            newResources.knowledge.value = Math.min(
+              newResources.knowledge.value + resourceAmount - (building.production.knowledge * building.count * deltaTime),
+              newResources.knowledge.max
+            );
           }
         }
       }
       
       if (usdtMaxBoost !== 1) {
-        newResources.usdt.max = newResources.usdt.max * usdtMaxBoost;
+        // Применяем бонус только к базовому значению + бонусы от зданий
+        const baseMax = newResources.usdt.max;
+        newResources.usdt.max = baseMax * usdtMaxBoost;
       }
       
       // Проверяем условия открытия новых апгрейдов
       const newUpgrades = { ...state.upgrades };
-      for (const upgrade of Object.values(newUpgrades)) {
-        if (upgrade.unlocked || upgrade.purchased) continue;
-        
-        let canUnlock = true;
-        for (const [resourceId, requiredAmount] of Object.entries(upgrade.requirements || {})) {
-          if (!newResources[resourceId] || newResources[resourceId].value < requiredAmount) {
-            canUnlock = false;
-            break;
-          }
-        }
-        
-        if (canUnlock) {
-          upgrade.unlocked = true;
-          toast.success(`Новое исследование доступно: ${upgrade.name}`);
-        }
+      
+      // Специальная логика открытия апгрейдов
+      // Исследование Безопасность криптокошельков доступно только после покупки Криптокошелька
+      if (state.buildings.cryptoWallet.count > 0 && !newUpgrades.walletSecurity.unlocked) {
+        newUpgrades.walletSecurity.unlocked = true;
+        toast.success(`Новое исследование доступно: ${newUpgrades.walletSecurity.name}`);
       }
       
-      // Проверяем условия открытия новых зданий
-      const newBuildings = { ...state.buildings };
-      for (const building of Object.values(newBuildings)) {
-        if (building.unlocked) continue;
-        
-        let canUnlock = true;
-        for (const [resourceId, requiredAmount] of Object.entries(building.requirements || {})) {
-          if (!newResources[resourceId] || newResources[resourceId].value < requiredAmount) {
-            canUnlock = false;
-            break;
-          }
-        }
-        
-        if (canUnlock && building.id !== "practice") { // Убираем автоматическое открытие практики
-          building.unlocked = true;
-          toast.success(`Новое оборудование доступно: ${building.name}`);
-        }
+      // Открываем вычислительную мощность если есть домашний компьютер
+      if (state.buildings.homeComputer.count > 0 && !newResources.computingPower.unlocked) {
+        newResources.computingPower.unlocked = true;
+        toast.success("Открыт новый ресурс: Вычислительная мощность");
       }
       
       // Открываем электричество если есть генератор
@@ -284,10 +337,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         toast.success("Открыт новый ресурс: Электричество");
       }
       
-      // Открываем вычислительную мощность если есть домашний компьютер
-      if (state.buildings.homeComputer.count > 0 && !newResources.computingPower.unlocked) {
-        newResources.computingPower.unlocked = true;
-        toast.success("Открыт новый ресурс: Вычислительная мощность");
+      // Проверяем условия открытия новых зданий (кроме специальных)
+      const newBuildings = { ...state.buildings };
+      
+      // Криптокошелек доступен только после покупки Автомайнера
+      if (state.buildings.autoMiner.count > 0 && !newBuildings.cryptoWallet.unlocked) {
+        newBuildings.cryptoWallet.unlocked = true;
+        toast.success(`Новое оборудование доступно: ${newBuildings.cryptoWallet.name}`);
       }
       
       return {
