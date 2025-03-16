@@ -140,6 +140,19 @@ const checkUnlocks = (state: GameState): GameState => {
           unlocked: true
         };
         console.log(`Улучшение ${upgradeId} разблокировано из-за выполнения требований`);
+        
+        // Отправляем сообщение о разблокировке через шину событий
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const message = `Открыто новое исследование: ${upgrade.name}`;
+          const customEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message, 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
       }
     }
   }
@@ -207,6 +220,28 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           }
         }
       };
+      
+      // Разблокировка "Применить знания" после 3-х кликов
+      if (resourceId === 'knowledge' && !state.unlocks.applyKnowledge && newValue >= 3) {
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Открыта новая функция: Применить знания", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
+        
+        return {
+          ...newState,
+          unlocks: {
+            ...newState.unlocks,
+            applyKnowledge: true
+          }
+        };
+      }
       
       // Проверяем условия для разблокировки зданий и улучшений
       return checkUnlocks(newState);
@@ -382,7 +417,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
       
-      // Если построен первый генератор, разблокируем электричество и исследование "Основы блокчейна"
+      // Если построен генератор, разблокируем электричество и исследование "Основы блокчейна"
       if (buildingId === 'generator' && building.count === 0) {
         newResources.electricity = {
           ...newResources.electricity,
@@ -422,6 +457,42 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         
         // Обновляем максимальные значения ресурсов после применения изменений
         return updateResourceMaxValues(newState);
+      }
+      
+      // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошельков"
+      if (buildingId === 'cryptoWallet' && building.count === 0) {
+        // Разблокируем исследование "Безопасность криптокошельков"
+        const newUpgrades = {
+          ...state.upgrades,
+          walletSecurity: {
+            ...state.upgrades.walletSecurity,
+            unlocked: true
+          }
+        };
+
+        console.log("Разблокировано исследование 'Безопасность криптокошельков' из-за постройки криптокошелька");
+
+        // Отправляем сообщение о разблокировке исследования
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Разблокировано исследование 'Безопасность криптокошельков'", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
+
+        const stateWithUpgrades = {
+          ...state,
+          resources: newResources,
+          buildings: newBuildings,
+          upgrades: newUpgrades
+        };
+        
+        // Обновляем максимальные значения ресурсов после применения изменений
+        return updateResourceMaxValues(stateWithUpgrades);
       }
       
       // Для всех зданий обновляем максимальные значения ресурсов
@@ -479,6 +550,18 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         };
 
         console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
+        
+        // Отправляем сообщение о разблокировке криптокошелька
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Разблокирован криптокошелек", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
         
         const newState = {
           ...state,
@@ -627,8 +710,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         },
         usdt: {
           ...state.resources.usdt,
-          value: state.resources.usdt.value + 5, // Увеличено до 5 USDT
-          unlocked: true // Важно: убедимся, что usdt разблокирован
+          value: state.resources.usdt.value + 5, // 5 USDT
+          unlocked: true 
         }
       };
       
@@ -637,6 +720,20 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         ...state.counters,
         mining: state.counters.mining + 1
       };
+      
+      // Разблокируем кнопку майнинга при первом майнинге
+      if (state.counters.mining === 0) {
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', {
+            detail: {
+              message: "Вы успешно добыли 5 USDT! Теперь вы можете майнить регулярно.",
+              type: "success"
+            }
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
+      }
       
       return {
         ...state,
@@ -672,36 +769,58 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         applyKnowledge: state.counters.applyKnowledge + 1
       };
       
-      const newState = {
-        ...state,
-        resources: newResources,
-        counters: newCounters
-      };
+      // Добавляем сообщение только для первого применения знаний
+      if (state.counters.applyKnowledge === 0) {
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', {
+            detail: {
+              message: "Вы применили свои знания и получили 1 USDT!",
+              type: "success"
+            }
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
+      }
       
-      // Проверяем, нужно ли разблокировать "Практика"
-      let unlocks = { ...newState.unlocks };
+      // Разблокируем практику после ВТОРОГО применения знаний
       if (newCounters.applyKnowledge === 2) {
-        unlocks.practice = true;
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', {
+            detail: {
+              message: "После применения знаний открыта функция 'Практика'",
+              type: "info"
+            }
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
         
-        // Если практика разблокирована, также разблокируем здание "practice"
+        // Разблокируем здание practice
         const newBuildings = {
-          ...newState.buildings,
+          ...state.buildings,
           practice: {
-            ...newState.buildings.practice,
+            ...state.buildings.practice,
             unlocked: true
           }
         };
         
         return {
-          ...newState,
-          unlocks,
-          buildings: newBuildings
+          ...state,
+          resources: newResources,
+          counters: newCounters,
+          buildings: newBuildings,
+          unlocks: {
+            ...state.unlocks,
+            practice: true
+          }
         };
       }
       
       return {
-        ...newState,
-        unlocks
+        ...state,
+        resources: newResources,
+        counters: newCounters
       };
     }
     

@@ -42,7 +42,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       const hasEnough = resource.value >= Number(amount);
       
       return (
-        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
+        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px] w-full`}>
           {formatNumber(Number(amount))} {resource.name}
         </div>
       );
@@ -55,21 +55,21 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       if (effectId === 'knowledgeBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px]">
+          <div key={effectId} className="text-blue-600 text-[10px] w-full">
             +{boostPercent}% к скорости накопления Знаний о крипте
           </div>
         );
       } else if (effectId === 'knowledgeMaxBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px]">
+          <div key={effectId} className="text-blue-600 text-[10px] w-full">
             +{boostPercent}% к максимуму Знаний о крипте
           </div>
         );
       } else if (effectId === 'usdtMaxBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px]">
+          <div key={effectId} className="text-blue-600 text-[10px] w-full">
             +{boostPercent}% к максимуму USDT
           </div>
         );
@@ -78,7 +78,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         const boostPercent = Number(amount) * 100;
         const resourceName = state.resources[resourceId]?.name || resourceId;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px]">
+          <div key={effectId} className="text-blue-600 text-[10px] w-full">
             +{boostPercent}% к скорости накопления {resourceName}
           </div>
         );
@@ -86,21 +86,21 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         const resourceId = effectId.replace('Max', '');
         const resourceName = state.resources[resourceId]?.name || resourceId;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px]">
+          <div key={effectId} className="text-blue-600 text-[10px] w-full">
             +{formatNumber(Number(amount))} к максимуму {resourceName}
           </div>
         );
       } else if (effectId === 'conversionRate') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px]">
+          <div key={effectId} className="text-blue-600 text-[10px] w-full">
             +{boostPercent}% к конверсии
           </div>
         );
       }
       
       return (
-        <div key={effectId} className="text-blue-600 text-[10px]">
+        <div key={effectId} className="text-blue-600 text-[10px] w-full">
           +{amount} к {effectId}
         </div>
       );
@@ -110,17 +110,17 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   if (purchased) {
     return (
       <div className="p-2 border rounded-lg bg-gray-50 shadow-sm mb-2">
-        <div className="flex justify-between items-start">
-          <div>
+        <div className="flex justify-between items-start w-full">
+          <div className="w-full">
             <h3 className="font-semibold text-[12px] flex items-center">
               {name} <Sparkles className="ml-1 h-3 w-3 text-amber-500" />
             </h3>
-            <p className="text-[10px] text-gray-600 mb-1">{description}</p>
-            <div className="mt-1 text-[10px]">
+            <p className="text-[10px] text-gray-600 mb-1 w-full">{description}</p>
+            <div className="mt-1 text-[10px] w-full">
               {renderEffects()}
             </div>
           </div>
-          <div className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-medium">
+          <div className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-medium whitespace-nowrap ml-2">
             Исследовано
           </div>
         </div>
@@ -130,14 +130,14 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   
   return (
     <div className="p-2 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow mb-2">
-      <div className="flex justify-between items-start">
-        <div>
+      <div className="flex justify-between items-start w-full">
+        <div className="w-full pr-2">
           <h3 className="font-semibold text-[12px]">{name}</h3>
-          <p className="text-[10px] text-gray-600 mb-1">{description}</p>
-          <div className="flex flex-col gap-1">
+          <p className="text-[10px] text-gray-600 mb-1 w-full">{description}</p>
+          <div className="flex flex-col gap-1 w-full">
             {renderCost()}
           </div>
-          <div className="mt-1">
+          <div className="mt-1 w-full">
             {renderEffects()}
           </div>
         </div>
@@ -150,7 +150,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
                 disabled={!canAfford()}
                 variant={canAfford() ? "default" : "outline"}
                 size="sm"
-                className="text-[10px] h-7 px-2"
+                className="text-[10px] h-7 px-2 whitespace-nowrap"
               >
                 Исследовать
               </Button>

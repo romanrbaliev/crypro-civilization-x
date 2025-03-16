@@ -27,12 +27,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   // Обработка клика по кнопке "Изучить крипту"
   const handleLearnClick = () => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
-    
-    // Проверка для разблокировки кнопки "Применить знания"
-    if (state.resources.knowledge.value >= 9 && !state.unlocks.applyKnowledge) {
-      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "applyKnowledge" } });
-      onAddEvent("Открыта новая функция: Применить знания", "info");
-    }
   };
   
   // Обработка клика по кнопке "Применить знания"
@@ -44,20 +38,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     
     dispatch({ type: "APPLY_KNOWLEDGE" });
     dispatch({ type: "INCREMENT_COUNTER", payload: { counterId: "applyKnowledge" } });
-    
-    // Проверяем количество применений знаний
-    if (state.counters?.applyKnowledge === 0) {
-      // Первое применение знаний
-      dispatch({ type: "UNLOCK_RESOURCE", payload: { resourceId: "usdt" } });
-      onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
-    } else if (state.counters?.applyKnowledge === 1) {
-      // Только при втором применении знаний разблокируем практику
-      dispatch({ 
-        type: "SET_BUILDING_UNLOCKED", 
-        payload: { buildingId: "practice", unlocked: true } 
-      });
-      onAddEvent("После применения знаний открыта функция 'Практика'", "info");
-    }
   };
   
   // Обработка клика по кнопке "Майнить вычислительную мощность"
@@ -68,11 +48,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     }
     
     dispatch({ type: "MINE_COMPUTING_POWER" });
-    
-    // Проверяем, первый ли это майнинг
-    if (state.counters.mining === 0) {
-      onAddEvent("Вы успешно сконвертировали вычислительную мощность в 5 USDT!", "success");
-    }
   };
   
   // Функция для проверки доступности кнопки
