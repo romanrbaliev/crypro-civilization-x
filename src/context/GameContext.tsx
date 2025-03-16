@@ -339,7 +339,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         }
       }
       
-      // Обновляем максимальные значения ресурсов на основе зданий
+      // Обновляем максимальные значения ресурсов на основе здан��й
       for (const building of Object.values(state.buildings)) {
         if (building.count === 0) continue;
         
@@ -442,7 +442,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         toast.success("Открыт новый ресурс: Электричество");
       }
       
-      // Открываем вычислительную мощность если есть домашний компьютер
+      // Открывае�� вычислительную мощность если есть домашний компьютер
       if (state.buildings.homeComputer.count > 0 && !newResources.computingPower.unlocked) {
         newResources.computingPower.unlocked = true;
         toast.success("Открыт новый ресурс: Вычислительная мощность");
@@ -461,7 +461,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const { buildingId } = action.payload;
       const building = state.buildings[buildingId];
       
-      if (!building.unlocked) return state;
+      if (!building) {
+        console.error(`Building ${buildingId} not found!`);
+        return state;
+      }
+      
+      if (!building.unlocked && buildingId !== "practice") {
+        console.log(`Building ${buildingId} is not unlocked yet!`);
+        return state;
+      }
       
       // Проверяем, есть ли достаточно ресурсов для покупки
       for (const [resourceId, cost] of Object.entries(building.cost)) {
@@ -483,7 +491,21 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       
       // Увеличиваем количество здания
       const newBuildings = { ...state.buildings };
+      
+      // Специальная обработка для здания "practice"
+      if (buildingId === "practice") {
+        // Разблокируем здание "practice", если оно ещё не разблокировано
+        newBuildings[buildingId].unlocked = true;
+      }
+      
       newBuildings[buildingId].count += 1;
+      
+      // Обновляем производство ресурсов сразу после покупки здания
+      if (buildingId === "practice") {
+        // Обновляем perSecond для ресурса знаний
+        const productionAmount = building.production.knowledge || 0;
+        newResources.knowledge.perSecond += productionAmount;
+      }
       
       toast.success(`Построено: ${building.name}`);
       
