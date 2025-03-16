@@ -1,147 +1,153 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { useGame } from "@/context/GameContext";
+import {
+  Brain,
+  MousePointerClick,
+  Cpu,
+  BarChart,
+  Activity,
+  FlaskConical,
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ActionButtonsProps {
-  onAddEvent: (message: string, type: string) => void;
+  onAddEvent?: (message: string, type?: string) => void;
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) => {
   const { state, dispatch } = useGame();
-  const [clickCount, setClickCount] = useState(0);
-
-  const handleStudyCrypto = () => {
-    dispatch({ 
-      type: "INCREMENT_RESOURCE", 
-      payload: { 
-        resourceId: "knowledge", 
-        amount: 1 
-      } 
-    });
+  
+  // Обработка клика по кнопке "Изучить крипту"
+  const handleLearnClick = () => {
+    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
     
-    console.log("Изучение крипты: +1 знание");
-    
-    setClickCount(prev => prev + 1);
-    
-    // После 3 нажатий разблокируем кнопку "Применить знания"
-    if (clickCount === 2) {
-      console.log("Разблокировка применения знаний из-за достижения 3 кликов");
+    // Проверка для разблокировки кнопки "Применить знания"
+    if (state.resources.knowledge.value >= 9 && !state.unlocks.applyKnowledge) {
       dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "applyKnowledge" } });
-      onAddEvent("Вы начинаете понимать основы криптовалют! Скоро вы сможете применить свои знания.", "info");
+      onAddEvent("Открыта новая функция: Применить знания", "info");
     }
   };
   
+  // Обработка клика по кнопке "Применить знания"
   const handleApplyKnowledge = () => {
+    if (state.resources.knowledge.value < 10) {
+      onAddEvent("Недостаточно знаний! Требуется 10 единиц.", "error");
+      return;
+    }
+    
     dispatch({ type: "APPLY_KNOWLEDGE" });
+    dispatch({ type: "INCREMENT_COUNTER", payload: { counterId: "applyKnowledge" } });
     
-    // Уведомляем пользователя о результате
-    if (state.resources.knowledge.value >= 10) {
-      if (state.counters?.applyKnowledge === 0) {
-        // Первое применение знаний
-        dispatch({ type: "UNLOCK_RESOURCE", payload: { resourceId: "usdt" } });
-        onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
-      } else if (state.counters?.applyKnowledge === 1) {
-        // Только при втором применении знаний разблокируем практику
-        dispatch({ 
-          type: "SET_BUILDING_UNLOCKED", 
-          payload: { buildingId: "practice", unlocked: true } 
-        });
-        onAddEvent("После применения знаний открыта функция 'Практика'!", "success");
-        onAddEvent("Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
-      }
-    } else {
-      onAddEvent("Не удалось применить знания - нужно больше изучать (минимум 10 знаний)", "error");
+    // Проверяем количество применений знаний
+    if (state.counters?.applyKnowledge === 0) {
+      // Первое применение знаний
+      dispatch({ type: "UNLOCK_RESOURCE", payload: { resourceId: "usdt" } });
+      onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
+    } else if (state.counters?.applyKnowledge === 1) {
+      // Только при втором применении знаний разблокируем практику
+      dispatch({ 
+        type: "SET_BUILDING_UNLOCKED", 
+        payload: { buildingId: "practice", unlocked: true } 
+      });
+      onAddEvent("После применения знаний открыта функция 'Практика'", "info");
     }
   };
   
-  const handleActivatePractice = () => {
-    console.log("Активация практики. USDT:", state.resources.usdt.value, "Здание уже построено:", state.buildings.practice.count > 0);
-    
-    if (state.resources.usdt.value >= 10) {
-      dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
-      
-      if (state.buildings.practice.count === 0) { // Первая активация
-        onAddEvent("Вы запустили фоновое накопление знаний! Теперь знания будут накапливаться автоматически.", "success");
-        onAddEvent("Чтобы увеличить скорость накопления знаний, используйте Практику, а также изучайте различные исследования.", "info");
-      }
-    } else {
-      onAddEvent("Не удалось начать практику - не хватает USDT", "error");
+  // Обработка клика по кнопке "Майнить вычислительную мощность"
+  const handleMineClick = () => {
+    if (state.resources.computingPower.value < 50) {
+      onAddEvent("Недостаточно вычислительной мощности! Требуется 50 единиц.", "error");
+      return;
     }
-  };
-  
-  const handleMining = () => {
+    
     dispatch({ type: "MINE_COMPUTING_POWER" });
     
-    if (state.resources.computingPower.value >= 50) {
-      onAddEvent("Вы успешно обменяли 50 вычислительной мощности на 5 USDT!", "success");
-      
-      // Разблокируем автомайнер после первого использования майнинга
-      if (state.counters.mining === 0) {
-        dispatch({ type: "SET_BUILDING_UNLOCKED", payload: { buildingId: "autoMiner", unlocked: true } });
-        onAddEvent("Открыто новое оборудование: Автомайнер!", "success");
-        onAddEvent("Автомайнер позволяет автоматически обменивать вычислительную мощность на USDT", "info");
-      }
-    } else {
-      onAddEvent("Недостаточно вычислительной мощности для майнинга", "error");
+    // Проверяем, первый ли это майнинг
+    if (state.counters.mining === 0) {
+      onAddEvent("Вы успешно сконвертировали вычислительную мощность в 5 USDT!", "success");
     }
   };
-
-  const shouldShowApplyKnowledge = state.unlocks.applyKnowledge;
-  const shouldShowPractice = state.buildings.practice.unlocked;
-  const shouldShowMining = state.resources.computingPower.unlocked && state.buildings.homeComputer.count > 0;
   
-  const actualPracticeCost = state.buildings.practice.cost.usdt * 
-    Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count);
-  const canAffordPractice = state.resources.usdt.value >= actualPracticeCost;
+  // Функция для проверки доступности кнопки
+  const isButtonEnabled = (requiredResource: string, amount: number): boolean => {
+    return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
+  };
   
-  const miningDisabled = state.resources.computingPower.value < 50;
-  const applyKnowledgeDisabled = state.resources.knowledge.value < 10;
-
   return (
-    <div className="bg-white rounded-lg p-3 space-y-3">
-      <div className="flex flex-col space-y-2">
+    <div className="space-y-2 mt-2">
+      {/* Всегда показываем кнопку изучения */}
+      <div>
         <Button
-          className="action-button w-full"
-          onClick={handleStudyCrypto}
+          onClick={handleLearnClick}
+          className="w-full"
+          variant="default"
+          size="sm"
         >
+          <Brain className="mr-2 h-4 w-4" />
           Изучить крипту
         </Button>
-        
-        {shouldShowApplyKnowledge && (
-          <Button
-            className="action-button w-full"
-            variant={applyKnowledgeDisabled ? "outline" : "default"}
-            onClick={handleApplyKnowledge}
-            disabled={applyKnowledgeDisabled}
-          >
-            Применить знания
-          </Button>
-        )}
-        
-        {shouldShowPractice && (
-          <Button
-            className="action-button w-full"
-            variant={canAffordPractice ? "default" : "outline"}
-            onClick={handleActivatePractice}
-            disabled={!canAffordPractice}
-          >
-            Практика
-          </Button>
-        )}
-        
-        {shouldShowMining && (
-          <Button
-            className="action-button w-full"
-            variant={miningDisabled ? "outline" : "default"}
-            onClick={handleMining}
-            disabled={miningDisabled}
-          >
-            Майнинг
-          </Button>
-        )}
       </div>
+      
+      {/* Показываем кнопку применения знаний, если она разблокирована */}
+      {state.unlocks.applyKnowledge && (
+        <div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleApplyKnowledge}
+                  className="w-full"
+                  variant={isButtonEnabled("knowledge", 10) ? "default" : "outline"}
+                  size="sm"
+                  disabled={!isButtonEnabled("knowledge", 10)}
+                >
+                  <MousePointerClick className="mr-2 h-4 w-4" />
+                  Применить знания
+                </Button>
+              </TooltipTrigger>
+              {!isButtonEnabled("knowledge", 10) && (
+                <TooltipContent>
+                  <p>Требуется 10 знаний о крипте</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
+      
+      {/* Показываем кнопку майнинга, если разблокирована вычислительная мощность */}
+      {state.resources.computingPower.unlocked && (
+        <div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleMineClick}
+                  className="w-full"
+                  variant={isButtonEnabled("computingPower", 50) ? "default" : "outline"}
+                  size="sm"
+                  disabled={!isButtonEnabled("computingPower", 50)}
+                >
+                  <Cpu className="mr-2 h-4 w-4" />
+                  Майнить USDT
+                </Button>
+              </TooltipTrigger>
+              {!isButtonEnabled("computingPower", 50) && (
+                <TooltipContent>
+                  <p>Требуется 50 вычислительной мощности</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
     </div>
   );
 };

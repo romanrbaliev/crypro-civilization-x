@@ -53,39 +53,54 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   
   // Форматирование списка производства
   const renderProduction = () => {
-    return Object.entries(production).map(([resourceId, amount]) => {
+    const productionItems = [];
+    
+    // Обработка особых случаев с домашним компьютером
+    if (id === "homeComputer") {
+      productionItems.push(
+        <div key="consumption" className="text-red-600 text-[10px]">
+          -1 электричество/сек
+        </div>
+      );
+    }
+    
+    // Обработка обычного производства
+    Object.entries(production).forEach(([resourceId, amount]) => {
       // Для специальных модификаторов (бонусы, максимумы и т.д.)
       if (resourceId.includes('Boost')) {
         const boostPercent = Number(amount) * 100;
-        return (
+        const baseResourceId = resourceId.replace('Boost', '');
+        const resourceName = state.resources[baseResourceId]?.name || baseResourceId;
+        productionItems.push(
           <div key={resourceId} className="text-green-600 text-[10px]">
-            +{boostPercent}% к производству
+            +{boostPercent}% к скорости накопления {resourceName}
           </div>
         );
       } else if (resourceId.includes('Max')) {
         const actualResourceId = resourceId.replace('Max', '');
         const resource = state.resources[actualResourceId];
         if (resource) {
-          return (
+          productionItems.push(
             <div key={resourceId} className="text-blue-600 text-[10px]">
               +{formatNumber(Number(amount))} к максимуму {resource.name}
             </div>
           );
         }
-        return null;
       }
-      
       // Для обычных ресурсов
-      const resource = state.resources[resourceId];
-      if (resource) {
-        return (
-          <div key={resourceId} className="text-green-600 text-[10px]">
-            +{formatNumber(Number(amount))}/сек {resource.name}
-          </div>
-        );
+      else {
+        const resource = state.resources[resourceId];
+        if (resource) {
+          productionItems.push(
+            <div key={resourceId} className="text-green-600 text-[10px]">
+              +{formatNumber(Number(amount))}/сек {resource.name}
+            </div>
+          );
+        }
       }
-      return null;
-    }).filter(Boolean);
+    });
+    
+    return productionItems;
   };
   
   return (

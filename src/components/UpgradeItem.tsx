@@ -52,11 +52,42 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   // Форматирование списка эффектов
   const renderEffects = () => {
     return Object.entries(effect).map(([effectId, amount]) => {
-      if (effectId.includes('Boost')) {
+      if (effectId === 'knowledgeBoost') {
         const boostPercent = Number(amount) * 100;
         return (
           <div key={effectId} className="text-blue-600 text-[10px]">
-            +{boostPercent}% к эффективности
+            +{boostPercent}% к скорости накопления Знаний о крипте
+          </div>
+        );
+      } else if (effectId === 'knowledgeMaxBoost') {
+        const boostPercent = Number(amount) * 100;
+        return (
+          <div key={effectId} className="text-blue-600 text-[10px]">
+            +{boostPercent}% к максимуму Знаний о крипте
+          </div>
+        );
+      } else if (effectId === 'usdtMaxBoost') {
+        const boostPercent = Number(amount) * 100;
+        return (
+          <div key={effectId} className="text-blue-600 text-[10px]">
+            +{boostPercent}% к максимуму USDT
+          </div>
+        );
+      } else if (effectId.includes('Boost')) {
+        const resourceId = effectId.replace('Boost', '');
+        const boostPercent = Number(amount) * 100;
+        const resourceName = state.resources[resourceId]?.name || resourceId;
+        return (
+          <div key={effectId} className="text-blue-600 text-[10px]">
+            +{boostPercent}% к эффективности {resourceName}
+          </div>
+        );
+      } else if (effectId.includes('Max')) {
+        const resourceId = effectId.replace('Max', '');
+        const resourceName = state.resources[resourceId]?.name || resourceId;
+        return (
+          <div key={effectId} className="text-blue-600 text-[10px]">
+            +{formatNumber(Number(amount))} к максимуму {resourceName}
           </div>
         );
       } else if (effectId === 'conversionRate') {

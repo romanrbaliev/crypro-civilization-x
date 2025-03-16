@@ -50,17 +50,23 @@ const meetsRequirements = (
   state: GameState,
   requirements: { [key: string]: number }
 ): boolean => {
-  for (const [resourceOrUpgradeId, amount] of Object.entries(requirements)) {
-    // Проверяем, является ли это требованием к улучшению
-    if (state.upgrades[resourceOrUpgradeId]) {
-      const upgrade = state.upgrades[resourceOrUpgradeId];
-      // Если требуется покупка улучшения, проверяем, куплено ли оно
+  for (const [key, amount] of Object.entries(requirements)) {
+    // Проверка требований для количества зданий
+    if (key.includes('Count')) {
+      const buildingId = key.replace('Count', '');
+      if (!state.buildings[buildingId] || state.buildings[buildingId].count < amount) {
+        return false;
+      }
+    }
+    // Проверка требований для улучшений
+    else if (state.upgrades[key]) {
+      const upgrade = state.upgrades[key];
       if (!upgrade.purchased) {
         return false;
       }
-    } 
-    // Если это требование к ресурсу
-    else if (!state.resources[resourceOrUpgradeId] || state.resources[resourceOrUpgradeId].value < amount) {
+    }
+    // Проверка требований для ресурсов
+    else if (!state.resources[key] || state.resources[key].value < amount) {
       return false;
     }
   }
@@ -90,18 +96,39 @@ const checkUnlocks = (state: GameState): GameState => {
           unlocked: true
         };
         console.log(`Здание ${buildingId} разблокировано из-за выполнения требований`);
+        
+        // Отправляем сообщение о разблокировке через шину событий
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          let message = "";
+          switch (buildingId) {
+            case "homeComputer":
+              message = "Открыто новое оборудование: Домашний компьютер";
+              break;
+            case "generator":
+              message = "Открыто новое оборудование: Генератор";
+              break;
+            case "autoMiner":
+              message = "Открыто новое оборудование: Автомайнер";
+              break;
+            default:
+              message = `Открыто новое оборудование: ${building.name}`;
+          }
+          
+          const customEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message, 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
       }
     }
   }
   
   // Проверка улучшений
   for (const upgradeId in newState.upgrades) {
-    // Пропускаем улучшения, которые требуют особой логики разблокировки
-    if (upgradeId === 'basicBlockchain') {
-      // Основы блокчейна разблокируются только при покупке генератора
-      continue;
-    }
-    
     const upgrade = newState.upgrades[upgradeId];
     if (!upgrade.unlocked && upgrade.requirements) {
       const requirementsMet = meetsRequirements(newState, upgrade.requirements);
@@ -353,6 +380,18 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
 
         console.log("Разблокировано электричество из-за постройки генератора");
         console.log("Разблокировано исследование 'Основы блокчейна' из-за постройки генератора");
+
+        // Отправляем сообщение о разблокировке исследования
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Разблокировано исследование 'Основы блокчейна'", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
 
         return {
           ...state,
@@ -627,3 +666,4 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return state;
   }
 };
+

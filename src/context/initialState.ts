@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counters } from './types';
 
 // Начальные здания
@@ -28,7 +27,7 @@ export const initialBuildings: { [key: string]: Building } = {
   homeComputer: {
     id: "homeComputer",
     name: "Домашний компьютер",
-    description: "Обеспечивает вычислительную мощность, потребляет 1 эл/сек",
+    description: "Обеспечивает вычислительную мощность, потребляет 1 электричество/сек",
     cost: { usdt: 30, electricity: 5 },
     costMultiplier: 1.15,
     production: { computingPower: 2 },
@@ -91,7 +90,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     effect: { usdtMaxBoost: 0.25 },
     unlocked: false,
     purchased: false,
-    requirements: { basicBlockchain: 1 } // Требует покупки базового улучшения "Основы блокчейна"
+    requirements: { cryptoWalletCount: 1 } // Требует наличия хотя бы одного криптокошелька
   }
 };
 
