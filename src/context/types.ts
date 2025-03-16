@@ -74,4 +74,8 @@ export type GameAction =
   | { type: "INCREMENT_COUNTER"; payload: { counterId: string } }
   | { type: "START_GAME" }
   | { type: "LOAD_GAME"; payload: GameState }
-  | { type: "PRESTIGE" };
+  | { type: "PRESTIGE" }
+  | { type: "RESTART_COMPUTERS" }
+  | { type: "MINE_COMPUTING_POWER" }
+  | { type: "APPLY_KNOWLEDGE" };
+

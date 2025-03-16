@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, Building } from './types';
 import { initialState, initialResources } from './initialState';
 import { toast } from 'sonner';
@@ -669,15 +668,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         applyKnowledge: (state.counters.applyKnowledge || 0) + 1
       };
       
-      // Разблокируем USDT при первом применении знаний
-      let newResources = {
-        ...state.resources,
-        knowledge: {
-          ...state.resources.knowledge,
-          value: state.resources.knowledge.value - 10
-        }
+      // Создаем копию ресурсов
+      let newResources = { ...state.resources };
+      
+      // Вычитаем знания
+      newResources.knowledge = {
+        ...state.resources.knowledge,
+        value: state.resources.knowledge.value - 10
       };
       
+      // Разблокируем USDT при первом применении знаний
       if (!state.resources.usdt.unlocked) {
         newResources.usdt = {
           ...state.resources.usdt,
