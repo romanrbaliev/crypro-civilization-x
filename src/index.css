@@ -100,7 +100,7 @@
 
 .actions-container {
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: column !important; /* Меняем на вертикальное расположение */
   gap: 8px !important;
   width: 100% !important;
 }
@@ -122,15 +122,4 @@
 
 .building-button {
   margin-left: 0 !important;
-}
-
-/* Стили для новой компоновки */
-.resources-section {
-  margin-bottom: 1rem;
-}
-
-.action-buttons-container {
-  border-top: 1px solid #e5e7eb;
-  padding: 0.5rem;
-  background-color: white;
 }
