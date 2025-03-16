@@ -152,7 +152,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
                   disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
                 >
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Практиковаться (Уровень {practiceCurrentLevel})
+                  Практиковаться ({practiceCurrentLevel})
                 </Button>
               </TooltipTrigger>
               {!isButtonEnabled("usdt", practiceCurrentCost) && (
