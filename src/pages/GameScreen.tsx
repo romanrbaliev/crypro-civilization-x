@@ -299,15 +299,14 @@ const GameScreen = () => {
                       </Button>
                     )}
                     
-                    {state.resources.usdt.value >= 10 && !state.buildings.practice.count && (
-                      <Button
-                        className="action-button w-full"
-                        variant="outline"
-                        onClick={handleActivatePractice}
-                      >
-                        Практика
-                      </Button>
-                    )}
+                    <Button
+                      className="action-button w-full"
+                      variant="outline"
+                      onClick={handleActivatePractice}
+                      disabled={state.resources.usdt.value < 10 || state.buildings.practice.count > 0}
+                    >
+                      Практика
+                    </Button>
                   </div>
                   
                   {state.unlocks.applyKnowledge && state.resources.knowledge.perSecond > 0 && (
