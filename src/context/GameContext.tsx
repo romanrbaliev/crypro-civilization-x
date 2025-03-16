@@ -262,7 +262,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       
       // Проверяем условия разблокировки новых функций на основе изменения ресурсов
       
-      // Если знания достигли 10, открываем кнопку "Применить знания"
+      // Если знания достигли 10, открываем кн��пку "Применить знания"
       if (resourceId === "knowledge" && newValue >= 10 && !state.unlocks.applyKnowledge) {
         newUnlocks.applyKnowledge = true;
         toast.success("Открыта новая функция: Применить знания");
@@ -491,7 +491,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         return state;
       }
       
-      console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}`);
+      console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}, достаточно USDT: ${state.resources.usdt.value >= building.cost.usdt}`);
       
       // Проверяем, разблокировано ли здание
       if (!building.unlocked) {
@@ -506,6 +506,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         
         if (resource.value < actualCost) {
           toast.error(`Недостаточно ${resource.name} для покупки ${building.name}`);
+          console.log(`Недостаточно ресурса ${resourceId}: имеется ${resource.value}, требуется ${actualCost}`);
           return state;
         }
       }
@@ -515,11 +516,13 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       for (const [resourceId, cost] of Object.entries(building.cost)) {
         const actualCost = cost * Math.pow(building.costMultiplier, building.count);
         newResources[resourceId].value -= actualCost;
+        console.log(`Вычитаем ${actualCost} ${resourceId} за покупку здания ${buildingId}`);
       }
       
       // Увеличиваем количество здания
       const newBuildings = { ...state.buildings };
       newBuildings[buildingId].count += 1;
+      console.log(`Здание ${buildingId} построено, новое количество: ${newBuildings[buildingId].count}`);
       
       // Обновляем производство ресурсов сразу после покупки здания
       if (buildingId === "practice") {

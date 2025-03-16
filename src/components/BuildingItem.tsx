@@ -21,6 +21,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   const { id, name, description, cost, costMultiplier, production, count } = building;
   
   const handlePurchase = () => {
+    console.log(`Попытка покупки здания ${id} через компонент BuildingItem`);
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: id } });
     if (onPurchase) onPurchase();
   };
@@ -29,7 +30,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   const canAfford = () => {
     for (const [resourceId, baseCost] of Object.entries(cost)) {
       const actualCost = baseCost * Math.pow(costMultiplier, count);
-      if (state.resources[resourceId].value < actualCost) {
+      if (!state.resources[resourceId] || state.resources[resourceId].value < actualCost) {
         return false;
       }
     }
@@ -41,11 +42,11 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     return Object.entries(cost).map(([resourceId, baseCost]) => {
       const resource = state.resources[resourceId];
       const actualCost = baseCost * Math.pow(costMultiplier, count);
-      const hasEnough = resource.value >= actualCost;
+      const hasEnough = resource && resource.value >= actualCost;
       
       return (
         <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
-          {formatNumber(actualCost)} {resource.name}
+          {formatNumber(actualCost)} {resource ? resource.name : resourceId}
         </div>
       );
     });

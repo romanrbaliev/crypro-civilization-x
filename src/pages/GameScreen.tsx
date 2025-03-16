@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -104,13 +105,16 @@ const GameScreen = () => {
     console.log("Активация практики. USDT:", state.resources.usdt.value, "Здание уже построено:", state.buildings.practice.count > 0);
     
     if (state.resources.usdt.value >= 10) {
-      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
-      
+      // Убедиться, что здание разблокировано
       dispatch({ 
         type: "SET_BUILDING_UNLOCKED", 
         payload: { buildingId: "practice", unlocked: true } 
       });
       
+      // Разблокируем функцию
+      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
+      
+      // Покупаем здание
       dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
       
       addEvent("Вы начали практиковаться! Теперь знания накапливаются автоматически.", "success");
