@@ -920,6 +920,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           unlocks: {
             ...state.unlocks,
             practice: true
+          },
+          buildings: {
+            ...state.buildings,
+            practice: {
+              ...state.buildings.practice,
+              unlocked: true
+            }
           }
         };
       }

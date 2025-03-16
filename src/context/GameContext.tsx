@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
@@ -109,33 +110,13 @@ export function GameProvider({ children }: GameProviderProps) {
     window.gameEventBus = eventBus;
     eventBus.addEventListener('game-event', handleGameEvent);
     
-    if (state.unlocks.practice && !state.buildings.practice.count) {
-      setTimeout(() => {
-        const practiceEvent = new CustomEvent('game-event', {
-          detail: {
-            message: "Функция 'Практика' разблокирована",
-            type: "info"
-          }
-        });
-        eventBus.dispatchEvent(practiceEvent);
-        
-        setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event', {
-            detail: {
-              message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
-              type: "info"
-            }
-          });
-          eventBus.dispatchEvent(detailEvent);
-        }, 200);
-      }, 500);
-    }
+    // Важно: удаляем эффект сообщения о практике при загрузке, так как он теперь будет в ActionButtons
     
     return () => {
       eventBus.removeEventListener('game-event', handleGameEvent);
       delete window.gameEventBus;
     };
-  }, [state.unlocks.practice, state.buildings.practice.count]);
+  }, []);
   
   useEffect(() => {
     if (!state.gameStarted) return;

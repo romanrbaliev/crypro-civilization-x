@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
 import {
@@ -24,14 +24,16 @@ interface ActionButtonsProps {
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) => {
   const { state, dispatch } = useGame();
+  const [practiceMessageSent, setPracticeMessageSent] = useState(false);
   
-  // Эффект для отправки сообщения о появлении кнопки "Практиковаться"
+  // Эффект для отправки сообщения о появлении кнопки "Практиковаться" только один раз
   useEffect(() => {
-    if (state.unlocks.practice) {
+    if (state.unlocks.practice && !practiceMessageSent) {
       onAddEvent("Функция 'Практика' разблокирована", "info");
       onAddEvent("Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
+      setPracticeMessageSent(true);
     }
-  }, [state.unlocks.practice, onAddEvent]);
+  }, [state.unlocks.practice, onAddEvent, practiceMessageSent]);
   
   // Обработка клика по кнопке "Изучить крипту"
   const handleLearnClick = () => {
@@ -55,11 +57,19 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   
   // Обработка клика по кнопке "Практиковаться"
   const handlePractice = () => {
+    console.log("Нажата кнопка Практиковаться. USDT:", state.resources.usdt.value);
+    
     if (state.resources.usdt.value < 10) {
       onAddEvent("Недостаточно USDT! Требуется 10 единиц.", "error");
       return;
     }
     
+    if (state.buildings.practice.count > 0) {
+      onAddEvent("Вы уже практикуетесь!", "info");
+      return;
+    }
+    
+    // Покупаем здание practice
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
     onAddEvent("Вы начали практиковаться! Теперь знания будут накапливаться автоматически.", "success");
   };
