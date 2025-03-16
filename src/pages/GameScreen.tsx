@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -103,7 +104,8 @@ const GameScreen = () => {
   const handleActivatePractice = () => {
     if (state.resources.usdt.value >= 10) {
       dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "usdt", amount: -10 } });
-      dispatch({ type: "UNLOCK_BUILDING", payload: { buildingId: "practice" } });
+      // Заменяем "UNLOCK_BUILDING" на "UNLOCK_FEATURE"
+      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
       dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
       
       addEvent("Вы начали практиковаться! Теперь знания накапливаются автоматически.", "success");
