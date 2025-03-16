@@ -21,7 +21,7 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
     <div className="space-y-0.5 text-xs">
       {resources.map((resource, index) => (
         <React.Fragment key={resource.id}>
-          <div className="py-1.5">
+          <div className="py-1">
             <ResourceDisplay resource={resource} />
           </div>
           {index < resources.length - 1 && (
