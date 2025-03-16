@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
-import { Building, Lightbulb, Info, Trash2, Settings } from "lucide-react";
+import { Building, Lightbulb, Info, Trash2, Settings, Trophy } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
 import Header from "@/components/Header";
