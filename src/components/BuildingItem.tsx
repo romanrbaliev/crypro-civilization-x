@@ -1,8 +1,8 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/utils/helpers";
-import { useGame, Building } from "@/context/GameContext";
+import { useGame } from "@/context/hooks/useGame";
+import { Building } from "@/context/types";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -25,7 +25,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     if (onPurchase) onPurchase();
   };
   
-  // Проверка, достаточно ли ресурсов для покупки
   const canAfford = () => {
     for (const [resourceId, baseCost] of Object.entries(cost)) {
       const actualCost = Number(baseCost) * Math.pow(Number(costMultiplier), count);
@@ -36,7 +35,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     return true;
   };
   
-  // Форматирование списка затрат
   const renderCost = () => {
     return Object.entries(cost).map(([resourceId, baseCost]) => {
       const resource = state.resources[resourceId];
@@ -51,11 +49,9 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     });
   };
   
-  // Форматирование списка производства
   const renderProduction = () => {
     const productionItems = [];
     
-    // Обработка особых случаев с домашним компьютером
     if (id === "homeComputer") {
       productionItems.push(
         <div key="consumption" className="text-red-600 text-[10px]">
@@ -64,9 +60,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       );
     }
     
-    // Обработка обычного производства
     Object.entries(production).forEach(([resourceId, amount]) => {
-      // Для специальных модификаторов (бонусы, максимумы и т.д.)
       if (resourceId.includes('Boost')) {
         const boostPercent = Number(amount) * 100;
         const baseResourceId = resourceId.replace('Boost', '');
@@ -86,9 +80,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
             </div>
           );
         }
-      }
-      // Для обычных ресурсов
-      else {
+      } else {
         const resource = state.resources[resourceId];
         if (resource) {
           productionItems.push(

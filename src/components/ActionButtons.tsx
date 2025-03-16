@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useGame } from "@/context/GameContext";
+import { useGame } from "@/context/hooks/useGame";
 import {
   Brain,
   MousePointerClick,
@@ -23,7 +22,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   const { state, dispatch } = useGame();
   const [practiceMessageSent, setPracticeMessageSent] = useState(false);
   
-  // Эффект для отправки сообщения о появлении кнопки "Практиковаться" только один раз
   useEffect(() => {
     if (state.unlocks.practice && !practiceMessageSent) {
       onAddEvent("Функция 'Практика' разблокирована", "info");
@@ -32,17 +30,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     }
   }, [state.unlocks.practice, onAddEvent, practiceMessageSent]);
   
-  // Обработка клика по кнопке "Изучить крипту"
   const handleLearnClick = () => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
     
-    // Если это третий клик и кнопка "Применить знания" еще не разблокирована
     if (state.resources.knowledge.value === 2 && !state.unlocks.applyKnowledge) {
       onAddEvent("Изучите еще немного, и вы сможете применить свои знания!", "info");
     }
   };
   
-  // Обработка клика по кнопке "Применить знания"
   const handleApplyKnowledge = () => {
     if (state.resources.knowledge.value < 10) {
       onAddEvent("Недостаточно знаний! Требуется 10 единиц.", "error");
@@ -52,9 +47,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     dispatch({ type: "APPLY_KNOWLEDGE" });
   };
   
-  // Обработка клика по кнопке "Практиковаться"
   const handlePractice = () => {
-    // Рассчитываем текущую стоимость с учетом уже купленных уровней практики
     const building = state.buildings.practice;
     const currentCost = Math.floor(building.cost.usdt * Math.pow(building.costMultiplier, building.count));
     
@@ -65,12 +58,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       return;
     }
     
-    // Покупаем здание practice
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
     onAddEvent(`Вы повысили уровень практики до ${building.count + 1}! Скорость накопления знаний увеличена.`, "success");
   };
   
-  // Обработка клика по кнопке "Майнить USDT"
   const handleMineClick = () => {
     if (state.resources.computingPower.value < 50) {
       onAddEvent("Недостаточно вычислительной мощности! Требуется 50 единиц.", "error");
@@ -80,25 +71,20 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     dispatch({ type: "MINE_COMPUTING_POWER" });
   };
   
-  // Функция для проверки доступности кнопки
   const isButtonEnabled = (requiredResource: string, amount: number): boolean => {
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
   };
   
-  // Рассчитываем текущую стоимость практики
   const practiceCurrentCost = state.buildings.practice 
     ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count)) 
     : 10;
   
-  // Получаем текущий уровень практики
   const practiceCurrentLevel = state.buildings.practice ? state.buildings.practice.count : 0;
   
-  // Проверка, есть ли автомайнер, чтобы скрыть кнопку майнинга
   const hasAutoMiner = state.buildings.autoMiner.count > 0;
   
   return (
     <div className="space-y-2 mt-2">
-      {/* Всегда показываем кнопку изучения */}
       <div>
         <Button
           onClick={handleLearnClick}
@@ -111,7 +97,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
         </Button>
       </div>
       
-      {/* Показываем кнопку применения знаний, если она разблокирована */}
       {state.unlocks.applyKnowledge && (
         <div>
           <TooltipProvider>
@@ -138,7 +123,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
         </div>
       )}
       
-      {/* Показываем кнопку практики, если она разблокирована */}
       {state.unlocks.practice && (
         <div>
           <TooltipProvider>
@@ -165,7 +149,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
         </div>
       )}
       
-      {/* Показываем кнопку майнинга, если разблокирована вычислительная мощность и нет автомайнера */}
       {state.resources.computingPower.unlocked && !hasAutoMiner && (
         <div>
           <TooltipProvider>

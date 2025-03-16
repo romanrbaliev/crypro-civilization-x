@@ -1,9 +1,9 @@
-
 import React from "react";
 import { Building as BuildingIcon } from "lucide-react";
 import BuildingItem from "@/components/BuildingItem";
 import ResourceForecast from "@/components/ResourceForecast";
-import { Building, Resource, useGame } from "@/context/GameContext";
+import { useGame } from "@/context/hooks/useGame";
+import { Building, Resource } from "@/context/types";
 
 interface EquipmentTabProps {
   onAddEvent: (message: string, type: string) => void;

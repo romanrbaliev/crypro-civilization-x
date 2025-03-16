@@ -1,8 +1,8 @@
-
 import React from "react";
 import { Lightbulb } from "lucide-react";
 import UpgradeItem from "@/components/UpgradeItem";
-import { Resource, Upgrade, useGame } from "@/context/GameContext";
+import { useGame } from "@/context/hooks/useGame";
+import { Resource, Upgrade } from "@/context/types";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;

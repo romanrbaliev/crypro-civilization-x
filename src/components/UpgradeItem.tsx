@@ -1,8 +1,8 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/utils/helpers";
-import { useGame, Upgrade } from "@/context/GameContext";
+import { useGame } from "@/context/hooks/useGame";
+import { Upgrade } from "@/context/types";
 import { 
   Tooltip, 
   TooltipContent, 
@@ -25,7 +25,6 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
     if (onPurchase) onPurchase();
   };
   
-  // Проверка, достаточно ли ресурсов для покупки
   const canAfford = () => {
     for (const [resourceId, amount] of Object.entries(cost)) {
       if (state.resources[resourceId].value < Number(amount)) {
@@ -35,7 +34,6 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
     return true;
   };
   
-  // Форматирование списка затрат
   const renderCost = () => {
     return Object.entries(cost).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
@@ -49,7 +47,6 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
     });
   };
   
-  // Форматирование списка эффектов
   const renderEffects = () => {
     return Object.entries(effect).map(([effectId, amount]) => {
       if (effectId === 'knowledgeBoost') {
