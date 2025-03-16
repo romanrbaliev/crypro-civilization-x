@@ -11,6 +11,7 @@ import BuildingsTab from "@/components/BuildingsTab";
 import ResearchTab from "@/components/ResearchTab";
 import ResourceList from "@/components/ResourceList";
 import GameIntro from "@/components/GameIntro";
+import ActionButtons from "@/components/ActionButtons";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -18,6 +19,15 @@ const GameScreen = () => {
   const [showIntro, setShowIntro] = useState(!state.gameStarted);
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("buildings");
+  
+  // Проверяем, есть ли разблокированные здания и исследования
+  const hasBuildingsUnlocked = Object.values(state.buildings).some(
+    b => b.unlocked && b.id !== "practice"
+  );
+  
+  const hasResearchUnlocked = Object.values(state.upgrades).some(
+    u => u.unlocked && !u.purchased
+  );
   
   useEffect(() => {
     if (!state.gameStarted) {
@@ -53,10 +63,10 @@ const GameScreen = () => {
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <Header prestigePoints={state.prestigePoints} />
       
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-2/5 border-r flex flex-col overflow-hidden">
-          <div className="border-b">
-            <div className="flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="border-b">
+          <div className="flex flex-col">
+            {hasBuildingsUnlocked && (
               <Button 
                 variant={selectedTab === "buildings" ? "default" : "ghost"} 
                 className="justify-start rounded-none section-title h-6 px-3"
@@ -65,6 +75,8 @@ const GameScreen = () => {
                 <Building className="h-3 w-3 mr-2" />
                 Здания
               </Button>
+            )}
+            {hasResearchUnlocked && (
               <Button 
                 variant={selectedTab === "research" ? "default" : "ghost"} 
                 className="justify-start rounded-none section-title h-6 px-3"
@@ -73,25 +85,23 @@ const GameScreen = () => {
                 <Lightbulb className="h-3 w-3 mr-2" />
                 Исследования
               </Button>
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={unlockedResources} />
+            )}
           </div>
         </div>
         
-        <div className="w-3/5 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-2">
-            {selectedTab === "buildings" && (
-              <BuildingsTab onAddEvent={addEvent} />
-            )}
-            
-            {selectedTab === "research" && (
-              <ResearchTab onAddEvent={addEvent} />
-            )}
-          </div>
+        <div className="flex-1 overflow-auto p-2">
+          <ResourceList resources={unlockedResources} />
+          
+          {selectedTab === "buildings" && hasBuildingsUnlocked && (
+            <BuildingsTab onAddEvent={addEvent} />
+          )}
+          
+          {selectedTab === "research" && hasResearchUnlocked && (
+            <ResearchTab onAddEvent={addEvent} />
+          )}
         </div>
+        
+        <ActionButtons onAddEvent={addEvent} />
       </div>
       
       <div className="h-24 border-t bg-white flex-shrink-0">
