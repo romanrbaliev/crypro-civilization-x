@@ -39,6 +39,34 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
+// Внедряем стили непосредственно внутри компонента для гарантированного применения
+const styles = {
+  resourceName: {
+    fontSize: '11px', 
+    fontWeight: 'medium',
+  },
+  resourceValue: {
+    fontSize: '11px', 
+    fontWeight: 'bold',
+  },
+  resourcePerSecond: {
+    fontSize: '9px',
+    color: '#16a34a',
+  },
+  actionButtonsContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: '8px',
+    width: '100%',
+  },
+  actionButton: {
+    flex: 1,
+    fontSize: '10px',
+    padding: '6px 10px',
+    height: 'auto',
+  }
+};
+
 const GameScreen = () => {
   const { state, dispatch } = useGame();
   const navigate = useNavigate();
@@ -245,15 +273,14 @@ const GameScreen = () => {
                 <div key={resource.id} className="border-b pb-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center">
-                      <span className="resource-name">{resource.name}</span>
+                      <span style={styles.resourceName}>{resource.name}</span>
                     </div>
                     <div className="text-right">
-                      <div className="resource-count">
-                        {resource.value.toFixed(0)}
-                        {resource.max !== Infinity && `/${resource.max.toFixed(0)}`}
+                      <div style={styles.resourceValue}>
+                        {Math.floor(resource.value)}/{resource.max !== Infinity ? Math.floor(resource.max) : '∞'}
                       </div>
                       {resource.perSecond > 0 && (
-                        <div className="text-[0.44rem] text-green-600">+{resource.perSecond.toFixed(2)}/сек</div>
+                        <div style={styles.resourcePerSecond}>+{resource.perSecond.toFixed(2)}/сек</div>
                       )}
                     </div>
                   </div>
@@ -269,9 +296,9 @@ const GameScreen = () => {
               <div className="space-y-3">
                 <div className="bg-white rounded-lg p-3 space-y-3">
                   <h2 className="font-semibold section-header mb-2">Действия</h2>
-                  <div className="actions-container">
+                  <div style={styles.actionButtonsContainer}>
                     <Button
-                      className="action-button"
+                      style={styles.actionButton}
                       onClick={handleStudyCrypto}
                     >
                       Изучить крипту
@@ -279,7 +306,7 @@ const GameScreen = () => {
                     
                     {state.unlocks.applyKnowledge && (
                       <Button
-                        className="action-button"
+                        style={styles.actionButton}
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}

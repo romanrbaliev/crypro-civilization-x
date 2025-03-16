@@ -9,6 +9,7 @@ import GameScreen from "./pages/GameScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
 import { useEffect } from "react";
+import "./index.css"; // Импортируем CSS стили
 
 // Настраиваем клиент для React Query
 const queryClient = new QueryClient({

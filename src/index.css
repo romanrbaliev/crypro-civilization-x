@@ -14,16 +14,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
  
-    --primary: 262 83% 58%;
+    --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
  
-    --secondary: 217 92% 76%;
+    --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
  
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: 39 94% 62%;
+    --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
  
     --destructive: 0 84.2% 60.2%;
@@ -46,16 +46,16 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
  
-    --primary: 262 83% 58%;
+    --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
  
-    --secondary: 217 92% 76%;
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
  
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
  
-    --accent: 39 94% 62%;
+    --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
  
     --destructive: 0 62.8% 30.6%;
@@ -76,90 +76,25 @@
   }
 }
 
-/* Анимации */
-@keyframes pulse-soft {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+/* Специальные стили для игровых элементов */
+.resource-name, .resource-value {
+  font-size: 11px !important;
 }
 
-.animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
+.resource-per-second {
+  font-size: 9px !important;
+  color: #16a34a !important;
 }
 
-/* Эффект стекла */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+.action-button {
+  font-size: 10px !important;
+  padding: 6px 10px !important;
+  height: auto !important;
 }
 
-/* Пульсирующая кнопка */
-.pulse-button {
-  box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
-  animation: pulse-button 2s infinite;
-}
-
-@keyframes pulse-button {
-  0% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(124, 58, 237, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
-  }
-}
-
-/* Стили для ресурсов */
-.resource-icon {
-  font-size: 1.25rem;
-  margin-right: 0.5rem;
-}
-
-.resource-value {
-  font-weight: 500;
-}
-
-.resource-growth {
-  font-size: 0.75rem;
-  color: #10b981;
-}
-
-/* Стили для зданий */
-.building-card {
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.building-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* Стили для сообщений */
-.notification {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.5rem;
-  background-color: white;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  z-index: 50;
-  animation: slide-in 0.3s ease-out;
-}
-
-@keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+.actions-container {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  width: 100% !important;
 }
