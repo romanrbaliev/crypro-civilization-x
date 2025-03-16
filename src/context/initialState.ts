@@ -91,7 +91,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     effect: { usdtMaxBoost: 0.25 },
     unlocked: false,
     purchased: false,
-    requirements: { knowledge: 70 }
+    requirements: { basicBlockchain: 1 } // Требует покупки базового улучшения "Основы блокчейна"
   }
 };
 

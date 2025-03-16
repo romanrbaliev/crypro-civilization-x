@@ -42,12 +42,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         // Первое применение знаний
         dispatch({ type: "UNLOCK_RESOURCE", payload: { resourceId: "usdt" } });
         onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
-      } else {
-        onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
-      }
-      
-      // Разблокируем кнопку "Практика" после второго применения знаний
-      if (state.counters?.applyKnowledge === 1) {  // Значит это второе применение
+      } else if (state.counters?.applyKnowledge === 1) {
+        // Только при втором применении знаний разблокируем практику
         dispatch({ 
           type: "SET_BUILDING_UNLOCKED", 
           payload: { buildingId: "practice", unlocked: true } 

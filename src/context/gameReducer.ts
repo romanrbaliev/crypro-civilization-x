@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, Resource } from './types';
 import { initialState } from './initialState';
 
@@ -51,8 +50,17 @@ const meetsRequirements = (
   state: GameState,
   requirements: { [key: string]: number }
 ): boolean => {
-  for (const [resourceId, amount] of Object.entries(requirements)) {
-    if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
+  for (const [resourceOrUpgradeId, amount] of Object.entries(requirements)) {
+    // Проверяем, является ли это требованием к улучшению
+    if (state.upgrades[resourceOrUpgradeId]) {
+      const upgrade = state.upgrades[resourceOrUpgradeId];
+      // Если требуется покупка улучшения, проверяем, куплено ли оно
+      if (!upgrade.purchased) {
+        return false;
+      }
+    } 
+    // Если это требование к ресурсу
+    else if (!state.resources[resourceOrUpgradeId] || state.resources[resourceOrUpgradeId].value < amount) {
       return false;
     }
   }
@@ -549,7 +557,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Майнинг вычислительной мощности
     case "MINE_COMPUTING_POWER": {
-      // Проверяем, достаточно ли вычислительной мощности
+      // Проверяем, достаточно ли вычислите��ьной мощности
       if (state.resources.computingPower.value < 50) {
         return state;
       }
