@@ -12,7 +12,10 @@ interface ResourceForecastProps {
 }
 
 const ResourceForecast: React.FC<ResourceForecastProps> = ({ resource, targetValue, label }) => {
-  const timeToReach = calculateTimeToReach(resource.value, targetValue, resource.perSecond);
+  // Проверяем, что скорость производства ресурса больше 0
+  const timeToReach = resource.perSecond > 0 
+    ? calculateTimeToReach(resource.value, targetValue, resource.perSecond)
+    : "∞"; // Если скорость 0, то время бесконечно
   
   return (
     <TooltipProvider>

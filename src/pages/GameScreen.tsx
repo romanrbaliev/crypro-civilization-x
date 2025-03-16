@@ -56,7 +56,17 @@ const GameScreen = () => {
   
   // Обработчики событий
   const handleStudyCrypto = () => {
-    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
+    // Отправляем действие для увеличения знаний
+    dispatch({ 
+      type: "INCREMENT_RESOURCE", 
+      payload: { 
+        resourceId: "knowledge", 
+        amount: 1 
+      } 
+    });
+    
+    // Для верификации, выведем уведомление
+    console.log("Изучение крипты: +1 знание");
     
     // Отслеживаем количество кликов для обучения
     setClickCount(prev => {
@@ -111,6 +121,11 @@ const GameScreen = () => {
   };
   
   const resourceTargets = getResourceTargets();
+  
+  // Для отладки: выводим текущее значение ресурса знаний
+  useEffect(() => {
+    console.log("Текущее значение знаний:", state.resources.knowledge.value);
+  }, [state.resources.knowledge.value]);
   
   // Интро для новых игроков
   if (showIntro) {
