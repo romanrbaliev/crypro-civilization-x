@@ -9,6 +9,7 @@ import {
   BarChart,
   Activity,
   FlaskConical,
+  BookOpen
 } from "lucide-react";
 import {
   Tooltip,
@@ -37,7 +38,18 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     }
     
     dispatch({ type: "APPLY_KNOWLEDGE" });
-    dispatch({ type: "INCREMENT_COUNTER", payload: { counterId: "applyKnowledge" } });
+    onAddEvent("Вы применили знания и получили 1 USDT", "success");
+  };
+  
+  // Обработка клика по кнопке "Практиковаться"
+  const handlePractice = () => {
+    if (state.resources.usdt.value < 10) {
+      onAddEvent("Недостаточно USDT! Требуется 10 единиц.", "error");
+      return;
+    }
+    
+    dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
+    onAddEvent("Вы начали практиковаться! Теперь знания будут накапливаться автоматически.", "success");
   };
   
   // Обработка клика по кнопке "Майнить вычислительную мощность"
@@ -48,6 +60,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     }
     
     dispatch({ type: "MINE_COMPUTING_POWER" });
+    onAddEvent("Вы успешно добыли 5 USDT используя вычислительную мощность!", "success");
   };
   
   // Функция для проверки доступности кнопки
@@ -90,6 +103,33 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
               {!isButtonEnabled("knowledge", 10) && (
                 <TooltipContent>
                   <p>Требуется 10 знаний о крипте</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
+      
+      {/* Показываем кнопку практики, если она разблокирована */}
+      {state.unlocks.practice && (
+        <div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handlePractice}
+                  className="w-full"
+                  variant={isButtonEnabled("usdt", 10) ? "default" : "outline"}
+                  size="sm"
+                  disabled={!isButtonEnabled("usdt", 10)}
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Практиковаться
+                </Button>
+              </TooltipTrigger>
+              {!isButtonEnabled("usdt", 10) && (
+                <TooltipContent>
+                  <p>Требуется 10 USDT</p>
                 </TooltipContent>
               )}
             </Tooltip>

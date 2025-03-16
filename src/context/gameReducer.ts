@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, Resource } from './types';
 import { initialState } from './initialState';
 
@@ -768,20 +767,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         ...state.counters,
         applyKnowledge: state.counters.applyKnowledge + 1
       };
-      
-      // Добавляем сообщение только для первого применения знаний
-      if (state.counters.applyKnowledge === 0) {
-        const eventBus = window.gameEventBus;
-        if (eventBus) {
-          const customEvent = new CustomEvent('game-event', {
-            detail: {
-              message: "Вы применили свои знания и получили 1 USDT!",
-              type: "success"
-            }
-          });
-          eventBus.dispatchEvent(customEvent);
-        }
-      }
       
       // Разблокируем практику после ВТОРОГО применения знаний
       if (newCounters.applyKnowledge === 2) {
