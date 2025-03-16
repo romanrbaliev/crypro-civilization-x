@@ -44,7 +44,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       const hasEnough = resource.value >= actualCost;
       
       return (
-        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[7px]`}>
+        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
           {formatNumber(actualCost)} {resource.name}
         </div>
       );
@@ -58,7 +58,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       if (resourceId.includes('Boost')) {
         const boostPercent = amount * 100;
         return (
-          <div key={resourceId} className="text-green-600 text-[7px]">
+          <div key={resourceId} className="text-green-600 text-[10px]">
             +{boostPercent}% к производству
           </div>
         );
@@ -67,7 +67,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         const resource = state.resources[actualResourceId];
         if (resource) {
           return (
-            <div key={resourceId} className="text-blue-600 text-[7px]">
+            <div key={resourceId} className="text-blue-600 text-[10px]">
               +{formatNumber(amount)} к максимуму {resource.name}
             </div>
           );
@@ -79,7 +79,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       const resource = state.resources[resourceId];
       if (resource) {
         return (
-          <div key={resourceId} className="text-green-600 text-[7px]">
+          <div key={resourceId} className="text-green-600 text-[10px]">
             +{formatNumber(amount)}/сек {resource.name}
           </div>
         );
@@ -89,21 +89,21 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   return (
-    <div className="p-2 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+    <div className="p-2 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow mb-2">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="font-semibold text-[8px]">{name}</h3>
-          <p className="text-[7px] text-gray-600 mb-1">{description}</p>
-          <div className="flex flex-col gap-1 text-[7px]">
+          <h3 className="font-semibold text-[12px]">{name}</h3>
+          <p className="text-[10px] text-gray-600 mb-1">{description}</p>
+          <div className="flex flex-col gap-1 text-[10px]">
             {renderCost()}
           </div>
-          <div className="mt-1 text-[7px]">
+          <div className="mt-1 text-[10px]">
             {renderProduction()}
           </div>
         </div>
         
         <div className="flex flex-col items-end">
-          <div className="text-[8px] font-medium mb-2">{count}</div>
+          <div className="text-[12px] font-medium mb-2">{count}</div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -112,14 +112,14 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                   disabled={!canAfford()}
                   variant={canAfford() ? "default" : "outline"}
                   size="sm"
-                  className="text-[7px] h-5 px-2"
+                  className="text-[10px] h-7 px-2"
                 >
                   Построить
                 </Button>
               </TooltipTrigger>
               {!canAfford() && (
                 <TooltipContent side="left">
-                  <p className="text-[7px]">Недостаточно ресурсов</p>
+                  <p className="text-[10px]">Недостаточно ресурсов</p>
                 </TooltipContent>
               )}
             </Tooltip>

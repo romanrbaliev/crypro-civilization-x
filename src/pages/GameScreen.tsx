@@ -268,46 +268,48 @@ const GameScreen = () => {
             {selectedTab === "buildings" && (
               <div className="space-y-3">
                 <div className="bg-white rounded-lg p-3 space-y-3">
-                  <h2 className="font-semibold text-xs mb-2">Действия</h2>
-                  <Button
-                    className="w-full action-button"
-                    onClick={handleStudyCrypto}
-                  >
-                    Изучить крипту
-                  </Button>
-                  
-                  {state.unlocks.applyKnowledge && (
-                    <div className="space-y-2">
+                  <h2 className="font-semibold section-header mb-2">Действия</h2>
+                  <div className="actions-container">
+                    <Button
+                      className="action-button"
+                      onClick={handleStudyCrypto}
+                    >
+                      Изучить крипту
+                    </Button>
+                    
+                    {state.unlocks.applyKnowledge && (
                       <Button
-                        className="w-full action-button"
+                        className="action-button"
                         variant="secondary"
                         onClick={handleApplyKnowledge}
                         disabled={state.resources.knowledge.value < 10}
                       >
                         Применить знания
                       </Button>
-                      
-                      {state.resources.knowledge.perSecond > 0 && (
-                        <ResourceForecast 
-                          resource={state.resources.knowledge} 
-                          targetValue={10} 
-                          label="До конвертации" 
-                        />
-                      )}
-                    </div>
+                    )}
+                  </div>
+                  
+                  {state.unlocks.applyKnowledge && state.resources.knowledge.perSecond > 0 && (
+                    <ResourceForecast 
+                      resource={state.resources.knowledge} 
+                      targetValue={10} 
+                      label="До конвертации" 
+                    />
                   )}
                 </div>
                 
                 {unlockedBuildings.length > 0 ? (
                   <div className="space-y-2">
-                    <h2 className="font-semibold buildings-title">Доступные здания</h2>
-                    {unlockedBuildings.map(building => (
-                      <BuildingItem 
-                        key={building.id} 
-                        building={building} 
-                        onPurchase={() => addEvent(`Построено здание: ${building.name}`, "success")} 
-                      />
-                    ))}
+                    <h2 className="font-semibold section-header">Доступные здания</h2>
+                    <div className="building-content">
+                      {unlockedBuildings.map(building => (
+                        <BuildingItem 
+                          key={building.id} 
+                          building={building} 
+                          onPurchase={() => addEvent(`Построено здание: ${building.name}`, "success")} 
+                        />
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-6 text-gray-500">
@@ -330,12 +332,12 @@ const GameScreen = () => {
             
             {selectedTab === "research" && (
               <div className="space-y-3">
-                <h2 className="font-semibold buildings-title">Исследования</h2>
+                <h2 className="font-semibold section-header">Исследования</h2>
                 
                 {unlockedUpgrades.length > 0 ? (
                   <div>
                     <h3 className="font-medium text-[9px] mb-2">Доступные исследования</h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2 building-content">
                       {unlockedUpgrades.map(upgrade => (
                         <UpgradeItem 
                           key={upgrade.id} 
@@ -365,7 +367,7 @@ const GameScreen = () => {
                 {purchasedUpgrades.length > 0 && (
                   <div className="mt-3">
                     <h3 className="font-medium text-[9px] mb-2">Завершенные исследования</h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2 building-content">
                       {purchasedUpgrades.map(upgrade => (
                         <UpgradeItem key={upgrade.id} upgrade={upgrade} />
                       ))}

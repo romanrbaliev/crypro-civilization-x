@@ -1,4 +1,3 @@
-
 body, html {
   margin: 0;
   padding: 0;
@@ -149,28 +148,42 @@ body, html {
 
 /* Новые стили для специального форматирования */
 .resource-name {
-  font-size: 0.3rem;
+  font-size: 0.2rem;
 }
 
 .resource-count {
-  font-size: 0.3rem;
+  font-size: 0.2rem;
 }
 
 .section-title {
   font-size: 0.4rem;
 }
 
+/* Стили для кнопок действий */
 .action-button {
   transform: scale(0.5);
   transform-origin: left center;
   height: auto !important;
   min-height: 20px !important;
-  font-size: 0.6rem !important;
+  font-size: 0.4rem !important;
   white-space: nowrap;
+  width: 48% !important;
+  display: inline-block !important;
 }
 
-.buildings-title {
-  font-size: 0.67rem;
+.actions-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+/* Заголовки секций */
+.section-header {
+  font-size: 0.4rem;
   font-weight: 600;
 }
 
+/* Контент зданий и исследований */
+.building-content {
+  font-size: 0.65rem;
+}
