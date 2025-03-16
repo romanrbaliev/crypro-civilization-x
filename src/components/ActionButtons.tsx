@@ -116,7 +116,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
         </div>
       )}
       
-      {/* Показываем кнопку практики, если она разблокирована */}
+      {/* Показываем кнопку практики, если она разблокирована и здание ещё не куплено */}
       {state.unlocks.practice && state.buildings.practice.count === 0 && (
         <div>
           <TooltipProvider>

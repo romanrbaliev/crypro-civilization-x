@@ -1,13 +1,10 @@
-
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
 
-// Экспортируем типы для использования в других компонентах
 export type { Resource, Building, Upgrade };
 
-// Создаем контекст с начальным значением
 interface GameContextProps {
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
@@ -15,7 +12,6 @@ interface GameContextProps {
 
 const GameContext = createContext<GameContextProps | undefined>(undefined);
 
-// Хук для использования контекста в компонентах
 export function useGame() {
   const context = useContext(GameContext);
   
@@ -26,31 +22,24 @@ export function useGame() {
   return context;
 }
 
-// Интервал для сохранения игры (каждые 30 секунд)
 const SAVE_INTERVAL = 30 * 1000;
 
-// Провайдер контекста
 interface GameProviderProps {
   children: ReactNode;
 }
 
 export function GameProvider({ children }: GameProviderProps) {
-  // Загружаем сохраненное состояние игры из localStorage при инициализации
   const loadedState = loadGameState();
   
-  // Используем useReducer для управления состоянием игры
   const [state, dispatch] = useReducer(gameReducer, loadedState || initialState);
   
-  // Создаем шину событий для обмена сообщениями между компонентами
   useEffect(() => {
     const eventBus = document.createElement('div');
     
-    // Глобальный обработчик событий для добавления детальных пояснений
     const handleGameEvent = (event: Event) => {
       if (event instanceof CustomEvent && event.detail?.message) {
         const message = event.detail.message;
         
-        // Обрабатываем сообщения, требующие дополнительных пояснений
         if (message.includes("Открыта новая функция: Применить знания")) {
           const detailEvent = new CustomEvent('game-event', { 
             detail: { 
@@ -117,19 +106,38 @@ export function GameProvider({ children }: GameProviderProps) {
       }
     };
     
-    // Предоставляем доступ к шине событий через глобальный объект window
     window.gameEventBus = eventBus;
     eventBus.addEventListener('game-event', handleGameEvent);
+    
+    if (state.unlocks.practice && !state.buildings.practice.count) {
+      setTimeout(() => {
+        const practiceEvent = new CustomEvent('game-event', {
+          detail: {
+            message: "Функция 'Практика' разблокирована",
+            type: "info"
+          }
+        });
+        eventBus.dispatchEvent(practiceEvent);
+        
+        setTimeout(() => {
+          const detailEvent = new CustomEvent('game-event', {
+            detail: {
+              message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
+              type: "info"
+            }
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }, 200);
+      }, 500);
+    }
     
     return () => {
       eventBus.removeEventListener('game-event', handleGameEvent);
       delete window.gameEventBus;
     };
-  }, []);
+  }, [state.unlocks.practice, state.buildings.practice.count]);
   
-  // Обновляем ресурсы каждую секунду
   useEffect(() => {
-    // Запускаем только если игра началась
     if (!state.gameStarted) return;
     
     const intervalId = setInterval(() => {
@@ -139,9 +147,7 @@ export function GameProvider({ children }: GameProviderProps) {
     return () => clearInterval(intervalId);
   }, [state.gameStarted]);
   
-  // Автоматически сохраняем состояние игры каждые 30 секунд
   useEffect(() => {
-    // Запускаем только если игра началась
     if (!state.gameStarted) return;
     
     const intervalId = setInterval(() => {
@@ -151,7 +157,6 @@ export function GameProvider({ children }: GameProviderProps) {
     return () => clearInterval(intervalId);
   }, [state]);
   
-  // Предоставляем контекст всем дочерним компонентам
   return (
     <GameContext.Provider value={{ state, dispatch }}>
       {children}
@@ -159,7 +164,6 @@ export function GameProvider({ children }: GameProviderProps) {
   );
 }
 
-// Функция для сохранения состояния игры в localStorage
 function saveGameState(state: GameState) {
   try {
     const serializedState = JSON.stringify(state);
@@ -169,7 +173,6 @@ function saveGameState(state: GameState) {
   }
 }
 
-// Функция для загрузки состояния игры из localStorage
 function loadGameState(): GameState | null {
   try {
     const serializedState = localStorage.getItem('cryptoCivGame');
@@ -178,7 +181,6 @@ function loadGameState(): GameState | null {
     }
     const state = JSON.parse(serializedState) as GameState;
     
-    // Добавляем новые свойства, которые могли быть добавлены в обновлении игры
     const mergedState = {
       ...initialState,
       ...state,
@@ -204,7 +206,6 @@ function loadGameState(): GameState | null {
       }
     };
     
-    // Обновляем временную метку
     mergedState.lastUpdate = Date.now();
     
     return mergedState;
@@ -214,7 +215,6 @@ function loadGameState(): GameState | null {
   }
 }
 
-// Объявляем для TypeScript
 declare global {
   interface Window {
     gameEventBus?: HTMLDivElement;
