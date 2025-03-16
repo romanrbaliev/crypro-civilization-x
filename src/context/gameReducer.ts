@@ -232,6 +232,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             } 
           });
           eventBus.dispatchEvent(customEvent);
+          
+          // Добавляем дополнительное пояснение
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Накопите 10 знаний, чтобы применить их и получить USDT", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
         }
         
         return {
@@ -417,7 +426,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
       
-      // Если построен генератор, разблокируем электричество
+      // Если построен генератор, разблокируем электричество и основы блокчейна
       if (buildingId === 'generator' && building.count === 0) {
         newResources.electricity = {
           ...newResources.electricity,
@@ -438,14 +447,46 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           eventBus.dispatchEvent(customEvent);
         }
 
-        const newState = {
+        // Разблокируем исследование "Основы блокчейна"
+        const newUpgrades = {
+          ...state.upgrades,
+          basicBlockchain: {
+            ...state.upgrades.basicBlockchain,
+            unlocked: true
+          }
+        };
+
+        console.log("Разблокировано исследование 'Основы блокчейна' из-за постройки генератора");
+
+        // Отправляем сообщение о разблокировке исследования
+        if (eventBus) {
+          const researchEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Разблокировано исследование 'Основы блокчейна'", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(researchEvent);
+          
+          // Добавляем описательное сообщение об исследовании
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Изучите основы блокчейна, чтобы получить +50% к максимальному хранению знаний", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
+        }
+
+        const stateWithUpgrades = {
           ...state,
           resources: newResources,
-          buildings: newBuildings
+          buildings: newBuildings,
+          upgrades: newUpgrades
         };
         
         // Обновляем максимальные значения ресурсов после применения изменений
-        return updateResourceMaxValues(newState);
+        return updateResourceMaxValues(stateWithUpgrades);
       }
       
       // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошельков"
@@ -471,6 +512,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             } 
           });
           eventBus.dispatchEvent(customEvent);
+          
+          // Добавляем описательное сообщение об исследовании
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Изучите безопасность криптокошельков, чтобы увеличить максимальное хранение USDT на 25%", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
         }
 
         const stateWithUpgrades = {
@@ -550,6 +600,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             } 
           });
           eventBus.dispatchEvent(customEvent);
+          
+          // Добавляем описательное сообщение о криптокошельке
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Криптокошелек увеличивает максимальное хранение USDT и знаний", 
+              type: "info" 
+            } 
+          });
+          eventBus.dispatchEvent(detailEvent);
         }
         
         const newState = {
@@ -795,19 +854,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         }
         
         // Разблокируем здание practice
-        const newBuildings = {
-          ...state.buildings,
-          practice: {
-            ...state.buildings.practice,
-            unlocked: true
-          }
-        };
-        
         return {
           ...state,
           resources: newResources,
           counters: newCounters,
-          buildings: newBuildings,
           unlocks: {
             ...state.unlocks,
             practice: true

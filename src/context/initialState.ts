@@ -12,7 +12,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { knowledge: 0.63 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 1 }
+    requirements: { usdt: 10 }
   },
   generator: {
     id: "generator",

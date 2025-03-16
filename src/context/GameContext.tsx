@@ -61,15 +61,16 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   }, [state.eventMessages]);
   
-  // Добавляем новые сообщения при открытии возможностей
+  // Создаем шину событий для обмена сообщениями между компонентами
   useEffect(() => {
     const eventBus = document.createElement('div');
     
-    const handleToastShow = (event: Event) => {
+    // Глобальный обработчик событий для добавления детальных пояснений
+    const handleGameEvent = (event: Event) => {
       if (event instanceof CustomEvent && event.detail?.message) {
         const message = event.detail.message;
         
-        // Добавляем описания к новым функциям
+        // Обрабатываем сообщения, требующие дополнительных пояснений
         if (message.includes("Открыта новая функция: Применить знания")) {
           const detailEvent = new CustomEvent('game-event', { 
             detail: { 
@@ -77,7 +78,7 @@ export function GameProvider({ children }: GameProviderProps) {
               type: "info"
             } 
           });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => eventBus.dispatchEvent(detailEvent), 100);
         }
         else if (message.includes("После применения знаний открыта функция 'Практика'")) {
           const detailEvent = new CustomEvent('game-event', { 
@@ -86,7 +87,7 @@ export function GameProvider({ children }: GameProviderProps) {
               type: "info"
             } 
           });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => eventBus.dispatchEvent(detailEvent), 100);
         }
         else if (message.includes("Открыто новое оборудование: Генератор")) {
           const detailEvent = new CustomEvent('game-event', { 
@@ -95,7 +96,7 @@ export function GameProvider({ children }: GameProviderProps) {
               type: "info"
             } 
           });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => eventBus.dispatchEvent(detailEvent), 100);
         }
         else if (message.includes("Открыто новое оборудование: Домашний компьютер")) {
           const detailEvent = new CustomEvent('game-event', { 
@@ -104,37 +105,44 @@ export function GameProvider({ children }: GameProviderProps) {
               type: "info"
             } 
           });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => eventBus.dispatchEvent(detailEvent), 100);
         }
         else if (message.includes("Открыто новое оборудование: Автомайнер")) {
           const detailEvent = new CustomEvent('game-event', { 
             detail: { 
-              message: "Автомайнер автоматически обменивает 50 единиц вычислительной мощности на 1 USDT каждые 5 секунд",
+              message: "Автомайнер автоматически обменивает 50 единиц вычислительной мощности на 5 USDT каждые 5 секунд",
               type: "info"
             } 
           });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => eventBus.dispatchEvent(detailEvent), 100);
         }
-        else if (message.includes("Открыто новое оборудование: Криптокошелек")) {
+        else if (message.includes("Разблокировано исследование 'Основы блокчейна'")) {
           const detailEvent = new CustomEvent('game-event', { 
             detail: { 
-              message: "Криптокошелек увеличивает максимальное количество USDT, которое вы можете хранить",
+              message: "Исследование дает +50% к максимальному хранению знаний и открывает криптокошелек",
               type: "info"
             } 
           });
-          eventBus.dispatchEvent(detailEvent);
+          setTimeout(() => eventBus.dispatchEvent(detailEvent), 100);
+        }
+        else if (message.includes("Разблокировано исследование 'Безопасность криптокошельков'")) {
+          const detailEvent = new CustomEvent('game-event', { 
+            detail: { 
+              message: "Исследование дает +25% к максимальному хранению USDT",
+              type: "info"
+            } 
+          });
+          setTimeout(() => eventBus.dispatchEvent(detailEvent), 100);
         }
       }
     };
     
-    // Слушаем события показа toast
-    document.addEventListener('toast-show', handleToastShow);
-    
-    // Предоставляем доступ к шине событий
+    // Предоставляем доступ к шине событий через глобальный объект window
     window.gameEventBus = eventBus;
+    eventBus.addEventListener('game-event', handleGameEvent);
     
     return () => {
-      document.removeEventListener('toast-show', handleToastShow);
+      eventBus.removeEventListener('game-event', handleGameEvent);
       delete window.gameEventBus;
     };
   }, []);
@@ -151,7 +159,7 @@ export function GameProvider({ children }: GameProviderProps) {
     return () => clearInterval(intervalId);
   }, [state.gameStarted]);
   
-  // Автоматически сохраняем состояние игры
+  // Автоматически сохраняем состояние игры каждые 30 секунд
   useEffect(() => {
     // Запускаем только если игра началась
     if (!state.gameStarted) return;

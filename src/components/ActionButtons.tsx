@@ -28,6 +28,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   // Обработка клика по кнопке "Изучить крипту"
   const handleLearnClick = () => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
+    
+    // Если это третий клик и кнопка "Применить знания" еще не разблокирована
+    if (state.resources.knowledge.value === 2 && !state.unlocks.applyKnowledge) {
+      onAddEvent("Изучите еще немного, и вы сможете применить свои знания!", "info");
+    }
   };
   
   // Обработка клика по кнопке "Применить знания"
