@@ -38,7 +38,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     }
     
     dispatch({ type: "APPLY_KNOWLEDGE" });
-    onAddEvent("Вы применили знания и получили 1 USDT", "success");
+    
+    // Отправляем сообщение только при первом применении знаний
+    if (state.counters.applyKnowledge === 0) {
+      onAddEvent("Вы применили знания и получили 1 USDT", "success");
+    }
   };
   
   // Обработка клика по кнопке "Практиковаться"
@@ -67,6 +71,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   const isButtonEnabled = (requiredResource: string, amount: number): boolean => {
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
   };
+  
+  // Проверка, есть ли автомайнер, чтобы скрыть кнопку майнинга
+  const hasAutoMiner = state.buildings.autoMiner.count > 0;
   
   return (
     <div className="space-y-2 mt-2">
@@ -137,8 +144,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
         </div>
       )}
       
-      {/* Показываем кнопку майнинга, если разблокирована вычислительная мощность */}
-      {state.resources.computingPower.unlocked && (
+      {/* Показываем кнопку майнинга, если разблокирована вычислительная мощность и нет автомайнера */}
+      {state.resources.computingPower.unlocked && !hasAutoMiner && (
         <div>
           <TooltipProvider>
             <Tooltip>

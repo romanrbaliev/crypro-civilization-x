@@ -11,6 +11,7 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
   return (
     <div className="space-y-2">
       {resources.map(resource => {
+        // Определяем, является ли скорость накопления отрицательной
         const isNegative = resource.perSecond < 0;
         
         return (

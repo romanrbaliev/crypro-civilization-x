@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, Resource } from './types';
 import { initialState } from './initialState';
 
@@ -416,31 +417,21 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
       
-      // Если построен генератор, разблокируем электричество и исследование "Основы блокчейна"
+      // Если построен генератор, разблокируем электричество
       if (buildingId === 'generator' && building.count === 0) {
         newResources.electricity = {
           ...newResources.electricity,
           unlocked: true
         };
 
-        // Также разблокируем исследование "Основы блокчейна"
-        const newUpgrades = {
-          ...state.upgrades,
-          basicBlockchain: {
-            ...state.upgrades.basicBlockchain,
-            unlocked: true
-          }
-        };
-
         console.log("Разблокировано электричество из-за постройки генератора");
-        console.log("Разблокировано исследование 'Основы блокчейна' из-за постройки генератора");
 
-        // Отправляем сообщение о разблокировке исследования
+        // Отправляем сообщение о разблокировке электричества
         const eventBus = window.gameEventBus;
         if (eventBus) {
           const customEvent = new CustomEvent('game-event', { 
             detail: { 
-              message: "Разблокировано исследование 'Основы блокчейна'", 
+              message: "Разблокирован новый ресурс: Электричество", 
               type: "info" 
             } 
           });
@@ -450,8 +441,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         const newState = {
           ...state,
           resources: newResources,
-          buildings: newBuildings,
-          upgrades: newUpgrades
+          buildings: newBuildings
         };
         
         // Обновляем максимальные значения ресурсов после применения изменений
@@ -768,6 +758,20 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         applyKnowledge: state.counters.applyKnowledge + 1
       };
       
+      // При первом применении знаний отправляем сообщение
+      if (state.counters.applyKnowledge === 0) {
+        const eventBus = window.gameEventBus;
+        if (eventBus) {
+          const customEvent = new CustomEvent('game-event', {
+            detail: {
+              message: "Вы применили свои знания и получили 1 USDT!",
+              type: "success"
+            }
+          });
+          eventBus.dispatchEvent(customEvent);
+        }
+      }
+      
       // Разблокируем практику после ВТОРОГО применения знаний
       if (newCounters.applyKnowledge === 2) {
         const eventBus = window.gameEventBus;
@@ -779,6 +783,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             }
           });
           eventBus.dispatchEvent(customEvent);
+          
+          // Добавляем дополнительное сообщение с пояснением
+          const detailEvent = new CustomEvent('game-event', {
+            detail: {
+              message: "Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний",
+              type: "info"
+            }
+          });
+          eventBus.dispatchEvent(detailEvent);
         }
         
         // Разблокируем здание practice
