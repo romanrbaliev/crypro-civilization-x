@@ -45,7 +45,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: {}, // Особая логика в UPDATE_RESOURCES
     count: 0,
     unlocked: false,
-    requirements: {}
+    requirements: { computingPower: 50 } // Требуется вычислительная мощность
   },
   cryptoWallet: {
     id: "cryptoWallet",
@@ -56,7 +56,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { usdtMax: 50, knowledgeMax: 25 },
     count: 0,
     unlocked: false,
-    requirements: { knowledge: 20 }
+    requirements: { knowledge: 20 } // Базовое требование, будет переопределено в редьюсере
   },
   internetConnection: {
     id: "internetConnection",

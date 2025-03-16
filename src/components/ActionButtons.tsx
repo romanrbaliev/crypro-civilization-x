@@ -38,15 +38,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     
     // Уведомляем пользователя о результате
     if (state.resources.knowledge.value >= 10) {
-      onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
-      
-      // Разблокируем USDT после первого использования "Применить знания"
-      if (!state.resources.usdt.unlocked) {
+      if (state.counters?.applyKnowledge === 0) {
+        // Первое применение знаний
         dispatch({ type: "UNLOCK_RESOURCE", payload: { resourceId: "usdt" } });
-        onAddEvent("Вы получили первый USDT!", "success");
+        onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
+      } else {
+        onAddEvent("Вы применили свои знания и получили 1 USDT!", "success");
       }
-      
-      // Счетчик применений знаний для разблокировки Практики
       
       // Разблокируем кнопку "Практика" после второго применения знаний
       if (state.counters?.applyKnowledge === 1) {  // Значит это второе применение
@@ -84,7 +82,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
       onAddEvent("Вы успешно обменяли 50 вычислительной мощности на 5 USDT!", "success");
       
       // Разблокируем автомайнер после первого использования майнинга
-      if (!state.buildings.autoMiner.unlocked) {
+      if (state.counters.mining === 0) {
         dispatch({ type: "SET_BUILDING_UNLOCKED", payload: { buildingId: "autoMiner", unlocked: true } });
         onAddEvent("Открыто новое оборудование: Автомайнер!", "success");
         onAddEvent("Автомайнер позволяет автоматически обменивать вычислительную мощность на USDT", "info");
@@ -96,11 +94,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
 
   const shouldShowApplyKnowledge = state.unlocks.applyKnowledge;
   const shouldShowPractice = state.buildings.practice.unlocked;
-  const shouldShowMining = state.resources.computingPower.unlocked && state.buildings.autoMiner.count === 0;
+  const shouldShowMining = state.resources.computingPower.unlocked && state.buildings.homeComputer.count > 0;
   
   const actualPracticeCost = state.buildings.practice.cost.usdt * 
     Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count);
   const canAffordPractice = state.resources.usdt.value >= actualPracticeCost;
+  
+  const miningDisabled = state.resources.computingPower.value < 50;
+  const applyKnowledgeDisabled = state.resources.knowledge.value < 10;
 
   return (
     <div className="bg-white rounded-lg p-3 space-y-3">
@@ -115,9 +116,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         {shouldShowApplyKnowledge && (
           <Button
             className="action-button w-full"
-            variant={state.resources.knowledge.value >= 10 ? "default" : "outline"}
+            variant={applyKnowledgeDisabled ? "outline" : "default"}
             onClick={handleApplyKnowledge}
-            disabled={state.resources.knowledge.value < 10}
+            disabled={applyKnowledgeDisabled}
           >
             Применить знания
           </Button>
@@ -137,9 +138,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         {shouldShowMining && (
           <Button
             className="action-button w-full"
-            variant={state.resources.computingPower.value >= 50 ? "default" : "outline"}
+            variant={miningDisabled ? "outline" : "default"}
             onClick={handleMining}
-            disabled={state.resources.computingPower.value < 50}
+            disabled={miningDisabled}
           >
             Майнинг
           </Button>

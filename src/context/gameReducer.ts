@@ -66,6 +66,13 @@ const checkUnlocks = (state: GameState): GameState => {
   // Проверка зданий
   for (const buildingId in newState.buildings) {
     const building = newState.buildings[buildingId];
+    
+    // Пропускаем здания, которые требуют особой логики разблокировки
+    if (buildingId === 'cryptoWallet') {
+      // Криптокошелек разблокируется только через улучшение Основы блокчейна
+      continue;
+    }
+    
     if (!building.unlocked && building.requirements) {
       const requirementsMet = meetsRequirements(newState, building.requirements);
       if (requirementsMet) {
@@ -81,6 +88,12 @@ const checkUnlocks = (state: GameState): GameState => {
   
   // Проверка улучшений
   for (const upgradeId in newState.upgrades) {
+    // Пропускаем улучшения, которые требуют особой логики разблокировки
+    if (upgradeId === 'basicBlockchain') {
+      // Основы блокчейна разблокируются только при покупке генератора
+      continue;
+    }
+    
     const upgrade = newState.upgrades[upgradeId];
     if (!upgrade.unlocked && upgrade.requirements) {
       const requirementsMet = meetsRequirements(newState, upgrade.requirements);
@@ -314,7 +327,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
       
-      // Если построен первый генератор, разблокируем электричество
+      // Если построен первый генератор, разблокируем электричество и исследование "Основы блокчейна"
       if (buildingId === 'generator' && building.count === 0) {
         newResources.electricity = {
           ...newResources.electricity,
@@ -555,15 +568,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         }
       };
       
-      // Если это первый майнинг, разблокируем автомайнер
-      let newBuildings = { ...state.buildings };
-      if (state.counters.mining === 0) {
-        newBuildings.autoMiner = {
-          ...newBuildings.autoMiner,
-          unlocked: true
-        };
-      }
-      
       // Увеличиваем счетчик майнинга
       const newCounters = {
         ...state.counters,
@@ -573,7 +577,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return {
         ...state,
         resources: newResources,
-        buildings: newBuildings,
         counters: newCounters
       };
     }
@@ -595,17 +598,20 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         usdt: {
           ...state.resources.usdt,
           value: state.resources.usdt.value + 1,
-          unlocked: true  // Важно: убедимся, что usdt разблокирован
+          unlocked: true // Важно: убедимся, что usdt разблокирован
         }
+      };
+      
+      // Увеличиваем счетчик применений знаний
+      const newCounters = {
+        ...state.counters,
+        applyKnowledge: state.counters.applyKnowledge + 1
       };
       
       return {
         ...state,
         resources: newResources,
-        counters: {
-          ...state.counters,
-          applyKnowledge: state.counters.applyKnowledge + 1
-        }
+        counters: newCounters
       };
     }
     
