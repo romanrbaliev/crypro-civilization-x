@@ -71,7 +71,7 @@ const initialBuildings: { [key: string]: Building } = {
     costMultiplier: 1.15,
     production: { knowledge: 0.63 },
     count: 0,
-    unlocked: false,
+    unlocked: true,
     requirements: { knowledge: 15 }
   },
   generator: {
@@ -466,6 +466,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         return state;
       }
       
+      // Проверяем, разблокировано ли здание
+      // Для здания practice не требуется проверка на разблокировку
       if (!building.unlocked && buildingId !== "practice") {
         console.log(`Building ${buildingId} is not unlocked yet!`);
         return state;
@@ -505,6 +507,17 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         // Обновляем perSecond для ресурса знаний
         const productionAmount = building.production.knowledge || 0;
         newResources.knowledge.perSecond += productionAmount;
+        
+        // Убедимся, что разблокирован нужный флаг
+        return {
+          ...state,
+          resources: newResources,
+          buildings: newBuildings,
+          unlocks: {
+            ...state.unlocks,
+            practice: true
+          }
+        };
       }
       
       toast.success(`Построено: ${building.name}`);
