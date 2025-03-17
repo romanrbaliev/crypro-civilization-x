@@ -1,5 +1,6 @@
 
 import { GameState } from '../types';
+import { calculateProductionBoost } from '../utils/resourceUtils';
 
 // Обработка обновления ресурсов
 export const processResourceUpdate = (state: GameState): GameState => {
@@ -94,9 +95,13 @@ export const processResourceUpdate = (state: GameState): GameState => {
       }
     }
     
-    // Применяем бонусы для знаний
+    // Применяем бонусы для знаний от зданий
     if (resourceId === 'knowledge') {
       production *= knowledgeBoost;
+      
+      // Применяем бонусы от улучшений
+      const upgradeBoost = calculateProductionBoost(state, resourceId);
+      production *= upgradeBoost;
     }
     
     // Обрабатываем специальные случаи

@@ -46,6 +46,28 @@ export const calculateResourceMax = (
   return baseMax * maxBoost;
 };
 
+// Функция для вычисления бонусов к производству ресурсов
+export const calculateProductionBoost = (
+  state: GameState,
+  resourceId: string
+): number => {
+  let boost = 1;
+  
+  // Проверяем бонусы от улучшений
+  for (const upgradeId in state.upgrades) {
+    const upgrade = state.upgrades[upgradeId];
+    if (upgrade.purchased) {
+      const boostKey = `${resourceId}Boost`;
+      if (upgrade.effect[boostKey]) {
+        boost += upgrade.effect[boostKey];
+        console.log(`Применен бонус ${boostKey} от улучшения ${upgradeId}: +${upgrade.effect[boostKey] * 100}%, итоговый множитель: ${boost}`);
+      }
+    }
+  }
+  
+  return boost;
+};
+
 // Проверка выполнения требований для разблокировки
 export const meetsRequirements = (
   state: GameState,
