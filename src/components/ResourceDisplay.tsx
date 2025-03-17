@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Resource } from "@/context/types";
+import { formatNumber } from "@/utils/helpers";
 
 interface ResourceDisplayProps {
   resource: Resource;
@@ -15,17 +16,6 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   // Расчет процента заполнения
   const fillPercentage = max === Infinity ? 0 : Math.min(100, (value / max) * 100);
   
-  // Форматирование значений
-  const formatValue = (val: number): string => {
-    if (val >= 1000000) {
-      return `${(val / 1000000).toFixed(2)}M`;
-    } else if (val >= 1000) {
-      return `${(val / 1000).toFixed(2)}K`;
-    } else {
-      return val.toFixed(2);
-    }
-  };
-  
   // Определяем классы для отображения прогресса
   const progressColorClass = fillPercentage > 90 
     ? "bg-red-500" 
@@ -38,8 +28,8 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       <div className="flex justify-between items-center mb-0.5">
         <div className="font-medium text-[10px]">{name}</div>
         <div className="text-gray-600 text-[10px]">
-          {formatValue(value)}
-          {max !== Infinity && ` / ${formatValue(max)}`}
+          {formatNumber(value)}
+          {max !== Infinity && ` / ${formatNumber(max)}`}
         </div>
       </div>
       
@@ -54,7 +44,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       
       <div className="flex items-center justify-end">
         <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
-          {isNegativeRate ? "-" : "+"}{Math.abs(perSecond).toFixed(2)}/сек
+          {isNegativeRate ? "-" : "+"}{formatNumber(Math.abs(perSecond))}/сек
         </div>
       </div>
     </div>

@@ -3,17 +3,15 @@ export const formatNumber = (num: number): string => {
   if (num === Infinity) return "∞";
   
   if (num >= 1e12) {
-    return (num / 1e12).toFixed(2) + "T";
+    return Math.floor(num / 1e12) + "T";
   } else if (num >= 1e9) {
-    return (num / 1e9).toFixed(2) + "B";
+    return Math.floor(num / 1e9) + "B";
   } else if (num >= 1e6) {
-    return (num / 1e6).toFixed(2) + "M";
+    return Math.floor(num / 1e6) + "M";
   } else if (num >= 1e3) {
-    return (num / 1e3).toFixed(2) + "K";
-  } else if (Number.isInteger(num)) {
-    return num.toString();
+    return Math.floor(num / 1e3) + "K";
   } else {
-    return num.toFixed(2);
+    return Math.floor(num).toString();
   }
 };
 
