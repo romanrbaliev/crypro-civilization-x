@@ -33,6 +33,12 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   const handlePurchase = () => {
     console.log(`Попытка покупки здания ${id} через компонент BuildingItem`);
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: id } });
+    
+    // После первой покупки сворачиваем карточку
+    if (count === 0) {
+      setIsOpen(false);
+    }
+    
     if (onPurchase) onPurchase();
   };
   
@@ -117,9 +123,9 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center">
             <h3 className="font-semibold text-[12px]">{name}</h3>
-            <div className="ml-2 text-[12px] font-medium">{count}</div>
           </div>
           <div className="flex items-center">
+            <div className="mr-2 text-[12px] font-medium">{count}</div>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

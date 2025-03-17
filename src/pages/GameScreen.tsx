@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -35,15 +34,12 @@ const GameScreen = () => {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Проверяем наличие хотя бы одного разблокированного здания (кроме practice)
   const hasUnlockedBuildings = Object.values(state.buildings)
     .some(b => b.unlocked && b.id !== "practice");
     
-  // Проверяем наличие хотя бы одного разблокированного исследования
   const hasUnlockedResearch = Object.values(state.upgrades)
     .some(u => u.unlocked);
   
-  // Инициализируем диспетчер
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
@@ -57,20 +53,18 @@ const GameScreen = () => {
     };
     
     setEventLog(prev => {
-      // Проверяем, есть ли уже такое сообщение в последних событиях
       const isDuplicate = prev.slice(0, 5).some(
         event => event.message === message && Date.now() - event.timestamp < 3000
       );
       
       if (isDuplicate) {
-        return prev; // Не добавляем дубликат
+        return prev;
       }
       
       return [newEvent, ...prev];
     });
   };
   
-  // Слушаем события от системы
   useEffect(() => {
     const handleGameEvent = (event: Event) => {
       if (event instanceof CustomEvent && event.detail) {
@@ -98,7 +92,6 @@ const GameScreen = () => {
     }
   }, []);
   
-  // Выбираем начальную вкладку в зависимости от открытых функций
   useEffect(() => {
     if (hasUnlockedBuildings) {
       setSelectedTab("equipment");
@@ -110,6 +103,7 @@ const GameScreen = () => {
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
   
   const handleResetGame = () => {
+    dispatch({ type: "RESET_GAME" });
     localStorage.removeItem("cryptoCivGame");
     window.location.reload();
   };
@@ -158,7 +152,7 @@ const GameScreen = () => {
                       <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
                       <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
                       <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
-                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
+                      <li><strong>Репутация</strong> - вл��яет на эффективность социальных взаимодействий.</li>
                     </ul>
                   </TabsContent>
                   
@@ -233,7 +227,6 @@ const GameScreen = () => {
             <ResourceList resources={unlockedResources} />
           </div>
           
-          {/* Перемещаем табы в нижнюю часть левой колонки */}
           {(hasUnlockedBuildings || hasUnlockedResearch) && (
             <div className="border-t mt-auto">
               <div className="flex flex-col">
@@ -274,7 +267,6 @@ const GameScreen = () => {
               )}
             </div>
             
-            {/* Фиксируем кнопки действий внизу правой колонки */}
             <div className="mt-auto sticky bottom-0 bg-white pb-2 pt-1">
               <ActionButtons onAddEvent={addEvent} />
             </div>

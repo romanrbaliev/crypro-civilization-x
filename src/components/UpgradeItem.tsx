@@ -33,6 +33,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: id } });
+    setIsOpen(false); // Сворачиваем карточку после покупки
     if (onPurchase) onPurchase();
   };
   

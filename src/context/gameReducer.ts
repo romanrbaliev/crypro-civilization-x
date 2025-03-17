@@ -131,6 +131,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       };
     }
     
+    // Полный сброс прогресса (только при явном запросе пользователя)
+    case "RESET_GAME": {
+      return {
+        ...initialState,
+        gameStarted: true,
+        lastUpdate: Date.now()
+      };
+    }
+    
     // Перезапуск компьютеров
     case "RESTART_COMPUTERS": {
       // Перезапускаем компьютеры после нехватки электричества

@@ -1,4 +1,3 @@
-// Типы ресурсов
 export interface Resource {
   id: string;
   name: string;
@@ -9,51 +8,47 @@ export interface Resource {
   max: number;
 }
 
-// Типы апгрейдов
+export interface Building {
+  id: string;
+  name: string;
+  description: string;
+  cost: { [resourceId: string]: number };
+  costMultiplier: number;
+  production: { [resourceId: string]: number };
+  count: number;
+  unlocked: boolean;
+  requirements?: { [resourceId: string]: number };
+  maxCount?: number;
+}
+
 export interface Upgrade {
   id: string;
   name: string;
   description: string;
-  cost: { [key: string]: number };
-  effect: { [key: string]: number };
+  cost: { [resourceId: string]: number };
+  effect: { [effectId: string]: number };
   unlocked: boolean;
   purchased: boolean;
   requirements?: { [key: string]: number };
 }
 
-// Типы зданий
-export interface Building {
-  id: string;
-  name: string;
-  description: string;
-  cost: { [key: string]: number };
-  costMultiplier: number;
-  production: { [key: string]: number };
-  count: number;
-  unlocked: boolean;
-  requirements?: { [key: string]: number };
-  maxCount?: number; // Добавляем поле для максимального количества зданий
+export interface Unlocks {
+  [featureId: string]: boolean;
 }
 
-// Сообщения событий
 export interface EventMessages {
-  electricityShortage?: boolean;
-  // Добавьте здесь другие типы системных сообщений по необходимости
+  [eventId: string]: boolean;
 }
 
-// Счетчики действий
 export interface Counters {
-  applyKnowledge: number;
-  mining: number;
-  [key: string]: number;
+  [counterId: string]: number;
 }
 
-// Структура состояния игры
 export interface GameState {
   resources: { [key: string]: Resource };
-  upgrades: { [key: string]: Upgrade };
   buildings: { [key: string]: Building };
-  unlocks: { [key: string]: boolean };
+  upgrades: { [key: string]: Upgrade };
+  unlocks: Unlocks;
   lastUpdate: number;
   gameStarted: boolean;
   prestigePoints: number;
@@ -62,9 +57,9 @@ export interface GameState {
   counters: Counters;
 }
 
-// Типы действий
+// Типы действий для редьюсера игры
 export type GameAction =
-  | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
+  | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string } }
   | { type: "UPDATE_RESOURCES" }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
@@ -75,6 +70,7 @@ export type GameAction =
   | { type: "START_GAME" }
   | { type: "LOAD_GAME"; payload: GameState }
   | { type: "PRESTIGE" }
+  | { type: "RESET_GAME" }
   | { type: "RESTART_COMPUTERS" }
-  | { type: "MINE_COMPUTING_POWER" }
-  | { type: "APPLY_KNOWLEDGE" };
+  | { type: "APPLY_KNOWLEDGE" }
+  | { type: "MINE_COMPUTING_POWER" };
