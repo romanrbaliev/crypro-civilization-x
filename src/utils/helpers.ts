@@ -164,7 +164,7 @@ export const isTelegramWebAppAvailable = (): boolean => {
       // Проверка наличия информации о пользователе
       if (window.Telegram.WebApp.initDataUnsafe?.user) {
         const user = window.Telegram.WebApp.initDataUnsafe.user;
-        console.log(`Telegram пользователь: ID=${user.id}, имя=${user.first_name || 'неизвестно'}`);
+        console.log(`Telegram пользователь: ID=${user.id}, имя=${user.username || 'неизвестно'}`);
       } else {
         console.warn('Telegram информация о пользователе отсутствует');
       }
