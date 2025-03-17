@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { hasEnoughResources, meetsRequirements, updateResourceMaxValues } from './utils/resourceUtils';
@@ -72,8 +71,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       const { buildingId, unlocked } = action.payload;
       
       if (!state.buildings[buildingId]) {
+        console.warn(`Попытка установить разблокировку для несуществующего здания: ${buildingId}`);
         return state;
       }
+      
+      console.log(`Устанавливаем разблокировку для здания ${buildingId}: ${unlocked}`);
       
       return {
         ...state,
@@ -137,16 +139,25 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         };
       }
       
+      // Проверяем согласованность между unlocks и buildings для practice
+      const loadedState = { ...action.payload };
+      
+      if (loadedState.unlocks.practice && loadedState.buildings.practice) {
+        // Убедимся, что здание практики разблокировано, если функция разблокирована
+        loadedState.buildings.practice = {
+          ...loadedState.buildings.practice,
+          unlocked: true
+        };
+        console.log('✅ Синхронизировали разблокировку здания практики с функцией практики');
+      }
+      
       // Обновляем timestamp для правильной работы логики обновления
-      const updatedState = {
-        ...action.payload,
-        lastUpdate: Date.now()
-      };
+      loadedState.lastUpdate = Date.now();
       
       console.log('✅ Загруженное состояние применено успешно');
       safeDispatchGameEvent('Прогресс успешно восстановлен', 'success');
       
-      return updatedState;
+      return loadedState;
     }
     
     // Престиж (перезапуск с бонусами)

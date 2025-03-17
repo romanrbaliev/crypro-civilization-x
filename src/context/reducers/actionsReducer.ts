@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -79,7 +80,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   if (newCounters.applyKnowledge >= 2 && !state.unlocks.practice) {
     newUnlocks.practice = true;
     
-    // Также разблокируем здание практики
+    // Также разблокируем здание практики - ВАЖНЫЙ ФИХ: явно устанавливаем unlocked в true
     if (state.buildings.practice) {
       newBuildings.practice = {
         ...state.buildings.practice,

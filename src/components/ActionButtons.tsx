@@ -23,6 +23,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   const { state, dispatch } = useGame();
   const [practiceMessageSent, setPracticeMessageSent] = useState(false);
   
+  // Добавляем лог для отслеживания разблокировки
+  useEffect(() => {
+    console.log("ActionButtons: practice unlocked =", state.unlocks.practice, "practice building unlocked =", 
+      state.buildings.practice ? state.buildings.practice.unlocked : false);
+  }, [state.unlocks.practice, state.buildings.practice]);
+  
   useEffect(() => {
     if (state.unlocks.practice && !practiceMessageSent) {
       onAddEvent("Функция 'Практика' разблокирована", "info");
@@ -56,6 +62,16 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       return;
     }
     
+    // Проверяем, разблокировано ли здание practice
+    if (!state.buildings.practice.unlocked) {
+      console.log("Здание practice заблокировано, разблокируем его");
+      dispatch({ 
+        type: "SET_BUILDING_UNLOCKED", 
+        payload: { buildingId: "practice", unlocked: true } 
+      });
+      return; // Выходим, чтобы дать время на обновление состояния
+    }
+    
     // Расчет текущей стоимости
     const practiceBuilding = state.buildings.practice;
     const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier, practiceBuilding.count));
@@ -75,9 +91,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       payload: { buildingId: "practice" } 
     });
     
-    // Проверим, была ли осуществлена покупка (должны получить обновленный state после диспатча)
-    console.log(`Отправлена команда покупки practice, текущий уровень: ${practiceBuilding.count}`);
-    
     // Сообщение пользователю
     onAddEvent(`Вы повысили уровень практики! Скорость накопления знаний увеличена.`, "success");
   };
@@ -96,11 +109,15 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   };
   
   // Исправление: проверка наличия здания practice и безопасный расчет стоимости
-  const practiceCurrentCost = state.buildings.practice 
+  const practiceBuildingExists = Boolean(state.buildings.practice);
+  const practiceIsUnlocked = practiceBuildingExists && state.buildings.practice.unlocked;
+  
+  // Безопасный расчет стоимости только если здание существует и разблокировано
+  const practiceCurrentCost = practiceBuildingExists
     ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count)) 
     : 10;
   
-  const practiceCurrentLevel = state.buildings.practice ? state.buildings.practice.count : 0;
+  const practiceCurrentLevel = practiceBuildingExists ? state.buildings.practice.count : 0;
   
   const hasAutoMiner = state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
   
@@ -136,8 +153,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     );
   }
   
-  // Кнопка практики (если доступна)
+  // Кнопка практики (если доступна и здание разблокировано)
   if (state.unlocks.practice) {
+    console.log(`Рендерим кнопку Практиковаться: practiceIsUnlocked=${practiceIsUnlocked}, cost=${practiceCurrentCost}`);
     buttons.push(
       <div key="practice">
         <TooltipProvider>
