@@ -23,6 +23,11 @@ export const processResourceUpdate = (state: GameState): GameState => {
     if (building.count > 0 && building.production.electricity) {
       electricityProduction += building.production.electricity * building.count;
     }
+    
+    // Проверяем бонусы к знаниям от зданий
+    if (building.count > 0 && building.production.knowledgeBoost) {
+      knowledgeBoost += building.production.knowledgeBoost * building.count;
+    }
   }
   
   // Проверяем бонусы к производству знаний от улучшений

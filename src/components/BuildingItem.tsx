@@ -117,7 +117,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center">
             <h3 className="font-semibold text-[12px]">{name}</h3>
-            <div className="ml-2 text-[12px] font-medium">Уровень: {count}</div>
+            <div className="ml-2 text-[12px] font-medium">{count}</div>
           </div>
           <div className="flex items-center">
             <TooltipProvider>
@@ -141,7 +141,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
               </Tooltip>
             </TooltipProvider>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
+              <Button variant="ghost" size="sm" className="p-0 h-6 w-6 min-w-6">
                 {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </CollapsibleTrigger>
@@ -169,7 +169,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       <div className="building-header flex justify-between items-center">
         <div className="flex items-start flex-col">
           <h3 className="font-semibold text-[12px]">{name}</h3>
-          <div className="text-[12px] font-medium">Количество: {count}</div>
+          <div className="text-[12px] font-medium">{count}</div>
         </div>
         <TooltipProvider>
           <Tooltip>
