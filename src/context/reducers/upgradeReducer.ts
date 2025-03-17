@@ -40,6 +40,20 @@ export const processPurchaseUpgrade = (
     }
   };
   
+  // Обновляем параметры майнинга на основе купленных улучшений
+  let newMiningParams = { ...state.miningParams };
+  
+  // Если улучшение влияет на параметры майнинга, применяем его эффекты
+  if (upgradeId === 'miningOptimization' && upgrade.effect.miningEfficiencyBoost) {
+    newMiningParams.miningEfficiency *= (1 + upgrade.effect.miningEfficiencyBoost);
+    safeDispatchGameEvent(`Эффективность майнинга увеличена на ${upgrade.effect.miningEfficiencyBoost * 100}%`, "success");
+  }
+  
+  if (upgradeId === 'energyEfficiency' && upgrade.effect.energyEfficiencyBoost) {
+    newMiningParams.energyEfficiency += upgrade.effect.energyEfficiencyBoost;
+    safeDispatchGameEvent(`Энергоэффективность увеличена на ${upgrade.effect.energyEfficiencyBoost * 100}%`, "success");
+  }
+  
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек
   if (upgradeId === 'basicBlockchain') {
     const newBuildings = {
@@ -64,7 +78,8 @@ export const processPurchaseUpgrade = (
       ...state,
       resources: newResources,
       upgrades: newUpgrades,
-      buildings: newBuildings
+      buildings: newBuildings,
+      miningParams: newMiningParams
     };
     
     // Обновляем максимальные значения ресурсов
@@ -75,7 +90,8 @@ export const processPurchaseUpgrade = (
   const updatedState = {
     ...state,
     resources: newResources,
-    upgrades: newUpgrades
+    upgrades: newUpgrades,
+    miningParams: newMiningParams
   };
   
   return updateResourceMaxValues(updatedState);

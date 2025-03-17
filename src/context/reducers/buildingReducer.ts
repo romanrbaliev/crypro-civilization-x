@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -128,6 +129,55 @@ export const processPurchaseBuilding = (
     setTimeout(() => {
       safeDispatchGameEvent("Вычислительная мощность может использоваться для майнинга USDT", "info");
     }, 200);
+  }
+  
+  // Если построен автомайнер, разблокируем BTC и добавляем улучшения
+  if (buildingId === 'autoMiner' && building.count === 0) {
+    // Разблокируем ресурс BTC
+    newResources.btc = {
+      ...newResources.btc,
+      unlocked: true
+    };
+    
+    console.log("Разблокирован Bitcoin (BTC) из-за постройки автомайнера");
+    
+    // Отправляем сообщение о разблокировке BTC
+    safeDispatchGameEvent("Разблокирован новый ресурс: Bitcoin (BTC)", "info");
+    
+    // Добавляем пояснение о новом ресурсе
+    setTimeout(() => {
+      safeDispatchGameEvent("Bitcoin добывается автоматически и может быть обменян на USDT", "info");
+    }, 200);
+    
+    // Разблокируем улучшения для майнинга
+    const newUpgrades = {
+      ...state.upgrades,
+      miningOptimization: {
+        ...state.upgrades.miningOptimization,
+        unlocked: true
+      },
+      energyEfficiency: {
+        ...state.upgrades.energyEfficiency,
+        unlocked: true
+      }
+    };
+    
+    console.log("Разблокированы улучшения для майнинга из-за постройки автомайнера");
+    
+    // Отправляем сообщение о разблокировке улучшений
+    setTimeout(() => {
+      safeDispatchGameEvent("Разблокированы новые исследования для оптимизации майнинга", "info");
+    }, 400);
+    
+    const stateWithUpgrades = {
+      ...state,
+      resources: newResources,
+      buildings: newBuildings,
+      upgrades: newUpgrades
+    };
+    
+    // Обновляем максимальные значения ресурсов после применения изменений
+    return updateResourceMaxValues(stateWithUpgrades);
   }
   
   // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошельков"

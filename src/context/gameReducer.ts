@@ -24,6 +24,7 @@ import {
   processResetGame,
   processRestartComputers
 } from './reducers/gameStateReducer';
+import { processExchangeBtc } from './reducers/cryptoReducer';
 
 // Главный редьюсер игры - координирует все остальные редьюсеры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
@@ -93,6 +94,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     // Применение знаний
     case "APPLY_KNOWLEDGE": 
       return processApplyKnowledge(state);
+    
+    // Обмен BTC на USDT
+    case "EXCHANGE_BTC":
+      return processExchangeBtc(state, action.payload);
     
     default:
       return state;
