@@ -1,5 +1,7 @@
+
 import { GameState } from '../types';
 import { initialState } from '../initialState';
+import { isTelegramCloudStorageAvailable, forceTelegramCloudSave, forceTelegramCloudLoad } from '@/utils/helpers';
 
 // Константа с именем ключа локального хранилища
 export const GAME_STORAGE_KEY = 'cryptoCivilizationSave';
@@ -21,45 +23,6 @@ const isLocalStorageAvailable = () => {
 // Сделано глобальным для всего приложения, чтобы сохранялось даже при перезагрузках компонентов
 let memoryStorage: Record<string, string> = {};
 
-// Проверка доступности window.Telegram API и использование его хранилища
-const isTelegramCloudStorageAvailable = (): boolean => {
-  try {
-    if (typeof window === 'undefined') {
-      console.log('window не определен, Telegram недоступен');
-      return false;
-    }
-    
-    if (!window.Telegram) {
-      console.log('window.Telegram недоступен');
-      return false;
-    }
-    
-    if (!window.Telegram.WebApp) {
-      console.log('window.Telegram.WebApp недоступен');
-      return false;
-    }
-    
-    if (!window.Telegram.WebApp.CloudStorage) {
-      console.log('window.Telegram.WebApp.CloudStorage недоступен');
-      return false;
-    }
-    
-    const hasGetItem = typeof window.Telegram.WebApp.CloudStorage.getItem === 'function';
-    const hasSetItem = typeof window.Telegram.WebApp.CloudStorage.setItem === 'function';
-    
-    if (!hasGetItem || !hasSetItem) {
-      console.log(`Методы CloudStorage недоступны: getItem=${hasGetItem}, setItem=${hasSetItem}`);
-      return false;
-    }
-    
-    console.log('Telegram CloudStorage полностью доступен!');
-    return true;
-  } catch (error) {
-    console.error('Ошибка при проверке доступности Telegram CloudStorage:', error);
-    return false;
-  }
-};
-
 // Обертка для сохранения данных
 const saveItem = async (key: string, value: string): Promise<void> => {
   try {
@@ -67,9 +30,17 @@ const saveItem = async (key: string, value: string): Promise<void> => {
     if (isTelegramCloudStorageAvailable()) {
       try {
         console.log('Попытка сохранения в Telegram CloudStorage...');
-        await window.Telegram.WebApp.CloudStorage.setItem(key, value);
-        console.log('Данные успешно сохранены в Telegram CloudStorage');
-        return;
+        // Используем принудительное сохранение в Telegram
+        const saved = await forceTelegramCloudSave(value, key);
+        if (saved) {
+          console.log('Данные успешно сохранены в Telegram CloudStorage');
+          // Дублируем в localStorage для резервного копирования
+          if (isLocalStorageAvailable()) {
+            localStorage.setItem(key, value);
+            console.log('Данные также дублированы в localStorage');
+          }
+          return;
+        }
       } catch (telegramError) {
         console.error('Не удалось сохранить в Telegram CloudStorage:', telegramError);
       }
@@ -99,7 +70,8 @@ const getItem = async (key: string): Promise<string | null> => {
     if (isTelegramCloudStorageAvailable()) {
       try {
         console.log('Попытка получения данных из Telegram CloudStorage...');
-        const telegramData = await window.Telegram.WebApp.CloudStorage.getItem(key);
+        // Используем принудительную загрузку из Telegram
+        const telegramData = await forceTelegramCloudLoad(key);
         console.log('Получены данные из Telegram CloudStorage:', telegramData ? 'данные есть' : 'данных нет');
         if (telegramData !== null && telegramData !== '') {
           return telegramData;

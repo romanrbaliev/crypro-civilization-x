@@ -5,6 +5,12 @@ import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
 import { saveGameState, loadGameState } from './utils/gameStorage';
 import { GameEventSystem } from './GameEventSystem';
+import { 
+  isTelegramWebAppAvailable, 
+  isTelegramCloudStorageAvailable, 
+  forceTelegramCloudSave 
+} from '@/utils/helpers';
+import { GAME_STORAGE_KEY } from './utils/gameStorage';
 
 export type { Resource, Building, Upgrade };
 
@@ -27,13 +33,6 @@ interface GameProviderProps {
   children: ReactNode;
 }
 
-// Проверка доступности Telegram WebApp
-const isTelegramWebAppAvailable = (): boolean => {
-  return typeof window !== 'undefined' && 
-         window.Telegram !== undefined && 
-         window.Telegram.WebApp !== undefined;
-};
-
 export function GameProvider({ children }: GameProviderProps) {
   // Загружаем сохраненное состояние при запуске игры
   const [loadedState, setLoadedState] = useState<GameState | null>(null);
@@ -41,6 +40,7 @@ export function GameProvider({ children }: GameProviderProps) {
   
   // Инициализация Telegram WebApp
   useEffect(() => {
+    console.log('Проверка наличия Telegram WebApp...');
     if (isTelegramWebAppAvailable()) {
       console.log('Telegram WebApp обнаружен, инициализация...');
       try {
@@ -53,11 +53,32 @@ export function GameProvider({ children }: GameProviderProps) {
         } else {
           console.warn('Telegram WebApp.ready отсутствует');
         }
+        
+        // Проверка инициализации данных
+        if (tg.initData) {
+          console.log(`Telegram WebApp initData присутствует, длина: ${tg.initData.length}`);
+          
+          // Проверка информации о пользователе
+          if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            console.log(`Пользователь идентифицирован: id=${tg.initDataUnsafe.user.id}, username=${tg.initDataUnsafe.user.username || 'нет'}`);
+          } else {
+            console.warn('Информация о пользователе отсутствует');
+          }
+        } else {
+          console.warn('Telegram WebApp initData отсутствует или пуст');
+        }
+        
+        // Проверка доступности CloudStorage
+        if (isTelegramCloudStorageAvailable()) {
+          console.log('Telegram CloudStorage доступен и будет использован для сохранения данных');
+        } else {
+          console.warn('Telegram CloudStorage недоступен, будет использован localStorage');
+        }
       } catch (error) {
         console.error('Ошибка при инициализации Telegram WebApp:', error);
       }
     } else {
-      console.log('Telegram WebApp не обнаружен');
+      console.log('Telegram WebApp не обнаружен, использование стандартного режима');
     }
   }, []);
   
@@ -109,8 +130,20 @@ export function GameProvider({ children }: GameProviderProps) {
       // Установка поведения при изменении размера окна
       if (typeof tg.onEvent === 'function') {
         const viewportChangedHandler = async () => {
-          console.log('Telegram viewportChanged зафиксирован');
+          console.log('Telegram viewportChanged зафиксирован, принудительное сохранение');
+          
+          // Принудительное сохранение с повторными попытками
           await saveGameState(state);
+          
+          // Дополнительное прямое сохранение в CloudStorage, если доступно
+          if (isTelegramCloudStorageAvailable()) {
+            try {
+              const serialized = JSON.stringify(state);
+              await forceTelegramCloudSave(serialized, GAME_STORAGE_KEY);
+            } catch (e) {
+              console.error('Ошибка при прямом сохранении в CloudStorage:', e);
+            }
+          }
         };
         
         tg.onEvent('viewportChanged', viewportChangedHandler);
@@ -126,30 +159,40 @@ export function GameProvider({ children }: GameProviderProps) {
       // Установка обработчика Back Button, если он доступен
       if (tg.BackButton && typeof tg.BackButton.onClick === 'function') {
         tg.BackButton.onClick(async () => {
-          console.log('Telegram BackButton нажата');
+          console.log('Telegram BackButton нажата, принудительное сохранение');
           await saveGameState(state);
+          
+          // Дополнительное прямое сохранение
+          if (isTelegramCloudStorageAvailable()) {
+            try {
+              const serialized = JSON.stringify(state);
+              await forceTelegramCloudSave(serialized, GAME_STORAGE_KEY);
+            } catch (e) {
+              console.error('Ошибка при прямом сохранении в CloudStorage:', e);
+            }
+          }
         });
       }
       
       // Вызывается при закрытии приложения
       const handleClose = async () => {
-        console.log('Telegram закрытие приложения');
+        console.log('Telegram закрытие приложения, принудительное сохранение');
         await saveGameState(state);
+        
+        // Дополнительное прямое сохранение
+        if (isTelegramCloudStorageAvailable()) {
+          try {
+            const serialized = JSON.stringify(state);
+            await forceTelegramCloudSave(serialized, GAME_STORAGE_KEY);
+          } catch (e) {
+            console.error('Ошибка при прямом сохранении в CloudStorage:', e);
+          }
+        }
       };
       
       // Настройка для закрытия главной кнопкой, если она доступна
       if (tg.MainButton && typeof tg.MainButton.onClick === 'function') {
         tg.MainButton.onClick(handleClose);
-      }
-      
-      // Обработчик закрытия приложения
-      if (typeof tg.close === 'function') {
-        const originalClose = tg.close;
-        // @ts-ignore - переопределяем метод close
-        tg.close = async () => {
-          await saveGameState(state);
-          originalClose.call(tg);
-        };
       }
       
       // Принудительное сохранение при монтировании компонента
