@@ -161,6 +161,7 @@ export const initialState: GameState = {
     practice: false
   },
   lastUpdate: Date.now(),
+  lastSaved: Date.now(), // Добавляем свойство lastSaved
   gameStarted: false,
   prestigePoints: 0,
   phase: 1,
