@@ -107,7 +107,7 @@ export function GameProvider({ children }: GameProviderProps) {
             toast({
               title: "Игра загружена",
               description: "Ваш прогресс успешно восстановлен",
-              variant: "success",
+              variant: "default", // Изменено с "success" на "default"
             });
           }, 1000);
         }

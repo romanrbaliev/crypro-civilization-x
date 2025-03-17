@@ -1,14 +1,21 @@
+
+// Это расширенная версия стандартного use-toast.ts из shadcn/ui
+// Она добавляет дополнительные варианты toast: success, warning, info
+
 import * as React from "react"
+import { type ToastActionElement, ToastProps } from "@/components/ui/toast"
 
-import type {
-  ToastActionElement,
-  ToastProps,
-} from "@/components/ui/toast"
+const TOAST_LIMIT = 20
+const TOAST_REMOVE_DELAY = 1000
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+type ToastType = "default" | "destructive" | "success" | "warning" | "info"
 
-type ToasterToast = ToastProps & {
+// Расширяем типы ToastProps с нашими вариантами
+export type ExtendedToastProps = Omit<ToastProps, "variant"> & {
+  variant?: ToastType
+}
+
+type ToasterToast = ExtendedToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
@@ -38,15 +45,15 @@ type Action =
     }
   | {
       type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
+      toast: Partial<ToasterToast> & { id: string }
     }
   | {
       type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
+      toastId?: string
     }
   | {
       type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
+      toastId?: string
     }
 
 interface State {
@@ -90,20 +97,26 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
-      if (toastId) {
-        addToRemoveQueue(toastId)
-      } else {
+      // Если toast ID не указан, удаляем все
+      if (toastId === undefined) {
         state.toasts.forEach((toast) => {
           addToRemoveQueue(toast.id)
         })
+        return {
+          ...state,
+          toasts: state.toasts.map((t) => ({
+            ...t,
+            open: false,
+          })),
+        }
       }
 
+      // Удаляем конкретный toast
+      addToRemoveQueue(toastId)
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === undefined
+          t.id === toastId
             ? {
                 ...t,
                 open: false,
@@ -126,7 +139,7 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-const listeners: Array<(state: State) => void> = []
+const listeners: ((state: State) => void)[] = []
 
 let memoryState: State = { toasts: [] }
 
