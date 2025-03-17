@@ -124,7 +124,7 @@ export const isTelegramWebAppAvailable = (): boolean => {
 // Получение информации о платформе
 export const getPlatformInfo = (): string => {
   if (isTelegramWebAppAvailable()) {
-    return `Telegram WebApp (${window.Telegram.WebApp.platform || 'unknown platform'})`;
+    return `Telegram WebApp`;
   }
   
   if (typeof navigator !== 'undefined') {

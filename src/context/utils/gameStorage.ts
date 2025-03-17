@@ -23,15 +23,17 @@ const isLocalStorageAvailable = () => {
 let memoryStorage: Record<string, string> = {};
 
 // Проверка доступности window.Telegram API и использование его хранилища
-const isTelegramWebAppAvailable = () => {
-  return window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.CloudStorage === 'object';
+const isTelegramCloudStorageAvailable = () => {
+  return window.Telegram && 
+         window.Telegram.WebApp && 
+         typeof window.Telegram.WebApp.CloudStorage === 'object';
 };
 
 // Обертка для сохранения данных
 const saveItem = async (key: string, value: string): Promise<void> => {
   try {
     // Сначала пробуем Telegram Cloud Storage, если доступен
-    if (isTelegramWebAppAvailable()) {
+    if (isTelegramCloudStorageAvailable()) {
       try {
         await window.Telegram.WebApp.CloudStorage.setItem(key, value);
         console.log('Данные сохранены в Telegram CloudStorage');
@@ -62,7 +64,7 @@ const saveItem = async (key: string, value: string): Promise<void> => {
 const getItem = async (key: string): Promise<string | null> => {
   try {
     // Сначала пробуем Telegram Cloud Storage, если доступен
-    if (isTelegramWebAppAvailable()) {
+    if (isTelegramCloudStorageAvailable()) {
       try {
         const telegramData = await window.Telegram.WebApp.CloudStorage.getItem(key);
         if (telegramData !== null) {
@@ -161,7 +163,7 @@ export async function loadGameState(): Promise<GameState | null> {
 // Удаление сохраненного состояния игры
 export async function clearGameState(): Promise<void> {
   try {
-    if (isTelegramWebAppAvailable()) {
+    if (isTelegramCloudStorageAvailable()) {
       try {
         await window.Telegram.WebApp.CloudStorage.removeItem(GAME_STORAGE_KEY);
       } catch (telegramError) {

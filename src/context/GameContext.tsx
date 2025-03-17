@@ -109,15 +109,22 @@ export function GameProvider({ children }: GameProviderProps) {
     
     // Дополнительное сохранение для Telegram при закрытии приложения
     if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.onEvent('viewportChanged', () => {
-        saveGameState(state);
-      });
+      window.addEventListener('popstate', handleBeforeUnload);
+      
+      if (window.Telegram.WebApp.BackButton) {
+        window.Telegram.WebApp.BackButton.onClick(handleBeforeUnload);
+      }
+      
+      if (window.Telegram.WebApp.MainButton) {
+        window.Telegram.WebApp.MainButton.onClick(handleBeforeUnload);
+      }
     }
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('popstate', handleBeforeUnload);
     };
   }, [state, isLoading]);
   
@@ -140,7 +147,17 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp?: {
-        onEvent: (eventName: string, callback: () => void) => void;
+        CloudStorage?: {
+          getItem: (key: string) => Promise<string | null>;
+          setItem: (key: string, value: string) => Promise<void>;
+          removeItem: (key: string) => Promise<void>;
+        };
+        BackButton?: {
+          onClick: (callback: () => void) => void;
+        };
+        MainButton?: {
+          onClick: (callback: () => void) => void;
+        };
       };
     };
   }
