@@ -134,9 +134,14 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                     disabled={!canAfford()}
                     variant={canAfford() ? "default" : "outline"}
                     size="sm"
-                    className="text-[10px] h-7 px-2 mr-2"
+                    className="text-[10px] h-7 px-2 mr-2 relative"
                   >
                     Улучшить
+                    <CollapsibleTrigger asChild>
+                      <span className="absolute right-[-0.5rem] w-4">
+                        {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </span>
+                    </CollapsibleTrigger>
                   </Button>
                 </TooltipTrigger>
                 {!canAfford() && (
@@ -146,11 +151,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                 )}
               </Tooltip>
             </TooltipProvider>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-0 h-6 w-6 min-w-6">
-                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </CollapsibleTrigger>
           </div>
         </div>
         
@@ -175,7 +175,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       <div className="building-header flex justify-between items-center">
         <div className="flex items-start flex-col">
           <h3 className="font-semibold text-[12px]">{name}</h3>
-          <div className="text-[12px] font-medium">{count}</div>
+          {/* Убираем отображение "0" для еще не купленных зданий */}
         </div>
         <TooltipProvider>
           <Tooltip>

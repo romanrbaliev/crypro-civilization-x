@@ -126,12 +126,12 @@ export const initialResources: { [key: string]: Resource } = {
   },
   computingPower: {
     id: "computingPower",
-    name: "Вычислительная мощно��ть",
-    icon: "",
+    name: "Вычислительная мощность",
+    icon: "💻",
     value: 0,
     perSecond: 0,
     unlocked: false,
-    max: 1000
+    max: Infinity
   },
   reputation: {
     id: "reputation",

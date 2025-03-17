@@ -26,8 +26,8 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   return (
     <div className="w-full text-xs">
       <div className="flex justify-between items-center mb-0.5">
-        <div className="font-medium text-[10px]">{name}</div>
-        <div className="text-gray-600 text-[10px]">
+        <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{name}</div>
+        <div className="text-gray-600 text-[10px] whitespace-nowrap">
           {formatNumber(value)}
           {max !== Infinity && ` / ${formatNumber(max)}`}
         </div>
