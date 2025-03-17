@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counters } from './types';
 
 // Начальные здания
@@ -161,7 +160,7 @@ export const initialState: GameState = {
     practice: false
   },
   lastUpdate: Date.now(),
-  lastSaved: Date.now(), // Добавляем свойство lastSaved
+  lastSaved: Date.now(),
   gameStarted: false,
   prestigePoints: 0,
   phase: 1,

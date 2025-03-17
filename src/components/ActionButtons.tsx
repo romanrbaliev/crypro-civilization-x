@@ -49,29 +49,37 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   };
   
   const handlePractice = () => {
-    // Здесь была проблема - неправильно получали текущую стоимость
-    // Исправляем и добавляем больше логов для диагностики
-    const practiceBuilding = state.buildings.practice;
-    if (!practiceBuilding) {
+    // Проверяем наличие здания practice
+    if (!state.buildings.practice) {
       console.error("Ошибка: здание practice не найдено в state.buildings");
       onAddEvent("Произошла ошибка при попытке практиковаться", "error");
       return;
     }
     
-    // Правильный расчет стоимости согласно формуле
+    // Расчет текущей стоимости
+    const practiceBuilding = state.buildings.practice;
     const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier, practiceBuilding.count));
     
     console.log(`Нажата кнопка Практиковаться. USDT: ${state.resources.usdt.value}, Требуется: ${currentCost}`);
-    console.log(`Информация о здании: уровень=${practiceBuilding.count}, множитель=${practiceBuilding.costMultiplier}`);
+    console.log(`Текущее состояние practice: count=${practiceBuilding.count}, множитель=${practiceBuilding.costMultiplier}`);
     
+    // Проверка достаточности ресурсов
     if (state.resources.usdt.value < currentCost) {
       onAddEvent(`Недостаточно USDT! Требуется ${currentCost} единиц.`, "error");
       return;
     }
     
-    // Вызываем action покупки здания
-    dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
-    onAddEvent(`Вы повысили уровень практики до ${practiceBuilding.count + 1}! Скорость накопления знаний увеличена.`, "success");
+    // Покупка здания
+    dispatch({ 
+      type: "PURCHASE_BUILDING", 
+      payload: { buildingId: "practice" } 
+    });
+    
+    // Проверим, была ли осуществлена покупка (должны получить обновленный state после диспатча)
+    console.log(`Отправлена команда покупки practice, текущий уровень: ${practiceBuilding.count}`);
+    
+    // Сообщение пользователю
+    onAddEvent(`Вы повысили уровень практики! Скорость накопления знаний увеличена.`, "success");
   };
   
   const handleMineClick = () => {
@@ -87,7 +95,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
   };
   
-  // Исправляем расчет текущей стоимости практики
+  // Исправление: проверка наличия здания practice и безопасный расчет стоимости
   const practiceCurrentCost = state.buildings.practice 
     ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count)) 
     : 10;

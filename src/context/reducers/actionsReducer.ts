@@ -1,5 +1,5 @@
-
 import { GameState } from '../types';
+import { updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка майнинга вычислительной мощности
@@ -43,12 +43,13 @@ export const processMiningPower = (state: GameState): GameState => {
 
 // Обработка применения знаний
 export const processApplyKnowledge = (state: GameState): GameState => {
-  // Проверяем, достаточно ли знаний
+  // Проверка наличия достаточного количества знаний
   if (state.resources.knowledge.value < 10) {
+    console.log("Недостаточно знаний для применения");
     return state;
   }
   
-  // Вычитаем знания и добавляем USDT
+  // Вычитаем знания
   const newResources = {
     ...state.resources,
     knowledge: {
@@ -58,46 +59,45 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     usdt: {
       ...state.resources.usdt,
       value: state.resources.usdt.value + 1,
-      unlocked: true // Важно: убедимся, что usdt разблокирован
+      unlocked: true
     }
   };
   
-  // Увеличиваем счетчик применений знаний
+  console.log("Применены знания: -10 знаний, +1 USDT");
+  
+  // Увеличиваем счетчик применения знаний
   const newCounters = {
     ...state.counters,
-    applyKnowledge: state.counters.applyKnowledge + 1
+    applyKnowledge: (state.counters.applyKnowledge || 0) + 1
   };
   
-  // При первом применении знаний отправляем сообщение
-  if (state.counters.applyKnowledge === 0) {
-    safeDispatchGameEvent("Вы применили свои знания и получили 1 USDT!", "success");
-  }
+  // Проверяем, нужно ли разблокировать практику
+  let newUnlocks = { ...state.unlocks };
+  let newBuildings = { ...state.buildings };
   
-  // Разблокируем практику после второго применения знаний
-  if (state.counters.applyKnowledge === 1) {
-    safeDispatchGameEvent("После применения знаний открыта функция 'Практика'", "info");
+  // Разблокируем практику после 2-го применения знаний
+  if (newCounters.applyKnowledge >= 2 && !state.unlocks.practice) {
+    newUnlocks.practice = true;
     
-    return {
-      ...state,
-      resources: newResources,
-      counters: newCounters,
-      unlocks: {
-        ...state.unlocks,
-        practice: true
-      },
-      buildings: {
-        ...state.buildings,
-        practice: {
-          ...state.buildings.practice,
-          unlocked: true
-        }
-      }
-    };
+    // Также разблокируем здание практики
+    if (state.buildings.practice) {
+      newBuildings.practice = {
+        ...state.buildings.practice,
+        unlocked: true
+      };
+    }
+    
+    console.log("Разблокирована практика после 2-го применения знаний");
+    safeDispatchGameEvent("Разблокирована возможность практиковаться", "info");
   }
   
-  return {
+  const newState = {
     ...state,
     resources: newResources,
-    counters: newCounters
+    counters: newCounters,
+    unlocks: newUnlocks,
+    buildings: newBuildings
   };
+  
+  return updateResourceMaxValues(newState);
 };

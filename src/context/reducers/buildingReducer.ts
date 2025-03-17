@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -62,10 +61,11 @@ export const processPurchaseBuilding = (
   // Специальная логика для практики: увеличиваем производство знаний с каждым уровнем
   if (buildingId === 'practice') {
     // Каждый уровень практики дает фиксированные 0.63 знаний/сек
+    // Уровень уже увеличен выше, поэтому просто устанавливаем базовое производство
     newBuildings.practice.production = { 
       knowledge: 0.63
     };
-    console.log(`Уровень практики увеличен. Новая скорость накопления знаний: ${newBuildings.practice.production.knowledge}`);
+    console.log(`Уровень практики увеличен. Базовая скорость накопления знаний: ${newBuildings.practice.production.knowledge}`);
   }
   
   // Если построен генератор, разблокируем электричество
