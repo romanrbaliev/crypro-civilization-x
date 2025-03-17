@@ -40,6 +40,7 @@ interface TelegramWebApp {
   };
 }
 
+// Глобальное объявление типа для окна
 interface Window {
   Telegram?: {
     WebApp: TelegramWebApp;
@@ -49,10 +50,10 @@ interface Window {
   __supabaseInitialized?: boolean;
   __FORCE_TELEGRAM_MODE?: boolean;
   __game_user_id?: string;
-  gameEventBus?: EventTarget; // Добавляем свойство gameEventBus типа EventTarget
+  gameEventBus?: EventTarget; // Шина событий игры
 }
 
-// Добавляем тип для GameEventDetail, используемый в gameEvents.ts
+// Тип для деталей игрового события
 interface GameEventDetail {
   message: string;
   type: "info" | "error" | "success" | "warning";
