@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/tooltip";
 import {
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  SquarePlus
 } from "lucide-react";
 import {
   Collapsible,
@@ -35,7 +36,8 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     console.log(`Попытка покупки здания ${id} через компонент BuildingItem`);
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: id } });
     
-    // После первой покупки оставляем карточку открытой, чтобы пользователь видел новую информацию
+    // После покупки оставляем карточку открытой, чтобы пользователь видел новую информацию
+    if (count === 0) setIsOpen(true);
     if (onPurchase) onPurchase();
   };
   
@@ -49,6 +51,13 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     return true;
   };
   
+  // Функция для форматирования чисел с десятичными знаками
+  const formatDecimal = (num: number): string => {
+    if (num === Infinity) return "∞";
+    if (num % 1 === 0) return formatNumber(num);
+    return num.toFixed(2);
+  };
+  
   const renderCost = () => {
     return Object.entries(cost).map(([resourceId, baseCost]) => {
       const resource = state.resources[resourceId];
@@ -57,7 +66,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       
       return (
         <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
-          {actualCost % 1 === 0 ? formatNumber(actualCost) : actualCost.toFixed(2)} {resource ? resource.name : resourceId}
+          {formatDecimal(actualCost)} {resource ? resource.name : resourceId}
         </div>
       );
     });
@@ -69,7 +78,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     if (id === "homeComputer") {
       productionItems.push(
         <div key="consumption" className="text-red-600 text-[10px]">
-          -0.5 электричество/сек
+          -0.5 электричество/сек за каждую единицу
         </div>
       );
     }
@@ -81,7 +90,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         const resourceName = state.resources[baseResourceId]?.name || baseResourceId;
         productionItems.push(
           <div key={resourceId} className="text-green-600 text-[10px]">
-            +{boostPercent % 1 === 0 ? boostPercent : boostPercent.toFixed(2)}% к скорости накопления {resourceName}
+            +{formatDecimal(boostPercent)}% к скорости накопления {resourceName}
           </div>
         );
       } else if (resourceId.includes('Max')) {
@@ -90,7 +99,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         if (resource) {
           productionItems.push(
             <div key={resourceId} className="text-blue-600 text-[10px]">
-              +{Number(amount) % 1 === 0 ? formatNumber(Number(amount)) : Number(amount).toFixed(2)} к максимуму {resource.name}
+              +{formatDecimal(Number(amount))} к максимуму {resource.name}
             </div>
           );
         }
@@ -99,7 +108,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         if (resource) {
           productionItems.push(
             <div key={resourceId} className="text-green-600 text-[10px]">
-              +{Number(amount) % 1 === 0 ? formatNumber(Number(amount)) : Number(amount).toFixed(2)}/сек {resource.name}
+              +{formatDecimal(Number(amount))}/сек {resource.name}
             </div>
           );
         }
@@ -130,10 +139,10 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                     onClick={handlePurchase} 
                     disabled={!canAfford()}
                     variant={canAfford() ? "default" : "outline"}
-                    size="sm"
-                    className="text-[10px] h-7 px-2 mr-4"
+                    size="icon"
+                    className="h-6 w-6 mr-2"
                   >
-                    Улучшить
+                    <SquarePlus className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
                 {!canAfford() && (
@@ -172,7 +181,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       <div className="building-header flex justify-between items-center">
         <div className="flex items-start flex-col">
           <h3 className="font-semibold text-[12px]">{name}</h3>
-          {/* Убираем отображение "0" для еще не купленных зданий */}
         </div>
         <TooltipProvider>
           <Tooltip>

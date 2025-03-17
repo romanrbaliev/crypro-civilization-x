@@ -30,15 +30,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     }
   }
   
-  // Проверяем бонусы к производству знаний от улучшений
-  for (const upgradeId in state.upgrades) {
-    const upgrade = state.upgrades[upgradeId];
-    if (upgrade.purchased && upgrade.effect.knowledgeBoost) {
-      knowledgeBoost += upgrade.effect.knowledgeBoost;
-    }
-  }
-  
-  // Рассчитываем потребление электричества домашними компьютерами (теперь 0.5 за компьютер)
+  // Рассчитываем потребление электричества домашними компьютерами (0.5 за компьютер)
   if (state.buildings.homeComputer.count > 0) {
     electricityConsumption = state.buildings.homeComputer.count * 0.5; // 0.5 эл/сек на компьютер
   }

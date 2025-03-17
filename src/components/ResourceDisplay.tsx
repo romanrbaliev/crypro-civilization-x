@@ -23,6 +23,13 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       ? "bg-yellow-500" 
       : "bg-blue-500";
   
+  // Функция для форматирования чисел с десятичными знаками
+  const formatDecimal = (num: number): string => {
+    if (num === Infinity) return "∞";
+    if (num % 1 === 0) return Math.floor(num).toString();
+    return num.toFixed(2);
+  };
+  
   return (
     <div className="w-full text-xs">
       <div className="flex justify-between items-center mb-0.5">
@@ -46,7 +53,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       {perSecond !== 0 && (
         <div className="flex items-center justify-end">
           <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
-            {isNegativeRate ? "-" : "+"}{Math.abs(perSecond) % 1 === 0 ? Math.abs(perSecond).toFixed(0) : Math.abs(perSecond).toFixed(2)}/сек
+            {isNegativeRate ? "-" : "+"}{formatDecimal(Math.abs(perSecond))}/сек
           </div>
         </div>
       )}

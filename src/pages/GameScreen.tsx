@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { useNavigate } from "react-router-dom";
@@ -104,8 +105,8 @@ const GameScreen = () => {
   
   const handleResetGame = () => {
     dispatch({ type: "RESET_GAME" });
-    localStorage.removeItem("cryptoCivGame");
-    window.location.reload();
+    setResetConfirmOpen(false); // Закрываем диалог после сброса
+    addEvent("Игра полностью сброшена", "info");
   };
   
   return (
@@ -152,7 +153,7 @@ const GameScreen = () => {
                       <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
                       <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
                       <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
-                      <li><strong>Репутация</strong> - вл��яет на эффективность социальных взаимодействий.</li>
+                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
                     </ul>
                   </TabsContent>
                   
