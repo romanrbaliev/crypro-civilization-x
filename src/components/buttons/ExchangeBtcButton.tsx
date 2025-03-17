@@ -41,7 +41,7 @@ export const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
           </TooltipContent>
         ) : (
           <TooltipContent>
-            <p>Текущий курс: {currentRate.toLocaleString()} USDT за 1 BTC</p>
+            <p>Курс обмена: 1 BTC = {currentRate.toLocaleString()} USDT</p>
           </TooltipContent>
         )}
       </Tooltip>

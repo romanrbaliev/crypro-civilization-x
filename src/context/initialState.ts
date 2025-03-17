@@ -1,3 +1,4 @@
+
 import { Resource, Building, Upgrade, GameState, Counters, MiningParams } from './types';
 
 // Начальные здания
@@ -106,7 +107,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
   energyEfficiency: {
     id: "energyEfficiency",
     name: "Энергоэффективные компоненты",
-    description: "Снижает потребление эл��ктричества при майнинге на 10%",
+    description: "Снижает потребление электричества при майнинге на 10%",
     cost: { knowledge: 120, usdt: 75 },
     effect: { energyEfficiencyBoost: 0.1 },
     unlocked: false,
@@ -194,11 +195,11 @@ export const initialMiningParams: MiningParams = {
   miningEfficiency: 0.00005,
   networkDifficulty: 1.0,
   energyEfficiency: 0,
-  exchangeRate: 100000,
+  exchangeRate: 100000,  // Обновлено на 100,000 USDT за 1 BTC
   exchangeCommission: 0.05,
   volatility: 0.2,
   exchangePeriod: 3600,
-  baseConsumption: 2
+  baseConsumption: 2  // Обновлено на 2 единицы электричества
 };
 
 // Начальное состояние игры

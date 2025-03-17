@@ -27,7 +27,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   const formatDecimal = (num: number): string => {
     if (num === Infinity) return "∞";
     if (Math.abs(num) % 1 === 0) return Math.floor(Math.abs(num)).toString();
-    return Math.abs(num).toFixed(2);
+    return Math.abs(num).toFixed(5);
   };
   
   // Специальное форматирование для BTC

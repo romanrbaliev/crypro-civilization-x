@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { calculateProductionBoost } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -163,8 +164,8 @@ function calculateBtcMining(
     }
     
     // Определяем ресурсы, необходимые для работы автомайнера
-    const requiredElectricity = state.buildings.autoMiner.count * state.miningParams.baseConsumption;
-    const requiredComputingPower = state.buildings.autoMiner.count * 50; // 50 вычислительной мощности на 1 уровень автомайнера
+    const requiredElectricity = state.buildings.autoMiner.count * state.miningParams.baseConsumption; // 2 эл/сек на автомайнер
+    const requiredComputingPower = state.buildings.autoMiner.count * 10; // 10 вычислительной мощности на автомайнер
     
     // Проверяем, достаточно ли ресурсов
     const hasEnoughElectricity = state.resources.electricity.value >= requiredElectricity;
@@ -206,7 +207,8 @@ function calculateBtcMining(
  */
 function calculateExchangeRate(miningParams: any, gameTime: number): number {
   const { exchangeRate, volatility, exchangePeriod } = miningParams;
-  return exchangeRate * (1 + volatility * Math.sin(gameTime / exchangePeriod));
+  // Теперь возвращаем фиксированный курс 100000, так как волатильность не нужна
+  return exchangeRate;
 }
 
 /**
@@ -330,6 +332,13 @@ function handleSpecialResources(
   // Особый случай для BTC - учитываем производство от автомайнера
   if (resourceId === 'btc' && btcProduction > 0) {
     production += btcProduction;
+  }
+  
+  // Особый случай для вычислительной мощности - учитываем потребление автомайнером
+  if (resourceId === 'computingPower' && state.buildings.autoMiner.count > 0 && !electricityShortage) {
+    // 10 вычислительной мощности на 1 автомайнер
+    const computingPowerConsumption = state.buildings.autoMiner.count * 10;
+    production -= computingPowerConsumption;
   }
   
   return production;
