@@ -1,3 +1,4 @@
+
 export interface Resource {
   id: string;
   name: string;
@@ -59,7 +60,7 @@ export interface GameState {
 
 // Типы действий для редьюсера игры
 export type GameAction =
-  | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string } }
+  | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount?: number } }
   | { type: "UPDATE_RESOURCES" }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }

@@ -5,9 +5,9 @@ import { checkUnlocks } from '../utils/resourceUtils';
 // Обработка инкремента ресурсов
 export const processIncrementResource = (
   state: GameState,
-  payload: { resourceId: string; amount: number }
+  payload: { resourceId: string; amount?: number }
 ): GameState => {
-  const { resourceId, amount } = payload;
+  const { resourceId, amount = 1 } = payload; // Используем default значение 1, если amount не указан
   
   // Если ресурс не существует, возвращаем текущее состояние
   if (!state.resources[resourceId]) {
