@@ -14,6 +14,9 @@ const ENDPOINTS = {
   LOAD_GAME: `${API_BASE_URL}/game/load`,
 };
 
+// Имя ключа для локального резервного хранилища
+const LOCAL_BACKUP_KEY = 'cryptoCivilizationLocalBackup';
+
 // Получение идентификатора пользователя
 const getUserIdentifier = (): string => {
   // Пытаемся получить Telegram ID
@@ -44,6 +47,25 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     const userId = getUserIdentifier();
     console.log(`🔄 Сохранение игры на сервере для пользователя: ${userId}`);
     
+    // Всегда сохраняем копию локально как резервный вариант
+    try {
+      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
+        gameData: gameState,
+        timestamp: Date.now(),
+        userId
+      }));
+      console.log('✅ Создана локальная резервная копия игры');
+    } catch (backupError) {
+      console.error('❌ Ошибка при создании локальной резервной копии:', backupError);
+    }
+    
+    // Если нет интернета или API недоступен, сразу возвращаем успех,
+    // так как мы уже сохранили локально
+    if (!navigator.onLine) {
+      console.log('⚠️ Нет подключения к интернету, используем только локальное сохранение');
+      return true;
+    }
+    
     // Подготовка данных для отправки
     const payload = {
       userId,
@@ -55,6 +77,10 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       }
     };
     
+    // Устанавливаем таймаут для запроса (5 секунд)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     // Отправляем запрос на сервер
     const response = await fetch(ENDPOINTS.SAVE_GAME, {
       method: 'POST',
@@ -62,7 +88,8 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-    });
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeoutId));
     
     if (!response.ok) {
       throw new Error(`Сервер вернул ошибку: ${response.status}`);
@@ -74,16 +101,9 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
   } catch (error) {
     console.error('❌ Ошибка при сохранении игры на сервере:', error);
     
-    // При ошибке сети, сохраняем локально как резервный вариант
-    try {
-      const userId = getUserIdentifier();
-      localStorage.setItem(`game_backup_${userId}`, JSON.stringify(gameState));
-      console.log('✅ Создана локальная резервная копия игры');
-    } catch (backupError) {
-      console.error('❌ Не удалось создать локальную резервную копию:', backupError);
-    }
-    
-    return false;
+    // Мы уже создали локальную резервную копию вначале функции,
+    // поэтому просто возвращаем true, так как игра все равно сохранена локально
+    return true;
   }
 };
 
@@ -93,17 +113,68 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     const userId = getUserIdentifier();
     console.log(`🔄 Загрузка игры с сервера для пользователя: ${userId}`);
     
+    // Сначала проверяем наличие локальной резервной копии
+    let localBackup = null;
+    try {
+      const backupData = localStorage.getItem(LOCAL_BACKUP_KEY);
+      if (backupData) {
+        localBackup = JSON.parse(backupData);
+        console.log('ℹ️ Найдена локальная резервная копия от:', new Date(localBackup.timestamp).toLocaleString());
+      }
+    } catch (backupError) {
+      console.error('❌ Ошибка при чтении локальной резервной копии:', backupError);
+    }
+    
+    // Если нет интернета, сразу используем локальную копию
+    if (!navigator.onLine) {
+      console.log('⚠️ Нет подключения к интернету, используем локальную резервную копию');
+      
+      if (localBackup && localBackup.gameData) {
+        console.log('✅ Игра загружена из локальной резервной копии');
+        
+        toast({
+          title: "Автономный режим",
+          description: "Нет подключения к интернету. Игра загружена из локальной копии.",
+          variant: "warning",
+        });
+        
+        return localBackup.gameData;
+      }
+      
+      console.log('❌ Локальная резервная копия не найдена');
+      return null;
+    }
+    
+    // Устанавливаем таймаут для запроса (5 секунд)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     // Отправляем запрос на сервер
     const response = await fetch(`${ENDPOINTS.LOAD_GAME}?userId=${encodeURIComponent(userId)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-    });
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeoutId));
     
     // Обрабатываем ответ сервера
     if (response.status === 404) {
       console.log('ℹ️ Сохраненной игры не найдено на сервере');
+      
+      // Если на сервере нет сохранения, но есть локальная копия, используем её
+      if (localBackup && localBackup.gameData) {
+        console.log('✅ Игра загружена из локальной резервной копии');
+        
+        toast({
+          title: "Локальное восстановление",
+          description: "Сохранение на сервере не найдено. Игра загружена из локальной копии.",
+          variant: "warning",
+        });
+        
+        return localBackup.gameData;
+      }
+      
       return null;
     }
     
@@ -115,6 +186,20 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     
     if (!result.gameData) {
       console.log('ℹ️ Сервер вернул пустые данные игры');
+      
+      // Если сервер вернул пустые данные, но есть локальная копия, используем её
+      if (localBackup && localBackup.gameData) {
+        console.log('✅ Игра загружена из локальной резервной копии');
+        
+        toast({
+          title: "Локальное восстановление",
+          description: "Сервер вернул пустые данные. Игра загружена из локальной копии.",
+          variant: "warning",
+        });
+        
+        return localBackup.gameData;
+      }
+      
       return null;
     }
     
@@ -125,18 +210,29 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       throw new Error('Сервер вернул некорректные данные игры');
     }
     
+    // Сохраняем серверные данные локально для резервной копии
+    try {
+      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
+        gameData: result.gameData,
+        timestamp: Date.now(),
+        userId
+      }));
+      console.log('✅ Обновлена локальная резервная копия из данных сервера');
+    } catch (backupError) {
+      console.error('❌ Ошибка при обновлении локальной резервной копии:', backupError);
+    }
+    
     return result.gameData as GameState;
   } catch (error) {
     console.error('❌ Ошибка при загрузке игры с сервера:', error);
     
     // При ошибке сети, пытаемся загрузить из локальной резервной копии
     try {
-      const userId = getUserIdentifier();
-      const backupData = localStorage.getItem(`game_backup_${userId}`);
+      const backupData = localStorage.getItem(LOCAL_BACKUP_KEY);
       
       if (backupData) {
         console.log('⚠️ Загружаем игру из локальной резервной копии');
-        const gameState = JSON.parse(backupData);
+        const backup = JSON.parse(backupData);
         
         // Показываем уведомление о загрузке из резервной копии
         toast({
@@ -145,7 +241,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           variant: "warning",
         });
         
-        return gameState;
+        return backup.gameData;
       }
     } catch (backupError) {
       console.error('❌ Не удалось загрузить локальную резервную копию:', backupError);
@@ -154,10 +250,27 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     // Показываем уведомление о проблемах с загрузкой
     toast({
       title: "Ошибка загрузки",
-      description: "Не удалось загрузить игру с сервера. Проверьте подключение к интернету.",
+      description: "Не удалось загрузить игру. Начинаем новую игру.",
       variant: "destructive",
     });
     
     return null;
+  }
+};
+
+// Функция для очистки всех сохранений (для отладки)
+export const clearAllSavedData = (): void => {
+  try {
+    localStorage.removeItem(LOCAL_BACKUP_KEY);
+    localStorage.removeItem('game_user_id');
+    console.log('✅ Все локальные сохранения очищены');
+    
+    toast({
+      title: "Сохранения очищены",
+      description: "Все локальные сохранения игры удалены.",
+      variant: "default",
+    });
+  } catch (error) {
+    console.error('❌ Ошибка при очистке сохранений:', error);
   }
 };

@@ -22,8 +22,11 @@ export const GameContext = createContext<GameContextProps | undefined>(undefined
 // Экспорт хука useGame переехал в отдельный файл
 export { useGame } from './hooks/useGame';
 
-// Интервал автосохранения (уменьшен до 3 секунд для более частых сохранений)
+// Интервал автосохранения (3 секунды для частых сохранений)
 const SAVE_INTERVAL = 3 * 1000;
+
+// Максимальное время ожидания загрузки (5 секунд)
+const LOAD_TIMEOUT = 5000;
 
 interface GameProviderProps {
   children: ReactNode;
@@ -61,7 +64,7 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   }, []);
   
-  // Загрузка сохранения при монтировании
+  // Загрузка сохранения при монтировании с таймаутом
   useEffect(() => {
     const loadSavedGame = async () => {
       try {
@@ -72,7 +75,25 @@ export function GameProvider({ children }: GameProviderProps) {
         await new Promise(resolve => setTimeout(resolve, 800));
         
         setLoadingMessage("Загрузка данных игры...");
+        
+        // Устанавливаем таймаут для загрузки
+        const loadTimeoutId = setTimeout(() => {
+          console.warn('⚠️ Превышено время ожидания загрузки, начинаем новую игру');
+          setLoadedState(null);
+          setIsLoading(false);
+          
+          toast({
+            title: "Ошибка загрузки",
+            description: "Превышено время ожидания загрузки. Начинаем новую игру.",
+            variant: "destructive",
+          });
+        }, LOAD_TIMEOUT);
+        
         const savedState = await loadGameState();
+        
+        // Очищаем таймаут, если загрузка завершилась успешно
+        clearTimeout(loadTimeoutId);
+        
         console.log('✅ Загрузка завершена, состояние:', savedState ? 'найдено' : 'не найдено');
         
         setLoadedState(savedState);
@@ -84,9 +105,16 @@ export function GameProvider({ children }: GameProviderProps) {
             toast({
               title: "Игра загружена",
               description: "Ваш прогресс успешно восстановлен",
-              variant: "default", // Изменено с "success" на "default"
+              variant: "default",
             });
           }, 1000);
+        } else {
+          // Если сохранение не найдено, уведомляем пользователя
+          toast({
+            title: "Новая игра",
+            description: "Сохранения не найдены. Начинаем новую игру.",
+            variant: "default",
+          });
         }
       } catch (err) {
         console.error('❌ Ошибка при загрузке состояния:', err);
@@ -166,14 +194,41 @@ export function GameProvider({ children }: GameProviderProps) {
       saveGameState(state);
     };
     
+    // Обработчик возвращения онлайн (для сохранения локальных изменений)
+    const handleOnline = () => {
+      console.log('🔄 Подключение к сети восстановлено, сохранение...');
+      saveGameState(state);
+      
+      toast({
+        title: "Подключение восстановлено",
+        description: "Соединение с сервером восстановлено. Прогресс будет синхронизирован.",
+        variant: "default",
+      });
+    };
+    
+    // Обработчик перехода в офлайн
+    const handleOffline = () => {
+      console.log('⚠️ Соединение с сетью потеряно');
+      
+      toast({
+        title: "Автономный режим",
+        description: "Соединение с сервером потеряно. Игра продолжится в автономном режиме.",
+        variant: "warning",
+      });
+    };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('blur', handleBlur);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, [state, isLoading]);
   

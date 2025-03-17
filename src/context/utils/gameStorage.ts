@@ -1,10 +1,9 @@
 
 import { GameState } from '../types';
 import { initialState } from '../initialState';
-import { isTelegramCloudStorageAvailable } from '@/utils/helpers';
 import { saveGameToServer, loadGameFromServer } from '@/api/gameDataService';
 
-// Константа с именем ключа локального хранилища
+// Константа с именем ключа локального хранилища (для совместимости со старыми версиями)
 export const GAME_STORAGE_KEY = 'cryptoCivilizationSave';
 
 // Проверка доступности localStorage
@@ -23,65 +22,7 @@ const isLocalStorageAvailable = () => {
 // Глобальное постоянное хранилище для сред, где localStorage недоступен
 let memoryStorage: Record<string, string> = {};
 
-// Сохранение состояния игры
-export async function saveGameState(state: GameState): Promise<boolean> {
-  try {
-    // Обновляем timestamp перед сохранением
-    const stateToSave = {
-      ...state,
-      lastSaved: Date.now()
-    };
-    
-    console.log(`🔄 Сохранение игры (размер данных: ~${JSON.stringify(stateToSave).length} байт)`);
-    
-    // Сначала пытаемся сохранить на сервере (наш основной метод)
-    const serverSaved = await saveGameToServer(stateToSave);
-    
-    // Если удалось сохранить на сервере, то дополнительно не сохраняем локально
-    if (serverSaved) {
-      console.log('✅ Игра успешно сохранена на сервере:', new Date().toLocaleTimeString());
-      return true;
-    }
-    
-    // Если не удалось сохранить на сервере, используем запасные варианты
-    console.warn('⚠️ Не удалось сохранить на сервере, используем локальное хранилище');
-    
-    const serializedState = JSON.stringify(stateToSave);
-    
-    // Сохраняем в localStorage, если доступен
-    if (isLocalStorageAvailable()) {
-      try {
-        localStorage.setItem(GAME_STORAGE_KEY, serializedState);
-        console.log('✅ Данные сохранены в localStorage');
-        return true;
-      } catch (localStorageError) {
-        console.error('❌ Ошибка при сохранении в localStorage:', localStorageError);
-      }
-    }
-
-    // Если ничего не работает, используем память
-    memoryStorage[GAME_STORAGE_KEY] = serializedState;
-    console.log('✅ Данные сохранены в памяти (временное хранилище)');
-    return true;
-  } catch (error) {
-    console.error('❌ Критическая ошибка при сохранении состояния игры:', error);
-    
-    // В крайнем случае сохраняем в память
-    try {
-      memoryStorage[GAME_STORAGE_KEY] = JSON.stringify({
-        ...state,
-        lastSaved: Date.now()
-      });
-      console.log('✅ Данные сохранены в памяти (аварийное сохранение)');
-      return true;
-    } catch (e) {
-      console.error('❌ Не удалось сохранить даже в память:', e);
-      return false;
-    }
-  }
-}
-
-// Рекурсивное объединение объектов для корректного сохранения вложенных структур
+// Глубокое слияние объектов для корректного обновления
 function deepMerge(target: any, source: any): any {
   const output = { ...target };
   
@@ -106,19 +47,45 @@ function deepMerge(target: any, source: any): any {
   return output;
 }
 
+// Сохранение состояния игры
+export async function saveGameState(state: GameState): Promise<boolean> {
+  try {
+    // Обновляем timestamp перед сохранением
+    const stateToSave = {
+      ...state,
+      lastSaved: Date.now()
+    };
+    
+    console.log(`🔄 Сохранение игры (размер данных: ~${JSON.stringify(stateToSave).length} байт)`);
+    
+    // Сначала пытаемся сохранить на сервере (наш основной метод)
+    const serverSaved = await saveGameToServer(stateToSave);
+    
+    // Если не удалось сохранить на сервере, мы все равно сохраняем локально через gameDataService
+    if (!serverSaved) {
+      console.warn('⚠️ Сохранение на сервере не выполнено, но локальная копия создана');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Критическая ошибка при сохранении состояния игры:', error);
+    return false;
+  }
+}
+
 // Загрузка состояния игры
 export async function loadGameState(): Promise<GameState | null> {
   try {
     console.log('🔄 Начинаем загрузку сохраненной игры...');
     
-    // Сначала пытаемся загрузить с сервера (наш основной метод)
-    const serverState = await loadGameFromServer();
+    // Загружаем с сервера или из локальной резервной копии
+    const loadedState = await loadGameFromServer();
     
-    if (serverState) {
-      console.log(`✅ Игра успешно загружена с сервера (lastSaved: ${new Date(serverState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
+    if (loadedState) {
+      console.log(`✅ Игра успешно загружена (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
       
       // Используем глубокое объединение для правильного слияния всех вложенных объектов
-      const mergedState = deepMerge(initialState, serverState);
+      const mergedState = deepMerge(initialState, loadedState);
       
       // Обновляем timestamp последнего обновления
       mergedState.lastUpdate = Date.now();
@@ -126,49 +93,7 @@ export async function loadGameState(): Promise<GameState | null> {
       return mergedState;
     }
     
-    console.log('ℹ️ Сохранение на сервере не найдено, проверяем локальные хранилища');
-    
-    // Если не удалось загрузить с сервера, пробуем localStorage
-    if (isLocalStorageAvailable()) {
-      const serializedState = localStorage.getItem(GAME_STORAGE_KEY);
-      
-      if (serializedState) {
-        try {
-          const loadedState = JSON.parse(serializedState) as GameState;
-          console.log(`✅ Загружено состояние игры из localStorage (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
-          
-          // Используем глубокое объединение для правильного слияния всех вложенных объектов
-          const mergedState = deepMerge(initialState, loadedState);
-          
-          // Обновляем timestamp последнего обновления
-          mergedState.lastUpdate = Date.now();
-          
-          return mergedState;
-        } catch (parseError) {
-          console.error('❌ Ошибка при разборе JSON данных из localStorage:', parseError);
-        }
-      }
-    }
-    
-    // Пробуем из памяти, если всё остальное не сработало
-    if (memoryStorage[GAME_STORAGE_KEY]) {
-      try {
-        const loadedState = JSON.parse(memoryStorage[GAME_STORAGE_KEY]) as GameState;
-        console.log(`✅ Загружено состояние игры из памяти (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
-        
-        // Используем глубокое объединение для правильного слияния всех вложенных объектов
-        const mergedState = deepMerge(initialState, loadedState);
-        
-        // Обновляем timestamp последнего обновления
-        mergedState.lastUpdate = Date.now();
-        
-        return mergedState;
-      } catch (parseError) {
-        console.error('❌ Ошибка при разборе JSON данных из памяти:', parseError);
-      }
-    }
-    
-    console.log('❌ Сохранение не найдено ни в одном хранилище, начинаем новую игру');
+    console.log('❌ Не удалось загрузить сохранение игры');
     return null;
   } catch (error) {
     console.error('❌ Критическая ошибка при загрузке состояния игры:', error);
@@ -181,18 +106,22 @@ export async function clearGameState(): Promise<void> {
   try {
     console.log('🔄 Удаление всех сохранений игры...');
     
-    // Попытка удалить сохранение с сервера
-    // Примечание: для этого нужно реализовать API метод удаления
-    
-    // Удаляем из localStorage, если доступен
+    // Удаляем из localStorage, если доступен (для совместимости)
     if (isLocalStorageAvailable()) {
       localStorage.removeItem(GAME_STORAGE_KEY);
-      console.log('✅ Сохранение удалено из localStorage');
+      console.log('✅ Старое сохранение удалено из localStorage');
     }
     
     // Удаляем из памяти
     delete memoryStorage[GAME_STORAGE_KEY];
-    console.log('✅ Сохранение удалено из памяти');
+    console.log('✅ Старое сохранение удалено из памяти');
+    
+    // Очищаем новое локальное хранилище через gameDataService
+    import('@/api/gameDataService').then(module => {
+      if (typeof module.clearAllSavedData === 'function') {
+        module.clearAllSavedData();
+      }
+    });
     
     console.log('✅ Все сохранения игры успешно удалены');
   } catch (error) {
