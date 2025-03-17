@@ -7,6 +7,7 @@ import { saveGameState, loadGameState } from './utils/gameStorage';
 import { GameEventSystem } from './GameEventSystem';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from "@/hooks/use-toast";
+import { ensureGameEventBus } from './utils/eventBusUtils';
 
 export type { Resource, Building, Upgrade };
 
@@ -42,6 +43,11 @@ interface GameProviderProps {
 }
 
 export function GameProvider({ children }: GameProviderProps) {
+  // Создаем шину событий при инициализации провайдера
+  useEffect(() => {
+    ensureGameEventBus();
+  }, []);
+  
   // Загружаем сохраненное состояние при запуске игры
   const [loadedState, setLoadedState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -132,6 +138,10 @@ export function GameProvider({ children }: GameProviderProps) {
   useEffect(() => {
     const loadSavedGame = async () => {
       try {
+        setLoadingMessage("Инициализация игры...");
+        // Убедимся, что шина событий создана перед загрузкой
+        ensureGameEventBus();
+        
         setLoadingMessage("Проверка наличия сохранения...");
         console.log('🔄 Начинаем загрузку сохраненной игры...');
         
@@ -183,6 +193,10 @@ export function GameProvider({ children }: GameProviderProps) {
         clearTimeout(loadTimeoutId);
         
         console.log('✅ Загрузка завершена, состояние:', savedState ? 'найдено' : 'не найдено');
+        
+        if (savedState) {
+          console.log('👉 Загруженное состояние:', JSON.stringify(savedState).substring(0, 100) + '...');
+        }
         
         setLoadedState(savedState);
         

@@ -166,6 +166,7 @@ export async function loadGameState(): Promise<GameState | null> {
     
     if (loadedState) {
       console.log(`✅ Игра успешно загружена из ${stateSource} (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
+      console.log('👉 Загруженные данные:', JSON.stringify(loadedState).substring(0, 100) + '...');
       
       // Проверяем целостность загруженных данных
       if (!loadedState.resources || !loadedState.buildings || !loadedState.upgrades) {

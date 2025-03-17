@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +7,7 @@ import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
 import { useEffect } from "react";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
+import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { toast } from "@/hooks/use-toast";
 import "./index.css"; // Импортируем CSS стили
 
@@ -38,6 +38,9 @@ if (typeof window !== 'undefined') {
   window.__telegramNotificationShown = window.__telegramNotificationShown || false;
   window.__supabaseInitialized = window.__supabaseInitialized || false;
   window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || true;
+  
+  // Создаем шину событий при инициализации приложения
+  ensureGameEventBus();
 }
 
 const App = () => {

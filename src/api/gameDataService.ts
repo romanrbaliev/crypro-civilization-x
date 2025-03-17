@@ -222,7 +222,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     // Строго контролируем преобразование типов
     let gameDataJson: Json;
     try {
-      // Преобразуем в строку и обратно для гарантии совместимости
+      // Используем JSON.stringify и JSON.parse для преобразования в корректный тип Json
       const jsonString = JSON.stringify(gameState);
       gameDataJson = JSON.parse(jsonString);
     } catch (parseError) {
@@ -237,10 +237,12 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       updated_at: new Date().toISOString()
     };
     
+    console.log('👉 Данные для сохранения в Supabase:', saveData);
+    
     // Пытаемся обновить существующую запись с явным преобразованием типов
     const { error: upsertError } = await supabase
       .from(SAVES_TABLE)
-      .upsert(saveData as any, { onConflict: 'user_id' });
+      .upsert(saveData, { onConflict: 'user_id' });
     
     if (upsertError) {
       console.error('❌ Ошибка при сохранении в Supabase:', upsertError);
@@ -326,6 +328,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           }
         } else if (data && data.game_data) {
           console.log('✅ Игра загружена из Supabase, дата обновления:', data.updated_at);
+          console.log('👉 Данные из Supabase:', JSON.stringify(data.game_data).substring(0, 100) + '...');
           
           try {
             // Строгое преобразование типа с проверкой структуры
@@ -348,6 +351,16 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
                   "Игра успешно загружена из облачного хранилища.",
                   "success"
                 );
+                
+                // Добавляем поля lastUpdate и lastSaved, если их нет
+                if (!gameState.lastUpdate) {
+                  gameState.lastUpdate = Date.now();
+                }
+                if (!gameState.lastSaved) {
+                  gameState.lastSaved = Date.now();
+                }
+                
+                return gameState;
               } catch (localError) {
                 console.warn('⚠️ Не удалось обновить локальную копию:', localError);
               }
@@ -392,6 +405,15 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
                 "Игра загружена из локальной копии.",
                 "info"
               );
+              
+              // Добавляем поля lastUpdate и lastSaved, если их нет
+              if (!gameState.lastUpdate) {
+                gameState.lastUpdate = Date.now();
+              }
+              if (!gameState.lastSaved) {
+                gameState.lastSaved = Date.now();
+              }
+              
               return gameState;
             } else {
               console.error('❌ Проверка целостности данных из локальной копии не пройдена');
@@ -416,6 +438,15 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
               "Игра загружена из основного сохранения.",
               "info"
             );
+            
+            // Добавляем поля lastUpdate и lastSaved, если их нет
+            if (!mainSave.lastUpdate) {
+              mainSave.lastUpdate = Date.now();
+            }
+            if (!mainSave.lastSaved) {
+              mainSave.lastSaved = Date.now();
+            }
+            
             return mainSave;
           } else {
             console.error('❌ Проверка целостности данных из основного сохранения не пройдена');
