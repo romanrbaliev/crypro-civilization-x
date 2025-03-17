@@ -31,18 +31,32 @@ function deepMerge(target: any, source: any): any {
   return output;
 }
 
+// Флаг для отслеживания последнего сохранения (предотвращение частых сохранений)
+let lastSaveTime = 0;
+const SAVE_THROTTLE = 3000; // 3 секунды
+
 // Сохранение состояния игры
 export async function saveGameState(state: GameState): Promise<boolean> {
   try {
+    // Проверка дросселирования сохранений
+    const now = Date.now();
+    if (now - lastSaveTime < SAVE_THROTTLE) {
+      console.log(`⏱️ Сохранение пропущено (прошло ${now - lastSaveTime}мс из ${SAVE_THROTTLE}мс)`);
+      return true;
+    }
+    
+    // Обновляем timestamp последнего сохранения
+    lastSaveTime = now;
+    
     // Обновляем timestamp перед сохранением
     const stateToSave = {
       ...state,
-      lastSaved: Date.now()
+      lastSaved: now
     };
     
     console.log(`🔄 Сохранение игры (размер данных: ~${JSON.stringify(stateToSave).length} байт)`);
     
-    // Сохраняем через gameDataService (который теперь использует Supabase)
+    // Сохраняем через gameDataService (работает с Supabase или локально)
     const saved = await saveGameToServer(stateToSave);
     
     if (saved) {
@@ -63,7 +77,7 @@ export async function loadGameState(): Promise<GameState | null> {
   try {
     console.log('🔄 Начинаем загрузку сохраненной игры...');
     
-    // Загружаем через gameDataService (который теперь использует Supabase)
+    // Загружаем через gameDataService (работает с Supabase или локально)
     const loadedState = await loadGameFromServer();
     
     if (loadedState) {
@@ -91,7 +105,7 @@ export async function clearGameState(): Promise<void> {
   try {
     console.log('🔄 Удаление всех сохранений игры...');
     
-    // Очищаем новое хранилище через gameDataService (Supabase + локальное)
+    // Очищаем новое хранилище через gameDataService
     import('@/api/gameDataService').then(module => {
       if (typeof module.clearAllSavedData === 'function') {
         module.clearAllSavedData();

@@ -128,7 +128,8 @@ const App = () => {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме');
       
       // Показываем toast с информацией о стандартном режиме только один раз
-      if (!window.__telegramNotificationShown) {
+      // и не показываем в режиме разработки, чтобы не мешать разработчикам
+      if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
         window.__telegramNotificationShown = true;
         setTimeout(() => {
           toast({

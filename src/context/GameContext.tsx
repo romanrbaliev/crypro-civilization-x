@@ -22,8 +22,8 @@ export const GameContext = createContext<GameContextProps | undefined>(undefined
 // Экспорт хука useGame переехал в отдельный файл
 export { useGame } from './hooks/useGame';
 
-// Интервал автосохранения (увеличиваем до 5 секунд, чтобы меньше тостов)
-const SAVE_INTERVAL = 5 * 1000;
+// Интервал автосохранения (увеличиваем до 10 секунд, чтобы меньше тостов)
+const SAVE_INTERVAL = 10 * 1000;
 
 // Максимальное время ожидания загрузки (5 секунд)
 const LOAD_TIMEOUT = 5000;
@@ -31,6 +31,9 @@ const LOAD_TIMEOUT = 5000;
 // Предотвращение повторных уведомлений
 let loadMessageShown = false;
 let saveMessageShown = false;
+
+// Время последнего сохранения (для предотвращения частых сохранений)
+let lastSaveTime = 0;
 
 interface GameProviderProps {
   children: ReactNode;
@@ -168,33 +171,38 @@ export function GameProvider({ children }: GameProviderProps) {
     return () => clearInterval(intervalId);
   }, [state.gameStarted, isLoading]);
   
-  // Автосохранение - используем ref для предотвращения множественных сохранений
-  const lastSaveTimeRef = React.useRef(Date.now());
-  
+  // Автосохранение с ограничением частоты сохранений
   useEffect(() => {
     if (!state.gameStarted || isLoading) return;
     
     console.log('🔄 Настройка автосохранения игры');
     
-    // Немедленное сохранение при монтировании
-    const handleFirstSave = async () => {
+    // Функция сохранения с проверкой времени
+    const handleSave = async () => {
+      const now = Date.now();
+      
+      // Пропускаем сохранение, если прошло слишком мало времени с последнего
+      if (now - lastSaveTime < SAVE_INTERVAL) {
+        return;
+      }
+      
+      lastSaveTime = now;
       await saveGameState(state);
-      lastSaveTimeRef.current = Date.now();
     };
     
-    handleFirstSave();
+    // Начальное сохранение с задержкой
+    const initialSaveTimeout = setTimeout(() => {
+      handleSave();
+    }, 2000);
     
     // Регулярное сохранение
-    const intervalId = setInterval(async () => {
-      // Проверяем, прошло ли достаточно времени с последнего сохранения
-      if (Date.now() - lastSaveTimeRef.current >= SAVE_INTERVAL) {
-        await saveGameState(state);
-        lastSaveTimeRef.current = Date.now();
-      }
+    const intervalId = setInterval(() => {
+      handleSave();
     }, SAVE_INTERVAL);
     
     // Сохранение при размонтировании компонента
     return () => {
+      clearTimeout(initialSaveTimeout);
       clearInterval(intervalId);
       console.log('🔄 Сохранение при размонтировании');
       saveGameState(state);
