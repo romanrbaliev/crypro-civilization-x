@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import { type ToastActionElement, ToastProps } from "@/components/ui/toast"
 
@@ -18,6 +17,7 @@ type ToasterToast = ExtendedToastProps & {
   description?: React.ReactNode
   action?: ToastActionElement
   isDuplicate?: boolean // Добавляем флаг для проверки дубликатов
+  createdAt?: number // Добавляем свойство createdAt для отслеживания времени создания
 }
 
 const actionTypes = {
@@ -83,7 +83,7 @@ const isDuplicateToast = (state: State, toast: ToasterToast): boolean => {
       t.title === toast.title && 
       t.description === toast.description && 
       t.variant === toast.variant &&
-      Date.now() - (t.createdAt as number || 0) < 3000 // Проверяем, что тост был создан не более 3 секунд назад
+      Date.now() - (t.createdAt || 0) < 3000 // Проверяем, что тост был создан не более 3 секунд назад
   )
 }
 
