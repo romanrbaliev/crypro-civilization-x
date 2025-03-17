@@ -30,13 +30,21 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
     return Math.abs(num).toFixed(2);
   };
   
+  // Специальное форматирование для BTC
+  const formatValue = (resourceId: string, val: number): string => {
+    if (resourceId === 'btc') {
+      return val.toFixed(5);
+    }
+    return formatNumber(val);
+  };
+  
   return (
     <div className="w-full text-xs">
       <div className="flex justify-between items-center mb-0.5">
         <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{name}</div>
         <div className="text-gray-600 text-[10px] whitespace-nowrap">
-          {formatNumber(value)}
-          {max !== Infinity && ` / ${formatNumber(max)}`}
+          {formatValue(id, value)}
+          {max !== Infinity && ` / ${formatValue(id, max)}`}
         </div>
       </div>
       
@@ -53,7 +61,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       {perSecond !== 0 && (
         <div className="flex items-center justify-end">
           <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
-            {isNegativeRate ? "-" : "+"}{formatDecimal(Math.abs(perSecond))}/сек
+            {isNegativeRate ? "-" : "+"}{id === 'btc' ? perSecond.toFixed(5) : formatDecimal(Math.abs(perSecond))}/сек
           </div>
         </div>
       )}

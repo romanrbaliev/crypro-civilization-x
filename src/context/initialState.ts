@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counters, MiningParams } from './types';
 
 // Начальные здания
@@ -42,7 +41,7 @@ export const initialBuildings: { [key: string]: Building } = {
     name: "Автомайнер",
     description: "Автоматически добывает BTC, потребляя вычислительную мощность и электричество",
     cost: { usdt: 50 },
-    costMultiplier: 1.5, // Увеличен множитель стоимости
+    costMultiplier: 1.5,
     production: {},
     count: 0,
     unlocked: false,
@@ -107,7 +106,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
   energyEfficiency: {
     id: "energyEfficiency",
     name: "Энергоэффективные компоненты",
-    description: "Снижает потребление электричества при майнинге на 10%",
+    description: "Снижает потребление эл��ктричества при майнинге на 10%",
     cost: { knowledge: 120, usdt: 75 },
     effect: { energyEfficiencyBoost: 0.1 },
     unlocked: false,
@@ -171,7 +170,7 @@ export const initialResources: { [key: string]: Resource } = {
     value: 0,
     perSecond: 0,
     unlocked: false,
-    max: 10
+    max: 0.001
   },
   reputation: {
     id: "reputation",
@@ -190,16 +189,16 @@ export const initialCounters: Counters = {
   mining: 0
 };
 
-// Начальные параметры майнинга
+// Упрощенные параметры майнинга
 export const initialMiningParams: MiningParams = {
-  miningEfficiency: 0.0001,
+  miningEfficiency: 0.00005,
   networkDifficulty: 1.0,
   energyEfficiency: 0,
-  exchangeRate: 100000, // 100,000 USDT за 1 BTC
+  exchangeRate: 100000,
   exchangeCommission: 0.05,
   volatility: 0.2,
-  exchangePeriod: 3600, // 1 час игрового времени
-  baseConsumption: 0.5
+  exchangePeriod: 3600,
+  baseConsumption: 2
 };
 
 // Начальное состояние игры

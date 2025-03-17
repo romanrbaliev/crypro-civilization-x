@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { calculateProductionBoost } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -163,13 +162,17 @@ function calculateBtcMining(
       safeDispatchGameEvent("Открыт новый ресурс: Bitcoin (BTC)", "success");
     }
     
-    // Рассчитываем доступную вычислительную мощность
-    const availableComputingPower = state.resources.computingPower.value;
+    // Определяем ресурсы, необходимые для работы автомайнера
+    const requiredElectricity = state.buildings.autoMiner.count * state.miningParams.baseConsumption;
+    const requiredComputingPower = state.buildings.autoMiner.count * 50; // 50 вычислительной мощности на 1 уровень автомайнера
     
-    if (availableComputingPower > 0) {
+    // Проверяем, достаточно ли ресурсов
+    const hasEnoughElectricity = state.resources.electricity.value >= requiredElectricity;
+    const hasEnoughComputingPower = state.resources.computingPower.value >= requiredComputingPower;
+    
+    if (hasEnoughElectricity && hasEnoughComputingPower) {
       // Применяем бонусы эффективности майнинга от улучшений
       let effectiveMiningEfficiency = state.miningParams.miningEfficiency;
-      let energyEfficiency = state.miningParams.energyEfficiency;
       
       for (const upgradeId in state.upgrades) {
         const upgrade = state.upgrades[upgradeId];
@@ -177,19 +180,17 @@ function calculateBtcMining(
           if (upgrade.effect.miningEfficiencyBoost) {
             effectiveMiningEfficiency += state.miningParams.miningEfficiency * upgrade.effect.miningEfficiencyBoost;
           }
-          if (upgrade.effect.energyEfficiencyBoost) {
-            energyEfficiency += upgrade.effect.energyEfficiencyBoost;
-          }
         }
       }
       
-      // Рассчитываем производство BTC
-      btcProduction = (availableComputingPower * effectiveMiningEfficiency * 
-        state.miningParams.networkDifficulty) / 3600;
+      // Рассчитываем производство BTC (фиксированное значение на уровень)
+      btcProduction = state.buildings.autoMiner.count * effectiveMiningEfficiency;
       
-      // Рассчитываем потребление электричества автомайнером
-      additionalElectricityConsumption = 
-        state.miningParams.baseConsumption * availableComputingPower * (1 - energyEfficiency);
+      // Рассчитываем потребление электричества
+      additionalElectricityConsumption = requiredElectricity;
+    } else {
+      // Если ресурсов недостаточно, не производим BTC
+      btcProduction = 0;
     }
   }
   

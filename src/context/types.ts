@@ -1,4 +1,3 @@
-
 export interface Resource {
   id: string;
   name: string;
@@ -45,7 +44,7 @@ export interface Counters {
   [counterId: string]: number;
 }
 
-// Новые интерфейсы для механики майнинга
+// Упрощенные параметры для механики майнинга
 export interface MiningParams {
   miningEfficiency: number;
   networkDifficulty: number;
@@ -92,4 +91,4 @@ export type GameAction =
   | { type: "RESTART_COMPUTERS" }
   | { type: "APPLY_KNOWLEDGE" }
   | { type: "MINE_COMPUTING_POWER" }
-  | { type: "EXCHANGE_BTC" }; // Новый тип действия для обмена BTC на USDT
+  | { type: "EXCHANGE_BTC" };
