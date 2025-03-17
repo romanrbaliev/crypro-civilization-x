@@ -65,6 +65,41 @@ export function GameProvider({ children }: GameProviderProps) {
     return () => clearInterval(intervalId);
   }, [state.gameStarted, isLoading]);
   
+  // Настройка обработчиков для Telegram WebApp
+  useEffect(() => {
+    // Инициализация Telegram WebApp
+    if (window.Telegram && window.Telegram.WebApp) {
+      const tg = window.Telegram.WebApp;
+      
+      // Отправка события готовности
+      tg.ready();
+      
+      // Установка поведения при закрытии
+      tg.onEvent('viewportChanged', async () => {
+        await saveGameState(state);
+      });
+      
+      // Установка обработчика Back Button, если он доступен
+      if (tg.BackButton && typeof tg.BackButton.onClick === 'function') {
+        tg.BackButton.onClick(async () => {
+          await saveGameState(state);
+        });
+      }
+      
+      // Вызывается при закрытии приложения
+      const handleClose = async () => {
+        await saveGameState(state);
+      };
+      
+      // Настройка для закрытия главной кнопкой, если она доступна
+      if (tg.MainButton && typeof tg.MainButton.onClick === 'function') {
+        tg.MainButton.onClick(handleClose);
+      }
+      
+      console.log("Telegram WebApp инициализирован");
+    }
+  }, [state]);
+  
   // Автосохранение
   useEffect(() => {
     if (!state.gameStarted || isLoading) return;
@@ -110,15 +145,6 @@ export function GameProvider({ children }: GameProviderProps) {
     // Дополнительное сохранение для Telegram при закрытии приложения
     if (window.Telegram && window.Telegram.WebApp) {
       window.addEventListener('popstate', handleBeforeUnload);
-      
-      // Проверяем наличие BackButton и MainButton и добавляем обработчики если они есть
-      if (window.Telegram.WebApp.BackButton && typeof window.Telegram.WebApp.BackButton.onClick === 'function') {
-        window.Telegram.WebApp.BackButton.onClick(handleBeforeUnload);
-      }
-      
-      if (window.Telegram.WebApp.MainButton && typeof window.Telegram.WebApp.MainButton.onClick === 'function') {
-        window.Telegram.WebApp.MainButton.onClick(handleBeforeUnload);
-      }
     }
     
     return () => {

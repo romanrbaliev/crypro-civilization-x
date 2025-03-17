@@ -39,7 +39,7 @@ const saveItem = async (key: string, value: string): Promise<void> => {
         console.log('Данные сохранены в Telegram CloudStorage');
         return;
       } catch (telegramError) {
-        console.warn('Не удалось сохранить в Telegram CloudStorage:', telegramError);
+        console.error('Не удалось сохранить в Telegram CloudStorage:', telegramError);
       }
     }
     
@@ -67,12 +67,12 @@ const getItem = async (key: string): Promise<string | null> => {
     if (isTelegramCloudStorageAvailable()) {
       try {
         const telegramData = await window.Telegram.WebApp.CloudStorage.getItem(key);
-        if (telegramData !== null) {
+        if (telegramData !== null && telegramData !== '') {
           console.log('Данные получены из Telegram CloudStorage');
           return telegramData;
         }
       } catch (telegramError) {
-        console.warn('Не удалось получить данные из Telegram CloudStorage:', telegramError);
+        console.error('Не удалось получить данные из Telegram CloudStorage:', telegramError);
       }
     }
     
@@ -139,7 +139,7 @@ function deepMerge(target: any, source: any): any {
 export async function loadGameState(): Promise<GameState | null> {
   try {
     const serializedState = await getItem(GAME_STORAGE_KEY);
-    if (serializedState === null) {
+    if (serializedState === null || serializedState === '') {
       console.log('Сохранение не найдено, начинаем новую игру');
       return null;
     }
