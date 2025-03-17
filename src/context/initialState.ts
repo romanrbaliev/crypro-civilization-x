@@ -209,5 +209,6 @@ export const initialState: GameState = {
   eventMessages: {},
   counters: initialCounters,
   miningParams: initialMiningParams,
-  gameTime: 0 // Добавляем игровое время в секундах
+  gameTime: 0, // Добавляем игровое время в секундах
+  events: [] // Инициализируем пустой массив событий
 };

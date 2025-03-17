@@ -1,5 +1,5 @@
 
-import { GameState, GameAction } from './types';
+import { GameState, GameAction, GameEvent } from './types';
 import { initialState } from './initialState';
 
 // Импортируем все обработчики редьюсеров
@@ -25,6 +25,28 @@ import {
   processRestartComputers
 } from './reducers/gameStateReducer';
 import { processExchangeBtc } from './reducers/cryptoReducer';
+
+// Максимальное количество хранимых событий
+const MAX_EVENTS = 100;
+
+// Вспомогательная функция для добавления игрового события
+export const addGameEvent = (state: GameState, message: string, type: GameEvent["type"] = "info"): GameState => {
+  const newEvent: GameEvent = {
+    id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: Date.now(),
+    message,
+    type
+  };
+  
+  // Создаем новый массив событий, добавляя новое событие в начало
+  // и ограничивая общее количество событий до MAX_EVENTS
+  const events = [newEvent, ...state.events].slice(0, MAX_EVENTS);
+  
+  return {
+    ...state,
+    events
+  };
+};
 
 // Главный редьюсер игры - координирует все остальные редьюсеры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
@@ -98,6 +120,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     // Обмен BTC на USDT
     case "EXCHANGE_BTC":
       return processExchangeBtc(state, action.payload);
+    
+    // Добавление игрового события
+    case "ADD_GAME_EVENT":
+      return addGameEvent(state, action.payload.message, action.payload.eventType);
     
     default:
       return state;
