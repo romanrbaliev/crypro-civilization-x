@@ -111,11 +111,12 @@ export function GameProvider({ children }: GameProviderProps) {
     if (window.Telegram && window.Telegram.WebApp) {
       window.addEventListener('popstate', handleBeforeUnload);
       
-      if (window.Telegram.WebApp.BackButton) {
+      // Проверяем наличие BackButton и MainButton и добавляем обработчики если они есть
+      if (window.Telegram.WebApp.BackButton && typeof window.Telegram.WebApp.BackButton.onClick === 'function') {
         window.Telegram.WebApp.BackButton.onClick(handleBeforeUnload);
       }
       
-      if (window.Telegram.WebApp.MainButton) {
+      if (window.Telegram.WebApp.MainButton && typeof window.Telegram.WebApp.MainButton.onClick === 'function') {
         window.Telegram.WebApp.MainButton.onClick(handleBeforeUnload);
       }
     }
@@ -140,25 +141,4 @@ export function GameProvider({ children }: GameProviderProps) {
       {children}
     </GameContext.Provider>
   );
-}
-
-// Добавляем типы для WebApp Telegram API
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        CloudStorage?: {
-          getItem: (key: string) => Promise<string | null>;
-          setItem: (key: string, value: string) => Promise<void>;
-          removeItem: (key: string) => Promise<void>;
-        };
-        BackButton?: {
-          onClick: (callback: () => void) => void;
-        };
-        MainButton?: {
-          onClick: (callback: () => void) => void;
-        };
-      };
-    };
-  }
 }
