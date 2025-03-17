@@ -7,7 +7,7 @@ export interface GameEventDetail {
 export type GameEventHandler = (event: CustomEvent<GameEventDetail>) => void;
 
 // Создание системы событий
-export function createGameEventBus(): HTMLDivElement {
+export function createGameEventBus(): EventTarget {
   const eventBus = document.createElement('div');
   
   // Подключаем к window для глобального доступа
@@ -18,7 +18,7 @@ export function createGameEventBus(): HTMLDivElement {
 
 // Отправка события через шину событий
 export function dispatchGameEvent(
-  eventBus: HTMLDivElement,
+  eventBus: EventTarget,
   message: string,
   type: GameEventDetail["type"] = "info"
 ): void {
@@ -30,7 +30,7 @@ export function dispatchGameEvent(
 
 // Добавление обработчика события на шину
 export function addGameEventListener(
-  eventBus: HTMLDivElement,
+  eventBus: EventTarget,
   handler: GameEventHandler
 ): void {
   eventBus.addEventListener('game-event', handler as EventListener);
@@ -38,15 +38,11 @@ export function addGameEventListener(
 
 // Удаление обработчика события с шины
 export function removeGameEventListener(
-  eventBus: HTMLDivElement,
+  eventBus: EventTarget,
   handler: GameEventHandler
 ): void {
   eventBus.removeEventListener('game-event', handler as EventListener);
 }
 
-// Определение глобального типа для window
-declare global {
-  interface Window {
-    gameEventBus?: HTMLDivElement;
-  }
-}
+// Не объявляем глобальный тип для window здесь,
+// так как он уже объявлен в vite-env.d.ts
