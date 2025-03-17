@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { hasEnoughResources, meetsRequirements, updateResourceMaxValues } from './utils/resourceUtils';
@@ -25,7 +26,16 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Покупка здания
     case "PURCHASE_BUILDING": {
-      return processPurchaseBuilding(state, action.payload);
+      const newState = processPurchaseBuilding(state, action.payload);
+      
+      // Логирование для отладки
+      if (action.payload.buildingId === 'practice') {
+        const oldCount = state.buildings.practice.count;
+        const newCount = newState.buildings.practice.count;
+        console.log(`Purchase building 'practice': count changed from ${oldCount} to ${newCount}`);
+      }
+      
+      return newState;
     }
     
     // Покупка улучшения
@@ -139,16 +149,23 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         };
       }
       
-      // Проверяем согласованность между unlocks и buildings для practice
+      // Проверяем и исправляем несогласованности в загруженных данных
       const loadedState = { ...action.payload };
       
-      if (loadedState.unlocks.practice && loadedState.buildings.practice) {
-        // Убедимся, что здание практики разблокировано, если функция разблокирована
-        loadedState.buildings.practice = {
-          ...loadedState.buildings.practice,
-          unlocked: true
-        };
-        console.log('✅ Синхронизировали разблокировку здания практики с функцией практики');
+      // КРИТИЧЕСКИЙ ФИХ: синхронизация разблокировки практики
+      if (loadedState.unlocks.practice) {
+        console.log('Обнаружена разблокированная функция practice, проверяем здание...');
+        
+        if (loadedState.buildings.practice) {
+          // Обязательно разблокируем здание practice если функция разблокирована
+          loadedState.buildings.practice = {
+            ...loadedState.buildings.practice,
+            unlocked: true
+          };
+          console.log('✅ Синхронизировали разблокировку здания практики с функцией практики');
+        } else {
+          console.warn('⚠️ Здание practice не найдено в загруженном состоянии!');
+        }
       }
       
       // Обновляем timestamp для правильной работы логики обновления

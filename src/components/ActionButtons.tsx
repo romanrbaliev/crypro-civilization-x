@@ -23,10 +23,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   const { state, dispatch } = useGame();
   const [practiceMessageSent, setPracticeMessageSent] = useState(false);
   
-  // Добавляем лог для отслеживания разблокировки
+  // Добавляем отладочную информацию при каждом рендеринге компонента
   useEffect(() => {
-    console.log("ActionButtons: practice unlocked =", state.unlocks.practice, "practice building unlocked =", 
-      state.buildings.practice ? state.buildings.practice.unlocked : false);
+    console.log("ActionButtons: practice unlocked =", state.unlocks.practice, 
+               "practice building unlocked =", state.buildings.practice ? state.buildings.practice.unlocked : false,
+               "practice building count =", state.buildings.practice ? state.buildings.practice.count : 0);
   }, [state.unlocks.practice, state.buildings.practice]);
   
   useEffect(() => {
@@ -55,6 +56,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   };
   
   const handlePractice = () => {
+    // Обновлённая логика для кнопки Практиковаться
     // Проверяем наличие здания practice
     if (!state.buildings.practice) {
       console.error("Ошибка: здание practice не найдено в state.buildings");
@@ -62,17 +64,20 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       return;
     }
     
-    // Проверяем, разблокировано ли здание practice
-    if (!state.buildings.practice.unlocked) {
-      console.log("Здание practice заблокировано, разблокируем его");
+    // Если здание не разблокировано, но функция разблокирована, 
+    // сначала разблокируем здание
+    if (!state.buildings.practice.unlocked && state.unlocks.practice) {
+      console.log("Разблокируем здание practice, т.к. функция уже разблокирована");
       dispatch({ 
         type: "SET_BUILDING_UNLOCKED", 
         payload: { buildingId: "practice", unlocked: true } 
       });
-      return; // Выходим, чтобы дать время на обновление состояния
+      // Из-за асинхронного характера обновления состояний в React,
+      // выходим из функции и даём время на обновление состояния
+      return;
     }
     
-    // Расчет текущей стоимости
+    // Расчет текущей стоимости 
     const practiceBuilding = state.buildings.practice;
     const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier, practiceBuilding.count));
     
@@ -85,11 +90,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       return;
     }
     
-    // Покупка здания
+    // Покупка здания через диспетчер
     dispatch({ 
       type: "PURCHASE_BUILDING", 
       payload: { buildingId: "practice" } 
     });
+    
+    console.log(`Отправлен запрос на покупку practice. Текущий count: ${practiceBuilding.count}`);
     
     // Сообщение пользователю
     onAddEvent(`Вы повысили уровень практики! Скорость накопления знаний увеличена.`, "success");
@@ -108,7 +115,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
   };
   
-  // Исправление: проверка наличия здания practice и безопасный расчет стоимости
+  // Проверка наличия здания practice и безопасный расчет стоимости
   const practiceBuildingExists = Boolean(state.buildings.practice);
   const practiceIsUnlocked = practiceBuildingExists && state.buildings.practice.unlocked;
   

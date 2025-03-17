@@ -78,17 +78,20 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   // Разблокируем практику после 2-го применения знаний
   if (newCounters.applyKnowledge >= 2 && !state.unlocks.practice) {
+    console.log("Разблокировка практики после 2-го применения знаний");
     newUnlocks.practice = true;
     
-    // Также разблокируем здание практики - ВАЖНЫЙ ФИХ: явно устанавливаем unlocked в true
-    if (state.buildings.practice) {
+    // Важно: явно разблокируем здание practice
+    if (newBuildings.practice) {
+      console.log("Разблокировка здания practice");
       newBuildings.practice = {
-        ...state.buildings.practice,
+        ...newBuildings.practice,
         unlocked: true
       };
+    } else {
+      console.warn("Здание practice не найдено в state.buildings");
     }
     
-    console.log("Разблокирована практика после 2-го применения знаний");
     safeDispatchGameEvent("Разблокирована возможность практиковаться", "info");
   }
   
