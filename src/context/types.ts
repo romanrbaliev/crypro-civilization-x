@@ -1,3 +1,4 @@
+
 export interface Resource {
   id: string;
   name: string;
@@ -63,6 +64,7 @@ export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount?: number } }
   | { type: "UPDATE_RESOURCES" }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
+  | { type: "PRACTICE_PURCHASE" } // Добавлено новое действие для покупки практики
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
   | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }

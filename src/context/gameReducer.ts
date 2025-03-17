@@ -6,7 +6,7 @@ import { processIncrementResource } from './reducers/resourceReducer';
 import { processPurchaseBuilding } from './reducers/buildingReducer';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
-import { processApplyKnowledge, processMiningPower } from './reducers/actionsReducer';
+import { processApplyKnowledge, processMiningPower, processPracticePurchase } from './reducers/actionsReducer';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
 
 // Главный редьюсер игры
@@ -36,6 +36,12 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       }
       
       return newState;
+    }
+    
+    // Покупка практики (специальный обработчик)
+    case "PRACTICE_PURCHASE": {
+      console.log("PRACTICE_PURCHASE обрабатывается");
+      return processPracticePurchase(state);
     }
     
     // Покупка улучшения
@@ -153,10 +159,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       const loadedState = { ...action.payload };
       
       // КРИТИЧЕСКИЙ ФИХ: синхронизация разблокировки практики
-      if (loadedState.unlocks.practice) {
+      if (loadedState.unlocks && loadedState.unlocks.practice) {
         console.log('Обнаружена разблокированная функция practice, проверяем здание...');
         
-        if (loadedState.buildings.practice) {
+        if (loadedState.buildings && loadedState.buildings.practice) {
           // Обязательно разблокируем здание practice если функция разблокирована
           loadedState.buildings.practice = {
             ...loadedState.buildings.practice,

@@ -56,7 +56,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   };
   
   const handlePractice = () => {
-    // Обновлённая логика для кнопки Практиковаться
+    // Упрощенная и прямолинейная логика для кнопки Практиковаться
     // Проверяем наличие здания practice
     if (!state.buildings.practice) {
       console.error("Ошибка: здание practice не найдено в state.buildings");
@@ -64,16 +64,19 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       return;
     }
     
-    // Если здание не разблокировано, но функция разблокирована, 
-    // сначала разблокируем здание
-    if (!state.buildings.practice.unlocked && state.unlocks.practice) {
+    // Обязательно проверяем, что функция разблокирована
+    if (!state.unlocks.practice) {
+      console.error("Функция practice не разблокирована!");
+      return;
+    }
+    
+    // Проверяем, разблокировано ли здание
+    if (!state.buildings.practice.unlocked) {
       console.log("Разблокируем здание practice, т.к. функция уже разблокирована");
       dispatch({ 
         type: "SET_BUILDING_UNLOCKED", 
         payload: { buildingId: "practice", unlocked: true } 
       });
-      // Из-за асинхронного характера обновления состояний в React,
-      // выходим из функции и даём время на обновление состояния
       return;
     }
     
@@ -82,7 +85,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier, practiceBuilding.count));
     
     console.log(`Нажата кнопка Практиковаться. USDT: ${state.resources.usdt.value}, Требуется: ${currentCost}`);
-    console.log(`Текущее состояние practice: count=${practiceBuilding.count}, множитель=${practiceBuilding.costMultiplier}`);
     
     // Проверка достаточности ресурсов
     if (state.resources.usdt.value < currentCost) {
@@ -90,16 +92,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
       return;
     }
     
-    // Покупка здания через диспетчер
-    dispatch({ 
-      type: "PURCHASE_BUILDING", 
-      payload: { buildingId: "practice" } 
-    });
-    
-    console.log(`Отправлен запрос на покупку practice. Текущий count: ${practiceBuilding.count}`);
-    
-    // Сообщение пользователю
-    onAddEvent(`Вы повысили уровень практики! Скорость накопления знаний увеличена.`, "success");
+    // ВАЖНОЕ ИЗМЕНЕНИЕ: Используем специальное действие для покупки практики
+    dispatch({ type: "PRACTICE_PURCHASE" });
+    console.log("Отправлен запрос PRACTICE_PURCHASE");
   };
   
   const handleMineClick = () => {
