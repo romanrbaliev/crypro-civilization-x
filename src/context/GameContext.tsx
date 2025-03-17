@@ -28,11 +28,14 @@ interface GameProviderProps {
 }
 
 export function GameProvider({ children }: GameProviderProps) {
-  // Загружаем сохраненное состояние
+  // Загружаем сохраненное состояние при запуске игры
   const loadedState = loadGameState();
   
   // Инициализируем состояние и редьюсер
-  const [state, dispatch] = useReducer(gameReducer, loadedState || initialState);
+  const [state, dispatch] = useReducer(
+    gameReducer, 
+    loadedState || { ...initialState, gameStarted: true, lastUpdate: Date.now() }
+  );
   
   // Обновление ресурсов каждую секунду
   useEffect(() => {
@@ -53,7 +56,17 @@ export function GameProvider({ children }: GameProviderProps) {
       saveGameState(state);
     }, SAVE_INTERVAL);
     
-    return () => clearInterval(intervalId);
+    // Также сохраняем игру при закрытии/перезагрузке страницы
+    const handleBeforeUnload = () => {
+      saveGameState(state);
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [state]);
   
   return (

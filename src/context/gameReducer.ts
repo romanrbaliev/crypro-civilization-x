@@ -110,6 +110,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Загрузка сохраненной игры
     case "LOAD_GAME": {
+      // Важно сохранить все свойства из загруженного состояния
       return {
         ...action.payload,
         lastUpdate: Date.now()

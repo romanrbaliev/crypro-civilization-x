@@ -23,11 +23,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       ? "bg-yellow-500" 
       : "bg-blue-500";
   
-  // Функция для форматирования чисел с десятичными знаками
+  // Форматирование чисел с десятичными знаками
   const formatDecimal = (num: number): string => {
     if (num === Infinity) return "∞";
-    if (num % 1 === 0) return Math.floor(num).toString();
-    return num.toFixed(2);
+    if (Math.abs(num) % 1 === 0) return Math.floor(Math.abs(num)).toString();
+    return Math.abs(num).toFixed(2);
   };
   
   return (

@@ -1,3 +1,4 @@
+
 // Форматирование чисел для отображения
 export const formatNumber = (num: number): string => {
   if (num === Infinity) return "∞";
@@ -10,6 +11,9 @@ export const formatNumber = (num: number): string => {
     return Math.floor(num / 1e6) + "M";
   } else if (num >= 1e3) {
     return Math.floor(num / 1e3) + "K";
+  } else if (num % 1 !== 0) {
+    // Дополнительно проверяем, есть ли десятичная часть
+    return num.toFixed(2);
   } else {
     return Math.floor(num).toString();
   }

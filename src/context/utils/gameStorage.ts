@@ -16,6 +16,31 @@ export function saveGameState(state: GameState): void {
   }
 }
 
+// Рекурсивное объединение объектов для корректного сохранения вложенных структур
+function deepMerge(target: any, source: any): any {
+  const output = { ...target };
+  
+  for (const key in source) {
+    if (source.hasOwnProperty(key)) {
+      if (
+        typeof source[key] === 'object' && 
+        source[key] !== null &&
+        !Array.isArray(source[key])
+      ) {
+        if (key in target && typeof target[key] === 'object' && target[key] !== null) {
+          output[key] = deepMerge(target[key], source[key]);
+        } else {
+          output[key] = { ...source[key] };
+        }
+      } else {
+        output[key] = source[key];
+      }
+    }
+  }
+  
+  return output;
+}
+
 // Загрузка состояния игры из localStorage
 export function loadGameState(): GameState | null {
   try {
@@ -25,34 +50,12 @@ export function loadGameState(): GameState | null {
       return null;
     }
     
-    const state = JSON.parse(serializedState) as GameState;
+    const loadedState = JSON.parse(serializedState) as GameState;
     
-    // Объединяем загруженное состояние с начальным, чтобы учесть новые поля
-    const mergedState = {
-      ...initialState,
-      ...state,
-      resources: {
-        ...initialState.resources,
-        ...state.resources
-      },
-      buildings: {
-        ...initialState.buildings,
-        ...state.buildings
-      },
-      upgrades: {
-        ...initialState.upgrades,
-        ...state.upgrades
-      },
-      unlocks: {
-        ...initialState.unlocks,
-        ...state.unlocks
-      },
-      counters: {
-        ...initialState.counters,
-        ...state.counters
-      }
-    };
+    // Используем глубокое объединение для правильного слияния всех вложенных объектов
+    const mergedState = deepMerge(initialState, loadedState);
     
+    // Обновляем timestamp последнего обновления
     mergedState.lastUpdate = Date.now();
     
     console.log('Игра успешно загружена:', new Date().toLocaleTimeString());
