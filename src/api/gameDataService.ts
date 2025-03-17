@@ -1,12 +1,11 @@
-
 // API сервис для сохранения и загрузки игрового прогресса
 
 import { GameState } from '@/context/types';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from "@/hooks/use-toast";
 
-// Базовый URL для нашего API
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.cryptocivilization.ru';
+// Базовый URL для нашего API - используем переменную окружения с запасным вариантом
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // Адреса API эндпоинтов
 const ENDPOINTS = {
@@ -187,7 +186,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     if (!result.gameData) {
       console.log('ℹ️ Сервер вернул пустые данные игры');
       
-      // Если сервер вернул пустые данные, но есть локальная копия, используем её
+      // Если сервер вернул пустые данные, но есть локальная копия, используе�� её
       if (localBackup && localBackup.gameData) {
         console.log('✅ Игра загружена из локальной резервной копии');
         
