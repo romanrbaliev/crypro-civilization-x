@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useGame } from "@/context/hooks/useGame";
 
 export interface UseActionButtonsProps {
@@ -96,6 +96,23 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     dispatch({ type: "MINE_COMPUTING_POWER" });
   };
 
+  const handleExchangeBtc = () => {
+    if (state.resources.btc.value <= 0) {
+      onAddEvent("У вас нет BTC для обмена", "error");
+      return;
+    }
+    
+    dispatch({ type: "EXCHANGE_BTC" });
+  };
+
+  // Расчет текущего курса обмена BTC на USDT
+  const currentExchangeRate = useMemo(() => {
+    if (!state.miningParams) return 100000;
+    
+    return state.miningParams.exchangeRate * 
+      (1 + state.miningParams.volatility * Math.sin(state.gameTime / state.miningParams.exchangePeriod));
+  }, [state.miningParams, state.gameTime]);
+
   // Вспомогательная функция для проверки доступности ресурсов
   const isButtonEnabled = (requiredResource: string, amount: number): boolean => {
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
@@ -116,11 +133,13 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     handleApplyKnowledge,
     handlePractice,
     handleMineClick,
+    handleExchangeBtc,
     isButtonEnabled,
     practiceBuildingExists,
     practiceIsUnlocked,
     practiceCurrentCost,
     practiceCurrentLevel,
-    hasAutoMiner
+    hasAutoMiner,
+    currentExchangeRate
   };
 }

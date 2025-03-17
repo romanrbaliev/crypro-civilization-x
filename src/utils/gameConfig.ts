@@ -1,4 +1,3 @@
-
 // Конфигурация игровых элементов
 
 // Ресурсы
@@ -20,6 +19,15 @@ export const resources = {
     baseMax: 50,
     description: "Стейблкоин, привязанный к доллару США",
     phase: 1
+  },
+  btc: {
+    id: "btc",
+    name: "Bitcoin",
+    icon: "₿",
+    baseValue: 0,
+    baseMax: 10,
+    description: "Основная криптовалюта, добываемая майнингом",
+    phase: 2
   },
   electricity: {
     id: "electricity",

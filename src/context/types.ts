@@ -45,6 +45,18 @@ export interface Counters {
   [counterId: string]: number;
 }
 
+// Новые интерфейсы для механики майнинга
+export interface MiningParams {
+  miningEfficiency: number;
+  networkDifficulty: number;
+  energyEfficiency: number;
+  exchangeRate: number;
+  exchangeCommission: number;
+  volatility: number;
+  exchangePeriod: number;
+  baseConsumption: number;
+}
+
 export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };
@@ -57,6 +69,9 @@ export interface GameState {
   phase: number;
   eventMessages: { [key: string]: any };
   counters: Counters;
+  // Новые параметры для механики майнинга
+  miningParams: MiningParams;
+  gameTime: number; // Игровое время в секундах для расчета волатильности
 }
 
 // Типы действий для редьюсера игры
@@ -76,4 +91,5 @@ export type GameAction =
   | { type: "RESET_GAME" }
   | { type: "RESTART_COMPUTERS" }
   | { type: "APPLY_KNOWLEDGE" }
-  | { type: "MINE_COMPUTING_POWER" };
+  | { type: "MINE_COMPUTING_POWER" }
+  | { type: "EXCHANGE_BTC" }; // Новый тип действия для обмена BTC на USDT

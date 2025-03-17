@@ -1,16 +1,19 @@
-
 import { GameState } from '../types';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
-// Обработка майнинга вычислительной мощности
+/**
+ * Обработчик майнинга вычислительной мощности в USDT
+ * @param state Текущее состояние игры
+ * @returns Новое состояние игры после майнинга
+ */
 export const processMiningPower = (state: GameState): GameState => {
-  // Проверяем, достаточно ли вычислительной мощности
+  // Проверка наличия достаточной вычислительной мощности
   if (state.resources.computingPower.value < 50) {
     return state;
   }
-  
-  // Вычитаем вычислительную мощность и добавляем USDT
+
+  // Обновление ресурсов
   const newResources = {
     ...state.resources,
     computingPower: {
@@ -19,26 +22,77 @@ export const processMiningPower = (state: GameState): GameState => {
     },
     usdt: {
       ...state.resources.usdt,
-      value: state.resources.usdt.value + 5, // 5 USDT
-      unlocked: true 
+      value: state.resources.usdt.value + 5
     }
   };
-  
+
   // Увеличиваем счетчик майнинга
   const newCounters = {
     ...state.counters,
     mining: state.counters.mining + 1
   };
-  
-  // Разблокируем кнопку майнинга при первом майнинге
-  if (state.counters.mining === 0) {
-    safeDispatchGameEvent("Вы успешно добыли 5 USDT! Теперь вы можете майнить регулярно.", "success");
-  }
-  
-  return {
+
+  // Проверка условий разблокировки автомайнера
+  let newState = {
     ...state,
     resources: newResources,
     counters: newCounters
+  };
+
+  // Если счетчик достиг 3, разблокируем автомайнер
+  if (newCounters.mining >= 3 && !state.buildings.autoMiner.unlocked && state.buildings.autoMiner) {
+    newState.buildings = {
+      ...newState.buildings,
+      autoMiner: {
+        ...newState.buildings.autoMiner,
+        unlocked: true
+      }
+    };
+    
+    safeDispatchGameEvent("Открыт автомайнер для автоматического майнинга", "info");
+  }
+
+  return newState;
+};
+
+/**
+ * Обработчик действия обмена BTC на USDT
+ * @param state Текущее состояние игры
+ * @returns Новое состояние игры после обмена
+ */
+export const processExchangeBtc = (state: GameState): GameState => {
+  // Проверка наличия BTC для обмена
+  if (state.resources.btc.value <= 0) {
+    return state;
+  }
+
+  // Рассчитываем текущий курс обмена
+  const currentExchangeRate = state.miningParams.exchangeRate * 
+    (1 + state.miningParams.volatility * Math.sin(state.gameTime / state.miningParams.exchangePeriod));
+  
+  // Рассчитываем количество получаемых USDT с учетом комиссии
+  const btcAmount = state.resources.btc.value;
+  const usdtAmount = btcAmount * currentExchangeRate * (1 - state.miningParams.exchangeCommission);
+  
+  // Обновление ресурсов
+  const newResources = {
+    ...state.resources,
+    btc: {
+      ...state.resources.btc,
+      value: 0
+    },
+    usdt: {
+      ...state.resources.usdt,
+      value: state.resources.usdt.value + usdtAmount
+    }
+  };
+
+  // Отправляем сообщение об обмене
+  safeDispatchGameEvent(`Обменяно ${btcAmount.toFixed(8)} BTC на ${usdtAmount.toFixed(2)} USDT (курс: ${currentExchangeRate.toLocaleString()})`, "success");
+
+  return {
+    ...state,
+    resources: newResources
   };
 };
 

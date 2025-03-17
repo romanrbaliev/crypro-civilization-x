@@ -1,4 +1,5 @@
-import { Resource, Building, Upgrade, GameState, Counters } from './types';
+
+import { Resource, Building, Upgrade, GameState, Counters, MiningParams } from './types';
 
 // Начальные здания
 export const initialBuildings: { [key: string]: Building } = {
@@ -39,9 +40,9 @@ export const initialBuildings: { [key: string]: Building } = {
   autoMiner: {
     id: "autoMiner",
     name: "Автомайнер",
-    description: "Автоматически конвертирует вычислительную мощность в USDT",
+    description: "Автоматически добывает BTC, потребляя вычислительную мощность и электричество",
     cost: { usdt: 50 },
-    costMultiplier: 1.2,
+    costMultiplier: 1.5, // Увеличен множитель стоимости
     production: {},
     count: 0,
     unlocked: false,
@@ -92,6 +93,36 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     unlocked: false,
     purchased: false,
     requirements: { cryptoWalletCount: 1 }
+  },
+  algorithmOptimization: {
+    id: "algorithmOptimization",
+    name: "Оптимизация алгоритмов",
+    description: "Увеличивает эффективность майнинга на 15%",
+    cost: { knowledge: 100, usdt: 50 },
+    effect: { miningEfficiencyBoost: 0.15 },
+    unlocked: false,
+    purchased: false,
+    requirements: { autoMinerCount: 1 }
+  },
+  energyEfficiency: {
+    id: "energyEfficiency",
+    name: "Энергоэффективные компоненты",
+    description: "Снижает потребление электричества при майнинге на 10%",
+    cost: { knowledge: 120, usdt: 75 },
+    effect: { energyEfficiencyBoost: 0.1 },
+    unlocked: false,
+    purchased: false,
+    requirements: { autoMinerCount: 1 }
+  },
+  coolingSystem: {
+    id: "coolingSystem",
+    name: "Система охлаждения",
+    description: "Увеличивает вычислительную мощность на 20% без перегрева",
+    cost: { knowledge: 150, usdt: 100 },
+    effect: { computingPowerBoost: 0.2 },
+    unlocked: false,
+    purchased: false,
+    requirements: { algorithmOptimization: 1 }
   }
 };
 
@@ -133,6 +164,15 @@ export const initialResources: { [key: string]: Resource } = {
     unlocked: false,
     max: Infinity
   },
+  btc: {
+    id: "btc",
+    name: "Bitcoin",
+    icon: "₿",
+    value: 0,
+    perSecond: 0,
+    unlocked: false,
+    max: 10
+  },
   reputation: {
     id: "reputation",
     name: "Репутация",
@@ -150,6 +190,18 @@ export const initialCounters: Counters = {
   mining: 0
 };
 
+// Начальные параметры майнинга
+export const initialMiningParams: MiningParams = {
+  miningEfficiency: 0.0001,
+  networkDifficulty: 1.0,
+  energyEfficiency: 0,
+  exchangeRate: 100000, // 100,000 USDT за 1 BTC
+  exchangeCommission: 0.05,
+  volatility: 0.2,
+  exchangePeriod: 3600, // 1 час игрового времени
+  baseConsumption: 0.5
+};
+
 // Начальное состояние игры
 export const initialState: GameState = {
   resources: initialResources,
@@ -165,5 +217,7 @@ export const initialState: GameState = {
   prestigePoints: 0,
   phase: 1,
   eventMessages: {},
-  counters: initialCounters
+  counters: initialCounters,
+  miningParams: initialMiningParams,
+  gameTime: 0
 };

@@ -9,7 +9,8 @@ import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { 
   processApplyKnowledge, 
-  processMiningPower, 
+  processMiningPower,
+  processExchangeBtc,
   processPracticePurchase 
 } from './reducers/actionsReducer';
 import {
@@ -93,6 +94,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     // Применение знаний
     case "APPLY_KNOWLEDGE": 
       return processApplyKnowledge(state);
+      
+    // Обмен BTC на USDT
+    case "EXCHANGE_BTC": 
+      return processExchangeBtc(state);
     
     default:
       return state;

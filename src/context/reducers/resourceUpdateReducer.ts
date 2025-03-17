@@ -12,6 +12,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
   const currentTime = Date.now();
   const deltaTime = (currentTime - state.lastUpdate) / 1000; // в секундах
   
+  // Увеличиваем игровое время
+  const newGameTime = state.gameTime + deltaTime;
+  
   // Копируем текущие ресурсы и сообщения
   let newResources = { ...state.resources };
   let newEventMessages = { ...state.eventMessages };
@@ -28,23 +31,35 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Обновляем сообщения после расчета электричества
   newEventMessages = newMessagesState;
   
+  // Рассчитываем добычу BTC и обновляем ресурсы
+  const { newResourcesState, btcProduction, updatedElectricityConsumption } = 
+    calculateBtcMining(state, newResources, electricityConsumption, electricityShortage);
+
+  // Используем обновленные ресурсы и потребление электричества
+  newResources = newResourcesState;
+  
   // Обновляем ресурсы с учетом прошедшего времени
   newResources = updateResourceValues(
     state, 
     newResources, 
     deltaTime, 
     electricityProduction, 
-    electricityConsumption, 
+    updatedElectricityConsumption, 
     knowledgeBoost, 
     electricityShortage,
-    currentTime
+    currentTime,
+    btcProduction
   );
   
+  // Рассчитываем текущий курс обмена BTC
+  const currentExchangeRate = calculateExchangeRate(state.miningParams, newGameTime);
+
   return {
     ...state,
     resources: newResources,
     lastUpdate: currentTime,
-    eventMessages: newEventMessages
+    eventMessages: newEventMessages,
+    gameTime: newGameTime
   };
 };
 
@@ -82,7 +97,7 @@ function calculateElectricityAndKnowledge(
     }
   }
   
-  // Рассчитываем потребление электричества домашними компьютерами
+  // Рассчитываем базовое потребление электричества домашними компьютерами
   if (state.buildings.homeComputer.count > 0) {
     electricityConsumption = state.buildings.homeComputer.count * 0.5; // 0.5 эл/сек на компьютер
   }
@@ -120,6 +135,80 @@ function calculateElectricityAndKnowledge(
 }
 
 /**
+ * Расчет добычи BTC и дополнительного потребления электричества автомайнером
+ */
+function calculateBtcMining(
+  state: GameState,
+  resources: { [key: string]: any },
+  baseElectricityConsumption: number,
+  electricityShortage: boolean
+): {
+  newResourcesState: { [key: string]: any },
+  btcProduction: number,
+  updatedElectricityConsumption: number
+} {
+  // Копируем ресурсы
+  let newResources = { ...resources };
+  let btcProduction = 0;
+  let additionalElectricityConsumption = 0;
+  
+  // Проверяем, есть ли активные автомайнеры
+  if (state.buildings.autoMiner.count > 0 && !electricityShortage) {
+    // Разблокируем ресурс BTC, если это первый запуск автомайнера
+    if (!state.resources.btc.unlocked) {
+      newResources.btc = {
+        ...newResources.btc,
+        unlocked: true
+      };
+      safeDispatchGameEvent("Открыт новый ресурс: Bitcoin (BTC)", "success");
+    }
+    
+    // Рассчитываем доступную вычислительную мощность
+    const availableComputingPower = state.resources.computingPower.value;
+    
+    if (availableComputingPower > 0) {
+      // Применяем бонусы эффективности майнинга от улучшений
+      let effectiveMiningEfficiency = state.miningParams.miningEfficiency;
+      let energyEfficiency = state.miningParams.energyEfficiency;
+      
+      for (const upgradeId in state.upgrades) {
+        const upgrade = state.upgrades[upgradeId];
+        if (upgrade.purchased) {
+          if (upgrade.effect.miningEfficiencyBoost) {
+            effectiveMiningEfficiency += state.miningParams.miningEfficiency * upgrade.effect.miningEfficiencyBoost;
+          }
+          if (upgrade.effect.energyEfficiencyBoost) {
+            energyEfficiency += upgrade.effect.energyEfficiencyBoost;
+          }
+        }
+      }
+      
+      // Рассчитываем производство BTC
+      btcProduction = (availableComputingPower * effectiveMiningEfficiency * 
+        state.miningParams.networkDifficulty) / 3600;
+      
+      // Рассчитываем потребление электричества автомайнером
+      additionalElectricityConsumption = 
+        state.miningParams.baseConsumption * availableComputingPower * (1 - energyEfficiency);
+    }
+  }
+  
+  return {
+    newResourcesState: newResources,
+    btcProduction: btcProduction,
+    updatedElectricityConsumption: baseElectricityConsumption + additionalElectricityConsumption
+  };
+}
+
+/**
+ * Расчет текущего курса обмена BTC на USDT с учетом волатильности
+ */
+function calculateExchangeRate(miningParams: any, gameTime: number): number {
+  const { exchangeRate, volatility, exchangePeriod } = miningParams;
+  return exchangeRate * (1 + volatility * Math.sin(gameTime / exchangePeriod));
+}
+
+/**
  * Обновление значений всех ресурсов с учетом прошедшего времени
  */
 function updateResourceValues(
@@ -130,7 +219,8 @@ function updateResourceValues(
   electricityConsumption: number,
   knowledgeBoost: number,
   electricityShortage: boolean,
-  currentTime: number
+  currentTime: number,
+  btcProduction: number
 ): { [key: string]: any } {
   // Копируем ресурсы для обновления
   let newResources = { ...resourcesState };
@@ -154,7 +244,8 @@ function updateResourceValues(
       electricityConsumption, 
       electricityShortage,
       newResources,
-      currentTime
+      currentTime,
+      btcProduction
     );
     
     // Обновляем значение ресурса с учетом прошедшего времени
@@ -209,7 +300,7 @@ function calculateResourceProduction(
 }
 
 /**
- * Обработка особых случаев для некоторых ресурсов (электричество, USDT)
+ * Обработка особых случаев для некоторых ресурсов (электричество, USDT, BTC)
  */
 function handleSpecialResources(
   resourceId: string,
@@ -219,7 +310,8 @@ function handleSpecialResources(
   electricityConsumption: number,
   electricityShortage: boolean,
   resources: { [key: string]: any },
-  currentTime: number
+  currentTime: number,
+  btcProduction: number
 ): number {
   let production = baseProduction;
   
@@ -234,17 +326,9 @@ function handleSpecialResources(
     }
   }
   
-  // Особый случай для USDT - автомайнер работает каждые 5 секунд
-  if (resourceId === 'usdt' && state.buildings.autoMiner.count > 0) {
-    // Проверяем, прошло ли 5 секунд с последнего обновления
-    const lastFiveSeconds = Math.floor(state.lastUpdate / 5000);
-    const currentFiveSeconds = Math.floor(currentTime / 5000);
-    
-    // Автоматическая конвертация вычислительной мощности в USDT
-    if (lastFiveSeconds !== currentFiveSeconds && resources.computingPower.value >= 50) {
-      resources.computingPower.value -= 50;
-      resources.usdt.value += 5;
-    }
+  // Особый случай для BTC - учитываем производство от автомайнера
+  if (resourceId === 'btc' && btcProduction > 0) {
+    production += btcProduction;
   }
   
   return production;

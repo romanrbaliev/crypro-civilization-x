@@ -5,6 +5,7 @@ import LearnButton from "@/components/buttons/LearnButton";
 import ApplyKnowledgeButton from "@/components/buttons/ApplyKnowledgeButton";
 import PracticeButton from "@/components/buttons/PracticeButton";
 import MineButton from "@/components/buttons/MineButton";
+import ExchangeBtcButton from "@/components/buttons/ExchangeBtcButton";
 
 interface ActionButtonsProps {
   onAddEvent?: (message: string, type?: string) => void;
@@ -17,14 +18,29 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     handleApplyKnowledge,
     handlePractice,
     handleMineClick,
+    handleExchangeBtc,
     isButtonEnabled,
     practiceCurrentCost,
     practiceCurrentLevel,
-    hasAutoMiner
+    hasAutoMiner,
+    currentExchangeRate
   } = useActionButtons({ onAddEvent });
   
   // Создаем кнопки в обратном порядке - основная кнопка будет последней в массиве
   const buttons = [];
+  
+  // Кнопка обмена BTC (если ресурс разблокирован)
+  if (state.resources.btc && state.resources.btc.unlocked) {
+    buttons.push(
+      <div key="exchange">
+        <ExchangeBtcButton
+          onClick={handleExchangeBtc}
+          disabled={state.resources.btc.value <= 0}
+          currentRate={currentExchangeRate}
+        />
+      </div>
+    );
+  }
   
   // Кнопка майнинга (если она доступна и нет автомайнера)
   if (state.resources.computingPower.unlocked && !hasAutoMiner) {
