@@ -4,14 +4,11 @@ import {
   addGameEventListener, 
   removeGameEventListener 
 } from './utils/gameEvents';
-import { useGame } from './hooks/useGame';
-import { addGameEvent } from './gameReducer';
 
 // Компонент для управления шиной событий игры
 export const GameEventSystem: React.FC = () => {
   // Используем useRef для хранения отправленных сообщений
   const sentMessagesRef = useRef<Map<string, number>>(new Map());
-  const { state, dispatch } = useGame();
   
   useEffect(() => {
     // Создаем шину событий
@@ -24,7 +21,6 @@ export const GameEventSystem: React.FC = () => {
       }
       
       const message = event.detail.message;
-      const type = event.detail.type || "info";
       const currentTime = Date.now();
       
       // Проверяем, было ли это или похожее сообщение отправлено недавно
@@ -42,12 +38,6 @@ export const GameEventSystem: React.FC = () => {
         console.log("Пропуск дублирующегося сообщения:", message);
         return; // Пропускаем дубликат
       }
-      
-      // Обновляем состояние игры, добавляя новое событие
-      dispatch({ 
-        type: "ADD_GAME_EVENT", 
-        payload: { message, eventType: type } 
-      });
       
       // Добавляем сообщение в Map с временной меткой
       sentMessagesRef.current.set(message, currentTime);
@@ -202,7 +192,7 @@ export const GameEventSystem: React.FC = () => {
         delete window.gameEventBus;
       }
     };
-  }, [dispatch]);
+  }, []);
   
   // Компонент не рендерит никакой UI
   return null;

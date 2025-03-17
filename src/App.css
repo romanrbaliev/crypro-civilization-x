@@ -1,3 +1,4 @@
+
 body, html {
   margin: 0;
   padding: 0;
@@ -210,40 +211,4 @@ body, html {
   background-color: white;
   z-index: 10;
   border-top: 1px solid #e5e7eb;
-}
-
-/* Медиа-запросы для адаптивного дизайна */
-@media (max-width: 768px) {
-  .two-column-layout {
-    flex-direction: column;
-  }
-  
-  .column-left,
-  .column-right {
-    width: 100% !important;
-  }
-  
-  .column-right {
-    display: none; /* Скрываем правую колонку на мобильных */
-  }
-}
-
-/* Стили для двухколоночного макета */
-.two-column-layout {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.column-left {
-  width: 66.666667%;
-  overflow-y: auto;
-  padding: 1rem;
-  background-color: #f9fafb;
-}
-
-.column-right {
-  width: 33.333333%;
-  border-left: 1px solid #e5e7eb;
-  background-color: white;
 }

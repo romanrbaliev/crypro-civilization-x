@@ -1,3 +1,4 @@
+
 export interface Resource {
   id: string;
   name: string;
@@ -44,24 +45,6 @@ export interface Counters {
   [counterId: string]: number;
 }
 
-export interface MiningParams {
-  miningEfficiency: number;
-  networkDifficulty: number;
-  basePowerConsumption: number;
-  energyEfficiency: number;
-  baseExchangeRate: number;
-  volatility: number;
-  oscillationPeriod: number;
-  exchangeCommission: number;
-}
-
-export interface GameEvent {
-  id: string;
-  timestamp: number;
-  message: string;
-  type: "info" | "success" | "warning" | "error";
-}
-
 export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };
@@ -74,9 +57,6 @@ export interface GameState {
   phase: number;
   eventMessages: { [key: string]: any };
   counters: Counters;
-  miningParams: MiningParams;
-  gameTime: number; // Игровое время в секундах
-  events: GameEvent[]; // Добавляем массив событий в состояние игры
 }
 
 // Типы действий для редьюсера игры
@@ -96,6 +76,4 @@ export type GameAction =
   | { type: "RESET_GAME" }
   | { type: "RESTART_COMPUTERS" }
   | { type: "APPLY_KNOWLEDGE" }
-  | { type: "MINE_COMPUTING_POWER" }
-  | { type: "EXCHANGE_BTC"; payload?: { amount?: number } }  // Тип действия для обмена BTC
-  | { type: "ADD_GAME_EVENT"; payload: { message: string; eventType: "info" | "success" | "warning" | "error" } }; // Новый тип действия для добавления события
+  | { type: "MINE_COMPUTING_POWER" };

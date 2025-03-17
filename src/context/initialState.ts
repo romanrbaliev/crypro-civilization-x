@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counters } from './types';
 
 // Начальные здания
@@ -40,7 +39,7 @@ export const initialBuildings: { [key: string]: Building } = {
   autoMiner: {
     id: "autoMiner",
     name: "Автомайнер",
-    description: "Автоматически добывает BTC, потребляя вычислительную мощность и электричество",
+    description: "Автоматически конвертирует вычислительную мощность в USDT",
     cost: { usdt: 50 },
     costMultiplier: 1.2,
     production: {},
@@ -93,26 +92,6 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     unlocked: false,
     purchased: false,
     requirements: { cryptoWalletCount: 1 }
-  },
-  miningOptimization: {
-    id: "miningOptimization",
-    name: "Оптимизация алгоритмов",
-    description: "Увеличивает эффективность майнинга на 15%",
-    cost: { knowledge: 100, usdt: 30 },
-    effect: { miningEfficiencyBoost: 0.15 },
-    unlocked: false,
-    purchased: false,
-    requirements: { autoMinerCount: 1 }
-  },
-  energyEfficiency: {
-    id: "energyEfficiency",
-    name: "Энергоэффективные компоненты",
-    description: "Снижает потребление электричества на 10%",
-    cost: { knowledge: 120, usdt: 40 },
-    effect: { energyEfficiencyBoost: 0.1 },
-    unlocked: false,
-    purchased: false,
-    requirements: { autoMinerCount: 1 }
   }
 };
 
@@ -154,15 +133,6 @@ export const initialResources: { [key: string]: Resource } = {
     unlocked: false,
     max: Infinity
   },
-  btc: {
-    id: "btc",
-    name: "Bitcoin",
-    icon: "₿",
-    value: 0,
-    perSecond: 0,
-    unlocked: false,
-    max: Infinity
-  },
   reputation: {
     id: "reputation",
     name: "Репутация",
@@ -180,18 +150,6 @@ export const initialCounters: Counters = {
   mining: 0
 };
 
-// Начальные параметры майнинга
-export const initialMiningParams = {
-  miningEfficiency: 0.0001,
-  networkDifficulty: 1.0,
-  basePowerConsumption: 0.5,
-  energyEfficiency: 0,
-  baseExchangeRate: 20000,
-  volatility: 0.2,
-  oscillationPeriod: 3600, // период колебаний в секундах (1 час)
-  exchangeCommission: 0.05
-};
-
 // Начальное состояние игры
 export const initialState: GameState = {
   resources: initialResources,
@@ -207,8 +165,5 @@ export const initialState: GameState = {
   prestigePoints: 0,
   phase: 1,
   eventMessages: {},
-  counters: initialCounters,
-  miningParams: initialMiningParams,
-  gameTime: 0, // Добавляем игровое время в секундах
-  events: [] // Инициализируем пустой массив событий
+  counters: initialCounters
 };

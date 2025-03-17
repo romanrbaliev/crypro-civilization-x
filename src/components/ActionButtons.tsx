@@ -1,75 +1,81 @@
 
 import React from "react";
 import { useActionButtons } from "@/hooks/useActionButtons";
-import { Card, CardContent } from "@/components/ui/card";
-import LearnButton from "./buttons/LearnButton";
-import ApplyKnowledgeButton from "./buttons/ApplyKnowledgeButton";
-import PracticeButton from "./buttons/PracticeButton";
-import MineButton from "./buttons/MineButton";
-import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
-import { useGame } from "@/context/hooks/useGame";
+import LearnButton from "@/components/buttons/LearnButton";
+import ApplyKnowledgeButton from "@/components/buttons/ApplyKnowledgeButton";
+import PracticeButton from "@/components/buttons/PracticeButton";
+import MineButton from "@/components/buttons/MineButton";
 
-const ActionButtons: React.FC = () => {
-  const { state } = useGame();
+interface ActionButtonsProps {
+  onAddEvent?: (message: string, type?: string) => void;
+}
+
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) => {
   const {
+    state,
     handleLearnClick,
-    handleApplyKnowledgeClick,
-    handlePracticeClick,
+    handleApplyKnowledge,
+    handlePractice,
     handleMineClick,
-    handleExchangeBtcClick,
-    isApplyKnowledgeUnlocked,
-    isPracticeUnlocked,
-    isUsdtUnlocked,
-    isComputingPowerUnlocked,
-    isBtcUnlocked,
-    hasAutoMiner,
-    hasPracticeBuilding,
-    canMine,
-    canExchangeBtc
-  } = useActionButtons();
-
-  // Проверка, достаточно ли знаний для применения
-  const hasEnoughKnowledge = state.resources.knowledge.value >= 10;
+    isButtonEnabled,
+    practiceCurrentCost,
+    practiceCurrentLevel,
+    hasAutoMiner
+  } = useActionButtons({ onAddEvent });
   
-  // Получаем уровень и стоимость практики
-  const practiceLevel = state.buildings.practice.count + 1;
-  const practiceCost = 25 * Math.pow(1.5, state.buildings.practice.count);
-
+  // Создаем кнопки в обратном порядке - основная кнопка будет последней в массиве
+  const buttons = [];
+  
+  // Кнопка майнинга (если она доступна и нет автомайнера)
+  if (state.resources.computingPower.unlocked && !hasAutoMiner) {
+    buttons.push(
+      <div key="mine">
+        <MineButton
+          onClick={handleMineClick}
+          disabled={!isButtonEnabled("computingPower", 50)}
+        />
+      </div>
+    );
+  }
+  
+  // Кнопка практики (если доступна)
+  if (state.unlocks.practice) {
+    console.log(`Рендерим кнопку Практиковаться: cost=${practiceCurrentCost}`);
+    buttons.push(
+      <div key="practice">
+        <PracticeButton
+          onClick={handlePractice}
+          disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
+          level={practiceCurrentLevel}
+          cost={practiceCurrentCost}
+        />
+      </div>
+    );
+  }
+  
+  // Кнопка применения знаний (если доступна)
+  if (state.unlocks.applyKnowledge) {
+    buttons.push(
+      <div key="apply">
+        <ApplyKnowledgeButton
+          onClick={handleApplyKnowledge}
+          disabled={!isButtonEnabled("knowledge", 10)}
+        />
+      </div>
+    );
+  }
+  
+  // Добавляем основную кнопку в конец
+  buttons.push(
+    <div key="learn">
+      <LearnButton onClick={handleLearnClick} />
+    </div>
+  );
+  
   return (
-    <Card className="w-full">
-      <CardContent className="p-3 space-y-3">
-        {/* Кнопка "Изучить крипту" доступна всегда */}
-        <LearnButton onClick={handleLearnClick} />
-
-        {/* Кнопка "Применить знания" появляется после разблокировки */}
-        {isApplyKnowledgeUnlocked && (
-          <ApplyKnowledgeButton 
-            onClick={handleApplyKnowledgeClick} 
-            disabled={!hasEnoughKnowledge} 
-          />
-        )}
-
-        {/* Кнопка "Практика" появляется после разблокировки */}
-        {isPracticeUnlocked && !hasPracticeBuilding && (
-          <PracticeButton 
-            onClick={handlePracticeClick} 
-            disabled={state.resources.usdt.value < practiceCost}
-            level={practiceLevel}
-            cost={practiceCost}
-          />
-        )}
-
-        {/* Кнопка "Майнить USDT" появляется после разблокировки вычислительной мощности и отсутствия автомайнера */}
-        {isComputingPowerUnlocked && !hasAutoMiner && (
-          <MineButton onClick={handleMineClick} disabled={!canMine} />
-        )}
-        
-        {/* Кнопка "Обменять BTC" появляется после разблокировки BTC */}
-        {isBtcUnlocked && (
-          <ExchangeBtcButton onClick={handleExchangeBtcClick} disabled={!canExchangeBtc} />
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-2 mt-2">
+      {buttons}
+    </div>
   );
 };
 
