@@ -7,8 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import GameScreen from "./pages/GameScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
+import { toast } from "./components/ui/use-toast";
 import "./index.css"; // Импортируем CSS стили
 
 // Настраиваем клиент для React Query
@@ -33,29 +34,31 @@ const setTelegramMeta = () => {
 };
 
 const App = () => {
+  const [telegramInitialized, setTelegramInitialized] = useState(false);
+  
   // Устанавливаем мета-данные при загрузке приложения
   useEffect(() => {
     setTelegramMeta();
     
     // Инициализация Telegram WebApp при загрузке приложения
     if (isTelegramWebAppAvailable()) {
-      console.log('Инициализация Telegram WebApp в App.tsx');
+      console.log('🔄 Инициализация Telegram WebApp в App.tsx');
       
       try {
         // Отправляем сигнал готовности приложения
         if (window.Telegram?.WebApp?.ready) {
           window.Telegram.WebApp.ready();
-          console.log('Отправлен сигнал готовности Telegram WebApp');
+          console.log('✅ Отправлен сигнал готовности Telegram WebApp');
         }
         
         // Расширяем приложение на весь экран
         if (window.Telegram?.WebApp?.expand) {
           window.Telegram.WebApp.expand();
-          console.log('Telegram WebApp развернут на весь экран');
+          console.log('✅ Telegram WebApp развернут на весь экран');
         }
         
         // Выводим детали инициализации
-        console.log('Telegram WebApp инициализирован:');
+        console.log('✅ Telegram WebApp инициализирован:');
         console.log('- Платформа:', window.Telegram.WebApp.platform);
         console.log('- Версия:', window.Telegram.WebApp.version);
         console.log('- Длина initData:', window.Telegram.WebApp.initData?.length || 0);
@@ -63,14 +66,66 @@ const App = () => {
         // Проверка наличия CloudStorage
         if (window.Telegram?.WebApp?.CloudStorage) {
           console.log('- CloudStorage доступен:', !!window.Telegram.WebApp.CloudStorage);
+          
+          // Проверяем методы CloudStorage
+          const hasGetItem = typeof window.Telegram.WebApp.CloudStorage.getItem === 'function';
+          const hasSetItem = typeof window.Telegram.WebApp.CloudStorage.setItem === 'function';
+          const hasRemoveItem = typeof window.Telegram.WebApp.CloudStorage.removeItem === 'function';
+          
+          console.log('- CloudStorage методы:', {
+            getItem: hasGetItem,
+            setItem: hasSetItem,
+            removeItem: hasRemoveItem
+          });
+          
+          if (hasGetItem && hasSetItem && hasRemoveItem) {
+            console.log('✅ CloudStorage полностью функционален');
+          } else {
+            console.warn('⚠️ CloudStorage не полностью функционален');
+          }
         } else {
-          console.warn('- CloudStorage недоступен');
+          console.warn('❌ CloudStorage недоступен');
         }
+        
+        // Настройка обработчика BackButton если доступен
+        if (window.Telegram?.WebApp?.BackButton) {
+          if (window.Telegram.WebApp.BackButton.isVisible) {
+            window.Telegram.WebApp.BackButton.hide();
+            console.log('✅ BackButton скрыт при запуске');
+          }
+        }
+        
+        setTelegramInitialized(true);
+        
+        // Показываем toast с информацией о режиме Telegram
+        setTimeout(() => {
+          toast({
+            title: "Режим Telegram",
+            description: `Приложение запущено в Telegram (${window.Telegram.WebApp.platform}, v${window.Telegram.WebApp.version})`,
+            variant: "default",
+          });
+        }, 1000);
       } catch (error) {
-        console.error('Ошибка при инициализации Telegram WebApp:', error);
+        console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
+        
+        // Показываем toast с ошибкой
+        toast({
+          title: "Ошибка Telegram интеграции",
+          description: "Произошла ошибка при инициализации Telegram WebApp. Игра будет работать в автономном режиме.",
+          variant: "destructive",
+        });
       }
     } else {
-      console.log('Telegram WebApp не обнаружен, работа в стандартном режиме');
+      console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме');
+      
+      // Показываем toast с информацией о стандартном режиме
+      setTimeout(() => {
+        toast({
+          title: "Стандартный режим",
+          description: "Приложение запущено в браузере. Прогресс будет сохранен локально.",
+          variant: "default",
+        });
+      }, 1000);
     }
   }, []);
 

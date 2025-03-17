@@ -1,4 +1,3 @@
-
 export interface Resource {
   id: string;
   name: string;
@@ -49,12 +48,13 @@ export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };
   upgrades: { [key: string]: Upgrade };
-  unlocks: Unlocks;
+  unlocks: { [key: string]: boolean };
   lastUpdate: number;
+  lastSaved?: number; // Время последнего сохранения
   gameStarted: boolean;
   prestigePoints: number;
   phase: number;
-  eventMessages: EventMessages;
+  eventMessages: { [key: string]: any };
   counters: Counters;
 }
 

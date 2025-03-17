@@ -114,36 +114,198 @@ export const getNextMilestone = (currentScore: number, milestones: number[]): nu
   return Infinity;
 };
 
-// Улучшенная проверка наличия Telegram WebApp API
+// УЛУЧШЕННАЯ проверка наличия Telegram WebApp API с детальным логированием
 export const isTelegramWebAppAvailable = (): boolean => {
-  try {
-    if (typeof window === 'undefined') {
-      console.log('window не определен, Telegram недоступен');
-      return false;
+  // Сначала проверяем, выполняется ли код в Telegram WebApp
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+    console.log('ВАЖНО: Telegram WebApp API обнаружен!');
+    
+    // Логирование информации о платформе и версии
+    if (window.Telegram.WebApp.platform) {
+      console.log(`Telegram платформа: ${window.Telegram.WebApp.platform}`);
     }
     
-    if (!window.Telegram) {
-      console.log('window.Telegram недоступен');
-      return false;
+    if (window.Telegram.WebApp.version) {
+      console.log(`Telegram версия: ${window.Telegram.WebApp.version}`);
     }
     
-    if (!window.Telegram.WebApp) {
-      console.log('window.Telegram.WebApp недоступен');
-      return false;
+    // Проверка initData
+    if (window.Telegram.WebApp.initData) {
+      console.log(`Telegram initData длина: ${window.Telegram.WebApp.initData.length}`);
+      
+      // Проверка наличия информации о пользователе
+      if (window.Telegram.WebApp.initDataUnsafe?.user) {
+        const user = window.Telegram.WebApp.initDataUnsafe.user;
+        console.log(`Telegram пользователь: ID=${user.id}, имя=${user.first_name || 'неизвестно'}`);
+      } else {
+        console.warn('Telegram информация о пользователе отсутствует');
+      }
+    } else {
+      console.warn('Telegram initData отсутствует или пуст');
     }
     
-    // Проверяем доступность основных методов
-    const hasVersion = window.Telegram.WebApp.hasOwnProperty('version');
-    const hasPlatform = window.Telegram.WebApp.hasOwnProperty('platform');
-    const hasInitData = window.Telegram.WebApp.hasOwnProperty('initData');
-    
-    console.log(`Проверка методов Telegram WebApp: версия=${hasVersion}, платформа=${hasPlatform}, initData=${hasInitData}`);
-    console.log('Telegram WebApp доступен, версия:', window.Telegram.WebApp.version || 'неизвестно');
+    // Проверка наличия CloudStorage
+    if (window.Telegram.WebApp.CloudStorage) {
+      console.log('Telegram CloudStorage API доступен!');
+      
+      // Проверка наличия методов CloudStorage
+      if (typeof window.Telegram.WebApp.CloudStorage.getItem === 'function') {
+        console.log('- метод getItem доступен');
+      } else {
+        console.warn('- метод getItem НЕДОСТУПЕН');
+      }
+      
+      if (typeof window.Telegram.WebApp.CloudStorage.setItem === 'function') {
+        console.log('- метод setItem доступен');
+      } else {
+        console.warn('- метод setItem НЕДОСТУПЕН');
+      }
+    } else {
+      console.warn('Telegram CloudStorage API НЕДОСТУПЕН');
+    }
     
     return true;
-  } catch (error) {
-    console.error('Ошибка при проверке доступности Telegram WebApp:', error);
+  }
+  
+  console.log('Telegram WebApp API не обнаружен - работаем в обычном браузере');
+  return false;
+};
+
+// Улучшенная проверка доступности Telegram CloudStorage
+export const isTelegramCloudStorageAvailable = (): boolean => {
+  if (!isTelegramWebAppAvailable()) {
+    console.log('Telegram WebApp недоступен, CloudStorage тоже недоступен');
     return false;
+  }
+  
+  try {
+    const hasCloudStorage = !!window.Telegram?.WebApp?.CloudStorage;
+    const hasGetItem = typeof window.Telegram?.WebApp?.CloudStorage?.getItem === 'function';
+    const hasSetItem = typeof window.Telegram?.WebApp?.CloudStorage?.setItem === 'function';
+    
+    const isAvailable = hasCloudStorage && hasGetItem && hasSetItem;
+    
+    if (isAvailable) {
+      console.log('Telegram CloudStorage полностью ДОСТУПЕН');
+    } else {
+      console.warn('Telegram CloudStorage НЕ полностью доступен:', {
+        hasCloudStorage,
+        hasGetItem,
+        hasSetItem
+      });
+    }
+    
+    return isAvailable;
+  } catch (error) {
+    console.error('Ошибка при проверке доступности Telegram CloudStorage:', error);
+    return false;
+  }
+};
+
+// Принудительное сохранение в Telegram CloudStorage
+export const forceTelegramCloudSave = async (data: string, key: string): Promise<boolean> => {
+  if (!isTelegramCloudStorageAvailable()) {
+    console.warn('⚠️ Принудительное сохранение в CloudStorage невозможно - API недоступен');
+    return false;
+  }
+  
+  try {
+    console.log(`🔄 Сохранение в Telegram CloudStorage (${data.length} байт)...`);
+    
+    // Принудительное разделение данных на части, если размер превышает 4KB (документация Telegram)
+    const MAX_SIZE = 4000; // 4KB limit for Telegram CloudStorage
+    
+    if (data.length > MAX_SIZE) {
+      console.log(`⚠️ Данные слишком большие (${data.length} байт), разбиваем на части`);
+      
+      // Сохраняем метаданные
+      const chunksCount = Math.ceil(data.length / MAX_SIZE);
+      const metaData = JSON.stringify({
+        total: chunksCount,
+        timestamp: Date.now(),
+        totalSize: data.length
+      });
+      
+      await window.Telegram.WebApp.CloudStorage.setItem(`${key}_meta`, metaData);
+      console.log(`✅ Сохранены метаданные: части=${chunksCount}`);
+      
+      // Сохраняем по частям
+      let saved = 0;
+      for (let i = 0; i < chunksCount; i++) {
+        const chunk = data.substring(i * MAX_SIZE, (i + 1) * MAX_SIZE);
+        await window.Telegram.WebApp.CloudStorage.setItem(`${key}_${i}`, chunk);
+        saved += chunk.length;
+        console.log(`✅ Сохранена часть ${i+1}/${chunksCount} (${chunk.length} байт)`);
+      }
+      
+      console.log(`✅ Все данные сохранены (${saved}/${data.length} байт)`);
+      return true;
+    } else {
+      // Сохраняем как один блок
+      await window.Telegram.WebApp.CloudStorage.setItem(key, data);
+      console.log(`✅ Данные успешно сохранены (${data.length} байт)`);
+      
+      // Удаляем метаданные, если они существовали
+      try {
+        await window.Telegram.WebApp.CloudStorage.removeItem(`${key}_meta`);
+      } catch (e) {
+        // Игнорируем ошибки удаления
+      }
+      
+      return true;
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при сохранении в Telegram CloudStorage:', error);
+    return false;
+  }
+};
+
+// Принудительная загрузка из Telegram CloudStorage
+export const forceTelegramCloudLoad = async (key: string): Promise<string | null> => {
+  if (!isTelegramCloudStorageAvailable()) {
+    console.warn('⚠️ Загрузка из CloudStorage невозможна - API недоступен');
+    return null;
+  }
+  
+  try {
+    console.log(`🔄 Загрузка из Telegram CloudStorage (ключ: ${key})...`);
+    
+    // Сначала пробуем загрузить метаданные
+    const metaDataStr = await window.Telegram.WebApp.CloudStorage.getItem(`${key}_meta`);
+    
+    // Если есть метаданные, значит данные разделены на части
+    if (metaDataStr) {
+      try {
+        const metaData = JSON.parse(metaDataStr);
+        console.log(`✅ Найдены метаданные: части=${metaData.total}, размер=${metaData.totalSize}`);
+        
+        // Собираем все части
+        let fullData = "";
+        for (let i = 0; i < metaData.total; i++) {
+          const chunk = await window.Telegram.WebApp.CloudStorage.getItem(`${key}_${i}`);
+          if (chunk === null) {
+            console.error(`❌ Часть ${i+1}/${metaData.total} не найдена!`);
+            return null; // Если часть отсутствует, данные повреждены
+          }
+          fullData += chunk;
+          console.log(`✅ Загружена часть ${i+1}/${metaData.total} (${chunk.length} байт)`);
+        }
+        
+        console.log(`✅ Все данные собраны (${fullData.length}/${metaData.totalSize} байт)`);
+        return fullData;
+      } catch (e) {
+        console.error('❌ Ошибка при обработке разделенных данных:', e);
+        // Если не удалось обработать разделенные данные, попробуем обычный способ
+      }
+    }
+    
+    // Обычный способ загрузки
+    const data = await window.Telegram.WebApp.CloudStorage.getItem(key);
+    console.log(`✅ Данные загружены (${data?.length || 0} байт)`);
+    return data;
+  } catch (error) {
+    console.error('❌ Ошибка при загрузке из Telegram CloudStorage:', error);
+    return null;
   }
 };
 
@@ -153,7 +315,6 @@ export const getPlatformInfo = (): string => {
     const platform = window.Telegram.WebApp.platform || 'неизвестно';
     const version = window.Telegram.WebApp.version || 'неизвестно';
     const initDataLength = window.Telegram.WebApp.initData?.length || 0;
-    console.log(`Обнаружен Telegram WebApp. Платформа: ${platform}, версия: ${version}, длина initData: ${initDataLength}`);
     return `Telegram WebApp (${platform}, v${version})`;
   }
   
@@ -162,68 +323,4 @@ export const getPlatformInfo = (): string => {
   }
   
   return 'Unknown platform';
-};
-
-// Проверить наличие CloudStorage в Telegram WebApp
-export const isTelegramCloudStorageAvailable = (): boolean => {
-  try {
-    if (!isTelegramWebAppAvailable()) {
-      return false;
-    }
-    
-    if (!window.Telegram?.WebApp?.CloudStorage) {
-      console.log('window.Telegram.WebApp.CloudStorage недоступен');
-      return false;
-    }
-    
-    const hasGetItem = typeof window.Telegram.WebApp.CloudStorage.getItem === 'function';
-    const hasSetItem = typeof window.Telegram.WebApp.CloudStorage.setItem === 'function';
-    
-    if (!hasGetItem || !hasSetItem) {
-      console.log(`Методы CloudStorage недоступны: getItem=${hasGetItem}, setItem=${hasSetItem}`);
-      return false;
-    }
-    
-    console.log('Telegram CloudStorage полностью доступен!');
-    return true;
-  } catch (error) {
-    console.error('Ошибка при проверке доступности Telegram CloudStorage:', error);
-    return false;
-  }
-};
-
-// Принудительное сохранение в Telegram CloudStorage
-export const forceTelegramCloudSave = async (data: string, key: string): Promise<boolean> => {
-  try {
-    if (!isTelegramCloudStorageAvailable()) {
-      console.log('Telegram CloudStorage недоступен для принудительного сохранения');
-      return false;
-    }
-    
-    console.log(`Принудительное сохранение в Telegram CloudStorage, размер данных: ${data.length} байт`);
-    await window.Telegram.WebApp.CloudStorage.setItem(key, data);
-    console.log('Данные успешно сохранены в Telegram CloudStorage');
-    return true;
-  } catch (error) {
-    console.error('Ошибка при принудительном сохранении в Telegram CloudStorage:', error);
-    return false;
-  }
-};
-
-// Принудительная загрузка из Telegram CloudStorage
-export const forceTelegramCloudLoad = async (key: string): Promise<string | null> => {
-  try {
-    if (!isTelegramCloudStorageAvailable()) {
-      console.log('Telegram CloudStorage недоступен для принудительной загрузки');
-      return null;
-    }
-    
-    console.log(`Принудительная загрузка из Telegram CloudStorage, ключ: ${key}`);
-    const data = await window.Telegram.WebApp.CloudStorage.getItem(key);
-    console.log(`Данные загружены из Telegram CloudStorage, размер: ${data?.length || 0} байт`);
-    return data;
-  } catch (error) {
-    console.error('Ошибка при принудительной загрузке из Telegram CloudStorage:', error);
-    return null;
-  }
 };
