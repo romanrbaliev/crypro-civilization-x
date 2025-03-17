@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,11 +31,11 @@ const setTelegramMeta = () => {
   }
 };
 
-// Создаем глобальную переменную для отслеживания инициализации
+// Создаем глобальную переменную для отслеживания инициализации, если она еще не определена
 window.__telegramInitialized = window.__telegramInitialized || false;
 window.__telegramNotificationShown = window.__telegramNotificationShown || false;
 window.__supabaseInitialized = window.__supabaseInitialized || false;
-window.__FORCE_TELEGRAM_MODE = true; // Принудительно включаем режим Telegram для отладки
+window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || true; // Принудительно включаем режим Telegram для отладки
 
 const App = () => {
   // Устанавливаем мета-данные при загрузке приложения
@@ -148,11 +147,11 @@ const App = () => {
     
     try {
       // Импортируем и инициализируем подключение к базе данных
-      const { checkSupabaseConnection } = await import('./api/gameDataService');
+      const gameDataService = await import('./api/gameDataService');
       
-      if (typeof checkSupabaseConnection === 'function') {
+      if (typeof gameDataService.checkSupabaseConnection === 'function') {
         console.log('🔄 Проверка подключения к Supabase...');
-        const isConnected = await checkSupabaseConnection();
+        const isConnected = await gameDataService.checkSupabaseConnection();
         
         if (isConnected) {
           console.log('✅ Соединение с Supabase установлено успешно');

@@ -110,7 +110,7 @@ const getUserIdentifier = async (): Promise<string> => {
 };
 
 // Проверка подключения к Supabase
-const checkSupabaseConnection = async (): Promise<boolean> => {
+export const checkSupabaseConnection = async (): Promise<boolean> => {
   // Если уже проверяли - возвращаем кешированный результат
   if (supabaseChecked) {
     return supabaseAvailable;
