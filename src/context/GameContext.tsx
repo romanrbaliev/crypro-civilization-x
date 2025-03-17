@@ -1,5 +1,5 @@
 
-import React, { createContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
@@ -20,8 +20,8 @@ export const GameContext = createContext<GameContextProps | undefined>(undefined
 // Экспорт хука useGame переехал в отдельный файл
 export { useGame } from './hooks/useGame';
 
-// Интервал автосохранения (15 секунд)
-const SAVE_INTERVAL = 15 * 1000;
+// Интервал автосохранения (5 секунд)
+const SAVE_INTERVAL = 5 * 1000;
 
 interface GameProviderProps {
   children: ReactNode;
@@ -29,19 +29,23 @@ interface GameProviderProps {
 
 export function GameProvider({ children }: GameProviderProps) {
   // Загружаем сохраненное состояние при запуске игры
-  const [loadedState, setLoadedState] = React.useState<GameState | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [loadedState, setLoadedState] = useState<GameState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Загрузка сохранения при монтировании
   useEffect(() => {
-    try {
-      const savedState = loadGameState();
-      setLoadedState(savedState);
-    } catch (err) {
-      console.error('Ошибка при загрузке состояния:', err);
-    } finally {
-      setIsLoading(false);
-    }
+    const loadSavedGame = async () => {
+      try {
+        const savedState = await loadGameState();
+        setLoadedState(savedState);
+      } catch (err) {
+        console.error('Ошибка при загрузке состояния:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadSavedGame();
   }, []);
   
   // Инициализируем состояние и редьюсер только после загрузки
@@ -78,9 +82,9 @@ export function GameProvider({ children }: GameProviderProps) {
       clearInterval(intervalId);
       saveGameState(state);
     };
-  }, [state,isLoading]);
+  }, [state, isLoading]);
   
-  // Сохранение при закрытии/перезагрузке страницы
+  // Сохранение при закрытии/перезагрузке страницы или переключении вкладок
   useEffect(() => {
     if (!state.gameStarted || isLoading) return;
     
@@ -94,17 +98,33 @@ export function GameProvider({ children }: GameProviderProps) {
       saveGameState(state);
     };
     
+    // Обработчик потери фокуса окном (особенно важно для мобильных устройств)
+    const handleBlur = () => {
+      saveGameState(state);
+    };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('blur', handleBlur);
+    
+    // Дополнительное сохранение для Telegram при закрытии приложения
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.onEvent('viewportChanged', () => {
+        saveGameState(state);
+      });
+    }
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('blur', handleBlur);
     };
   }, [state, isLoading]);
   
   if (isLoading) {
-    return null; // или компонент загрузки
+    return <div className="flex items-center justify-center h-screen">
+      <div className="text-xl font-bold">Загрузка игры...</div>
+    </div>;
   }
   
   return (
@@ -113,4 +133,15 @@ export function GameProvider({ children }: GameProviderProps) {
       {children}
     </GameContext.Provider>
   );
+}
+
+// Добавляем типы для WebApp Telegram API
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        onEvent: (eventName: string, callback: () => void) => void;
+      };
+    };
+  }
 }

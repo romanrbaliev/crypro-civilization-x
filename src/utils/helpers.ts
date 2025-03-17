@@ -113,3 +113,23 @@ export const getNextMilestone = (currentScore: number, milestones: number[]): nu
   }
   return Infinity;
 };
+
+// Проверка наличия Telegram WebApp API
+export const isTelegramWebAppAvailable = (): boolean => {
+  return typeof window !== 'undefined' && 
+         window.Telegram !== undefined && 
+         window.Telegram.WebApp !== undefined;
+};
+
+// Получение информации о платформе
+export const getPlatformInfo = (): string => {
+  if (isTelegramWebAppAvailable()) {
+    return `Telegram WebApp (${window.Telegram.WebApp.platform || 'unknown platform'})`;
+  }
+  
+  if (typeof navigator !== 'undefined') {
+    return `Browser: ${navigator.userAgent}`;
+  }
+  
+  return 'Unknown platform';
+};
