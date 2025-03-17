@@ -26,6 +26,24 @@ interface Window {
       isExpanded?: boolean;
       expand?: () => void;
       close?: () => void;
+      requestWriteAccess?: () => Promise<boolean>;
+      showConfirm?: (message: string) => Promise<boolean>;
+      showAlert?: (message: string) => Promise<void>;
+      showPopup?: (params: any) => Promise<string>; 
+      version?: string;
+      platform?: string;
+      themeParams?: {
+        bg_color: string;
+        text_color: string;
+        hint_color: string;
+        link_color: string;
+        button_color: string;
+        button_text_color: string;
+      };
+      colorScheme?: 'light' | 'dark';
+      viewportHeight?: number;
+      viewportStableHeight?: number;
     };
   };
+  gameEventBus?: EventTarget;
 }

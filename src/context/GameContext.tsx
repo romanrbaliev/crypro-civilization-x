@@ -27,16 +27,47 @@ interface GameProviderProps {
   children: ReactNode;
 }
 
+// Проверка доступности Telegram WebApp
+const isTelegramWebAppAvailable = (): boolean => {
+  return typeof window !== 'undefined' && 
+         window.Telegram !== undefined && 
+         window.Telegram.WebApp !== undefined;
+};
+
 export function GameProvider({ children }: GameProviderProps) {
   // Загружаем сохраненное состояние при запуске игры
   const [loadedState, setLoadedState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Инициализация Telegram WebApp
+  useEffect(() => {
+    if (isTelegramWebAppAvailable()) {
+      console.log('Telegram WebApp обнаружен, инициализация...');
+      try {
+        const tg = window.Telegram.WebApp;
+        
+        // Отправка события готовности
+        if (typeof tg.ready === 'function') {
+          tg.ready();
+          console.log('Telegram WebApp ready отправлен');
+        } else {
+          console.warn('Telegram WebApp.ready отсутствует');
+        }
+      } catch (error) {
+        console.error('Ошибка при инициализации Telegram WebApp:', error);
+      }
+    } else {
+      console.log('Telegram WebApp не обнаружен');
+    }
+  }, []);
+  
   // Загрузка сохранения при монтировании
   useEffect(() => {
     const loadSavedGame = async () => {
       try {
+        console.log('Начинаем загрузку сохраненной игры...');
         const savedState = await loadGameState();
+        console.log('Загрузка завершена, состояние:', savedState ? 'найдено' : 'не найдено');
         setLoadedState(savedState);
       } catch (err) {
         console.error('Ошибка при загрузке состояния:', err);
@@ -67,15 +98,13 @@ export function GameProvider({ children }: GameProviderProps) {
   
   // Настройка обработчиков для Telegram WebApp
   useEffect(() => {
+    // Не выполняем настройку, если игра не запущена или еще загружается
+    if (!state.gameStarted || isLoading) return;
+    
     // Инициализация Telegram WebApp
-    if (window.Telegram && window.Telegram.WebApp) {
+    if (isTelegramWebAppAvailable()) {
+      console.log('Настройка обработчиков Telegram WebApp');
       const tg = window.Telegram.WebApp;
-      
-      // Отправка события готовности
-      if (typeof tg.ready === 'function') {
-        tg.ready();
-        console.log('Telegram WebApp ready отправлен');
-      }
       
       // Установка поведения при изменении размера окна
       if (typeof tg.onEvent === 'function') {
@@ -123,13 +152,18 @@ export function GameProvider({ children }: GameProviderProps) {
         };
       }
       
-      console.log("Telegram WebApp инициализирован");
+      // Принудительное сохранение при монтировании компонента
+      saveGameState(state).then(() => {
+        console.log('Принудительное сохранение при монтировании завершено');
+      });
     }
-  }, [state]);
+  }, [state, isLoading]);
   
   // Автосохранение
   useEffect(() => {
     if (!state.gameStarted || isLoading) return;
+    
+    console.log('Настройка автосохранения игры');
     
     // Немедленное сохранение при монтировании
     saveGameState(state);
@@ -142,6 +176,7 @@ export function GameProvider({ children }: GameProviderProps) {
     // Сохранение при размонтировании компонента
     return () => {
       clearInterval(intervalId);
+      console.log('Сохранение при размонтировании');
       saveGameState(state);
     };
   }, [state, isLoading]);
@@ -173,8 +208,9 @@ export function GameProvider({ children }: GameProviderProps) {
     window.addEventListener('blur', handleBlur);
     
     // Дополнительное сохранение для Telegram при закрытии приложения
-    if (window.Telegram && window.Telegram.WebApp) {
+    if (isTelegramWebAppAvailable()) {
       window.addEventListener('popstate', handleBeforeUnload);
+      console.log('Настроено сохранение при закрытии Telegram WebApp');
     }
     
     return () => {

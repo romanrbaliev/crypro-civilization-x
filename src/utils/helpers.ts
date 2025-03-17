@@ -116,15 +116,32 @@ export const getNextMilestone = (currentScore: number, milestones: number[]): nu
 
 // Проверка наличия Telegram WebApp API
 export const isTelegramWebAppAvailable = (): boolean => {
-  return typeof window !== 'undefined' && 
-         window.Telegram !== undefined && 
-         window.Telegram.WebApp !== undefined;
+  if (typeof window === 'undefined') {
+    console.log('window не определен, Telegram недоступен');
+    return false;
+  }
+  
+  if (!window.Telegram) {
+    console.log('window.Telegram недоступен');
+    return false;
+  }
+  
+  if (!window.Telegram.WebApp) {
+    console.log('window.Telegram.WebApp недоступен');
+    return false;
+  }
+  
+  console.log('Telegram WebApp доступен, версия:', window.Telegram.WebApp.version || 'неизвестно');
+  return true;
 };
 
 // Получение информации о платформе
 export const getPlatformInfo = (): string => {
   if (isTelegramWebAppAvailable()) {
-    return `Telegram WebApp`;
+    const platform = window.Telegram.WebApp.platform || 'неизвестно';
+    const version = window.Telegram.WebApp.version || 'неизвестно';
+    console.log(`Обнаружен Telegram WebApp. Платформа: ${platform}, версия: ${version}`);
+    return `Telegram WebApp (${platform}, v${version})`;
   }
   
   if (typeof navigator !== 'undefined') {
