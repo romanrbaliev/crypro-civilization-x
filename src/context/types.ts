@@ -20,6 +20,9 @@ export interface Building {
   unlocked: boolean;
   requirements?: { [resourceId: string]: number };
   maxCount?: number;
+  // Новые свойства для автомайнера
+  active?: boolean;
+  consumptionRate?: { [resourceId: string]: number };
 }
 
 export interface Upgrade {
@@ -45,6 +48,14 @@ export interface Counters {
   [counterId: string]: number;
 }
 
+// Новый интерфейс для настроек автомайнера
+export interface MiningSettings {
+  autoExchange: boolean;
+  exchangeThreshold: number;
+  notifyOnGoodRate: boolean;
+  goodRateThreshold: number;
+}
+
 export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };
@@ -57,6 +68,13 @@ export interface GameState {
   phase: number;
   eventMessages: { [key: string]: any };
   counters: Counters;
+  // Новые свойства для криптоэкономики
+  btcExchangeRate: number;
+  networkDifficulty: number;
+  miningEfficiency: number;
+  energyEfficiency: number;
+  exchangeFee: number;
+  miningSettings: MiningSettings;
 }
 
 // Типы действий для редьюсера игры
@@ -76,4 +94,8 @@ export type GameAction =
   | { type: "RESET_GAME" }
   | { type: "RESTART_COMPUTERS" }
   | { type: "APPLY_KNOWLEDGE" }
-  | { type: "MINE_COMPUTING_POWER" };
+  | { type: "MINE_COMPUTING_POWER" }
+  | { type: "EXCHANGE_BTC" } // Новое действие для обмена BTC на USDT
+  | { type: "TOGGLE_AUTO_MINER"; payload: { minerId: string; active: boolean } } // Включение/выключение автомайнера
+  | { type: "UPDATE_MINING_SETTINGS"; payload: Partial<MiningSettings> }; // Обновление настроек майнинга
+

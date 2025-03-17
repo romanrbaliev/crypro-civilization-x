@@ -5,6 +5,7 @@ import LearnButton from "@/components/buttons/LearnButton";
 import ApplyKnowledgeButton from "@/components/buttons/ApplyKnowledgeButton";
 import PracticeButton from "@/components/buttons/PracticeButton";
 import MineButton from "@/components/buttons/MineButton";
+import CryptoMiningPanel from "@/components/CryptoMiningPanel";
 
 interface ActionButtonsProps {
   onAddEvent?: (message: string, type?: string) => void;
@@ -74,9 +75,15 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   
   return (
     <div className="space-y-2 mt-2">
+      {/* Отображаем панель майнинга, если у игрока есть автомайнер */}
+      {hasAutoMiner && (
+        <CryptoMiningPanel onAddEvent={onAddEvent} />
+      )}
+      
       {buttons}
     </div>
   );
 };
 
 export default ActionButtons;
+
