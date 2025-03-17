@@ -54,7 +54,7 @@ const TG_CLOUD_KEY = 'cryptoCivilizationSave';
 let lastCheckTime = 0;
 let cachedConnectionResult = false;
 
-// Получение идентификатора пользователя
+// Получение идентификатора пользователя с приоритетом Telegram
 const getUserIdentifier = async (): Promise<string> => {
   // Проверяем есть ли сохраненный ID в памяти
   const cachedId = window.__game_user_id;
@@ -62,13 +62,14 @@ const getUserIdentifier = async (): Promise<string> => {
     return cachedId;
   }
   
-  // Пытаемся получить Telegram ID
+  // Пытаемся получить Telegram ID с наивысшим приоритетом
   if (isTelegramWebAppAvailable()) {
     try {
       const tg = window.Telegram.WebApp;
       if (tg.initDataUnsafe?.user?.id) {
         const id = `tg_${tg.initDataUnsafe.user.id}`;
         window.__game_user_id = id;
+        console.log(`✅ Получен ID пользователя Telegram: ${id}`);
         return id;
       }
     } catch (error) {
@@ -236,7 +237,7 @@ const loadFromTelegramCloudStorage = async (): Promise<GameState | null> => {
   }
 };
 
-// Сохранение игры в Supabase
+// Сохранение игры в Supabase с приоритетом Telegram
 export const saveGameToServer = async (gameState: GameState): Promise<boolean> => {
   try {
     const userId = await getUserIdentifier();
@@ -257,7 +258,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       console.error('❌ Ошибка при создании локальной резервной копии:', backupError);
     }
     
-    // В режиме Telegram сначала пытаемся сохранить в CloudStorage
+    // Если это Telegram, первым приоритетом сохраняем в CloudStorage
     if (isTelegramWebAppAvailable()) {
       const tgSaved = await saveToTelegramCloudStorage(gameState, userId);
       if (tgSaved) {
@@ -374,7 +375,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
   }
 };
 
-// Загрузка игры из Supabase
+// Загрузка игры c приоритетом Telegram
 export const loadGameFromServer = async (): Promise<GameState | null> => {
   try {
     const userId = await getUserIdentifier();
@@ -382,6 +383,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     
     // В режиме Telegram сначала пытаемся загрузить из CloudStorage
     if (isTelegramWebAppAvailable()) {
+      console.log('🔍 Проверка наличия сохранения в Telegram CloudStorage...');
       const tgData = await loadFromTelegramCloudStorage();
       if (tgData) {
         console.log('✅ Игра загружена из Telegram CloudStorage');
@@ -476,6 +478,26 @@ export const clearAllSavedData = async (): Promise<void> => {
       try {
         if (window.Telegram?.WebApp?.CloudStorage?.removeItem) {
           await window.Telegram.WebApp.CloudStorage.removeItem(TG_CLOUD_KEY);
+          
+          // Также удаляем все части, если они существуют
+          const metaStr = await window.Telegram.WebApp.CloudStorage.getItem(`${TG_CLOUD_KEY}_meta`);
+          if (metaStr) {
+            try {
+              const metaData = JSON.parse(metaStr);
+              if (metaData && metaData.chunks) {
+                // Удаляем все части
+                for (let i = 0; i < metaData.chunks; i++) {
+                  await window.Telegram.WebApp.CloudStorage.removeItem(`${TG_CLOUD_KEY}_${i}`);
+                }
+                
+                // Удаляем метаданные
+                await window.Telegram.WebApp.CloudStorage.removeItem(`${TG_CLOUD_KEY}_meta`);
+              }
+            } catch (parseError) {
+              console.error('❌ Ошибка при разборе метаданных:', parseError);
+            }
+          }
+          
           console.log('✅ Telegram CloudStorage очищен');
         }
       } catch (tgError) {
@@ -552,7 +574,5 @@ export const clearAllSavedData = async (): Promise<void> => {
 declare global {
   interface Window {
     __game_user_id?: string;
-    __telegramInitialized?: boolean;
-    __telegramNotificationShown?: boolean;
   }
 }

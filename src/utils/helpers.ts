@@ -1,4 +1,3 @@
-
 // Форматирование чисел для отображения
 export const formatNumber = (num: number): string => {
   if (num === Infinity) return "∞";
@@ -230,7 +229,7 @@ export const isTelegramCloudStorageAvailable = (): boolean => {
 // Кэш для хранения статуса текущих операций сохранения
 const cloudSaveOperations: Record<string, boolean> = {};
 
-// Принудительное сохранение в Telegram CloudStorage с обработкой ошибок
+// Принудительное сохранение в Telegram CloudStorage с обработкой ошибок и разбиением на части
 export const forceTelegramCloudSave = async (data: string, key: string): Promise<boolean> => {
   if (!isTelegramCloudStorageAvailable()) {
     console.warn('⚠️ Принудительное сохранение в CloudStorage невозможно - API недоступен');
@@ -248,69 +247,60 @@ export const forceTelegramCloudSave = async (data: string, key: string): Promise
   try {
     console.log(`🔄 Сохранение в Telegram CloudStorage (${data.length} байт)...`);
     
-    // Принудительное разделение данных на части, если размер превышает 4KB (документация Telegram)
-    const MAX_SIZE = 4000; // 4KB limit for Telegram CloudStorage
+    // Максимальный размер данных для CloudStorage (около 4KB согласно документации)
+    const MAX_CHUNK_SIZE = 4000;
     
-    if (data.length > MAX_SIZE) {
-      console.log(`⚠️ Данные слишком большие (${data.length} байт), разбиваем на части`);
+    if (data.length > MAX_CHUNK_SIZE) {
+      console.log(`⚠️ Данные слишком большие для Telegram CloudStorage (${data.length} байт), разбиваем на части`);
       
-      // Сохраняем метаданные
-      const chunksCount = Math.ceil(data.length / MAX_SIZE);
-      const metaData = JSON.stringify({
-        total: chunksCount,
-        timestamp: Date.now(),
-        totalSize: data.length
+      // Сохраняем метаданные о разб��ении
+      const chunks = Math.ceil(data.length / MAX_CHUNK_SIZE);
+      const meta = JSON.stringify({
+        chunks: chunks,
+        totalSize: data.length,
+        timestamp: Date.now()
       });
       
+      // Сначала сохраняем метаданные
       try {
-        await window.Telegram.WebApp.CloudStorage.setItem(`${key}_meta`, metaData);
-        console.log(`✅ Сохранены метаданные: части=${chunksCount}`);
+        await window.Telegram.WebApp.CloudStorage.setItem(`${key}_meta`, meta);
+        console.log(`✅ Метаданные сохранены: ${chunks} частей`);
       } catch (metaError) {
         console.error('❌ Ошибка при сохранении метаданных:', metaError);
         cloudSaveOperations[key] = false;
         return false;
       }
       
-      // Сохраняем по частям
-      let saved = 0;
-      const savePromises = [];
-      
-      for (let i = 0; i < chunksCount; i++) {
-        const chunk = data.substring(i * MAX_SIZE, (i + 1) * MAX_SIZE);
-        savePromises.push(
-          window.Telegram.WebApp.CloudStorage.setItem(`${key}_${i}`, chunk)
-            .then(() => {
-              saved += chunk.length;
-              console.log(`✅ Сохранена часть ${i+1}/${chunksCount} (${chunk.length} байт)`);
-            })
-            .catch((error) => {
-              console.error(`❌ Ошибка сохранения части ${i+1}/${chunksCount}:`, error);
-              throw error; // Прокидываем ошибку дальше
-            })
-        );
+      // Используем последовательные сохранения чтобы не перегружать CloudStorage
+      for (let i = 0; i < chunks; i++) {
+        const start = i * MAX_CHUNK_SIZE;
+        const end = Math.min((i + 1) * MAX_CHUNK_SIZE, data.length);
+        const chunk = data.substring(start, end);
+        
+        try {
+          await window.Telegram.WebApp.CloudStorage.setItem(`${key}_${i}`, chunk);
+          console.log(`✅ Часть ${i+1}/${chunks} сохранена (${chunk.length} байт)`);
+        } catch (chunkError) {
+          console.error(`❌ Ошибка при сохранении части ${i+1}/${chunks}:`, chunkError);
+          cloudSaveOperations[key] = false;
+          return false;
+        }
       }
       
-      try {
-        await Promise.all(savePromises);
-        console.log(`✅ Все данные сохранены (${saved}/${data.length} байт)`);
-        cloudSaveOperations[key] = false;
-        return true;
-      } catch (chunkError) {
-        console.error('❌ Ошибка при сохранении частей данных:', chunkError);
-        cloudSaveOperations[key] = false;
-        return false;
-      }
+      console.log(`✅ Данные успешно сохранены с разбиением на ${chunks} частей`);
+      cloudSaveOperations[key] = false;
+      return true;
     } else {
-      // Сохраняем как один блок
+      // Если данные маленькие, сохраняем обычным способом
       try {
         await window.Telegram.WebApp.CloudStorage.setItem(key, data);
         console.log(`✅ Данные успешно сохранены (${data.length} байт)`);
         
-        // Удаляем метаданные, если они существовали
+        // Удаляем метаданные, если они существуют
         try {
           await window.Telegram.WebApp.CloudStorage.removeItem(`${key}_meta`);
-        } catch (e) {
-          // Игнорируем ошибки удаления
+        } catch (cleanupError) {
+          // Игнорируем ошибку при очистке
         }
         
         cloudSaveOperations[key] = false;
@@ -331,7 +321,7 @@ export const forceTelegramCloudSave = async (data: string, key: string): Promise
 // Кэш для хранения статуса текущих операций загрузки
 const cloudLoadOperations: Record<string, boolean> = {};
 
-// Принудительная загрузка из Telegram CloudStorage с обработкой ошибок
+// Принудительная загрузка из Telegram CloudStorage с обработкой ошибок и поддержкой разбиения
 export const forceTelegramCloudLoad = async (key: string): Promise<string | null> => {
   if (!isTelegramCloudStorageAvailable()) {
     console.warn('⚠️ Загрузка из CloudStorage невозможна - API недоступен');
@@ -349,74 +339,61 @@ export const forceTelegramCloudLoad = async (key: string): Promise<string | null
   try {
     console.log(`🔄 Загрузка из Telegram CloudStorage (ключ: ${key})...`);
     
-    // Сначала пробуем загрузить метаданные
-    let metaDataStr = null;
+    // Сначала проверяем, есть ли метаданные о разбиении
+    let metaData = null;
     try {
-      metaDataStr = await window.Telegram.WebApp.CloudStorage.getItem(`${key}_meta`);
+      const metaStr = await window.Telegram.WebApp.CloudStorage.getItem(`${key}_meta`);
+      if (metaStr) {
+        metaData = JSON.parse(metaStr);
+        console.log(`✅ Найдены метаданные: ${metaData.chunks} частей, общий размер ${metaData.totalSize} байт`);
+      }
     } catch (metaError) {
       console.warn('⚠️ Ошибка при загрузке метаданных:', metaError);
     }
     
-    // Если есть метаданные, значит данные разделены на части
-    if (metaDataStr) {
-      try {
-        const metaData = JSON.parse(metaDataStr);
-        console.log(`✅ Найдены метаданные: части=${metaData.total}, размер=${metaData.totalSize}`);
-        
-        // Собираем все части
-        let fullData = "";
-        const loadPromises = [];
-        
-        for (let i = 0; i < metaData.total; i++) {
-          loadPromises.push(
-            window.Telegram.WebApp.CloudStorage.getItem(`${key}_${i}`)
-              .then(chunk => {
-                if (chunk === null) {
-                  console.error(`❌ Часть ${i+1}/${metaData.total} не найдена!`);
-                  throw new Error(`Missing chunk ${i}`);
-                }
-                console.log(`✅ Загружена часть ${i+1}/${metaData.total} (${chunk.length} байт)`);
-                return { index: i, data: chunk };
-              })
-          );
-        }
-        
+    // Если есть метаданные, собираем части
+    if (metaData && metaData.chunks) {
+      let completeData = '';
+      
+      // Загружаем все части последовательно
+      for (let i = 0; i < metaData.chunks; i++) {
         try {
-          const chunks = await Promise.all(loadPromises);
+          const chunkKey = `${key}_${i}`;
+          const chunk = await window.Telegram.WebApp.CloudStorage.getItem(chunkKey);
           
-          // Сортируем части по индексу для правильного порядка
-          chunks.sort((a, b) => a.index - b.index);
+          if (chunk === null) {
+            console.error(`❌ Часть ${i+1}/${metaData.chunks} не найдена!`);
+            cloudLoadOperations[key] = false;
+            return null;
+          }
           
-          // Объединяем части в правильном порядке
-          fullData = chunks.map(chunk => chunk.data).join('');
-          
-          console.log(`✅ Все данные собраны (${fullData.length}/${metaData.totalSize} байт)`);
+          completeData += chunk;
+          console.log(`✅ Загружена часть ${i+1}/${metaData.chunks} (${chunk.length} байт)`);
+        } catch (chunkError) {
+          console.error(`❌ Ошибка при загрузке части ${i+1}/${metaData.chunks}:`, chunkError);
           cloudLoadOperations[key] = false;
-          return fullData;
-        } catch (chunksError) {
-          console.error('❌ Ошибка при загрузке частей данных:', chunksError);
-          cloudLoadOperations[key] = false;
-          // Продолжаем и пробуем обычный способ загрузки
+          return null;
         }
-      } catch (e) {
-        console.error('❌ Ошибка при обработке разделенных данных:', e);
-        // Если не удалось обработать разделенные данные, попробуем обычный способ
       }
+      
+      console.log(`✅ Все данные успешно собраны (${completeData.length}/${metaData.totalSize} байт)`);
+      cloudLoadOperations[key] = false;
+      return completeData;
     }
     
-    // Обычный способ загрузки
+    // Если нет метаданных или не удалось их загрузить, пробуем простую загрузку
     try {
       const data = await window.Telegram.WebApp.CloudStorage.getItem(key);
       
-      if (data !== null) {
-        console.log(`✅ Данные загружены (${data.length} байт)`);
-        cloudLoadOperations[key] = false;
-        return data;
-      } else {
+      if (data === null) {
         console.log('❌ Данные не найдены');
         cloudLoadOperations[key] = false;
         return null;
       }
+      
+      console.log(`✅ Данные успешно загружены (${data.length} байт)`);
+      cloudLoadOperations[key] = false;
+      return data;
     } catch (error) {
       console.error('❌ Ошибка при загрузке данных:', error);
       cloudLoadOperations[key] = false;

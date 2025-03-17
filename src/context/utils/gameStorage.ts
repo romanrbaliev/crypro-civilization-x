@@ -78,7 +78,7 @@ export async function saveGameState(state: GameState): Promise<boolean> {
       console.warn('⚠️ Не удалось сохранить резервную копию в localStorage:', localError);
     }
     
-    // Сохраняем через gameDataService (работает с Supabase или локально)
+    // Сохраняем через gameDataService (работает с Telegram, Supabase или локально)
     const saved = await saveGameToServer(stateToSave);
     
     if (saved) {
@@ -116,7 +116,7 @@ export async function loadGameState(): Promise<GameState | null> {
   try {
     console.log('🔄 Начинаем загрузку сохраненной игры...');
     
-    // Загружаем через gameDataService (работает с Supabase или локально)
+    // Загружаем через gameDataService (работает с Telegram, Supabase или локально)
     let loadedState = await loadGameFromServer();
     let stateSource = 'server';
     

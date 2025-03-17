@@ -109,4 +109,7 @@ interface Window {
     };
   };
   gameEventBus?: EventTarget;
+  __telegramInitialized?: boolean;
+  __telegramNotificationShown?: boolean;
+  __FORCE_TELEGRAM_MODE?: boolean;
 }

@@ -35,6 +35,7 @@ const setTelegramMeta = () => {
 // Создаем глобальную переменную для отслеживания инициализации
 window.__telegramInitialized = window.__telegramInitialized || false;
 window.__telegramNotificationShown = window.__telegramNotificationShown || false;
+window.__FORCE_TELEGRAM_MODE = true; // Принудительно включаем режим Telegram для отладки
 
 const App = () => {
   // Устанавливаем мета-данные при загрузке приложения
