@@ -112,8 +112,7 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
     const { error } = await supabase
       .from(SAVES_TABLE)
       .select('count')
-      .limit(1)
-      .single();
+      .limit(1);
     
     // Если получили ошибку PGRST116, то таблица не существует
     if (error && error.code === 'PGRST116') {
@@ -129,8 +128,7 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
         const { error: retryError } = await supabase
           .from(SAVES_TABLE)
           .select('count')
-          .limit(1)
-          .single();
+          .limit(1);
         
         // Если все еще ошибка, но не PGRST116, то соединение работает
         const isConnected = !retryError || (retryError.code !== 'PGRST116');
@@ -220,10 +218,13 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     
     console.log('🔄 Сохранение в Supabase...');
     
+    // Преобразуем GameState в подходящий для Supabase формат Json
+    const gameDataJson = JSON.parse(JSON.stringify(gameState)) as Json;
+    
     // Готовим данные для сохранения
     const saveData = {
       user_id: userId,
-      game_data: gameState as unknown as Json,
+      game_data: gameDataJson,
       updated_at: new Date().toISOString()
     };
     
@@ -307,10 +308,19 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
         // Сбрасываем флаг уведомлений, так как Supabase стал доступен
         supabaseNotificationShown = false;
         
+        // Преобразуем данные из Json обратно в GameState
+        const gameState = data.game_data as unknown as GameState;
+        
+        // Проверяем что загружены все необходимые поля
+        if (!gameState.resources || !gameState.buildings || !gameState.upgrades) {
+          console.warn('⚠️ Загруженные данные неполные или повреждены');
+          return null;
+        }
+        
         // Обновляем локальную копию
         try {
           localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
-            gameData: data.game_data,
+            gameData: gameState,
             timestamp: Date.now(),
             userId
           }));
@@ -319,7 +329,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           console.warn('⚠️ Не удалось обновить локальную копию:', localError);
         }
         
-        return data.game_data as unknown as GameState;
+        return gameState;
       } else {
         console.log('❌ Сохранение в Supabase не найдено');
       }
@@ -336,7 +346,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           
           if (localBackup.gameData) {
             console.log('✅ Игра загружена из локальной копии (LOCAL_BACKUP_KEY)');
-            return localBackup.gameData;
+            return localBackup.gameData as GameState;
           }
         } catch (parseError) {
           console.error('❌ Ошибка при разборе локальной копии:', parseError);
@@ -351,7 +361,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           console.log('✅ Найдено основное сохранение');
           
           console.log('✅ Игра загружена из основного сохранения (GAME_STORAGE_KEY)');
-          return mainSave;
+          return mainSave as GameState;
         } catch (parseError) {
           console.error('❌ Ошибка при разборе основного сохранения:', parseError);
         }
