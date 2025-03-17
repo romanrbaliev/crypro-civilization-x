@@ -42,11 +42,14 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
         </div>
       )}
       
-      <div className="flex items-center justify-end">
-        <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
-          {isNegativeRate ? "-" : "+"}{formatNumber(Math.abs(perSecond))}/сек
+      {/* Отображаем скорость только если она не равна нулю */}
+      {perSecond !== 0 && (
+        <div className="flex items-center justify-end">
+          <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
+            {isNegativeRate ? "-" : "+"}{formatNumber(Math.abs(perSecond))}/сек
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
