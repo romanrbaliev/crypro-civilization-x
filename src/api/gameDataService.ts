@@ -1,8 +1,8 @@
 
-// API сервис для сохранения и загрузки игрового прогресса с Supabase и Telegram
+// API сервис для сохранения и загрузки игрового прогресса с Supabase
 
 import { GameState } from '@/context/types';
-import { isTelegramWebAppAvailable, forceTelegramCloudSave, forceTelegramCloudLoad } from '@/utils/helpers';
+import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from "@/hooks/use-toast";
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -14,27 +14,18 @@ let supabaseAvailable = false;
 let supabaseNotificationShown = false;
 
 // Получение URL и ключа Supabase
-// Используем значения по умолчанию для предотвращения ошибок, если они не заданы
-const supabaseUrl = 'https://example.supabase.co';
-const supabaseKey = 'dummy-key-for-development';
+// Замените на реальные значения вашего Supabase проекта
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://npwpzlzybgfvktyslsvf.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wd3B6bHp5Ymdmdmt0eXNsc3ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTExMjE0NzksImV4cCI6MjAyNjY5NzQ3OX0.0fPIjIoKuNNZzE4VOG1PlU7KlNz3yhIv_Tch9B_H_qE';
 
 // Проверка наличия учетных данных Supabase
-console.log('ℹ️ Supabase URL и ключ установлены напрямую в gameDataService.ts');
+console.log('ℹ️ Используем настройки Supabase для постоянного хранения данных игры');
 
-// Создаем клиент Supabase только для локальной разработки
+// Создаем клиент Supabase
 let supabase: SupabaseClient | null = null;
 try {
-  if (process.env.NODE_ENV === 'development') {
-    // В режиме разработки используем заглушку
-    supabase = null;
-    console.log('ℹ️ Режим разработки: Supabase отключен');
-    supabaseChecked = true;
-    supabaseAvailable = false;
-  } else {
-    // В продакшене попытаемся подключиться с настоящими параметрами
-    supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('✅ Supabase клиент инициализирован (проверка подключения будет выполнена при первом запросе)');
-  }
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('✅ Supabase клиент инициализирован');
 } catch (error) {
   console.error('❌ Ошибка при инициализации клиента Supabase:', error);
   supabaseChecked = true;
@@ -46,9 +37,6 @@ const SAVES_TABLE = 'game_saves';
 
 // Имя ключа для локального резервного хранилища
 const LOCAL_BACKUP_KEY = 'cryptoCivilizationLocalBackup';
-
-// Имя ключа для Telegram CloudStorage
-const TG_CLOUD_KEY = 'cryptoCivilizationSave';
 
 // Дебаунс функция для предотвращения слишком частых проверок
 let lastCheckTime = 0;
@@ -96,7 +84,7 @@ const getUserIdentifier = async (): Promise<string> => {
   }
   
   // Проверяем авторизацию в Supabase
-  if (supabase && supabaseAvailable) {
+  if (supabase) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
@@ -121,13 +109,8 @@ const getUserIdentifier = async (): Promise<string> => {
   return localId;
 };
 
-// Проверка подключения к Supabase с дебаунсом
+// Проверка подключения к Supabase
 const checkSupabaseConnection = async (): Promise<boolean> => {
-  // В режиме разработки просто возвращаем false
-  if (process.env.NODE_ENV === 'development') {
-    return false;
-  }
-  
   // Если уже проверяли - возвращаем кешированный результат
   if (supabaseChecked) {
     return supabaseAvailable;
@@ -152,14 +135,50 @@ const checkSupabaseConnection = async (): Promise<boolean> => {
   }
   
   try {
-    // Простой запрос для проверки подключения
+    // Проверка таблицы или создание, если не существует
     console.log('🔄 Проверка соединения с Supabase...');
     
-    // В продакшене делаем реальную проверку
-    const { error } = await supabase.from('_dummy_check_').select('*').limit(1).maybeSingle();
+    // Убедимся, что таблица существует
+    const { error } = await supabase
+      .from(SAVES_TABLE)
+      .select('count')
+      .limit(1)
+      .single();
     
-    // Ошибка PGRST116 означает, что таблица не существует, но соединение работает
-    const isConnected = !error || error.code === 'PGRST116';
+    // Если получили ошибку PGRST116, то таблица не существует
+    if (error && error.code === 'PGRST116') {
+      console.log('⚠️ Таблица сохранений не найдена, пробуем создать...');
+      
+      // Создаем таблицу через SQL
+      const { error: createError } = await supabase.rpc('create_saves_table');
+      
+      if (createError) {
+        console.error('❌ Не удалось создать таблицу:', createError);
+        
+        // Попробуем еще раз проверить таблицу
+        const { error: retryError } = await supabase
+          .from(SAVES_TABLE)
+          .select('count')
+          .limit(1)
+          .single();
+        
+        // Если все еще ошибка, но не PGRST116, то соединение работает
+        const isConnected = !retryError || (retryError.code !== 'PGRST116');
+        
+        // Обновляем состояние проверки
+        supabaseChecked = true;
+        supabaseAvailable = isConnected;
+        
+        // Обновляем кеш
+        lastCheckTime = now;
+        cachedConnectionResult = isConnected;
+        
+        return isConnected;
+      }
+    }
+    
+    // Если нет ошибки или ошибка не PGRST116, считаем, что соединение работает
+    const isConnected = !error || (error.code !== 'PGRST116');
     
     // Обновляем состояние проверки
     supabaseChecked = true;
@@ -191,92 +210,7 @@ const checkSupabaseConnection = async (): Promise<boolean> => {
   }
 };
 
-// Сохранение в Telegram CloudStorage при доступности
-const saveToTelegramCloudStorage = async (gameState: GameState, userId: string): Promise<boolean> => {
-  if (!isTelegramWebAppAvailable()) {
-    return false;
-  }
-  
-  try {
-    console.log('🔄 Попытка сохранения в Telegram CloudStorage...');
-    
-    // Добавляем метку времени и пользовательский ID в сохраняемые данные
-    const saveData = {
-      gameData: gameState,
-      timestamp: Date.now(),
-      userId: userId,
-      version: "1.0.2" // Добавляем версию для совместимости
-    };
-    
-    // Сериализуем данные с защитой от ошибок
-    const jsonData = JSON.stringify(saveData);
-    
-    // Используем вспомогательную функцию для сохранения
-    const saved = await forceTelegramCloudSave(jsonData, TG_CLOUD_KEY);
-    
-    if (saved) {
-      console.log('✅ Игра успешно сохранена в Telegram CloudStorage');
-      
-      // Дублируем в localStorage для надежности
-      try {
-        localStorage.setItem(LOCAL_BACKUP_KEY, jsonData);
-        console.log('✅ Создана локальная резервная копия игры');
-      } catch (backupError) {
-        console.warn('⚠️ Не удалось создать локальную копию:', backupError);
-      }
-    } else {
-      console.warn('⚠️ Не удалось сохранить в Telegram CloudStorage');
-    }
-    
-    return saved;
-  } catch (error) {
-    console.error('❌ Ошибка при сохранении в Telegram CloudStorage:', error);
-    return false;
-  }
-};
-
-// Загрузка из Telegram CloudStorage при доступности
-const loadFromTelegramCloudStorage = async (): Promise<GameState | null> => {
-  if (!isTelegramWebAppAvailable()) {
-    return null;
-  }
-  
-  try {
-    console.log('🔄 Попытка загрузки из Telegram CloudStorage...');
-    
-    // Используем вспомогательную функцию для загрузки
-    const jsonData = await forceTelegramCloudLoad(TG_CLOUD_KEY);
-    
-    if (jsonData) {
-      try {
-        const parsedData = JSON.parse(jsonData);
-        if (parsedData && parsedData.gameData) {
-          console.log('✅ Игра успешно загружена из Telegram CloudStorage');
-          
-          // Сохраняем в localStorage как резервную копию
-          try {
-            localStorage.setItem(LOCAL_BACKUP_KEY, jsonData);
-            console.log('✅ Обновлена локальная резервная копия из Telegram');
-          } catch (backupError) {
-            console.warn('⚠️ Не удалось обновить локальную копию:', backupError);
-          }
-          
-          return parsedData.gameData as GameState;
-        }
-      } catch (parseError) {
-        console.error('❌ Ошибка при разборе данных из Telegram CloudStorage:', parseError);
-      }
-    }
-    
-    console.warn('⚠️ Данные в Telegram CloudStorage не найдены или повреждены');
-    return null;
-  } catch (error) {
-    console.error('❌ Ошибка при загрузке из Telegram CloudStorage:', error);
-    return null;
-  }
-};
-
-// Сохранение игры в Supabase с приоритетом Telegram
+// Сохранение игры в Supabase или локально
 export const saveGameToServer = async (gameState: GameState): Promise<boolean> => {
   try {
     const userId = await getUserIdentifier();
@@ -297,27 +231,14 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       console.error('❌ Ошибка при создании локальной резервной копии:', backupError);
     }
     
-    // Если это Telegram, первым приоритетом сохраняем в CloudStorage
-    if (isTelegramWebAppAvailable()) {
-      const tgSaved = await saveToTelegramCloudStorage(gameState, userId);
-      if (tgSaved) {
-        return true;
-      }
-    }
-    
-    // В режиме разработки сразу возвращаем успех локального сохранения
-    if (process.env.NODE_ENV === 'development') {
-      return saveSuccess;
-    }
-    
     // Если доступен Supabase, проверяем подключение
     if (supabase) {
       // Проверяем подключение к Supabase
       const isConnected = await checkSupabaseConnection();
       
       if (!isConnected) {
-        // Предотвращаем многократные уведомления (кроме режима разработки)
-        if (!supabaseNotificationShown && process.env.NODE_ENV !== 'development') {
+        // Предотвращаем многократные уведомления
+        if (!supabaseNotificationShown) {
           supabaseNotificationShown = true;
           toast({
             title: "Локальное сохранение",
@@ -331,50 +252,32 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       
       console.log('🔄 Сохранение в Supabase...');
       
-      // Проверка существования таблицы и создание, если не существует
-      const { error: tableCheckError } = await supabase.from(SAVES_TABLE).select('id').limit(1);
-      if (tableCheckError && tableCheckError.code === 'PGRST116') {
-        // Таблица не существует, создаем ее
-        console.log('❌ Таблица не найдена. Будет создана автоматически при первом сохранении.');
-      }
+      // Готовим данные для сохранения
+      const saveData = {
+        user_id: userId,
+        game_data: gameState,
+        updated_at: new Date().toISOString()
+      };
       
       // Пытаемся обновить существующую запись
-      const { error: updateError } = await supabase
+      const { error: upsertError } = await supabase
         .from(SAVES_TABLE)
-        .update({
-          game_data: gameState,
-          updated_at: new Date().toISOString()
-        })
-        .match({ user_id: userId });
+        .upsert(saveData, { onConflict: 'user_id' });
       
-      // Если запись не существует или произошла другая ошибка, создаем новую запись
-      if (updateError) {
-        console.log('Сохранение не найдено или ошибка обновления, создаем новую запись.');
+      if (upsertError) {
+        console.error('❌ Ошибка при сохранении в Supabase:', upsertError);
         
-        const { error: insertError } = await supabase
-          .from(SAVES_TABLE)
-          .insert({
-            user_id: userId,
-            game_data: gameState,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+        // Показываем уведомление только если оно еще не было показано
+        if (!supabaseNotificationShown) {
+          supabaseNotificationShown = true;
+          toast({
+            title: "Частичное сохранение",
+            description: "Не удалось сохранить в облаке. Данные сохранены локально.",
+            variant: "warning",
           });
-        
-        if (insertError) {
-          console.error('❌ Ошибка при создании новой записи:', insertError);
-          
-          // Показываем уведомление только если оно еще не было показано
-          if (!supabaseNotificationShown && process.env.NODE_ENV !== 'development') {
-            supabaseNotificationShown = true;
-            toast({
-              title: "Частичное сохранение",
-              description: "Не удалось сохранить в облаке. Данные сохранены локально.",
-              variant: "warning",
-            });
-          }
-          
-          return saveSuccess; // Возвращаем результат локального сохранения
         }
+        
+        return saveSuccess; // Возвращаем результат локального сохранения
       }
       
       console.log('✅ Игра успешно сохранена в Supabase');
@@ -385,8 +288,8 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       return true;
     }
     
-    // Показываем уведомление только если оно еще не было показано в продакшене
-    if (!supabaseNotificationShown && process.env.NODE_ENV !== 'development') {
+    // Показываем уведомление только если оно еще не было показано
+    if (!supabaseNotificationShown) {
       supabaseNotificationShown = true;
       toast({
         title: "Локальное сохранение",
@@ -399,8 +302,8 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
   } catch (error) {
     console.error('❌ Критическая ошибка при сохранении игры:', error);
     
-    // Показываем уведомление только если оно еще не было показано в продакшене
-    if (!supabaseNotificationShown && process.env.NODE_ENV !== 'development') {
+    // Показываем уведомление только если оно еще не было показано
+    if (!supabaseNotificationShown) {
       supabaseNotificationShown = true;
       toast({
         title: "Ошибка сохранения",
@@ -414,34 +317,18 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
   }
 };
 
-// Загрузка игры c приоритетом Telegram
+// Загрузка игры из Supabase
 export const loadGameFromServer = async (): Promise<GameState | null> => {
   try {
     const userId = await getUserIdentifier();
     console.log(`🔄 Загрузка игры для пользователя: ${userId}`);
     
     // Приоритет загрузки:
-    // 1. Telegram CloudStorage
-    // 2. Supabase
-    // 3. Локальное хранилище (резервная копия)
-    // 4. Основное локальное хранилище (исторически)
+    // 1. Supabase
+    // 2. Локальное хранилище (резервная копия)
     
-    // В режиме Telegram сначала пытаемся загрузить из CloudStorage
-    if (isTelegramWebAppAvailable()) {
-      console.log('🔍 Проверка наличия сохранения в Telegram CloudStorage...');
-      const tgData = await loadFromTelegramCloudStorage();
-      if (tgData) {
-        console.log('✅ Игра загружена из Telegram CloudStorage');
-        return tgData;
-      } else {
-        console.log('⚠️ Не удалось загрузить из Telegram CloudStorage');
-      }
-    }
-    
-    // В режиме разработки сразу переходим к локальному хранилищу
-    if (process.env.NODE_ENV === 'development') {
-      // Пропускаем проверку Supabase в режиме разработки
-    } else if (supabase) {
+    // Если доступен Supabase, пытаемся загрузить оттуда
+    if (supabase) {
       // Проверяем подключение к Supabase
       const isConnected = await checkSupabaseConnection();
       
@@ -466,6 +353,18 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           // Сбрасываем флаг уведомлений, так как Supabase стал доступен
           supabaseNotificationShown = false;
           
+          // Обновляем локальную копию
+          try {
+            localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
+              gameData: data.game_data,
+              timestamp: Date.now(),
+              userId
+            }));
+            console.log('✅ Локальная резервная копия обновлена из Supabase');
+          } catch (localError) {
+            console.warn('⚠️ Не удалось обновить локальную копию:', localError);
+          }
+          
           return data.game_data as GameState;
         } else {
           console.log('❌ Сохранение в Supabase не найдено');
@@ -473,9 +372,9 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       }
     }
     
-    // Если данные не загружены из других источников, пытаемся загрузить из локального хранилища
+    // Если данные не загружены из Supabase, пытаемся загрузить из локального хранилища
     try {
-      // Сначала проверяем LOCAL_BACKUP_KEY
+      // Проверяем LOCAL_BACKUP_KEY
       const backupData = localStorage.getItem(LOCAL_BACKUP_KEY);
       if (backupData) {
         try {
@@ -483,7 +382,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           console.log('✅ Найдена локальная копия от:', new Date(localBackup.timestamp).toLocaleString());
           
           if (localBackup.gameData) {
-            console.log('✅ Игра загружена из локальной копии (из LOCAL_BACKUP_KEY)');
+            console.log('✅ Игра загружена из локальной копии (LOCAL_BACKUP_KEY)');
             return localBackup.gameData;
           }
         } catch (parseError) {
@@ -525,48 +424,6 @@ export const clearAllSavedData = async (): Promise<void> => {
     localStorage.removeItem(LOCAL_BACKUP_KEY);
     localStorage.removeItem('cryptoCivilizationSave');
     console.log('✅ Локальное сохранение очищено');
-    
-    // Очищаем Telegram CloudStorage если доступно
-    if (isTelegramWebAppAvailable()) {
-      try {
-        if (window.Telegram?.WebApp?.CloudStorage?.removeItem) {
-          await window.Telegram.WebApp.CloudStorage.removeItem(TG_CLOUD_KEY);
-          
-          // Также удаляем все части, если они существуют
-          const metaStr = await window.Telegram.WebApp.CloudStorage.getItem(`${TG_CLOUD_KEY}_meta`);
-          if (metaStr) {
-            try {
-              const metaData = JSON.parse(metaStr);
-              if (metaData && metaData.chunks) {
-                // Удаляем все части
-                for (let i = 0; i < metaData.chunks; i++) {
-                  await window.Telegram.WebApp.CloudStorage.removeItem(`${TG_CLOUD_KEY}_${i}`);
-                }
-                
-                // Удаляем метаданные
-                await window.Telegram.WebApp.CloudStorage.removeItem(`${TG_CLOUD_KEY}_meta`);
-              }
-            } catch (parseError) {
-              console.error('❌ Ошибка при разборе метаданных:', parseError);
-            }
-          }
-          
-          console.log('✅ Telegram CloudStorage очищен');
-        }
-      } catch (tgError) {
-        console.error('❌ Ошибка при очистке Telegram CloudStorage:', tgError);
-      }
-    }
-    
-    // В режиме разработки ничего больше не делаем
-    if (process.env.NODE_ENV === 'development') {
-      toast({
-        title: "Сохранения очищены",
-        description: "Локальные сохранения успешно удалены.",
-        variant: "default",
-      });
-      return;
-    }
     
     // Если доступен Supabase, удаляем запись из базы данных
     if (supabase) {

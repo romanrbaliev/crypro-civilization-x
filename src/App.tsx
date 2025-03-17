@@ -35,6 +35,7 @@ const setTelegramMeta = () => {
 // Создаем глобальную переменную для отслеживания инициализации
 window.__telegramInitialized = window.__telegramInitialized || false;
 window.__telegramNotificationShown = window.__telegramNotificationShown || false;
+window.__supabaseInitialized = window.__supabaseInitialized || false;
 window.__FORCE_TELEGRAM_MODE = true; // Принудительно включаем режим Telegram для отладки
 
 const App = () => {
@@ -72,61 +73,21 @@ const App = () => {
         console.log('- Версия:', window.Telegram.WebApp.version);
         console.log('- Длина initData:', window.Telegram.WebApp.initData?.length || 0);
         
-        // Проверка наличия CloudStorage
-        if (window.Telegram?.WebApp?.CloudStorage) {
-          console.log('- CloudStorage доступен:', !!window.Telegram.WebApp.CloudStorage);
-          
-          // Проверяем методы CloudStorage
-          const hasGetItem = typeof window.Telegram.WebApp.CloudStorage.getItem === 'function';
-          const hasSetItem = typeof window.Telegram.WebApp.CloudStorage.setItem === 'function';
-          const hasRemoveItem = typeof window.Telegram.WebApp.CloudStorage.removeItem === 'function';
-          
-          console.log('- CloudStorage методы:', {
-            getItem: hasGetItem,
-            setItem: hasSetItem,
-            removeItem: hasRemoveItem
-          });
-          
-          if (hasGetItem && hasSetItem && hasRemoveItem) {
-            console.log('✅ CloudStorage полностью функционален');
-            
-            // Тест CloudStorage
-            try {
-              window.Telegram.WebApp.CloudStorage.setItem('test_key', 'test_value')
-                .then(() => window.Telegram.WebApp.CloudStorage.getItem('test_key'))
-                .then(value => {
-                  console.log('✅ Тест CloudStorage успешен:', value === 'test_value');
-                })
-                .catch(err => {
-                  console.error('❌ Ошибка теста CloudStorage:', err);
-                });
-            } catch (testError) {
-              console.warn('⚠️ Не удалось протестировать CloudStorage:', testError);
-            }
-          } else {
-            console.warn('⚠️ CloudStorage не полностью функционален');
-          }
-        } else {
-          console.warn('❌ CloudStorage недоступен');
-        }
-        
-        // Настройка обработчика BackButton если доступен
-        if (window.Telegram?.WebApp?.BackButton) {
-          if (window.Telegram.WebApp.BackButton.isVisible) {
-            window.Telegram.WebApp.BackButton.hide();
-            console.log('✅ BackButton скрыт при запуске');
-          }
-        }
-        
         // Сохраняем данные о пользователе при наличии
         if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
           try {
             const telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
             localStorage.setItem('telegram_user_id', telegramUserId.toString());
             console.log('✅ ID пользователя Telegram сохранен в localStorage:', telegramUserId);
+            
+            // Запускаем инициализацию Supabase
+            initializeSupabase(telegramUserId);
           } catch (e) {
             console.warn('⚠️ Не удалось сохранить ID пользователя Telegram:', e);
           }
+        } else {
+          // Даже без ID пользователя, инициализируем Supabase
+          initializeSupabase();
         }
         
         // Показываем toast с информацией о режиме Telegram только один раз в продакшене
@@ -151,9 +112,15 @@ const App = () => {
             variant: "destructive",
           });
         }
+        
+        // Даже при ошибке Telegram, инициализируем Supabase
+        initializeSupabase();
       }
     } else {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме');
+      
+      // Инициализируем Supabase в стандартном режиме
+      initializeSupabase();
       
       // Показываем toast с информацией о стандартном режиме только один раз
       // и не показываем в режиме разработки, чтобы не мешать разработчикам
@@ -162,13 +129,65 @@ const App = () => {
         setTimeout(() => {
           toast({
             title: "Стандартный режим",
-            description: "Приложение запущено в браузере. Прогресс будет сохранен локально.",
+            description: "Приложение запущено в браузере. Прогресс будет сохранен в облаке.",
             variant: "default",
           });
         }, 1000);
       }
     }
   }, []);
+
+  // Инициализация Supabase
+  const initializeSupabase = async (telegramUserId?: number) => {
+    // Предотвращаем повторную инициализацию
+    if (window.__supabaseInitialized) {
+      return;
+    }
+    
+    window.__supabaseInitialized = true;
+    
+    try {
+      // Импортируем и инициализируем подключение к базе данных
+      const { checkSupabaseConnection } = await import('./api/gameDataService');
+      
+      if (typeof checkSupabaseConnection === 'function') {
+        console.log('🔄 Проверка подключения к Supabase...');
+        const isConnected = await checkSupabaseConnection();
+        
+        if (isConnected) {
+          console.log('✅ Соединение с Supabase установлено успешно');
+          
+          if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
+            window.__telegramNotificationShown = true;
+            setTimeout(() => {
+              toast({
+                title: "Облачное сохранение",
+                description: "Подключение к облачной базе данных установлено.",
+                variant: "default",
+              });
+            }, 1500);
+          }
+        } else {
+          console.warn('⚠️ Не удалось подключиться к Supabase');
+          
+          if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
+            window.__telegramNotificationShown = true;
+            setTimeout(() => {
+              toast({
+                title: "Локальный режим",
+                description: "Не удалось подключиться к облачной базе данных. Прогресс будет сохранен локально.",
+                variant: "warning",
+              });
+            }, 1500);
+          }
+        }
+      } else {
+        console.warn('⚠️ Функция проверки Supabase не найдена');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка при инициализации Supabase:', error);
+    }
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -186,5 +205,15 @@ const App = () => {
     </QueryClientProvider>
   );
 };
+
+// Добавляем дополнительные глобальные типы
+declare global {
+  interface Window {
+    __telegramInitialized: boolean;
+    __telegramNotificationShown: boolean;
+    __supabaseInitialized: boolean;
+    __FORCE_TELEGRAM_MODE: boolean;
+  }
+}
 
 export default App;
