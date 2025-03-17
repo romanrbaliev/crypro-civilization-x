@@ -18,8 +18,12 @@ if (!supabaseUrl || !supabaseKey) {
 // Создаем клиент Supabase
 let supabase: SupabaseClient | null = null;
 try {
-  supabase = createClient(supabaseUrl, supabaseKey);
-  console.log('✅ Supabase клиент инициализирован успешно');
+  if (supabaseUrl && supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ Supabase клиент инициализирован успешно');
+  } else {
+    console.warn('⚠️ Не удалось инициализировать Supabase: отсутствуют учетные данные');
+  }
 } catch (error) {
   console.error('❌ Ошибка при инициализации клиента Supabase:', error);
 }
@@ -67,6 +71,26 @@ const getUserIdentifier = async (): Promise<string> => {
   return localId;
 };
 
+// Проверка подключения к Supabase
+const checkSupabaseConnection = async (): Promise<boolean> => {
+  if (!supabase) return false;
+  
+  try {
+    // Простой запрос для проверки подключения
+    const { error } = await supabase.from('_dummy_check_').select('*').limit(1).maybeSingle();
+    
+    // Ошибка PGRST116 означает, что таблица не существует, но соединение работает
+    if (error && error.code === 'PGRST116') {
+      return true;
+    }
+    
+    return !error;
+  } catch (error) {
+    console.error('❌ Ошибка при проверке подключения к Supabase:', error);
+    return false;
+  }
+};
+
 // Сохранение игры в Supabase
 export const saveGameToServer = async (gameState: GameState): Promise<boolean> => {
   try {
@@ -85,8 +109,25 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       console.error('❌ Ошибка при создании локальной резервной копии:', backupError);
     }
     
-    // Если доступен Supabase, сохраняем в базу данных
+    // Если доступен Supabase, проверяем подключение
     if (supabase) {
+      console.log('🔄 Проверка подключения к Supabase...');
+      
+      // Проверяем подключение к Supabase
+      const isConnected = await checkSupabaseConnection();
+      
+      if (!isConnected) {
+        console.warn('⚠️ Supabase недоступен, используется только локальное хранилище');
+        
+        toast({
+          title: "Локальное сохранение",
+          description: "Supabase недоступен. Прогресс сохранен локально.",
+          variant: "warning",
+        });
+        
+        return true; // Локальное сохранение успешно
+      }
+      
       console.log('🔄 Сохранение в Supabase...');
       
       // Проверка существования таблицы и создание, если не существует
@@ -174,32 +215,41 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     
     // Если доступен Supabase, пытаемся загрузить из базы данных
     if (supabase) {
-      console.log('🔄 Загрузка из Supabase...');
+      console.log('🔄 Проверка подключения к Supabase...');
       
-      const { data, error } = await supabase
-        .from(SAVES_TABLE)
-        .select('game_data, updated_at')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Проверяем подключение к Supabase
+      const isConnected = await checkSupabaseConnection();
       
-      if (error) {
-        console.error('❌ Ошибка при загрузке из Supabase:', error);
+      if (isConnected) {
+        console.log('🔄 Загрузка из Supabase...');
         
-        if (error.code === 'PGRST116') {
-          console.warn('⚠️ Таблица сохранений не существует в Supabase');
+        const { data, error } = await supabase
+          .from(SAVES_TABLE)
+          .select('game_data, updated_at')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('❌ Ошибка при загрузке из Supabase:', error);
+          
+          if (error.code === 'PGRST116') {
+            console.warn('⚠️ Таблица сохранений не существует в Supabase');
+          }
+        } else if (data && data.game_data) {
+          console.log('✅ Игра загружена из Supabase, дата обновления:', data.updated_at);
+          
+          toast({
+            title: "Игра загружена",
+            description: "Прогресс загружен из облачного хранилища",
+            variant: "default",
+          });
+          
+          return data.game_data as GameState;
+        } else {
+          console.log('❌ Сохранение в Supabase не найдено');
         }
-      } else if (data && data.game_data) {
-        console.log('✅ Игра загружена из Supabase, дата обновления:', data.updated_at);
-        
-        toast({
-          title: "Игра загружена",
-          description: "Прогресс загружен из облачного хранилища",
-          variant: "default",
-        });
-        
-        return data.game_data as GameState;
       } else {
-        console.log('❌ Сохранение в Supabase не найдено');
+        console.warn('⚠️ Supabase недоступен, используется только локальное хранилище');
       }
     } else {
       console.warn('⚠️ Supabase недоступен, используется только локальное хранилище');
@@ -263,28 +313,41 @@ export const clearAllSavedData = async (): Promise<void> => {
     
     // Если доступен Supabase, удаляем запись из базы данных
     if (supabase) {
-      console.log('🔄 Удаление сохранения из Supabase...');
+      // Проверяем подключение к Supabase
+      const isConnected = await checkSupabaseConnection();
       
-      const { error } = await supabase
-        .from(SAVES_TABLE)
-        .delete()
-        .eq('user_id', userId);
-      
-      if (error) {
-        console.error('❌ Ошибка при удалении сохранения из Supabase:', error);
+      if (isConnected) {
+        console.log('🔄 Удаление сохранения из Supabase...');
         
-        toast({
-          title: "Частичная очистка",
-          description: "Локальные данные удалены, но не удалось очистить облачное хранилище.",
-          variant: "warning",
-        });
+        const { error } = await supabase
+          .from(SAVES_TABLE)
+          .delete()
+          .eq('user_id', userId);
+        
+        if (error) {
+          console.error('❌ Ошибка при удалении сохранения из Supabase:', error);
+          
+          toast({
+            title: "Частичная очистка",
+            description: "Локальные данные удалены, но не удалось очистить облачное хранилище.",
+            variant: "warning",
+          });
+        } else {
+          console.log('✅ Сохранение в Supabase удалено');
+          
+          toast({
+            title: "Сохранения очищены",
+            description: "Все сохранения игры успешно удалены.",
+            variant: "default",
+          });
+        }
       } else {
-        console.log('✅ Сохранение в Supabase удалено');
+        console.warn('⚠️ Supabase недоступен, очищено только локальное хранилище');
         
         toast({
-          title: "Сохранения очищены",
-          description: "Все сохранения игры успешно удалены.",
-          variant: "default",
+          title: "Локальная очистка",
+          description: "Локальные сохранения удалены. Supabase недоступен.",
+          variant: "warning",
         });
       }
     } else {
