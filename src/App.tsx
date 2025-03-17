@@ -1,15 +1,14 @@
 
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import GameScreen from "./pages/GameScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
-import { toast } from "./components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import "./index.css"; // Импортируем CSS стили
 
 // Настраиваем клиент для React Query
@@ -33,12 +32,21 @@ const setTelegramMeta = () => {
   }
 };
 
+// Создаем глобальную переменную для отслеживания инициализации
+window.__telegramInitialized = window.__telegramInitialized || false;
+window.__telegramNotificationShown = window.__telegramNotificationShown || false;
+
 const App = () => {
-  const [telegramInitialized, setTelegramInitialized] = useState(false);
-  
   // Устанавливаем мета-данные при загрузке приложения
   useEffect(() => {
     setTelegramMeta();
+    
+    // Предотвращаем повторную инициализацию
+    if (window.__telegramInitialized) {
+      return;
+    }
+    
+    window.__telegramInitialized = true;
     
     // Инициализация Telegram WebApp при загрузке приложения
     if (isTelegramWebAppAvailable()) {
@@ -95,16 +103,17 @@ const App = () => {
           }
         }
         
-        setTelegramInitialized(true);
-        
-        // Показываем toast с информацией о режиме Telegram
-        setTimeout(() => {
-          toast({
-            title: "Режим Telegram",
-            description: `Приложение запущено в Telegram (${window.Telegram.WebApp.platform}, v${window.Telegram.WebApp.version})`,
-            variant: "default",
-          });
-        }, 1000);
+        // Показываем toast с информацией о режиме Telegram только один раз
+        if (!window.__telegramNotificationShown) {
+          window.__telegramNotificationShown = true;
+          setTimeout(() => {
+            toast({
+              title: "Режим Telegram",
+              description: `Приложение запущено в Telegram (${window.Telegram.WebApp.platform}, v${window.Telegram.WebApp.version})`,
+              variant: "default",
+            });
+          }, 1000);
+        }
       } catch (error) {
         console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
         
@@ -118,14 +127,17 @@ const App = () => {
     } else {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме');
       
-      // Показываем toast с информацией о стандартном режиме
-      setTimeout(() => {
-        toast({
-          title: "Стандартный режим",
-          description: "Приложение запущено в браузере. Прогресс будет сохранен локально.",
-          variant: "default",
-        });
-      }, 1000);
+      // Показываем toast с информацией о стандартном режиме только один раз
+      if (!window.__telegramNotificationShown) {
+        window.__telegramNotificationShown = true;
+        setTimeout(() => {
+          toast({
+            title: "Стандартный режим",
+            description: "Приложение запущено в браузере. Прогресс будет сохранен локально.",
+            variant: "default",
+          });
+        }, 1000);
+      }
     }
   }, []);
 
@@ -134,7 +146,6 @@ const App = () => {
       <GameProvider>
         <TooltipProvider>
           <Toaster />
-          <Sonner position="top-center" />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<GameScreen />} />

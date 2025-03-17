@@ -1,12 +1,9 @@
 
-// Это расширенная версия стандартного use-toast.ts из shadcn/ui
-// Она добавляет дополнительные варианты toast: success, warning, info
-
 import * as React from "react"
 import { type ToastActionElement, ToastProps } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 20
-const TOAST_REMOVE_DELAY = 1000
+const TOAST_LIMIT = 5 // Уменьшаем лимит тостов
+const TOAST_REMOVE_DELAY = 3000 // Увеличиваем время удаления
 
 type ToastType = "default" | "destructive" | "success" | "warning" | "info"
 
@@ -20,6 +17,7 @@ type ToasterToast = ExtendedToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  isDuplicate?: boolean // Добавляем флаг для проверки дубликатов
 }
 
 const actionTypes = {
@@ -78,13 +76,46 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
+// Функция для проверки дубликатов тостов
+const isDuplicateToast = (state: State, toast: ToasterToast): boolean => {
+  return state.toasts.some(
+    t => 
+      t.title === toast.title && 
+      t.description === toast.description && 
+      t.variant === toast.variant &&
+      Date.now() - (t.createdAt as number || 0) < 3000 // Проверяем, что тост был создан не более 3 секунд назад
+  )
+}
+
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD_TOAST":
+    case "ADD_TOAST": {
+      // Проверка на дубликаты
+      if (isDuplicateToast(state, action.toast)) {
+        return state;
+      }
+      
+      // Добавляем timestamp создания тоста
+      const newToast = {
+        ...action.toast,
+        createdAt: Date.now()
+      }
+      
+      // Автоматически удаляем toast через 5 секунд для типов success, info и warning
+      if (["success", "info", "warning"].includes(newToast.variant as string)) {
+        setTimeout(() => {
+          dispatch({
+            type: "DISMISS_TOAST",
+            toastId: newToast.id,
+          })
+        }, 5000)
+      }
+      
       return {
         ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+        toasts: [newToast, ...state.toasts].slice(0, TOAST_LIMIT),
       }
+    }
 
     case "UPDATE_TOAST":
       return {
