@@ -24,9 +24,12 @@ let memoryStorage: Record<string, string> = {};
 
 // Проверка доступности window.Telegram API и использование его хранилища
 const isTelegramCloudStorageAvailable = () => {
-  return window.Telegram && 
+  return typeof window !== 'undefined' && 
+         window.Telegram && 
          window.Telegram.WebApp && 
-         typeof window.Telegram.WebApp.CloudStorage === 'object';
+         window.Telegram.WebApp.CloudStorage && 
+         typeof window.Telegram.WebApp.CloudStorage.getItem === 'function' &&
+         typeof window.Telegram.WebApp.CloudStorage.setItem === 'function';
 };
 
 // Обертка для сохранения данных

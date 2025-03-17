@@ -72,28 +72,55 @@ export function GameProvider({ children }: GameProviderProps) {
       const tg = window.Telegram.WebApp;
       
       // Отправка события готовности
-      tg.ready();
+      if (typeof tg.ready === 'function') {
+        tg.ready();
+        console.log('Telegram WebApp ready отправлен');
+      }
       
-      // Установка поведения при закрытии
-      tg.onEvent('viewportChanged', async () => {
-        await saveGameState(state);
-      });
+      // Установка поведения при изменении размера окна
+      if (typeof tg.onEvent === 'function') {
+        const viewportChangedHandler = async () => {
+          console.log('Telegram viewportChanged зафиксирован');
+          await saveGameState(state);
+        };
+        
+        tg.onEvent('viewportChanged', viewportChangedHandler);
+        
+        // Очистка при размонтировании
+        return () => {
+          if (typeof tg.offEvent === 'function') {
+            tg.offEvent('viewportChanged', viewportChangedHandler);
+          }
+        };
+      }
       
       // Установка обработчика Back Button, если он доступен
       if (tg.BackButton && typeof tg.BackButton.onClick === 'function') {
         tg.BackButton.onClick(async () => {
+          console.log('Telegram BackButton нажата');
           await saveGameState(state);
         });
       }
       
       // Вызывается при закрытии приложения
       const handleClose = async () => {
+        console.log('Telegram закрытие приложения');
         await saveGameState(state);
       };
       
       // Настройка для закрытия главной кнопкой, если она доступна
       if (tg.MainButton && typeof tg.MainButton.onClick === 'function') {
         tg.MainButton.onClick(handleClose);
+      }
+      
+      // Обработчик закрытия приложения
+      if (typeof tg.close === 'function') {
+        const originalClose = tg.close;
+        // @ts-ignore - переопределяем метод close
+        tg.close = async () => {
+          await saveGameState(state);
+          originalClose.call(tg);
+        };
       }
       
       console.log("Telegram WebApp инициализирован");
@@ -125,16 +152,19 @@ export function GameProvider({ children }: GameProviderProps) {
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
+        console.log('Страница скрыта, сохранение...');
         saveGameState(state);
       }
     };
     
     const handleBeforeUnload = () => {
+      console.log('Страница закрывается, сохранение...');
       saveGameState(state);
     };
     
     // Обработчик потери фокуса окном (особенно важно для мобильных устройств)
     const handleBlur = () => {
+      console.log('Окно потеряло фокус, сохранение...');
       saveGameState(state);
     };
     
