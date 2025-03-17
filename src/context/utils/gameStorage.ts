@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { initialState } from '../initialState';
 import { saveGameToServer, loadGameFromServer } from '@/api/gameDataService';
@@ -57,17 +58,16 @@ export async function saveGameState(state: GameState): Promise<boolean> {
     
     console.log(`🔄 Сохранение игры (размер данных: ~${JSON.stringify(stateToSave).length} байт)`);
     
-    // Пытаемся сохранить на сервере
-    const serverSaved = await saveGameToServer(stateToSave);
+    // Сохраняем через gameDataService (который сейчас использует только локальное хранилище)
+    const saved = await saveGameToServer(stateToSave);
     
-    // Логируем результат сохранения
-    if (!serverSaved) {
-      console.warn('⚠️ Сохранение на сервере не выполнено, но локальная копия создана');
-    } else {
+    if (saved) {
       console.log('✅ Игра успешно сохранена');
+    } else {
+      console.warn('⚠️ Возникли проблемы при сохранении игры');
     }
     
-    return true;
+    return saved;
   } catch (error) {
     console.error('❌ Критическая ошибка при сохранении состояния игры:', error);
     return false;
@@ -79,7 +79,7 @@ export async function loadGameState(): Promise<GameState | null> {
   try {
     console.log('🔄 Начинаем загрузку сохраненной игры...');
     
-    // Загружаем с сервера или из локальной резервной копии
+    // Загружаем через gameDataService (который сейчас использует только локальное хранилище)
     const loadedState = await loadGameFromServer();
     
     if (loadedState) {
