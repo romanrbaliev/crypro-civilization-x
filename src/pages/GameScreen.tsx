@@ -49,6 +49,9 @@ const GameScreen: React.FC = () => {
     dispatch({ type: "RESTART_COMPUTERS" });
   };
 
+  // Получаем список игровых событий из состояния
+  const gameEvents = state.events || [];
+
   // Периодическое обновление ресурсов
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -60,7 +63,7 @@ const GameScreen: React.FC = () => {
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
-      <Header />
+      <Header prestigePoints={state.prestigePoints} />
       
       <div className="flex-1 overflow-auto p-4 bg-gray-50">
         <div className="max-w-md mx-auto space-y-4">
@@ -164,7 +167,7 @@ const GameScreen: React.FC = () => {
           
           <ScrollArea className="h-[calc(100vh-10rem)]">
             <div className="p-4">
-              <EventLog />
+              <EventLog events={gameEvents} />
             </div>
           </ScrollArea>
         </SheetContent>
