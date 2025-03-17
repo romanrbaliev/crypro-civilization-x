@@ -240,11 +240,20 @@ export function GameProvider({ children }: GameProviderProps) {
     loadSavedGame();
   }, []);
   
-  // Инициализируем состояние и редьюсер только после загрузки
+  // КРИТИЧЕСКАЯ ОШИБКА: loadedState никогда не применяется к реальному состоянию!
+  // Исправляем это, добавляя зависимость от loadedState и применяя его к начальному состоянию
   const [state, dispatch] = useReducer(
     gameReducer, 
     loadedState || { ...initialState, gameStarted: true, lastUpdate: Date.now(), lastSaved: Date.now() }
   );
+  
+  // Применяем загруженное состояние после его получения через dispatch
+  useEffect(() => {
+    if (loadedState && !isLoading) {
+      console.log('🔄 Применяем загруженное состояние через dispatch...');
+      dispatch({ type: 'LOAD_GAME', payload: loadedState });
+    }
+  }, [loadedState, isLoading]);
   
   // Обновление ресурсов каждую секунду
   useEffect(() => {

@@ -7,6 +7,7 @@ import { processPurchaseBuilding } from './reducers/buildingReducer';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { processApplyKnowledge, processMiningPower } from './reducers/actionsReducer';
+import { safeDispatchGameEvent } from './utils/eventBusUtils';
 
 // Главный редьюсер игры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
@@ -110,11 +111,42 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Загрузка сохраненной игры
     case "LOAD_GAME": {
-      // Полностью заменяем состояние загруженным
-      return {
+      console.log('🔄 Загружаем сохраненное состояние игры:', action.payload ? 'данные найдены' : 'данные отсутствуют');
+      
+      // Проверяем наличие данных для загрузки
+      if (!action.payload) {
+        console.warn('⚠️ Нет данных для загрузки, используем начальное состояние');
+        safeDispatchGameEvent('Нет данных для загрузки, начинаем новую игру', 'warning');
+        return {
+          ...initialState,
+          gameStarted: true,
+          lastUpdate: Date.now(),
+          lastSaved: Date.now()
+        };
+      }
+      
+      // Проверяем целостность загруженных данных
+      if (!action.payload.resources || !action.payload.buildings) {
+        console.error('❌ Загруженные данные повреждены, используем начальное состояние');
+        safeDispatchGameEvent('Загруженные данные повреждены, начинаем новую игру', 'error');
+        return {
+          ...initialState,
+          gameStarted: true,
+          lastUpdate: Date.now(),
+          lastSaved: Date.now()
+        };
+      }
+      
+      // Обновляем timestamp для правильной работы логики обновления
+      const updatedState = {
         ...action.payload,
         lastUpdate: Date.now()
       };
+      
+      console.log('✅ Загруженное состояние применено успешно');
+      safeDispatchGameEvent('Прогресс успешно восстановлен', 'success');
+      
+      return updatedState;
     }
     
     // Престиж (перезапуск с бонусами)
