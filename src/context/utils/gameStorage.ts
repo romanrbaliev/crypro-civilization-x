@@ -6,22 +6,6 @@ import { saveGameToServer, loadGameFromServer } from '@/api/gameDataService';
 // Константа с именем ключа локального хранилища (для совместимости со старыми версиями)
 export const GAME_STORAGE_KEY = 'cryptoCivilizationSave';
 
-// Проверка доступности localStorage
-const isLocalStorageAvailable = () => {
-  try {
-    const testKey = '__test__';
-    localStorage.setItem(testKey, testKey);
-    localStorage.removeItem(testKey);
-    return true;
-  } catch (e) {
-    console.warn('localStorage недоступен, будет использовано временное хранилище:', e);
-    return false;
-  }
-};
-
-// Глобальное постоянное хранилище для сред, где localStorage недоступен
-let memoryStorage: Record<string, string> = {};
-
 // Глубокое слияние объектов для корректного обновления
 function deepMerge(target: any, source: any): any {
   const output = { ...target };
@@ -58,7 +42,7 @@ export async function saveGameState(state: GameState): Promise<boolean> {
     
     console.log(`🔄 Сохранение игры (размер данных: ~${JSON.stringify(stateToSave).length} байт)`);
     
-    // Сохраняем через gameDataService (который сейчас использует только локальное хранилище)
+    // Сохраняем через gameDataService (который теперь использует Supabase)
     const saved = await saveGameToServer(stateToSave);
     
     if (saved) {
@@ -79,7 +63,7 @@ export async function loadGameState(): Promise<GameState | null> {
   try {
     console.log('🔄 Начинаем загрузку сохраненной игры...');
     
-    // Загружаем через gameDataService (который сейчас использует только локальное хранилище)
+    // Загружаем через gameDataService (который теперь использует Supabase)
     const loadedState = await loadGameFromServer();
     
     if (loadedState) {
@@ -107,17 +91,7 @@ export async function clearGameState(): Promise<void> {
   try {
     console.log('🔄 Удаление всех сохранений игры...');
     
-    // Удаляем из localStorage, если доступен (для совместимости)
-    if (isLocalStorageAvailable()) {
-      localStorage.removeItem(GAME_STORAGE_KEY);
-      console.log('✅ Старое сохранение удалено из localStorage');
-    }
-    
-    // Удаляем из памяти
-    delete memoryStorage[GAME_STORAGE_KEY];
-    console.log('✅ Старое сохранение удалено из памяти');
-    
-    // Очищаем новое локальное хранилище через gameDataService
+    // Очищаем новое хранилище через gameDataService (Supabase + локальное)
     import('@/api/gameDataService').then(module => {
       if (typeof module.clearAllSavedData === 'function') {
         module.clearAllSavedData();
