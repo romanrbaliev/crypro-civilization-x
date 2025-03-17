@@ -24,11 +24,6 @@ import {
   processResetGame,
   processRestartComputers
 } from './reducers/gameStateReducer';
-import {
-  processExchangeBtc,
-  processToggleAutoMiner,
-  processUpdateMiningSettings
-} from './reducers/cryptoReducer';
 
 // Главный редьюсер игры - координирует все остальные редьюсеры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
@@ -99,18 +94,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "APPLY_KNOWLEDGE": 
       return processApplyKnowledge(state);
     
-    // Новые действия для криптоэкономики
-    case "EXCHANGE_BTC":
-      return processExchangeBtc(state);
-    
-    case "TOGGLE_AUTO_MINER":
-      return processToggleAutoMiner(state, action.payload);
-    
-    case "UPDATE_MINING_SETTINGS":
-      return processUpdateMiningSettings(state, action.payload);
-    
     default:
       return state;
   }
 };
-

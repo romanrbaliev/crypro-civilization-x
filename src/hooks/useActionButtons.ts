@@ -27,22 +27,6 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
       setPracticeMessageSent(true);
     }
   }, [state.unlocks.practice, onAddEvent, practiceMessageSent]);
-  
-  // Отправляем сообщение когда BTC ресурс разблокирован
-  useEffect(() => {
-    if (state.resources.btc.unlocked && state.buildings.autoMiner.count > 0) {
-      // Проверяем, было ли уже отправлено сообщение
-      if (!state.eventMessages.btcUnlocked) {
-        onAddEvent("Вы начали майнить Bitcoin (BTC)!", "success");
-        onAddEvent("BTC можно обменивать на USDT по текущему курсу с комиссией", "info");
-        // Устанавливаем флаг, чтобы не отправлять повторно
-        dispatch({ 
-          type: "UNLOCK_FEATURE", 
-          payload: { featureId: "btcUnlocked" } 
-        });
-      }
-    }
-  }, [state.resources.btc.unlocked, state.buildings.autoMiner.count, state.eventMessages.btcUnlocked, dispatch, onAddEvent]);
 
   // Обработчики для кнопок
   const handleLearnClick = () => {
@@ -140,4 +124,3 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     hasAutoMiner
   };
 }
-
