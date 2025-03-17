@@ -46,7 +46,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       {perSecond !== 0 && (
         <div className="flex items-center justify-end">
           <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
-            {isNegativeRate ? "-" : "+"}{formatNumber(Math.abs(perSecond))}/сек
+            {isNegativeRate ? "-" : "+"}{Math.abs(perSecond).toFixed(2)}/сек
           </div>
         </div>
       )}

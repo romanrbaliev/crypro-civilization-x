@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/utils/helpers";
 import { useGame } from "@/context/hooks/useGame";
@@ -9,7 +10,16 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
-import { Sparkles } from "lucide-react";
+import { 
+  Sparkles,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
 
 interface UpgradeItemProps {
   upgrade: Upgrade;
@@ -19,6 +29,7 @@ interface UpgradeItemProps {
 const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const { state, dispatch } = useGame();
   const { id, name, description, cost, effect, purchased } = upgrade;
+  const [isOpen, setIsOpen] = useState(!purchased); // По умолчанию открыты только неприобретенные
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: id } });
@@ -106,22 +117,36 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   
   if (purchased) {
     return (
-      <div className="p-2 border rounded-lg bg-gray-50 shadow-sm mb-2">
-        <div className="flex justify-between items-start w-full">
-          <div className="w-full">
-            <h3 className="font-semibold text-[12px] flex items-center">
-              {name} <Sparkles className="ml-1 h-3 w-3 text-amber-500" />
-            </h3>
+      <Collapsible
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        className="p-2 border rounded-lg bg-gray-50 shadow-sm mb-2"
+      >
+        <div className="flex justify-between items-center w-full">
+          <h3 className="font-semibold text-[12px] flex items-center">
+            {name} <Sparkles className="ml-1 h-3 w-3 text-amber-500" />
+          </h3>
+          <div className="flex items-center">
+            <div className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-medium whitespace-nowrap mr-2">
+              Исследовано
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
+                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </div>
+        
+        <CollapsibleContent>
+          <div className="mt-2">
             <p className="text-[10px] text-gray-600 mb-1 w-full">{description}</p>
             <div className="mt-1 text-[10px] w-full">
               {renderEffects()}
             </div>
           </div>
-          <div className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-medium whitespace-nowrap ml-2">
-            Исследовано
-          </div>
-        </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
     );
   }
   
