@@ -28,17 +28,14 @@ interface BuildingItemProps {
 const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => {
   const { state, dispatch } = useGame();
   const { id, name, description, cost, costMultiplier, production, count } = building;
-  const [isOpen, setIsOpen] = useState(count === 0); // Открыты только непокупавшиеся здания
+  // Состояние карточки - открыта или закрыта
+  const [isOpen, setIsOpen] = useState(count === 0);
   
   const handlePurchase = () => {
     console.log(`Попытка покупки здания ${id} через компонент BuildingItem`);
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: id } });
     
-    // После первой покупки сворачиваем карточку
-    if (count === 0) {
-      setIsOpen(false);
-    }
-    
+    // После первой покупки оставляем карточку открытой, чтобы пользователь видел новую информацию
     if (onPurchase) onPurchase();
   };
   
@@ -126,31 +123,20 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
           </div>
           <div className="flex items-center">
             <div className="mr-2 text-[12px] font-medium">{count}</div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handlePurchase} 
-                    disabled={!canAfford()}
-                    variant={canAfford() ? "default" : "outline"}
-                    size="sm"
-                    className="text-[10px] h-7 px-2 mr-2 relative"
-                  >
-                    Улучшить
-                    <CollapsibleTrigger asChild>
-                      <span className="absolute right-[-0.5rem] w-4">
-                        {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      </span>
-                    </CollapsibleTrigger>
-                  </Button>
-                </TooltipTrigger>
-                {!canAfford() && (
-                  <TooltipContent side="left">
-                    <p className="text-[10px]">Недостаточно ресурсов</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+            <Button 
+              onClick={handlePurchase} 
+              disabled={!canAfford()}
+              variant={canAfford() ? "default" : "outline"}
+              size="sm"
+              className="text-[10px] h-7 px-2 mr-2 relative"
+            >
+              Улучшить
+              <CollapsibleTrigger asChild>
+                <span className="absolute right-[-0.5rem] w-4">
+                  {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </span>
+              </CollapsibleTrigger>
+            </Button>
           </div>
         </div>
         
