@@ -20,8 +20,8 @@ export const GameContext = createContext<GameContextProps | undefined>(undefined
 // Экспорт хука useGame переехал в отдельный файл
 export { useGame } from './hooks/useGame';
 
-// Интервал автосохранения (30 секунд)
-const SAVE_INTERVAL = 30 * 1000;
+// Интервал автосохранения (15 секунд)
+const SAVE_INTERVAL = 15 * 1000;
 
 interface GameProviderProps {
   children: ReactNode;
@@ -29,9 +29,22 @@ interface GameProviderProps {
 
 export function GameProvider({ children }: GameProviderProps) {
   // Загружаем сохраненное состояние при запуске игры
-  const loadedState = loadGameState();
+  const [loadedState, setLoadedState] = React.useState<GameState | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   
-  // Инициализируем состояние и редьюсер
+  // Загрузка сохранения при монтировании
+  useEffect(() => {
+    try {
+      const savedState = loadGameState();
+      setLoadedState(savedState);
+    } catch (err) {
+      console.error('Ошибка при загрузке состояния:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+  
+  // Инициализируем состояние и редьюсер только после загрузки
   const [state, dispatch] = useReducer(
     gameReducer, 
     loadedState || { ...initialState, gameStarted: true, lastUpdate: Date.now() }
@@ -39,35 +52,60 @@ export function GameProvider({ children }: GameProviderProps) {
   
   // Обновление ресурсов каждую секунду
   useEffect(() => {
-    if (!state.gameStarted) return;
+    if (!state.gameStarted || isLoading) return;
     
     const intervalId = setInterval(() => {
       dispatch({ type: 'UPDATE_RESOURCES' });
     }, 1000);
     
     return () => clearInterval(intervalId);
-  }, [state.gameStarted]);
+  }, [state.gameStarted, isLoading]);
   
-  // Автосохранение каждые 30 секунд
+  // Автосохранение
   useEffect(() => {
-    if (!state.gameStarted) return;
+    if (!state.gameStarted || isLoading) return;
     
+    // Немедленное сохранение при монтировании
+    saveGameState(state);
+    
+    // Регулярное сохранение
     const intervalId = setInterval(() => {
       saveGameState(state);
     }, SAVE_INTERVAL);
     
-    // Также сохраняем игру при закрытии/перезагрузке страницы
+    // Сохранение при размонтировании компонента
+    return () => {
+      clearInterval(intervalId);
+      saveGameState(state);
+    };
+  }, [state,isLoading]);
+  
+  // Сохранение при закрытии/перезагрузке страницы
+  useEffect(() => {
+    if (!state.gameStarted || isLoading) return;
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveGameState(state);
+      }
+    };
+    
     const handleBeforeUnload = () => {
       saveGameState(state);
     };
     
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
     
     return () => {
-      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [state]);
+  }, [state, isLoading]);
+  
+  if (isLoading) {
+    return null; // или компонент загрузки
+  }
   
   return (
     <GameContext.Provider value={{ state, dispatch }}>
