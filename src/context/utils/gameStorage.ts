@@ -181,18 +181,3 @@ export async function clearGameState(): Promise<void> {
     console.error('Не удалось удалить сохранение игры:', error);
   }
 }
-
-// Добавляем типы для WebApp Telegram API
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        CloudStorage?: {
-          getItem: (key: string) => Promise<string | null>;
-          setItem: (key: string, value: string) => Promise<void>;
-          removeItem: (key: string) => Promise<void>;
-        };
-      };
-    };
-  }
-}
