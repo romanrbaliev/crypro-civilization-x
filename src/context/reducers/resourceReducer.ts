@@ -59,3 +59,26 @@ export const processIncrementResource = (
   // Проверяем условия для разблокировки зданий и улучшений
   return checkUnlocks(newState);
 };
+
+// Обработка разблокировки ресурса
+export const processUnlockResource = (
+  state: GameState,
+  payload: { resourceId: string }
+): GameState => {
+  const { resourceId } = payload;
+  
+  if (!state.resources[resourceId]) {
+    return state;
+  }
+  
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      [resourceId]: {
+        ...state.resources[resourceId],
+        unlocked: true
+      }
+    }
+  };
+};
