@@ -88,6 +88,20 @@ const App = () => {
           
           if (hasGetItem && hasSetItem && hasRemoveItem) {
             console.log('✅ CloudStorage полностью функционален');
+            
+            // Тест CloudStorage
+            try {
+              window.Telegram.WebApp.CloudStorage.setItem('test_key', 'test_value')
+                .then(() => window.Telegram.WebApp.CloudStorage.getItem('test_key'))
+                .then(value => {
+                  console.log('✅ Тест CloudStorage успешен:', value === 'test_value');
+                })
+                .catch(err => {
+                  console.error('❌ Ошибка теста CloudStorage:', err);
+                });
+            } catch (testError) {
+              console.warn('⚠️ Не удалось протестировать CloudStorage:', testError);
+            }
           } else {
             console.warn('⚠️ CloudStorage не полностью функционален');
           }
@@ -103,8 +117,8 @@ const App = () => {
           }
         }
         
-        // Показываем toast с информацией о режиме Telegram только один раз
-        if (!window.__telegramNotificationShown) {
+        // Показываем toast с информацией о режиме Telegram только один раз в продакшене
+        if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
           window.__telegramNotificationShown = true;
           setTimeout(() => {
             toast({
@@ -117,12 +131,14 @@ const App = () => {
       } catch (error) {
         console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
         
-        // Показываем toast с ошибкой
-        toast({
-          title: "Ошибка Telegram интеграции",
-          description: "Произошла ошибка при инициализации Telegram WebApp. Игра будет работать в автономном режиме.",
-          variant: "destructive",
-        });
+        // Показываем toast с ошибкой только в продакшене
+        if (process.env.NODE_ENV !== 'development') {
+          toast({
+            title: "Ошибка Telegram интеграции",
+            description: "Произошла ошибка при инициализации Telegram WebApp. Игра будет работать в автономном режиме.",
+            variant: "destructive",
+          });
+        }
       }
     } else {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме');

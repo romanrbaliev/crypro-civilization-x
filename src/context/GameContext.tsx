@@ -22,11 +22,11 @@ export const GameContext = createContext<GameContextProps | undefined>(undefined
 // Экспорт хука useGame переехал в отдельный файл
 export { useGame } from './hooks/useGame';
 
-// Интервал автосохранения (увеличиваем до 10 секунд, чтобы меньше тостов)
-const SAVE_INTERVAL = 10 * 1000;
+// Интервал автосохранения (увеличиваем до 15 секунд для меньшей нагрузки)
+const SAVE_INTERVAL = 15 * 1000;
 
-// Максимальное время ожидания загрузки (5 секунд)
-const LOAD_TIMEOUT = 5000;
+// Максимальное время ожидания загрузки (7 секунд)
+const LOAD_TIMEOUT = 7000;
 
 // Предотвращение повторных уведомлений
 let loadMessageShown = false;
@@ -34,6 +34,8 @@ let saveMessageShown = false;
 
 // Время последнего сохранения (для предотвращения частых сохранений)
 let lastSaveTime = 0;
+// Флаг для отслеживания процесса сохранения
+let isSavingInProgress = false;
 
 interface GameProviderProps {
   children: ReactNode;
@@ -77,6 +79,35 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   }, []);
   
+  // Функция сохранения с защитой от конкурентных вызовов
+  const saveGame = async (gameState: GameState) => {
+    // Проверяем, не идет ли уже процесс сохранения
+    if (isSavingInProgress) {
+      console.log('⏳ Сохранение уже выполняется, пропускаем...');
+      return;
+    }
+    
+    // Проверяем дросселирование
+    const now = Date.now();
+    if (now - lastSaveTime < 2000) { // 2 секунды минимум между сохранениями
+      console.log(`⏱️ Слишком частые сохранения (прошло ${now - lastSaveTime}мс)`);
+      return;
+    }
+    
+    // Устанавливаем флаги
+    isSavingInProgress = true;
+    lastSaveTime = now;
+    
+    try {
+      await saveGameState(gameState);
+    } catch (error) {
+      console.error('❌ Ошибка при сохранении игры:', error);
+    } finally {
+      // Сбрасываем флаг в любом случае
+      isSavingInProgress = false;
+    }
+  };
+  
   // Загрузка сохранения при монтировании с таймаутом
   useEffect(() => {
     const loadSavedGame = async () => {
@@ -95,7 +126,7 @@ export function GameProvider({ children }: GameProviderProps) {
           setLoadedState(null);
           setIsLoading(false);
           
-          if (!loadMessageShown) {
+          if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
             loadMessageShown = true;
             toast({
               title: "Ошибка загрузки",
@@ -115,7 +146,7 @@ export function GameProvider({ children }: GameProviderProps) {
         setLoadedState(savedState);
         
         // Показываем всплывающее уведомление при успешной загрузке
-        if (savedState && !loadMessageShown) {
+        if (savedState && !loadMessageShown && process.env.NODE_ENV !== 'development') {
           loadMessageShown = true;
           // Небольшая задержка для более плавного UX
           setTimeout(() => {
@@ -125,7 +156,7 @@ export function GameProvider({ children }: GameProviderProps) {
               variant: "default",
             });
           }, 1000);
-        } else if (!savedState && !loadMessageShown) {
+        } else if (!savedState && !loadMessageShown && process.env.NODE_ENV !== 'development') {
           loadMessageShown = true;
           // Если сохранение не найдено, уведомляем пользователя
           toast({
@@ -138,7 +169,7 @@ export function GameProvider({ children }: GameProviderProps) {
         console.error('❌ Ошибка при загрузке состояния:', err);
         
         // Показываем уведомление об ошибке
-        if (!loadMessageShown) {
+        if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
           loadMessageShown = true;
           toast({
             title: "Ошибка загрузки",
@@ -171,33 +202,20 @@ export function GameProvider({ children }: GameProviderProps) {
     return () => clearInterval(intervalId);
   }, [state.gameStarted, isLoading]);
   
-  // Автосохранение с ограничением частоты сохранений
+  // Автосохранение с защитой от частых сохранений
   useEffect(() => {
     if (!state.gameStarted || isLoading) return;
     
     console.log('🔄 Настройка автосохранения игры');
     
-    // Функция сохранения с проверкой времени
-    const handleSave = async () => {
-      const now = Date.now();
-      
-      // Пропускаем сохранение, если прошло слишком мало времени с последнего
-      if (now - lastSaveTime < SAVE_INTERVAL) {
-        return;
-      }
-      
-      lastSaveTime = now;
-      await saveGameState(state);
-    };
-    
     // Начальное сохранение с задержкой
     const initialSaveTimeout = setTimeout(() => {
-      handleSave();
+      saveGame(state);
     }, 2000);
     
     // Регулярное сохранение
     const intervalId = setInterval(() => {
-      handleSave();
+      saveGame(state);
     }, SAVE_INTERVAL);
     
     // Сохранение при размонтировании компонента
@@ -205,7 +223,7 @@ export function GameProvider({ children }: GameProviderProps) {
       clearTimeout(initialSaveTimeout);
       clearInterval(intervalId);
       console.log('🔄 Сохранение при размонтировании');
-      saveGameState(state);
+      saveGame(state);
     };
   }, [state, isLoading]);
   
@@ -216,27 +234,27 @@ export function GameProvider({ children }: GameProviderProps) {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         console.log('🔄 Страница скрыта, сохранение...');
-        saveGameState(state);
+        saveGame(state);
       }
     };
     
     const handleBeforeUnload = () => {
       console.log('🔄 Страница закрывается, сохранение...');
-      saveGameState(state);
+      saveGame(state);
     };
     
     // Обработчик потери фокуса окном (особенно важно для мобильных устройств)
     const handleBlur = () => {
       console.log('🔄 Окно потеряло фокус, сохранение...');
-      saveGameState(state);
+      saveGame(state);
     };
     
     // Обработчик возвращения онлайн (для сохранения локальных изменений)
     const handleOnline = () => {
       console.log('🔄 Подключение к сети восстановлено, сохранение...');
-      saveGameState(state);
+      saveGame(state);
       
-      if (!saveMessageShown) {
+      if (!saveMessageShown && process.env.NODE_ENV !== 'development') {
         saveMessageShown = true;
         toast({
           title: "Подключение восстановлено",
@@ -250,7 +268,7 @@ export function GameProvider({ children }: GameProviderProps) {
     const handleOffline = () => {
       console.log('⚠️ Соединение с сетью потеряно');
       
-      if (!saveMessageShown) {
+      if (!saveMessageShown && process.env.NODE_ENV !== 'development') {
         saveMessageShown = true;
         toast({
           title: "Автономный режим",
