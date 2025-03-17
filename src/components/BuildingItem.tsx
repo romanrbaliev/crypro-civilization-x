@@ -57,7 +57,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       
       return (
         <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
-          {formatNumber(actualCost)} {resource ? resource.name : resourceId}
+          {actualCost % 1 === 0 ? formatNumber(actualCost) : actualCost.toFixed(2)} {resource ? resource.name : resourceId}
         </div>
       );
     });
@@ -69,7 +69,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     if (id === "homeComputer") {
       productionItems.push(
         <div key="consumption" className="text-red-600 text-[10px]">
-          -1 электричество/сек
+          -0.5 электричество/сек
         </div>
       );
     }
@@ -81,7 +81,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         const resourceName = state.resources[baseResourceId]?.name || baseResourceId;
         productionItems.push(
           <div key={resourceId} className="text-green-600 text-[10px]">
-            +{boostPercent}% к скорости накопления {resourceName}
+            +{boostPercent % 1 === 0 ? boostPercent : boostPercent.toFixed(2)}% к скорости накопления {resourceName}
           </div>
         );
       } else if (resourceId.includes('Max')) {
@@ -90,7 +90,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         if (resource) {
           productionItems.push(
             <div key={resourceId} className="text-blue-600 text-[10px]">
-              +{formatNumber(Number(amount))} к максимуму {resource.name}
+              +{Number(amount) % 1 === 0 ? formatNumber(Number(amount)) : Number(amount).toFixed(2)} к максимуму {resource.name}
             </div>
           );
         }
@@ -99,7 +99,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         if (resource) {
           productionItems.push(
             <div key={resourceId} className="text-green-600 text-[10px]">
-              +{formatNumber(Number(amount))}/сек {resource.name}
+              +{Number(amount) % 1 === 0 ? formatNumber(Number(amount)) : Number(amount).toFixed(2)}/сек {resource.name}
             </div>
           );
         }
@@ -123,20 +123,31 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
           </div>
           <div className="flex items-center">
             <div className="mr-2 text-[12px] font-medium">{count}</div>
-            <Button 
-              onClick={handlePurchase} 
-              disabled={!canAfford()}
-              variant={canAfford() ? "default" : "outline"}
-              size="sm"
-              className="text-[10px] h-7 px-2 mr-2 relative"
-            >
-              Улучшить
-              <CollapsibleTrigger asChild>
-                <span className="absolute right-[-0.5rem] w-4">
-                  {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                </span>
-              </CollapsibleTrigger>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={handlePurchase} 
+                    disabled={!canAfford()}
+                    variant={canAfford() ? "default" : "outline"}
+                    size="sm"
+                    className="text-[10px] h-7 px-2 mr-4"
+                  >
+                    Улучшить
+                  </Button>
+                </TooltipTrigger>
+                {!canAfford() && (
+                  <TooltipContent side="left">
+                    <p className="text-[10px]">Недостаточно ресурсов</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-0 h-5 w-5 rounded-full">
+                {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </Button>
+            </CollapsibleTrigger>
           </div>
         </div>
         

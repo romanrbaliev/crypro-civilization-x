@@ -38,9 +38,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
     }
   }
   
-  // Рассчитываем потребление электричества домашними компьютерами
+  // Рассчитываем потребление электричества домашними компьютерами (теперь 0.5 за компьютер)
   if (state.buildings.homeComputer.count > 0) {
-    electricityConsumption = state.buildings.homeComputer.count; // 1 эл/сек на компьютер
+    electricityConsumption = state.buildings.homeComputer.count * 0.5; // 0.5 эл/сек на компьютер
   }
   
   // Проверяем, достаточно ли электричества

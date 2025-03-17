@@ -1,3 +1,4 @@
+
 import { Resource, Building, Upgrade, GameState, Counters } from './types';
 
 // Начальные здания
@@ -28,7 +29,7 @@ export const initialBuildings: { [key: string]: Building } = {
   homeComputer: {
     id: "homeComputer",
     name: "Домашний компьютер",
-    description: "Обеспечивает вычислительную мощность, потребляет 1 электричество/сек",
+    description: "Обеспечивает вычислительную мощность, потребляет 0.5 электричества/сек",
     cost: { usdt: 30, electricity: 5 },
     costMultiplier: 1.15,
     production: { computingPower: 2 },
