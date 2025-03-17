@@ -25,8 +25,8 @@ export { useGame } from './hooks/useGame';
 // Интервал автосохранения (увеличиваем до 15 секунд для меньшей нагрузки)
 const SAVE_INTERVAL = 15 * 1000;
 
-// Максимальное время ожидания загрузки (7 секунд)
-const LOAD_TIMEOUT = 7000;
+// Максимальное время ожидания загрузки (10 секунд)
+const LOAD_TIMEOUT = 10000;
 
 // Предотвращение повторных уведомлений
 let loadMessageShown = false;
@@ -61,10 +61,22 @@ export function GameProvider({ children }: GameProviderProps) {
       try {
         const tg = window.Telegram.WebApp;
         
+        // Включаем принудительный режим Telegram WebApp
+        if (typeof window !== 'undefined') {
+          window.__FORCE_TELEGRAM_MODE = true;
+          console.log('✅ Принудительный режим Telegram WebApp включен');
+        }
+        
         // Отправка события готовности
         if (typeof tg.ready === 'function') {
           tg.ready();
           console.log('✅ Telegram WebApp ready отправлен');
+        }
+        
+        // Расширяем приложение
+        if (typeof tg.expand === 'function') {
+          tg.expand();
+          console.log('✅ Telegram WebApp расширен на весь экран');
         }
         
         // Логирование информации о пользователе
@@ -99,7 +111,15 @@ export function GameProvider({ children }: GameProviderProps) {
     lastSaveTime = now;
     
     try {
-      await saveGameState(gameState);
+      console.log(`🔄 Запуск сохранения игры из GameContext (размер: ~${JSON.stringify(gameState).length}b)`);
+      
+      const success = await saveGameState(gameState);
+      
+      if (success) {
+        console.log('✅ Игра успешно сохранена через GameContext');
+      } else {
+        console.warn('⚠️ Возникли проблемы при сохранении игры через GameContext');
+      }
     } catch (error) {
       console.error('❌ Ошибка при сохранении игры:', error);
     } finally {
@@ -108,15 +128,36 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   };
   
-  // Загрузка сохранения при монтировании с таймаутом
+  // Загрузка сохранения при монтировании с улучшенной обработкой Telegram WebApp
   useEffect(() => {
     const loadSavedGame = async () => {
       try {
         setLoadingMessage("Проверка наличия сохранения...");
         console.log('🔄 Начинаем загрузку сохраненной игры...');
         
+        // Дополнительная проверка и инициализация Telegram WebApp
+        if (isTelegramWebAppAvailable()) {
+          console.log('✅ Обнаружен Telegram WebApp, режим Telegram активен');
+          setLoadingMessage("Подключение к Telegram...");
+          
+          // Небольшая задержка для инициализации Telegram API
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          try {
+            // Проверка CloudStorage API
+            if (window.Telegram?.WebApp?.CloudStorage) {
+              setLoadingMessage("Проверка сохранений в Telegram...");
+              console.log('✅ CloudStorage API доступен, проверяем наличие сохранений...');
+            } else {
+              console.warn('⚠️ CloudStorage API недоступен');
+            }
+          } catch (telegramError) {
+            console.error('❌ Ошибка при подготовке Telegram:', telegramError);
+          }
+        }
+        
         // Добавляем небольшую задержку для визуального эффекта
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         setLoadingMessage("Загрузка данных игры...");
         

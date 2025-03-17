@@ -1,5 +1,5 @@
 
-// API сервис для сохранения и загрузки игрового прогресса с Supabase
+// API сервис для сохранения и загрузки игрового прогресса с Supabase и Telegram
 
 import { GameState } from '@/context/types';
 import { isTelegramWebAppAvailable, forceTelegramCloudSave, forceTelegramCloudLoad } from '@/utils/helpers';
@@ -67,10 +67,28 @@ const getUserIdentifier = async (): Promise<string> => {
     try {
       const tg = window.Telegram.WebApp;
       if (tg.initDataUnsafe?.user?.id) {
-        const id = `tg_${tg.initDataUnsafe.user.id}`;
+        const telegramUserId = tg.initDataUnsafe.user.id;
+        const id = `tg_${telegramUserId}`;
         window.__game_user_id = id;
         console.log(`✅ Получен ID пользователя Telegram: ${id}`);
+        
+        // Сохраняем ID в localStorage для резерва
+        try {
+          localStorage.setItem('telegram_user_id', telegramUserId.toString());
+        } catch (e) {
+          console.warn('⚠️ Не удалось сохранить Telegram ID в localStorage:', e);
+        }
+        
         return id;
+      } else {
+        // Пытаемся восстановить из localStorage
+        const storedTelegramId = localStorage.getItem('telegram_user_id');
+        if (storedTelegramId) {
+          const id = `tg_${storedTelegramId}`;
+          window.__game_user_id = id;
+          console.log(`✅ Восстановлен ID пользователя Telegram из localStorage: ${id}`);
+          return id;
+        }
       }
     } catch (error) {
       console.error('Ошибка при получении Telegram ID:', error);
@@ -182,18 +200,30 @@ const saveToTelegramCloudStorage = async (gameState: GameState, userId: string):
   try {
     console.log('🔄 Попытка сохранения в Telegram CloudStorage...');
     
-    // Сериализуем данные с защитой от ошибок
-    const jsonData = JSON.stringify({
+    // Добавляем метку времени и пользовательский ID в сохраняемые данные
+    const saveData = {
       gameData: gameState,
       timestamp: Date.now(),
-      userId
-    });
+      userId: userId,
+      version: "1.0.2" // Добавляем версию для совместимости
+    };
+    
+    // Сериализуем данные с защитой от ошибок
+    const jsonData = JSON.stringify(saveData);
     
     // Используем вспомогательную функцию для сохранения
     const saved = await forceTelegramCloudSave(jsonData, TG_CLOUD_KEY);
     
     if (saved) {
       console.log('✅ Игра успешно сохранена в Telegram CloudStorage');
+      
+      // Дублируем в localStorage для надежности
+      try {
+        localStorage.setItem(LOCAL_BACKUP_KEY, jsonData);
+        console.log('✅ Создана локальная резервная копия игры');
+      } catch (backupError) {
+        console.warn('⚠️ Не удалось создать локальную копию:', backupError);
+      }
     } else {
       console.warn('⚠️ Не удалось сохранить в Telegram CloudStorage');
     }
@@ -222,6 +252,15 @@ const loadFromTelegramCloudStorage = async (): Promise<GameState | null> => {
         const parsedData = JSON.parse(jsonData);
         if (parsedData && parsedData.gameData) {
           console.log('✅ Игра успешно загружена из Telegram CloudStorage');
+          
+          // Сохраняем в localStorage как резервную копию
+          try {
+            localStorage.setItem(LOCAL_BACKUP_KEY, jsonData);
+            console.log('✅ Обновлена локальная резервная копия из Telegram');
+          } catch (backupError) {
+            console.warn('⚠️ Не удалось обновить локальную копию:', backupError);
+          }
+          
           return parsedData.gameData as GameState;
         }
       } catch (parseError) {
@@ -381,6 +420,12 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     const userId = await getUserIdentifier();
     console.log(`🔄 Загрузка игры для пользователя: ${userId}`);
     
+    // Приоритет загрузки:
+    // 1. Telegram CloudStorage
+    // 2. Supabase
+    // 3. Локальное хранилище (резервная копия)
+    // 4. Основное локальное хранилище (исторически)
+    
     // В режиме Telegram сначала пытаемся загрузить из CloudStorage
     if (isTelegramWebAppAvailable()) {
       console.log('🔍 Проверка наличия сохранения в Telegram CloudStorage...');
@@ -433,23 +478,31 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       // Сначала проверяем LOCAL_BACKUP_KEY
       const backupData = localStorage.getItem(LOCAL_BACKUP_KEY);
       if (backupData) {
-        const localBackup = JSON.parse(backupData);
-        console.log('✅ Найдена локальная копия от:', new Date(localBackup.timestamp).toLocaleString());
-        
-        if (localBackup.gameData) {
-          console.log('✅ Игра загружена из локальной копии (из LOCAL_BACKUP_KEY)');
-          return localBackup.gameData;
+        try {
+          const localBackup = JSON.parse(backupData);
+          console.log('✅ Найдена локальная копия от:', new Date(localBackup.timestamp).toLocaleString());
+          
+          if (localBackup.gameData) {
+            console.log('✅ Игра загружена из локальной копии (из LOCAL_BACKUP_KEY)');
+            return localBackup.gameData;
+          }
+        } catch (parseError) {
+          console.error('❌ Ошибка при разборе локальной копии:', parseError);
         }
       }
       
       // Затем проверяем основной ключ GAME_STORAGE_KEY
       const mainData = localStorage.getItem('cryptoCivilizationSave');
       if (mainData) {
-        const mainSave = JSON.parse(mainData);
-        console.log('✅ Найдено основное сохранение');
-        
-        console.log('✅ Игра загружена из основного сохранения (GAME_STORAGE_KEY)');
-        return mainSave;
+        try {
+          const mainSave = JSON.parse(mainData);
+          console.log('✅ Найдено основное сохранение');
+          
+          console.log('✅ Игра загружена из основного сохранения (GAME_STORAGE_KEY)');
+          return mainSave;
+        } catch (parseError) {
+          console.error('❌ Ошибка при разборе основного сохранения:', parseError);
+        }
       }
     } catch (backupError) {
       console.error('❌ Ошибка при чтении локальной копии:', backupError);

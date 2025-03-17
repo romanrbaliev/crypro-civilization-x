@@ -118,6 +118,17 @@ const App = () => {
           }
         }
         
+        // Сохраняем данные о пользователе при наличии
+        if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+          try {
+            const telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
+            localStorage.setItem('telegram_user_id', telegramUserId.toString());
+            console.log('✅ ID пользователя Telegram сохранен в localStorage:', telegramUserId);
+          } catch (e) {
+            console.warn('⚠️ Не удалось сохранить ID пользователя Telegram:', e);
+          }
+        }
+        
         // Показываем toast с информацией о режиме Telegram только один раз в продакшене
         if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
           window.__telegramNotificationShown = true;
