@@ -50,7 +50,7 @@ export interface GameState {
   upgrades: { [key: string]: Upgrade };
   unlocks: { [key: string]: boolean };
   lastUpdate: number;
-  lastSaved?: number; // Время последнего сохранения
+  lastSaved: number;
   gameStarted: boolean;
   prestigePoints: number;
   phase: number;
