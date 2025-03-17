@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
 import { BitcoinIcon, Coins, Trophy, Settings, Info, Play, Trash2 } from "lucide-react";
+import { GAME_STORAGE_KEY } from "@/context/utils/gameStorage";
 import { 
   Dialog,
   DialogContent,
@@ -31,7 +32,7 @@ const StartScreen = () => {
   };
   
   const handleResetGame = () => {
-    localStorage.removeItem("cryptoCivilizationSave");
+    localStorage.removeItem(GAME_STORAGE_KEY);
     window.location.reload();
   };
   

@@ -35,14 +35,17 @@ export const calculateTimeToReach = (
   }
 };
 
+// Импорт константы с ключом хранилища
+import { GAME_STORAGE_KEY } from '@/context/utils/gameStorage';
+
 // Функция для сохранения игры
 export const saveGame = (gameState: any) => {
-  localStorage.setItem("cryptoCivilizationSave", JSON.stringify(gameState));
+  localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(gameState));
 };
 
 // Функция для загрузки игры
 export const loadGame = (): any | null => {
-  const savedGame = localStorage.getItem("cryptoCivilizationSave");
+  const savedGame = localStorage.getItem(GAME_STORAGE_KEY);
   if (!savedGame) return null;
   
   try {
@@ -55,7 +58,7 @@ export const loadGame = (): any | null => {
 
 // Функция для сброса игры
 export const resetGame = () => {
-  localStorage.removeItem("cryptoCivilizationSave");
+  localStorage.removeItem(GAME_STORAGE_KEY);
 };
 
 // Генерация случайного ID
