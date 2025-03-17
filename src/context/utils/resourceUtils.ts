@@ -1,6 +1,6 @@
-
 import { GameState } from '../types';
 import { initialState } from '../initialState';
+import { safeDispatchGameEvent } from './eventBusUtils';
 
 // Функция для проверки, достаточно ли ресурсов для покупки
 export const hasEnoughResources = (
@@ -121,31 +121,22 @@ export const checkUnlocks = (state: GameState): GameState => {
         console.log(`Здание ${buildingId} разблокировано из-за выполнения требований`);
         
         // Отправляем сообщение о разблокировке через шину событий
-        const eventBus = window.gameEventBus;
-        if (eventBus) {
-          let message = "";
-          switch (buildingId) {
-            case "homeComputer":
-              message = "Открыто новое оборудование: Домашний компьютер";
-              break;
-            case "generator":
-              message = "Открыто новое оборудование: Генератор";
-              break;
-            case "autoMiner":
-              message = "Открыто новое оборудование: Автомайнер";
-              break;
-            default:
-              message = `Открыто новое оборудование: ${building.name}`;
-          }
-          
-          const customEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message, 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(customEvent);
+        let message = "";
+        switch (buildingId) {
+          case "homeComputer":
+            message = "Открыто новое оборудование: Домашний компьютер";
+            break;
+          case "generator":
+            message = "Открыто новое оборудование: Генератор";
+            break;
+          case "autoMiner":
+            message = "Открыто новое оборудование: Автомайнер";
+            break;
+          default:
+            message = `Открыто новое оборудование: ${building.name}`;
         }
+        
+        safeDispatchGameEvent(message, "info");
       }
     }
   }
@@ -164,17 +155,8 @@ export const checkUnlocks = (state: GameState): GameState => {
         console.log(`Улучшение ${upgradeId} разблокировано из-за выполнения требований`);
         
         // Отправляем сообщение о разблокировке через шину событий
-        const eventBus = window.gameEventBus;
-        if (eventBus) {
-          const message = `Открыто новое исследование: ${upgrade.name}`;
-          const customEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message, 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(customEvent);
-        }
+        const message = `Открыто новое исследование: ${upgrade.name}`;
+        safeDispatchGameEvent(message, "info");
       }
     }
   }

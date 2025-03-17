@@ -81,14 +81,15 @@ const GameScreen = () => {
       }
     };
     
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      eventBus.addEventListener('game-event', handleGameEvent);
-      eventBus.addEventListener('game-event-detail', handleDetailEvent);
+    if (typeof window !== 'undefined' && window.gameEventBus) {
+      window.gameEventBus.addEventListener('game-event', handleGameEvent);
+      window.gameEventBus.addEventListener('game-event-detail', handleDetailEvent);
       
       return () => {
-        eventBus.removeEventListener('game-event', handleGameEvent);
-        eventBus.removeEventListener('game-event-detail', handleDetailEvent);
+        if (window.gameEventBus) {
+          window.gameEventBus.removeEventListener('game-event', handleGameEvent);
+          window.gameEventBus.removeEventListener('game-event-detail', handleDetailEvent);
+        }
       };
     }
   }, []);

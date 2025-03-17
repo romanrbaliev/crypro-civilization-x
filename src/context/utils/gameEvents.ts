@@ -11,7 +11,9 @@ export function createGameEventBus(): EventTarget {
   const eventBus = document.createElement('div');
   
   // Подключаем к window для глобального доступа
-  window.gameEventBus = eventBus;
+  if (typeof window !== 'undefined') {
+    window.gameEventBus = eventBus;
+  }
   
   return eventBus;
 }
@@ -44,5 +46,10 @@ export function removeGameEventListener(
   eventBus.removeEventListener('game-event', handler as EventListener);
 }
 
-// Не объявляем глобальный тип для window здесь,
-// так как он уже объявлен в vite-env.d.ts
+// Получение экземпляра шины событий
+export function getGameEventBus(): EventTarget | undefined {
+  if (typeof window !== 'undefined') {
+    return window.gameEventBus;
+  }
+  return undefined;
+}

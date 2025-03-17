@@ -1,5 +1,6 @@
 
 import { GameState } from '../types';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка майнинга вычислительной мощности
 export const processMiningPower = (state: GameState): GameState => {
@@ -30,16 +31,7 @@ export const processMiningPower = (state: GameState): GameState => {
   
   // Разблокируем кнопку майнинга при первом майнинге
   if (state.counters.mining === 0) {
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', {
-        detail: {
-          message: "Вы успешно добыли 5 USDT! Теперь вы можете майнить регулярно.",
-          type: "success"
-        }
-      });
-      eventBus.dispatchEvent(customEvent);
-    }
+    safeDispatchGameEvent("Вы успешно добыли 5 USDT! Теперь вы можете майнить регулярно.", "success");
   }
   
   return {
@@ -78,30 +70,12 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   // При первом применении знаний отправляем сообщение
   if (state.counters.applyKnowledge === 0) {
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', {
-        detail: {
-          message: "Вы применили свои знания и получили 1 USDT!",
-          type: "success"
-        }
-      });
-      eventBus.dispatchEvent(customEvent);
-    }
+    safeDispatchGameEvent("Вы применили свои знания и получили 1 USDT!", "success");
   }
   
   // Разблокируем практику после второго применения знаний
   if (state.counters.applyKnowledge === 1) {
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', {
-        detail: {
-          message: "После применения знаний открыта функция 'Практика'",
-          type: "info"
-        }
-      });
-      eventBus.dispatchEvent(customEvent);
-    }
+    safeDispatchGameEvent("После применения знаний открыта функция 'Практика'", "info");
     
     return {
       ...state,

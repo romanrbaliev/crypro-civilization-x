@@ -49,4 +49,11 @@ interface Window {
   __supabaseInitialized?: boolean;
   __FORCE_TELEGRAM_MODE?: boolean;
   __game_user_id?: string;
+  gameEventBus?: EventTarget; // Добавляем свойство gameEventBus типа EventTarget
+}
+
+// Добавляем тип для GameEventDetail, используемый в gameEvents.ts
+interface GameEventDetail {
+  message: string;
+  type: "info" | "error" | "success" | "warning";
 }

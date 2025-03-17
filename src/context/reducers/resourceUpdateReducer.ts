@@ -1,6 +1,6 @@
-
 import { GameState } from '../types';
 import { calculateProductionBoost } from '../utils/resourceUtils';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка обновления ресурсов
 export const processResourceUpdate = (state: GameState): GameState => {
@@ -47,31 +47,13 @@ export const processResourceUpdate = (state: GameState): GameState => {
     // Отправляем уведомление о нехватке электричества только если состояние изменилось
     if (!state.eventMessages.electricityShortage) {
       newEventMessages.electricityShortage = true;
-      const eventBus = window.gameEventBus;
-      if (eventBus) {
-        const customEvent = new CustomEvent('game-event', { 
-          detail: { 
-            message: "Нехватка электричества! Компьютеры остановлены. Включите генераторы или купите новые.", 
-            type: "error" 
-          } 
-        });
-        eventBus.dispatchEvent(customEvent);
-      }
+      safeDispatchGameEvent("Нехватка электричества! Компьютеры остановлены. Включите генераторы или купите новые.", "error");
     }
   } else {
     // Достаточно электричества, проверяем изменение состояния
     if (state.eventMessages.electricityShortage) {
       newEventMessages.electricityShortage = false;
-      const eventBus = window.gameEventBus;
-      if (eventBus) {
-        const customEvent = new CustomEvent('game-event', { 
-          detail: { 
-            message: "Подача электричества восстановлена, компьютеры снова работают.", 
-            type: "success" 
-          } 
-        });
-        eventBus.dispatchEvent(customEvent);
-      }
+      safeDispatchGameEvent("Подача электричества восстановлена, компьютеры снова работают.", "success");
     } else {
       newEventMessages.electricityShortage = false;
     }

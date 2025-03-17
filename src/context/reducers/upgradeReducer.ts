@@ -1,6 +1,7 @@
 
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка покупки улучшений
 export const processPurchaseUpgrade = (
@@ -52,27 +53,12 @@ export const processPurchaseUpgrade = (
     console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
     
     // Отправляем сообщение о разблокировке криптокошелька
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', { 
-        detail: { 
-          message: "Разблокирован криптокошелек", 
-          type: "info" 
-        } 
-      });
-      eventBus.dispatchEvent(customEvent);
-      
-      // Добавляем описательное сообщение о криптокошельке
-      setTimeout(() => {
-        const detailEvent = new CustomEvent('game-event', { 
-          detail: { 
-            message: "Криптокошелек увеличивает максимальное хранение USDT и знаний", 
-            type: "info" 
-          } 
-        });
-        eventBus.dispatchEvent(detailEvent);
-      }, 200);
-    }
+    safeDispatchGameEvent("Разблокирован криптокошелек", "info");
+    
+    // Добавляем описательное сообщение о криптокошельке
+    setTimeout(() => {
+      safeDispatchGameEvent("Криптокошелек увеличивает максимальное хранение USDT и знаний", "info");
+    }, 200);
     
     const newState = {
       ...state,

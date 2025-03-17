@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { 
   createGameEventBus, 
@@ -62,13 +61,15 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.set(detailMessage, currentTime);
         
         setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event-detail', { 
-            detail: { 
-              message: detailMessage,
-              type: "info"
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          if (typeof window !== 'undefined' && window.gameEventBus) {
+            const detailEvent = new CustomEvent('game-event-detail', { 
+              detail: { 
+                message: detailMessage,
+                type: "info"
+              } 
+            });
+            window.gameEventBus.dispatchEvent(detailEvent);
+          }
         }, 200);
       }
       else if (message.includes("После применения знаний открыта функция 'Практика'")) {
@@ -76,13 +77,15 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.set(detailMessage, currentTime);
         
         setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event-detail', { 
-            detail: { 
-              message: detailMessage,
-              type: "info"
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          if (typeof window !== 'undefined' && window.gameEventBus) {
+            const detailEvent = new CustomEvent('game-event-detail', { 
+              detail: { 
+                message: detailMessage,
+                type: "info"
+              } 
+            });
+            window.gameEventBus.dispatchEvent(detailEvent);
+          }
         }, 200);
       }
       else if (message.includes("Открыто новое оборудование: Генератор")) {
@@ -90,13 +93,15 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.set(detailMessage, currentTime);
         
         setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event-detail', { 
-            detail: { 
-              message: detailMessage,
-              type: "info"
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          if (typeof window !== 'undefined' && window.gameEventBus) {
+            const detailEvent = new CustomEvent('game-event-detail', { 
+              detail: { 
+                message: detailMessage,
+                type: "info"
+              } 
+            });
+            window.gameEventBus.dispatchEvent(detailEvent);
+          }
         }, 200);
       }
       else if (message.includes("Открыто новое оборудование: Домашний компьютер")) {
@@ -104,13 +109,15 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.set(detailMessage, currentTime);
         
         setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event-detail', { 
-            detail: { 
-              message: detailMessage,
-              type: "info"
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          if (typeof window !== 'undefined' && window.gameEventBus) {
+            const detailEvent = new CustomEvent('game-event-detail', { 
+              detail: { 
+                message: detailMessage,
+                type: "info"
+              } 
+            });
+            window.gameEventBus.dispatchEvent(detailEvent);
+          }
         }, 200);
       }
       else if (message.includes("Открыто новое оборудование: Автомайнер")) {
@@ -118,13 +125,15 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.set(detailMessage, currentTime);
         
         setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event-detail', { 
-            detail: { 
-              message: detailMessage,
-              type: "info"
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          if (typeof window !== 'undefined' && window.gameEventBus) {
+            const detailEvent = new CustomEvent('game-event-detail', { 
+              detail: { 
+                message: detailMessage,
+                type: "info"
+              } 
+            });
+            window.gameEventBus.dispatchEvent(detailEvent);
+          }
         }, 200);
       }
       else if (message.includes("Разблокировано исследование 'Основы блокчейна'")) {
@@ -132,13 +141,15 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.set(detailMessage, currentTime);
         
         setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event-detail', { 
-            detail: { 
-              message: detailMessage,
-              type: "info"
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          if (typeof window !== 'undefined' && window.gameEventBus) {
+            const detailEvent = new CustomEvent('game-event-detail', { 
+              detail: { 
+                message: detailMessage,
+                type: "info"
+              } 
+            });
+            window.gameEventBus.dispatchEvent(detailEvent);
+          }
         }, 200);
       }
       else if (message.includes("Разблокировано исследование 'Безопасность криптокошельков'")) {
@@ -146,13 +157,15 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.set(detailMessage, currentTime);
         
         setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event-detail', { 
-            detail: { 
-              message: detailMessage,
-              type: "info"
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
+          if (typeof window !== 'undefined' && window.gameEventBus) {
+            const detailEvent = new CustomEvent('game-event-detail', { 
+              detail: { 
+                message: detailMessage,
+                type: "info"
+              } 
+            });
+            window.gameEventBus.dispatchEvent(detailEvent);
+          }
         }, 200);
       }
     };
@@ -175,7 +188,9 @@ export const GameEventSystem: React.FC = () => {
     return () => {
       removeGameEventListener(eventBus, handleGameEvent as any);
       eventBus.removeEventListener('game-event-detail', handleDetailEvent as any);
-      delete window.gameEventBus;
+      if (typeof window !== 'undefined') {
+        delete window.gameEventBus;
+      }
     };
   }, []);
   

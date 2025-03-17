@@ -1,6 +1,7 @@
 
 import { GameState } from '../types';
 import { checkUnlocks } from '../utils/resourceUtils';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка инкремента ресурсов
 export const processIncrementResource = (
@@ -44,27 +45,7 @@ export const processIncrementResource = (
   
   // Разблокировка "Применить знания" после 3-х кликов
   if (resourceId === 'knowledge' && !state.unlocks.applyKnowledge && newValue >= 3) {
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', { 
-        detail: { 
-          message: "Открыта новая функция: Применить знания", 
-          type: "info" 
-        } 
-      });
-      eventBus.dispatchEvent(customEvent);
-      
-      // Добавляем дополнительное пояснение
-      setTimeout(() => {
-        const detailEvent = new CustomEvent('game-event', { 
-          detail: { 
-            message: "Накопите 10 знаний, чтобы применить их и получить USDT", 
-            type: "info" 
-          } 
-        });
-        eventBus.dispatchEvent(detailEvent);
-      }, 200);
-    }
+    safeDispatchGameEvent("Открыта новая функция: Применить знания", "info");
     
     return {
       ...newState,

@@ -1,6 +1,6 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка покупки зданий
 export const processPurchaseBuilding = (
@@ -77,38 +77,17 @@ export const processPurchaseBuilding = (
     console.log("Разблокировано электричество из-за постройки генератора");
 
     // Отправляем сообщение о разблокировке электричества
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', { 
-        detail: { 
-          message: "Разблокирован новый ресурс: Электричество", 
-          type: "info" 
-        } 
-      });
-      eventBus.dispatchEvent(customEvent);
+    safeDispatchGameEvent("Разблокирован новый ресурс: Электричество", "info");
+    
+    // Сообщаем об открытии исследования "Основы блокчейна"
+    setTimeout(() => {
+      safeDispatchGameEvent("Разблокировано исследование 'Основы блокчейна'", "info");
       
-      // Сообщаем об открытии исследования "Основы блокчейна"
+      // Добавляем описательное сообщение об исследовании
       setTimeout(() => {
-        const researchEvent = new CustomEvent('game-event', { 
-          detail: { 
-            message: "Разблокировано исследование 'Основы блокчейна'", 
-            type: "info" 
-          } 
-        });
-        eventBus.dispatchEvent(researchEvent);
-        
-        // Добавляем описательное сообщение об исследовании
-        setTimeout(() => {
-          const detailEvent = new CustomEvent('game-event', { 
-            detail: { 
-              message: "Изучите основы блокчейна, чтобы получить +50% к максимальному хранению знаний", 
-              type: "info" 
-            } 
-          });
-          eventBus.dispatchEvent(detailEvent);
-        }, 200);
+        safeDispatchGameEvent("Изучите основы блокчейна, чтобы получить +50% к максимальному хранению знаний", "info");
       }, 200);
-    }
+    }, 200);
 
     // Разблокируем исследование "Основы блокчейна"
     const newUpgrades = {
@@ -142,27 +121,12 @@ export const processPurchaseBuilding = (
     console.log("Разблокирована вычислительная мощность из-за постройки домашнего компьютера");
 
     // Отправляем сообщение о разблокировке вычислительной мощности
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', { 
-        detail: { 
-          message: "Разблокирован новый ресурс: Вычислительная мощность", 
-          type: "info" 
-        } 
-      });
-      eventBus.dispatchEvent(customEvent);
-      
-      // Добавляем пояснение о новом ресурсе
-      setTimeout(() => {
-        const detailEvent = new CustomEvent('game-event', { 
-          detail: { 
-            message: "Вычислительная мощность может использоваться для майнинга USDT", 
-            type: "info" 
-          } 
-        });
-        eventBus.dispatchEvent(detailEvent);
-      }, 200);
-    }
+    safeDispatchGameEvent("Разблокирован новый ресурс: Вычислительная мощность", "info");
+    
+    // Добавляем пояснение о новом ресурсе
+    setTimeout(() => {
+      safeDispatchGameEvent("Вычислительная мощность может использоваться для майнинга USDT", "info");
+    }, 200);
   }
   
   // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошельков"
@@ -179,27 +143,12 @@ export const processPurchaseBuilding = (
     console.log("Разблокировано исследование 'Безопасность криптокошельков' из-за постройки криптокошелька");
 
     // Отправляем сообщение о разблокировке исследования
-    const eventBus = window.gameEventBus;
-    if (eventBus) {
-      const customEvent = new CustomEvent('game-event', { 
-        detail: { 
-          message: "Разблокировано исследование 'Безопасность криптокошельков'", 
-          type: "info" 
-        } 
-      });
-      eventBus.dispatchEvent(customEvent);
-      
-      // Добавляем описательное сообщение об исследовании
-      setTimeout(() => {
-        const detailEvent = new CustomEvent('game-event', { 
-          detail: { 
-            message: "Изучите безопасность криптокошельков, чтобы увеличить максимальное хранение USDT на 25%", 
-            type: "info" 
-          } 
-        });
-        eventBus.dispatchEvent(detailEvent);
-      }, 200);
-    }
+    safeDispatchGameEvent("Разблокировано исследование 'Безопасность криптокошельков'", "info");
+    
+    // Добавляем описательное сообщение об исследовании
+    setTimeout(() => {
+      safeDispatchGameEvent("Изучите безопасность криптокошельков, чтобы увеличить максимальное хранение USDT на 25%", "info");
+    }, 200);
 
     const stateWithUpgrades = {
       ...state,
