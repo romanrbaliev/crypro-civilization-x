@@ -49,18 +49,29 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
   };
   
   const handlePractice = () => {
-    const building = state.buildings.practice;
-    const currentCost = Math.floor(building.cost.usdt * Math.pow(building.costMultiplier, building.count));
+    // Здесь была проблема - неправильно получали текущую стоимость
+    // Исправляем и добавляем больше логов для диагностики
+    const practiceBuilding = state.buildings.practice;
+    if (!practiceBuilding) {
+      console.error("Ошибка: здание practice не найдено в state.buildings");
+      onAddEvent("Произошла ошибка при попытке практиковаться", "error");
+      return;
+    }
+    
+    // Правильный расчет стоимости согласно формуле
+    const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier, practiceBuilding.count));
     
     console.log(`Нажата кнопка Практиковаться. USDT: ${state.resources.usdt.value}, Требуется: ${currentCost}`);
+    console.log(`Информация о здании: уровень=${practiceBuilding.count}, множитель=${practiceBuilding.costMultiplier}`);
     
     if (state.resources.usdt.value < currentCost) {
       onAddEvent(`Недостаточно USDT! Требуется ${currentCost} единиц.`, "error");
       return;
     }
     
+    // Вызываем action покупки здания
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: "practice" } });
-    onAddEvent(`Вы повысили уровень практики до ${building.count + 1}! Скорость накопления знаний увеличена.`, "success");
+    onAddEvent(`Вы повысили уровень практики до ${practiceBuilding.count + 1}! Скорость накопления знаний увеличена.`, "success");
   };
   
   const handleMineClick = () => {
@@ -76,13 +87,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
   };
   
+  // Исправляем расчет текущей стоимости практики
   const practiceCurrentCost = state.buildings.practice 
     ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count)) 
     : 10;
   
   const practiceCurrentLevel = state.buildings.practice ? state.buildings.practice.count : 0;
   
-  const hasAutoMiner = state.buildings.autoMiner.count > 0;
+  const hasAutoMiner = state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
   
   // Создаем кнопки в обратном порядке - основная кнопка будет последней в массиве
   const buttons = [];

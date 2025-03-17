@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -31,6 +32,7 @@ export const processPurchaseBuilding = (
   // Проверяем, хватает ли ресурсов
   const canAfford = hasEnoughResources(state, currentCost);
   console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}, достаточно ресурсов: ${canAfford}`);
+  console.log(`Стоимость: ${JSON.stringify(currentCost)}, текущее количество: ${building.count}`);
   
   if (!canAfford) {
     return state;
@@ -60,7 +62,6 @@ export const processPurchaseBuilding = (
   // Специальная логика для практики: увеличиваем производство знаний с каждым уровнем
   if (buildingId === 'practice') {
     // Каждый уровень практики дает фиксированные 0.63 знаний/сек
-    // Общее производство не умножается на уровень, а всегда равно 0.63
     newBuildings.practice.production = { 
       knowledge: 0.63
     };
