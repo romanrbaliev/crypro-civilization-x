@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -31,11 +32,13 @@ const setTelegramMeta = () => {
   }
 };
 
-// Создаем глобальную переменную для отслеживания инициализации, если она еще не определена
-window.__telegramInitialized = window.__telegramInitialized || false;
-window.__telegramNotificationShown = window.__telegramNotificationShown || false;
-window.__supabaseInitialized = window.__supabaseInitialized || false;
-window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || true; // Принудительно включаем режим Telegram для отладки
+// Инициализация глобальных переменных, если они ещё не определены
+if (typeof window !== 'undefined') {
+  window.__telegramInitialized = window.__telegramInitialized || false;
+  window.__telegramNotificationShown = window.__telegramNotificationShown || false;
+  window.__supabaseInitialized = window.__supabaseInitialized || false;
+  window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || true;
+}
 
 const App = () => {
   // Устанавливаем мета-данные при загрузке приложения
@@ -208,10 +211,10 @@ const App = () => {
 // Добавляем дополнительные глобальные типы
 declare global {
   interface Window {
-    __telegramInitialized: boolean;
-    __telegramNotificationShown: boolean;
-    __supabaseInitialized: boolean;
-    __FORCE_TELEGRAM_MODE: boolean;
+    __telegramInitialized?: boolean;
+    __telegramNotificationShown?: boolean;
+    __supabaseInitialized?: boolean;
+    __FORCE_TELEGRAM_MODE?: boolean;
   }
 }
 

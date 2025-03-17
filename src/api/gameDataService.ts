@@ -1,9 +1,11 @@
+
 // API сервис для сохранения и загрузки игрового прогресса с Supabase
 
 import { GameState } from '@/context/types';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 // Флаг, указывающий, что Supabase уже проверен
 let supabaseChecked = false;
@@ -221,7 +223,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     // Готовим данные для сохранения
     const saveData = {
       user_id: userId,
-      game_data: gameState,
+      game_data: gameState as unknown as Json,
       updated_at: new Date().toISOString()
     };
     
@@ -317,7 +319,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           console.warn('⚠️ Не удалось обновить локальную копию:', localError);
         }
         
-        return data.game_data as GameState;
+        return data.game_data as unknown as GameState;
       } else {
         console.log('❌ Сохранение в Supabase не найдено');
       }
