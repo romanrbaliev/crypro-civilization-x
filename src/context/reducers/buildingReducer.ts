@@ -1,173 +1,179 @@
-import { GameState } from '../types';
-import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
-// Обработка покупки зданий
-export const processPurchaseBuilding = (
-  state: GameState,
-  payload: { buildingId: string }
-): GameState => {
+import { GameState } from '../types';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { isEnoughResources, calculateCost, deductResources } from '../utils/resourceUtils';
+import { activateReferral } from '@/api/gameDataService';
+
+// Процесс покупки здания
+export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
   const { buildingId } = payload;
   const building = state.buildings[buildingId];
   
-  // Если здание не существует или не разблокировано, возвращаем текущее состояние
-  if (!building || !building.unlocked) {
-    console.log(`Попытка покупки здания ${buildingId}, но оно не существует или не разблокировано`);
+  // Проверка на наличие здания
+  if (!building) {
+    safeDispatchGameEvent(`Ошибка: Здание ${buildingId} не найдено`, "error");
     return state;
   }
   
-  // Проверяем, не достигнут ли максимум зданий (если он задан)
-  if (building.maxCount !== undefined && building.count >= building.maxCount) {
-    console.log(`Достигнут максимум зданий ${buildingId}: ${building.count}/${building.maxCount}`);
+  // Проверка на разблокировку
+  if (!building.unlocked) {
+    safeDispatchGameEvent(`Ошибка: Здание ${building.name} недоступно`, "error");
     return state;
   }
   
-  // Рассчитываем стоимость здания с учетом уже построенных
-  const currentCost: { [key: string]: number } = {};
-  for (const [resourceId, baseCost] of Object.entries(building.cost)) {
-    currentCost[resourceId] = Math.floor(baseCost * Math.pow(building.costMultiplier, building.count));
-  }
-  
-  // Проверяем, хватает ли ресурсов
-  const canAfford = hasEnoughResources(state, currentCost);
-  console.log(`Попытка покупки здания ${buildingId}, разблокировано: ${building.unlocked}, достаточно ресурсов: ${canAfford}`);
-  console.log(`Стоимость: ${JSON.stringify(currentCost)}, текущее количество: ${building.count}`);
-  
-  if (!canAfford) {
+  // Проверка на максимальное количество
+  if (building.maxCount && building.count >= building.maxCount) {
+    safeDispatchGameEvent(`Достигнуто максимальное количество ${building.name}`, "warning");
     return state;
   }
   
-  // Вычитаем ресурсы
-  const newResources = { ...state.resources };
-  for (const [resourceId, cost] of Object.entries(currentCost)) {
-    console.log(`Вычитаем ${cost} ${resourceId} за покупку здания ${buildingId}`);
-    newResources[resourceId] = {
-      ...newResources[resourceId],
-      value: newResources[resourceId].value - cost
-    };
+  // Расчет стоимости с учетом множителя
+  const finalCost = calculateCost(building.cost, building.count, building.costMultiplier);
+  
+  // Проверка достаточности ресурсов
+  if (!isEnoughResources(state.resources, finalCost)) {
+    safeDispatchGameEvent(`Недостаточно ресурсов для покупки ${building.name}`, "error");
+    return state;
   }
   
-  // Увеличиваем количество зданий
-  const newBuildings = {
-    ...state.buildings,
-    [buildingId]: {
-      ...building,
-      count: building.count + 1
+  // Списание ресурсов
+  const newResources = deductResources(state.resources, finalCost);
+  
+  // Успешная покупка
+  const newState = {
+    ...state,
+    resources: newResources,
+    buildings: {
+      ...state.buildings,
+      [buildingId]: {
+        ...building,
+        count: building.count + 1
+      }
     }
   };
   
-  console.log(`Здание ${buildingId} построено, новое количество: ${building.count + 1}`);
+  // Отправка события о покупке
+  safeDispatchGameEvent(`Построено: ${building.name}`, "success");
   
-  // Специальная логика для практики: увеличиваем производство знаний с каждым уровнем
-  if (buildingId === 'practice') {
-    // Каждый уровень практики дает фиксированные 0.63 знаний/сек
-    // Уровень уже увеличен выше, поэтому просто устанавливаем базовое производство
-    newBuildings.practice.production = { 
-      knowledge: 0.63
-    };
-    console.log(`Уровень практики увеличен. Базовая скорость накопления знаний: ${newBuildings.practice.production.knowledge}`);
-  }
-  
-  // Если построен генератор, разблокируем электричество
+  // Проверка на первую покупку генератора - это считается активацией реферала
   if (buildingId === 'generator' && building.count === 0) {
-    newResources.electricity = {
-      ...newResources.electricity,
-      unlocked: true
-    };
-
-    console.log("Разблокировано электричество из-за постройки генератора");
-
-    // Отправляем сообщение о разблокировке электричества
-    safeDispatchGameEvent("Разблокирован новый ресурс: Электричество", "info");
+    // Активируем пользователя как реферала, если он пришел по реферальной ссылке
+    const { referredBy } = state;
     
-    // Сообщаем об открытии исследования "Основы блокчейна"
-    setTimeout(() => {
-      safeDispatchGameEvent("Разблокировано исследование 'Основы блокчейна'", "info");
+    if (referredBy) {
+      // Получаем свой ID для активации в системе
+      const userId = window.__game_user_id;
       
-      // Добавляем описательное сообщение об исследовании
-      setTimeout(() => {
-        safeDispatchGameEvent("Изучите основы блокчейна, чтобы получить +50% к максимальному хранению знаний", "info");
-      }, 200);
-    }, 200);
-
-    // Разблокируем исследование "Основы блокчейна"
-    const newUpgrades = {
-      ...state.upgrades,
-      basicBlockchain: {
-        ...state.upgrades.basicBlockchain,
-        unlocked: true
+      if (userId) {
+        // Асинхронно активируем реферала (не дожидаемся результата)
+        activateReferral(userId).then(success => {
+          if (success) {
+            safeDispatchGameEvent("Вы активировали реферальный бонус для пригласившего вас игрока", "success");
+          }
+        }).catch(error => {
+          console.error("Ошибка при активации реферала:", error);
+        });
       }
-    };
-
-    console.log("Разблокировано исследование 'Основы блокчейна' из-за постройки генератора");
-
-    const stateWithUpgrades = {
-      ...state,
-      resources: newResources,
-      buildings: newBuildings,
-      upgrades: newUpgrades
-    };
-    
-    // Обновляем максимальные значения ресурсов после применения изменений
-    return updateResourceMaxValues(stateWithUpgrades);
+    }
   }
   
-  // Если построен домашний компьютер, разблокируем вычислительную мощность
-  if (buildingId === 'homeComputer' && building.count === 0) {
-    newResources.computingPower = {
-      ...newResources.computingPower,
-      unlocked: true
-    };
-
-    console.log("Разблокирована вычислительная мощность из-за постройки домашнего компьютера");
-
-    // Отправляем сообщение о разблокировке вычислительной мощности
-    safeDispatchGameEvent("Разблокирован новый ресурс: Вычислительная мощность", "info");
-    
-    // Добавляем пояснение о новом ресурсе
-    setTimeout(() => {
-      safeDispatchGameEvent("Вычислительная мощность может использоваться для майнинга USDT", "info");
-    }, 200);
+  // Если есть конечные ресурсы, которые производит это здание, разблокируем их
+  for (const resourceId in building.production) {
+    if (!newState.resources[resourceId]?.unlocked) {
+      newState.resources = {
+        ...newState.resources,
+        [resourceId]: {
+          ...newState.resources[resourceId],
+          unlocked: true
+        }
+      };
+      
+      safeDispatchGameEvent(`Разблокирован ресурс: ${newState.resources[resourceId].name}`, "info");
+    }
   }
   
-  // Если построен криптокошелек, разблокируем исследование "Безопасность криптокошельков"
-  if (buildingId === 'cryptoWallet' && building.count === 0) {
-    // Разблокируем исследование "Безопасность криптокошельков"
-    const newUpgrades = {
-      ...state.upgrades,
-      walletSecurity: {
-        ...state.upgrades.walletSecurity,
-        unlocked: true
+  // Проверка и разблокировка новых зданий и улучшений, которые стали доступны после покупки
+  return checkBuildingUnlocks(newState, buildingId);
+};
+
+// Проверка и разблокировка новых зданий и улучшений
+const checkBuildingUnlocks = (state: GameState, buildingId: string): GameState => {
+  const building = state.buildings[buildingId];
+  let updatedState = { ...state };
+  
+  // Проверка на разблокировку новых зданий
+  for (const checkBuildingId in updatedState.buildings) {
+    const checkBuilding = updatedState.buildings[checkBuildingId];
+    
+    // Пропускаем уже разблокированные
+    if (checkBuilding.unlocked) continue;
+    
+    // Проверяем требования к зданиям
+    if (checkBuilding.requirements) {
+      let canUnlock = true;
+      
+      for (const reqBuildingId in checkBuilding.requirements) {
+        const requiredCount = checkBuilding.requirements[reqBuildingId];
+        const currentCount = updatedState.buildings[reqBuildingId]?.count || 0;
+        
+        if (currentCount < requiredCount) {
+          canUnlock = false;
+          break;
+        }
       }
-    };
-
-    console.log("Разблокировано исследование 'Безопасность криптокошельков' из-за постройки криптокошелька");
-
-    // Отправляем сообщение о разблокировке исследования
-    safeDispatchGameEvent("Разблокировано исследование 'Безопасность криптокошельков'", "info");
-    
-    // Добавляем описательное сообщение об исследовании
-    setTimeout(() => {
-      safeDispatchGameEvent("Изучите безопасность криптокошельков, чтобы увеличить максимальное хранение USDT на 25%", "info");
-    }, 200);
-
-    const stateWithUpgrades = {
-      ...state,
-      resources: newResources,
-      buildings: newBuildings,
-      upgrades: newUpgrades
-    };
-    
-    // Обновляем максимальные значения ресурсов после применения изменений
-    return updateResourceMaxValues(stateWithUpgrades);
+      
+      if (canUnlock) {
+        updatedState.buildings = {
+          ...updatedState.buildings,
+          [checkBuildingId]: {
+            ...checkBuilding,
+            unlocked: true
+          }
+        };
+        
+        safeDispatchGameEvent(`Разблокировано новое здание: ${checkBuilding.name}`, "info", { 
+          detail: checkBuilding.description 
+        });
+      }
+    }
   }
   
-  // Для всех зданий обновляем максимальные значения ресурсов
-  const stateWithBuilding = {
-    ...state,
-    resources: newResources,
-    buildings: newBuildings
-  };
+  // Проверка на разблокировку новых улучшений
+  for (const upgradeId in updatedState.upgrades) {
+    const upgrade = updatedState.upgrades[upgradeId];
+    
+    // Пропускаем уже разблокированные или купленные
+    if (upgrade.unlocked || upgrade.purchased) continue;
+    
+    // Проверяем условия разблокировки
+    if (upgrade.unlockCondition?.buildings) {
+      let canUnlock = true;
+      
+      for (const reqBuildingId in upgrade.unlockCondition.buildings) {
+        const requiredCount = upgrade.unlockCondition.buildings[reqBuildingId];
+        const currentCount = updatedState.buildings[reqBuildingId]?.count || 0;
+        
+        if (currentCount < requiredCount) {
+          canUnlock = false;
+          break;
+        }
+      }
+      
+      if (canUnlock) {
+        updatedState.upgrades = {
+          ...updatedState.upgrades,
+          [upgradeId]: {
+            ...upgrade,
+            unlocked: true
+          }
+        };
+        
+        safeDispatchGameEvent(`Разблокировано новое улучшение: ${upgrade.name}`, "info", { 
+          detail: upgrade.description 
+        });
+      }
+    }
+  }
   
-  return updateResourceMaxValues(stateWithBuilding);
+  return updatedState;
 };

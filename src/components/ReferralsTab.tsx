@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getUserIdentifier } from '@/api/gameDataService';
+import { getUserIdentifier, getUserReferrals } from '@/api/gameDataService';
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
@@ -35,6 +35,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [referralLink, setReferralLink] = useState('');
   const [helperRequests, setHelperRequests] = useState<any[]>([]);
+  const [isRefreshingReferrals, setIsRefreshingReferrals] = useState(false);
   
   // Генерация реферальной ссылки
   useEffect(() => {
@@ -48,6 +49,76 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       setReferralLink(`https://t.me/Crypto_civilization_bot?start=${newCode}`);
     }
   }, [state.referralCode, dispatch]);
+
+  // Функция для загрузки рефералов из Supabase
+  const loadReferrals = async () => {
+    try {
+      setIsRefreshingReferrals(true);
+      const userId = await getUserIdentifier();
+      console.log('Загрузка рефералов для пользователя:', userId);
+      
+      // Получаем рефералов из Supabase
+      const referralsData = await getUserReferrals();
+      console.log('Получены данные рефералов:', referralsData);
+      
+      if (referralsData && referralsData.length > 0) {
+        // Преобразуем данные рефералов в формат для состояния
+        const formattedReferrals = referralsData.map(ref => ({
+          id: ref.user_id,
+          username: `Пользователь ${ref.user_id.substring(0, 6)}`,
+          activated: false, // По умолчанию не активирован
+          joinedAt: new Date(ref.created_at).getTime()
+        }));
+        
+        // Обновляем состояние игры
+        dispatch({ 
+          type: "LOAD_GAME", 
+          payload: { 
+            ...state, 
+            referrals: mergeReferrals(state.referrals, formattedReferrals) 
+          } 
+        });
+        
+        onAddEvent(`Загружено ${formattedReferrals.length} рефералов`, "info");
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке рефералов:', error);
+      onAddEvent("Ошибка при загрузке рефералов", "error");
+    } finally {
+      setIsRefreshingReferrals(false);
+    }
+  };
+  
+  // Функция для объединения существующих рефералов с новыми
+  const mergeReferrals = (existingReferrals = [], newReferrals = []) => {
+    const mergedReferrals = [...existingReferrals];
+    
+    // Добавляем только те рефералы, которых еще нет в списке
+    for (const newRef of newReferrals) {
+      const existingIndex = mergedReferrals.findIndex(ref => ref.id === newRef.id);
+      
+      if (existingIndex === -1) {
+        // Реферал не найден, добавляем его
+        mergedReferrals.push(newRef);
+      } else {
+        // Реферал уже есть, обновляем его данные с сохранением статуса активации
+        mergedReferrals[existingIndex] = {
+          ...newRef,
+          activated: mergedReferrals[existingIndex].activated
+        };
+      }
+    }
+    
+    return mergedReferrals;
+  };
+
+  // Загрузка рефералов при монтировании компонента
+  useEffect(() => {
+    loadReferrals();
+    // Периодическое обновление списка рефералов
+    const intervalId = setInterval(loadReferrals, 60000); // Каждую минуту
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Функция генерации реферального кода (8 значный hex код)
   const generateReferralCode = () => {
@@ -90,6 +161,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       // Fallback для браузеров без Telegram WebApp
       window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`, '_blank');
     }
+  };
+
+  // Обновить список рефералов вручную
+  const handleRefreshReferrals = () => {
+    loadReferrals();
+    onAddEvent("Обновление списка рефералов...", "info");
   };
 
   // Запрос на наем помощника
@@ -215,15 +292,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
-  const totalReferrals = state.referrals.length;
-  const activeReferrals = state.referrals.filter(ref => ref.activated).length;
+  const totalReferrals = state.referrals?.length || 0;
+  const activeReferrals = state.referrals?.filter(ref => ref.activated)?.length || 0;
 
   // Фильтрация рефералов по активности
   const filteredReferrals = currentTab === 'active' 
-    ? state.referrals.filter(ref => ref.activated)
-    : state.referrals;
+    ? (state.referrals || []).filter(ref => ref.activated)
+    : (state.referrals || []);
 
-  const availableBuildings = Object.values(state.buildings)
+  const availableBuildings = Object.values(state.buildings || {})
     .filter(b => b.count > 0);
 
   // Проверка на наличие запросов о работе
@@ -232,7 +309,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   return (
     <div className="p-2 flex flex-col h-full">
       <div className="mb-2">
-        <h2 className="text-xs font-medium mb-1">Реферальная программа</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-xs font-medium mb-1">Реферальная программа</h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-5 text-[9px] px-2"
+            onClick={handleRefreshReferrals}
+            disabled={isRefreshingReferrals}
+          >
+            {isRefreshingReferrals ? 'Обновление...' : 'Обновить'}
+          </Button>
+        </div>
         <p className="text-[10px] text-gray-600 mb-2">
           +5% к производительности за каждого активного реферала
         </p>
