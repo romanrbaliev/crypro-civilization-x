@@ -54,7 +54,7 @@ export const processPurchaseBuilding = (
     console.log("Первый генератор куплен! Разблокировка исследований и электричества...");
     
     // Разблокируем первое исследование "Основы блокчейна"
-    if (state.upgrades["blockchain_basics"] && !state.upgrades["blockchain_basics"].unlocked) {
+    if (state.upgrades["blockchain_basics"]) {
       newUpgrades = {
         ...newUpgrades,
         "blockchain_basics": {
@@ -69,6 +69,11 @@ export const processPurchaseBuilding = (
       ...newUnlocks,
       research: true
     };
+
+    // Добавляем явную запись в консоль для отладки
+    console.log("Установлено состояние research:", true);
+    console.log("Текущее состояние вкладки research:", state.unlocks.research);
+    console.log("Новое состояние вкладки research:", newUnlocks.research);
     
     // Разблокируем ресурс электричество
     if (state.resources.electricity) {
@@ -81,6 +86,9 @@ export const processPurchaseBuilding = (
           perSecond: 0.5 // Генератор производит 0.5 электричества в секунду
         }
       };
+      console.log("Электричество разблокировано!");
+    } else {
+      console.error("Ресурс электричество не найден в состоянии!");
     }
     
     // Также активируем все рефералы, если они есть
@@ -92,6 +100,7 @@ export const processPurchaseBuilding = (
       
       safeDispatchGameEvent(`${activatedReferrals.length} рефералов активированы!`, "success");
       
+      // Обратите внимание, что здесь мы уже возвращаем обновленное состояние
       return {
         ...state,
         resources: updatedResources,

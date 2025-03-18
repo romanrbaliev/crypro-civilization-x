@@ -175,6 +175,9 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     safeDispatchGameEvent(`Вы отклонили предложение о работе для здания "${buildingName}"`, "info");
   }
   
+  // Проверяем логи после обновления
+  console.log('Помощники после обновления:', updatedHelpers);
+  
   return {
     ...state,
     referralHelpers: updatedHelpers
@@ -203,7 +206,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "PURCHASE_BUILDING": 
       return processPurchaseBuilding(state, action.payload);
     
-    // Покупка практики (специальный обработчик)
+    // Покупка ��рактики (специальный обработчик)
     case "PRACTICE_PURCHASE": 
       return processPracticePurchase(state);
     

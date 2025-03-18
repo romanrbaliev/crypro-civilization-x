@@ -42,8 +42,13 @@ export const calculateResourceProduction = (
           
           newResources[resourceId] = {
             ...newResources[resourceId],
-            perSecond: newResources[resourceId].perSecond + totalProduction
+            perSecond: (newResources[resourceId].perSecond || 0) + totalProduction
           };
+          
+          // Добавляем отладочную информацию
+          if (helperBoost > 0 || referralBonus > 0) {
+            console.log(`Ресурс ${resourceId}: базовое производство ${productionValue * building.count}, с бонусами ${totalProduction}`);
+          }
         }
       });
     }
@@ -88,8 +93,6 @@ export const updateResourceValues = (
   
   return newResources;
 };
-
-// Добавляем недостающие функции:
 
 // Проверка условий для разблокировки зданий и улучшений
 export const checkUnlocks = (state: GameState): GameState => {

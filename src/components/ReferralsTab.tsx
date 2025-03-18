@@ -734,94 +734,98 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                   return (
                     <div 
                       key={referral.id} 
-                      className="flex justify-between items-center p-1.5 rounded-lg border bg-green-50"
+                      className="flex flex-col p-1.5 rounded-lg border bg-green-50"
                     >
-                      <div>
-                        <div className="text-[10px] font-medium">{referral.username}</div>
-                        <div className="text-[9px] text-gray-500">
-                          ID: <span className="font-mono">{referral.id}</span>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-[10px] font-medium">{referral.username}</div>
+                          <div className="text-[9px] text-gray-500">
+                            ID: <span className="font-mono">{referral.id}</span>
+                          </div>
+                          <div className="text-[9px] text-gray-500">
+                            Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
+                          </div>
+                          {isAssigned && assignedBuilding && (
+                            <div className="text-[9px] text-green-600 mt-1">
+                              Работает в здании: {assignedBuilding.name}
+                            </div>
+                          )}
+                          {referral.id === '123456789' && (
+                            <div className="text-[9px] text-blue-600">
+                              Тестовый пользователь romanaliev
+                            </div>
+                          )}
+                          {referral.id === '987654321' && (
+                            <div className="text-[9px] text-blue-600">
+                              Тестовый пользователь lanakores
+                            </div>
+                          )}
                         </div>
-                        <div className="text-[9px] text-gray-500">
-                          Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
-                        </div>
-                        {isAssigned && assignedBuilding && (
-                          <div className="text-[9px] text-green-600 mt-1">
-                            Работает в здании: {assignedBuilding.name}
-                          </div>
-                        )}
-                        {referral.id === '123456789' && (
-                          <div className="text-[9px] text-blue-600">
-                            Тестовый пользователь romanaliev
-                          </div>
-                        )}
-                        {referral.id === '987654321' && (
-                          <div className="text-[9px] text-blue-600">
-                            Тестовый пользователь lanakores
-                          </div>
-                        )}
-                      </div>
-                      
-                      {isAssigned ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-6 px-2 text-[9px]"
-                          onClick={() => fireHelper(referral.id, assignedBuildingId!)}
-                        >
-                          Уволить
-                        </Button>
-                      ) : (
-                        <Dialog>
-                          <DialogTrigger asChild>
+                        
+                        <div className="ml-2">
+                          {isAssigned ? (
                             <Button 
                               variant="outline" 
                               size="sm" 
                               className="h-6 px-2 text-[9px]"
+                              onClick={() => fireHelper(referral.id, assignedBuildingId!)}
                             >
-                              Нанять
+                              Уволить
                             </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-xs">
-                            <DialogHeader>
-                              <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
-                              <DialogDescription className="text-[10px]">
-                                Выберите здание, к которому хотите прикрепить помощника
-                              </DialogDescription>
-                            </DialogHeader>
-                            <Select
-                              value={selectedBuildingId}
-                              onValueChange={setSelectedBuildingId}
-                            >
-                              <SelectTrigger className="text-[10px]">
-                                <SelectValue placeholder="Выберите здание" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableBuildings.map(building => (
-                                  <SelectItem 
-                                    key={building.id} 
-                                    value={building.id}
-                                    className="text-[10px]"
+                          ) : (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-6 px-2 text-[9px]"
+                                >
+                                  Нанять
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-xs">
+                                <DialogHeader>
+                                  <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
+                                  <DialogDescription className="text-[10px]">
+                                    Выберите здание, к которому хотите прикрепить помощника
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <Select
+                                  value={selectedBuildingId}
+                                  onValueChange={setSelectedBuildingId}
+                                >
+                                  <SelectTrigger className="text-[10px]">
+                                    <SelectValue placeholder="Выберите здание" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableBuildings.map(building => (
+                                      <SelectItem 
+                                        key={building.id} 
+                                        value={building.id}
+                                        className="text-[10px]"
+                                      >
+                                        {building.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <div className="text-[9px] text-gray-500 mt-2">
+                                  Эффективность здания увеличится на 5%
+                                </div>
+                                <div className="flex justify-end mt-4">
+                                  <Button
+                                    size="sm"
+                                    className="text-[9px] h-6"
+                                    onClick={() => hireHelper(referral.id)}
                                   >
-                                    {building.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <div className="text-[9px] text-gray-500 mt-2">
-                              Эффективность здания увеличится на 5%
-                            </div>
-                            <div className="flex justify-end mt-4">
-                              <Button
-                                size="sm"
-                                className="text-[9px] h-6"
-                                onClick={() => hireHelper(referral.id)}
-                              >
-                                Отправить приглашение
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
+                                    Отправить приглашение
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
