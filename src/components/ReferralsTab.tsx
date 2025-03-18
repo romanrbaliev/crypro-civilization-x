@@ -26,6 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { getUserIdentifier } from '@/api/gameDataService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { checkSupabaseConnection } from '@/api/connectionUtils';
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
@@ -339,13 +340,10 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const id = await getUserIdentifier();
       console.log('Принудительное обновление рефералов для пользователя:', id);
       
-      const { data: connectionResult, error: connectionError } = await supabase
-        .from('referral_data')
-        .select('count(*)')
-        .limit(1);
+      const isConnected = await checkSupabaseConnection();
       
-      if (connectionError) {
-        console.error('❌ Ошибка соединения с Supabase при обновлении рефералов:', connectionError);
+      if (!isConnected) {
+        console.error('❌ Ошибка соединения с Supabase при обновлении рефералов');
         onAddEvent("Ошибка соединения с базой данных", "error");
         setIsRefreshingReferrals(false);
         return;
