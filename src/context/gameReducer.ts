@@ -98,7 +98,7 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
     ref.id === payload.referralId ? { ...ref, activated: true } : ref
   );
   
-  console.log('Обновленный список рефералов:', updatedReferrals);
+  console.log('Обнов��енный список рефералов:', updatedReferrals);
   
   // Отправляем событие активации, чтобы обновить интерфейс
   setTimeout(() => {
@@ -265,6 +265,34 @@ const generateId = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
+// Обработка обновления статуса реферала из базы данных
+const processUpdateReferralStatus = (state: GameState, payload: { referralId: string; activated: boolean }): GameState => {
+  console.log(`Обновление статуса реферала ${payload.referralId} на ${payload.activated} в gameReducer`);
+  
+  // Проверяем, существует ли реферал в списке
+  const referralExists = state.referrals.some(ref => ref.id === payload.referralId);
+  if (!referralExists) {
+    console.warn(`Реферал ${payload.referralId} не найден в списке при обновлении статуса`);
+    return state;
+  }
+  
+  // Обновляем статус реферала
+  const updatedReferrals = state.referrals.map(ref => 
+    ref.id === payload.referralId 
+      ? { ...ref, activated: payload.activated } 
+      : ref
+  );
+  
+  console.log(`Обновлены статусы рефералов из БД в gameReducer:`, 
+    updatedReferrals.map(r => ({ id: r.id, activated: r.activated }))
+  );
+  
+  return {
+    ...state,
+    referrals: updatedReferrals
+  };
+};
+
 // Главный редьюсер игры - координирует все остальные редьюсеры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
@@ -389,7 +417,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "RESTART_COMPUTERS": 
       return processRestartComputers(state);
     
-    // Майнинг вычислительной мощности
+    // Майнинг вычислительной мощност��
     case "MINE_COMPUTING_POWER": 
       return processMiningPower(state);
     
@@ -417,6 +445,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "RESPOND_TO_HELPER_REQUEST":
       return processRespondToHelperRequest(state, action.payload);
+      
+    // Обновление статуса реферала из базы данных
+    case "UPDATE_REFERRAL_STATUS":
+      return processUpdateReferralStatus(state, action.payload);
       
     default:
       return state;

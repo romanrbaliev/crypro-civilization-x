@@ -403,11 +403,21 @@ export function GameProvider({ children }: GameProviderProps) {
       if (!saveMessageShown && process.env.NODE_ENV !== 'development') {
         saveMessageShown = true;
         toast({
-          title: "Соединение потеряно",
+          title: "Соединение по��еряно",
           description: "Соединение с сервером потеряно. Игра может работать некорректно.",
           variant: "destructive",
         });
       }
+    };
+    
+    const handleUpdateReferralStatus = (event: CustomEvent) => {
+      const { referralId, activated } = event.detail;
+      console.log(`Получено событие обновления статуса реферала в GameContext: ${referralId}, активирован=${activated}`);
+      
+      dispatch({
+        type: "UPDATE_REFERRAL_STATUS",
+        payload: { referralId, activated }
+      });
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -415,6 +425,7 @@ export function GameProvider({ children }: GameProviderProps) {
     window.addEventListener('blur', handleBlur);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('update-referral-status', handleUpdateReferralStatus as EventListener);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -422,6 +433,7 @@ export function GameProvider({ children }: GameProviderProps) {
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('update-referral-status', handleUpdateReferralStatus as EventListener);
     };
   }, [state, isLoading, hasConnection]);
   
@@ -442,4 +454,3 @@ export function GameProvider({ children }: GameProviderProps) {
     </GameContext.Provider>
   );
 }
-

@@ -23,7 +23,8 @@ export function Toaster() {
         console.log('ID пользователя сохранен в глобальной переменной:', userId);
         
         try {
-          const { data, error } = await supabase.from('referral_data').select('count(*)');
+          // Исправляем запрос для проверки подключения к Supabase - ошибка в count(*)
+          const { data, error } = await supabase.from('referral_data').select('user_id').limit(1);
           if (!error) {
             console.log('✅ Подключение к Supabase подтверждено при загрузке');
           } else {
@@ -47,10 +48,11 @@ export function Toaster() {
         if (userId) {
           console.log('Запрос обновления для пользователя:', userId);
           
-          // Проверяем подключение к Supabase
+          // Проверяем подключение к Supabase (исправлен запрос)
           const { data: connectionCheck, error: connectionError } = await supabase
             .from('referral_data')
-            .select('count(*)');
+            .select('user_id')
+            .limit(1);
             
           if (connectionError) {
             console.error('❌ Ошибка подключения к Supabase при обработке обновления:', connectionError);
@@ -90,8 +92,7 @@ export function Toaster() {
                 typeOfIs_activated: typeof referral.is_activated
               });
               
-              // Создаем событие с точным булевым значением из БД, без преобразований типов
-              // ВАЖНО: Используем строгое сравнение с true, чтобы избежать автоматического преобразования типов
+              // Создаем событие с точным булевым значением из БД
               const isActivatedInDb = referral.is_activated === true;
               
               console.log(`Отправка события с точным статусом активации из БД: ${isActivatedInDb}`);
@@ -145,12 +146,12 @@ export function Toaster() {
     
     window.addEventListener('referral-activated', handleReferralActivated);
     
-    // Запрашиваем обновление статусов при первом рендере
+    // Запрашиваем обновление статусов при первом рендере с увеличенной задержкой
     setTimeout(() => {
       const refreshEvent = new CustomEvent('refresh-referrals');
       window.dispatchEvent(refreshEvent);
       console.log('Отправлен запрос на начальное обновление статусов рефералов');
-    }, 1000); // Задержка для уверенности, что все компоненты загружены
+    }, 2000); // Увеличенная задержка для уверенности, что все компоненты загружены
     
     return () => {
       window.removeEventListener('refresh-referrals', handleRefresh);

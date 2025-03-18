@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -64,12 +65,43 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
 }) => {
   const isAssigned = Boolean(assignedBuildingId);
   
-  const isActivated = typeof referral.activated === 'boolean' 
-    ? referral.activated 
-    : String(referral.activated).toLowerCase() === 'true';
+  // Проверяем статус активации напрямую из базы данных
+  const [directDbStatus, setDirectDbStatus] = useState<boolean | null>(null);
+  
+  // Используем directDbStatus если он доступен, иначе берем из props
+  const isActivated = directDbStatus !== null 
+    ? directDbStatus 
+    : (typeof referral.activated === 'boolean' 
+        ? referral.activated 
+        : String(referral.activated).toLowerCase() === 'true');
+  
+  // При монтировании компонента проверяем статус в БД
+  useEffect(() => {
+    const checkStatusInDb = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('referral_data')
+          .select('is_activated')
+          .eq('user_id', referral.id)
+          .single();
+          
+        if (!error && data) {
+          console.log(`Статус активации из БД для ${referral.id}:`, data.is_activated);
+          setDirectDbStatus(data.is_activated === true);
+        } else {
+          console.error(`Ошибка при получении статуса из БД для ${referral.id}:`, error);
+        }
+      } catch (e) {
+        console.error(`Ошибка при проверке статуса в БД для ${referral.id}:`, e);
+      }
+    };
+    
+    checkStatusInDb();
+  }, [referral.id]);
   
   console.log(`Отображение карточки реферала ${referral.id}:`, {
     activated: referral.activated,
+    directDbStatus,
     isActivated,
     typeOfActivated: typeof referral.activated
   });
