@@ -82,6 +82,16 @@ export const processLoadGame = (
   if (!loadedState.referrals) {
     loadedState.referrals = [];
     console.log('✅ Инициализирован пустой массив рефералов');
+  } else {
+    // Убеждаемся, что у всех рефералов есть поле activated
+    loadedState.referrals = loadedState.referrals.map((referral) => {
+      if (typeof referral.activated !== 'boolean') {
+        console.log(`Добавляем отсутствующее поле activated для реферала ${referral.id}`);
+        return { ...referral, activated: false };
+      }
+      return referral;
+    });
+    console.log('✅ Проверены и скорректированы данные рефералов');
   }
   
   if (!loadedState.referralHelpers) {

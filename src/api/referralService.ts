@@ -234,14 +234,22 @@ export const getUserReferrals = async (): Promise<any[]> => {
       return [];
     }
     
-    console.log(`✅ Получено ${data?.length || 0} рефералов:`, data);
+    console.log(`✅ Получено ${data?.length || 0} рефералов из базы данных:`, data);
     
     // Трансформируем данные из БД в формат, ожидаемый компонентами
-    return (data || []).map(referral => {
-      // Здесь используем явное приведение типа для доступа к is_activated
+    const referrals = (data || []).map(referral => {
+      // Явное приведение типа для доступа к is_activated
       const referralData = referral as unknown as ReferralDataWithActivation;
-      // Активация либо из поля базы данных, либо по умолчанию false
-      const activated = typeof referralData.is_activated === 'boolean' ? referralData.is_activated : false;
+      
+      // Проверяем значение is_activated явным образом
+      let activated = false;
+      
+      if (typeof referralData.is_activated === 'boolean') {
+        activated = referralData.is_activated;
+        console.log(`Реферал ${referral.user_id} имеет статус активации:`, activated);
+      } else {
+        console.log(`Реферал ${referral.user_id} имеет неопределенный статус активации, устанавливаем false`);
+      }
       
       return {
         id: referral.user_id,
@@ -250,6 +258,9 @@ export const getUserReferrals = async (): Promise<any[]> => {
         joinedAt: new Date(referral.created_at).getTime()
       };
     });
+    
+    console.log('Преобразованные данные рефералов:', referrals);
+    return referrals;
   } catch (error) {
     console.error('❌ Ошибка при получении рефералов:', error);
     return [];
@@ -366,6 +377,8 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     const activationData = activationCheck as unknown as ReferralDataWithActivation;
     const isAlreadyActivated = activationData && activationData.is_activated === true;
     
+    console.log(`Текущий статус активации реферала ${referralId}: ${isAlreadyActivated ? 'активирован' : 'не активирован'}`);
+    
     if (isAlreadyActivated) {
       console.log('⚠️ Реферал уже активирован');
       return true;
@@ -433,7 +446,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       .eq('user_id', referralId);
       
     if (updateReferralError) {
-      console.error('❌ Ошибка при обновлении статуса активации реферала:', updateReferralError);
+      console.error('❌ Ошибка при обновлении статуса активации реферала в БД:', updateReferralError);
       return false;
     }
     
