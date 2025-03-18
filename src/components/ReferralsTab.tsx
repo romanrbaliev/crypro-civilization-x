@@ -30,6 +30,135 @@ interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
 }
 
+interface ReferralItemProps {
+  referral: any;
+  userBuildings: any;
+  helperRequests: any[];
+  ownedReferral: boolean;
+  onHire: (referralId: string) => void;
+  onFire: (referralId: string, buildingId: string) => void;
+  onLoadAvailableBuildings: (referralId: string) => void;
+  availableBuildings: any[];
+}
+
+const ReferralItem: React.FC<ReferralItemProps> = ({
+  referral,
+  userBuildings,
+  helperRequests,
+  ownedReferral,
+  onHire,
+  onFire,
+  onLoadAvailableBuildings,
+  availableBuildings
+}) => {
+  return (
+    <div className="p-1.5 rounded-lg border bg-white">
+      <div className="flex justify-between items-start">
+        <div>
+          <div className="text-[10px] font-medium">{referral.username}</div>
+          <div className="text-[9px] text-gray-500">
+            ID: <span className="font-mono">{referral.id}</span>
+          </div>
+          <div className="text-[9px] text-gray-500">
+            Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
+          </div>
+          <div className="text-[9px] mt-1">
+            Статус: {' '}
+            <span className={referral.activated ? "text-green-600" : "text-gray-500"}>
+              {referral.activated ? "Активирован" : "Не активирован"}
+            </span>
+          </div>
+          {referral.id === '123456789' && (
+            <div className="text-[9px] text-blue-600">
+              Тестовый пользователь romanaliev
+            </div>
+          )}
+          {referral.id === '987654321' && (
+            <div className="text-[9px] text-blue-600">
+              Тестовый пользователь lanakores
+            </div>
+          )}
+        </div>
+        
+        {referral.activated && !ownedReferral && (
+          <div className="ml-2 flex-shrink-0">
+            <Dialog onOpenChange={(open) => {
+              if (open) onLoadAvailableBuildings(referral.id);
+            }}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 px-2 text-[9px]"
+                >
+                  Нанять
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-xs">
+                <DialogHeader>
+                  <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
+                  <DialogDescription className="text-[10px]">
+                    Выберите здание, к которому хотите прикрепить помощника
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {availableBuildings.length > 0 ? (
+                  <>
+                    <div className="grid gap-3 py-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Здание</Label>
+                        <Select
+                          defaultValue={availableBuildings[0]?.id || ''}
+                          onValueChange={(value) => onLoadAvailableBuildings(referral.id)}
+                        >
+                          <SelectTrigger className="h-7 text-[10px]">
+                            <SelectValue placeholder="Выберите здание" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableBuildings.map(building => (
+                              <SelectItem 
+                                key={building.id} 
+                                value={building.id}
+                                className="text-[10px]"
+                              >
+                                {building.name} (x{building.count})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button 
+                        size="sm" 
+                        className="h-7 text-[10px]"
+                        onClick={() => onHire(referral.id)}
+                      >
+                        Нанять помощника
+                      </Button>
+                    </DialogFooter>
+                  </>
+                ) : (
+                  <div className="py-3 text-center">
+                    <AlertCircle className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
+                    <p className="text-[11px]">
+                      Нет доступных зданий для сотрудничества с этим рефералом
+                    </p>
+                    <p className="text-[9px] text-gray-500 mt-1">
+                      Для найма помощника у вас и у реферала должны быть одинаковые здания
+                    </p>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const [currentTab, setCurrentTab] = useState('all');
@@ -211,7 +340,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         onAddEvent("У вас пока нет рефералов", "info");
       }
     } catch (error) {
-      console.error('Ошибка при загрузк��� рефералов:', error);
+      console.error('Ошибка при загрузке рефералов:', error);
       onAddEvent("Ошибка при загрузке рефералов", "error");
     } finally {
       setIsRefreshingReferrals(false);
@@ -307,7 +436,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       .catch(err => {
         toast({
           title: "Ошибка копирования",
-          description: "Не удалось скопировать ссылку",
+          description: "Не удается скопировать ссылку",
           variant: "destructive"
         });
         onAddEvent("Ошибка при копировании реферальной ссылки", "error");
@@ -332,13 +461,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     forceRefreshReferrals();
     onAddEvent("Обновление списка рефералов...", "info");
   };
-  
-  // ИСПРАВЛЕНО: Переработана функция для получения общих зданий
+
   const getCompatibleBuildings = async (referralId: string) => {
     try {
       console.log(`Получение доступных зданий для реферала ${referralId}`);
       
-      // Получаем здания пользователя
       const userBuildings = Object.entries(state.buildings)
         .filter(([_, building]) => building.count > 0)
         .map(([id, building]) => ({
@@ -349,13 +476,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       
       console.log('Здания пользователя:', userBuildings);
       
-      // Для тестовых пользователей возвращаем только купленные здания пользователя
       if (referralId === '987654321' || referralId === '123456789') {
         console.log('Тестовый пользователь, возвращаем здания пользователя:', userBuildings);
         return userBuildings;
       }
       
-      // Получаем данные реферала из базы
       const { data } = await supabase
         .from(SAVES_TABLE)
         .select('game_data')
@@ -377,7 +502,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         return userBuildings;
       }
       
-      // Получаем здания реферала
       if (!referralGameData.buildings) {
         console.log('У реферала нет зданий, возвращаем только здания пользователя');
         return userBuildings;
@@ -393,7 +517,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       
       console.log('Здания реферала:', referralBuildings);
       
-      // Находим пересечение - здания, которые есть и у пользователя, и у реферала
       const commonBuildings = userBuildings.filter(userBuilding => 
         referralBuildings.some(referralBuilding => referralBuilding.id === userBuilding.id)
       );
@@ -601,7 +724,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     );
   };
 
-  // ИСПРАВЛЕНО: Добавлена функция для получения доступных зданий для конкретного реферала
   const loadAvailableBuildingsForReferral = async (referralId: string) => {
     try {
       const buildings = await getCompatibleBuildings(referralId);
@@ -609,7 +731,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       
       console.log(`Загружено ${buildings.length} доступных зданий для реферала ${referralId}`);
       
-      // Если есть доступные здания, выбираем первое по умолчанию
       if (buildings.length > 0) {
         setSelectedBuildingId(buildings[0].id);
       } else {
@@ -855,7 +976,111 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                                 
                                 {availableBuildings.length > 0 ? (
                                   <>
-                                    <Select
-                                      value={selectedBuildingId}
-                                      onValueChange={setSelectedBuildingId}
-                                    >
+                                    <div className="grid gap-3 py-2">
+                                      <div className="space-y-1">
+                                        <Label className="text-[10px]">Здание</Label>
+                                        <Select
+                                          value={selectedBuildingId}
+                                          onValueChange={setSelectedBuildingId}
+                                        >
+                                          <SelectTrigger className="h-7 text-[10px]">
+                                            <SelectValue placeholder="Выберите здание" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {availableBuildings.map(building => (
+                                              <SelectItem 
+                                                key={building.id} 
+                                                value={building.id}
+                                                className="text-[10px]"
+                                              >
+                                                {building.name} (x{building.count})
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                    
+                                    <DialogFooter>
+                                      <Button 
+                                        size="sm" 
+                                        className="h-7 text-[10px]"
+                                        onClick={() => hireHelper(referral.id)}
+                                      >
+                                        Нанять помощника
+                                      </Button>
+                                    </DialogFooter>
+                                  </>
+                                ) : (
+                                  <div className="py-3 text-center">
+                                    <AlertCircle className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
+                                    <p className="text-[11px]">
+                                      Нет доступных зданий для сотрудничества с этим рефералом
+                                    </p>
+                                    <p className="text-[9px] text-gray-500 mt-1">
+                                      Для найма помощника у вас и у реферала должны быть одинаковые здания
+                                    </p>
+                                  </div>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                <p className="text-[10px]">У вас пока нет активных рефералов</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="requests" className="mt-2">
+            {helperRequests.length > 0 ? (
+              <div className="space-y-1.5">
+                {helperRequests.map(request => (
+                  <div key={request.id} className="p-2 rounded-lg border bg-blue-50">
+                    <div className="text-[10px] font-medium">Запрос на помощь</div>
+                    <div className="text-[9px] text-gray-600 mt-1">
+                      Пользователь ID: {request.employer_id} приглашает вас стать помощником
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-6 px-2 text-[9px]"
+                        onClick={() => respondToHelperRequest(request.id, false)}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Отклонить
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="h-6 px-2 text-[9px]"
+                        onClick={() => respondToHelperRequest(request.id, true)}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Принять
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                <p className="text-[10px]">У вас нет запросов на помощь</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default ReferralsTab;
