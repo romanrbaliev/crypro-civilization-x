@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { getUserIdentifier } from '@/api/gameDataService';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
@@ -35,10 +36,15 @@ interface ReferralItemProps {
   userBuildings: any;
   helperRequests: any[];
   ownedReferral: boolean;
-  onHire: (referralId: string) => void;
+  onHire: (referralId: string, buildingId: string) => void;
   onFire: (referralId: string, buildingId: string) => void;
   onLoadAvailableBuildings: (referralId: string) => void;
   availableBuildings: any[];
+  isMobile: boolean;
+  selectedBuildingId: string;
+  setSelectedBuildingId: (id: string) => void;
+  isHelperAssigned: (referralId: string, buildingId: string) => boolean;
+  assignedBuildingId?: string;
 }
 
 const ReferralItem: React.FC<ReferralItemProps> = ({
@@ -49,12 +55,19 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
   onHire,
   onFire,
   onLoadAvailableBuildings,
-  availableBuildings
+  availableBuildings,
+  isMobile,
+  selectedBuildingId,
+  setSelectedBuildingId,
+  isHelperAssigned,
+  assignedBuildingId
 }) => {
+  const isAssigned = Boolean(assignedBuildingId);
+  
   return (
-    <div className="p-1.5 rounded-lg border bg-white">
+    <div className="p-1.5 rounded-lg border bg-white relative">
       <div className="flex justify-between items-start">
-        <div>
+        <div className={`${isMobile ? 'max-w-[75%]' : ''}`}>
           <div className="text-[10px] font-medium">{referral.username}</div>
           <div className="text-[9px] text-gray-500">
             ID: <span className="font-mono">{referral.id}</span>
@@ -68,6 +81,11 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
               {referral.activated ? "Активирован" : "Не активирован"}
             </span>
           </div>
+          {isAssigned && assignedBuildingId && (
+            <div className="text-[9px] text-green-600 mt-0.5">
+              {isHelperAssigned(referral.id, assignedBuildingId) ? "Помогает" : "Работает"} в здании
+            </div>
+          )}
           {referral.id === '123456789' && (
             <div className="text-[9px] text-blue-600">
               Тестовый пользователь romanaliev
@@ -82,76 +100,87 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
         
         {referral.activated && !ownedReferral && (
           <div className="ml-2 flex-shrink-0">
-            <Dialog onOpenChange={(open) => {
-              if (open) onLoadAvailableBuildings(referral.id);
-            }}>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-6 px-2 text-[9px]"
-                >
-                  Нанять
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-xs">
-                <DialogHeader>
-                  <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
-                  <DialogDescription className="text-[10px]">
-                    Выберите здание, к которому хотите прикрепить помощника
-                  </DialogDescription>
-                </DialogHeader>
-                
-                {availableBuildings.length > 0 ? (
-                  <>
-                    <div className="grid gap-3 py-2">
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Здание</Label>
-                        <Select
-                          defaultValue={availableBuildings[0]?.id || ''}
-                          onValueChange={(value) => onLoadAvailableBuildings(referral.id)}
-                        >
-                          <SelectTrigger className="h-7 text-[10px]">
-                            <SelectValue placeholder="Выберите здание" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableBuildings.map(building => (
-                              <SelectItem 
-                                key={building.id} 
-                                value={building.id}
-                                className="text-[10px]"
-                              >
-                                {building.name} (x{building.count})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+            {isAssigned ? (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-[9px]"
+                onClick={() => onFire(referral.id, assignedBuildingId)}
+              >
+                Уволить
+              </Button>
+            ) : (
+              <Dialog onOpenChange={(open) => {
+                if (open) onLoadAvailableBuildings(referral.id);
+              }}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-6 px-2 text-[9px]"
+                  >
+                    Нанять
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-xs">
+                  <DialogHeader>
+                    <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
+                    <DialogDescription className="text-[10px]">
+                      Выберите здание, к которому хотите прикрепить помощника
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  {availableBuildings.length > 0 ? (
+                    <>
+                      <div className="grid gap-3 py-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Здание</Label>
+                          <Select
+                            value={selectedBuildingId}
+                            onValueChange={setSelectedBuildingId}
+                          >
+                            <SelectTrigger className="h-7 text-[10px]">
+                              <SelectValue placeholder="Выберите здание" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableBuildings.map(building => (
+                                <SelectItem 
+                                  key={building.id} 
+                                  value={building.id}
+                                  className="text-[10px]"
+                                >
+                                  {building.name} (x{building.count})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
+                      
+                      <DialogFooter>
+                        <Button 
+                          size="sm" 
+                          className="h-7 text-[10px]"
+                          onClick={() => onHire(referral.id, selectedBuildingId)}
+                        >
+                          Нанять помощника
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  ) : (
+                    <div className="py-3 text-center">
+                      <AlertCircle className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
+                      <p className="text-[11px]">
+                        Нет доступных зданий для сотрудничества с этим рефералом
+                      </p>
+                      <p className="text-[9px] text-gray-500 mt-1">
+                        Для найма помощника у вас и у реферала должны быть одинаковые здания
+                      </p>
                     </div>
-                    
-                    <DialogFooter>
-                      <Button 
-                        size="sm" 
-                        className="h-7 text-[10px]"
-                        onClick={() => onHire(referral.id)}
-                      >
-                        Нанять помощника
-                      </Button>
-                    </DialogFooter>
-                  </>
-                ) : (
-                  <div className="py-3 text-center">
-                    <AlertCircle className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
-                    <p className="text-[11px]">
-                      Нет доступных зданий для сотрудничества с этим рефералом
-                    </p>
-                    <p className="text-[9px] text-gray-500 mt-1">
-                      Для найма помощника у вас и у реферала должны быть одинаковые здания
-                    </p>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
+                  )}
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         )}
       </div>
@@ -169,6 +198,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [telegramUserInfo, setTelegramUserInfo] = useState<any>(null);
   const [availableBuildings, setAvailableBuildings] = useState<any[]>([]);
+  const isMobile = useIsMobile();
 
   const REFERRAL_TABLE = 'referral_data';
   const SAVES_TABLE = 'game_saves';
@@ -290,7 +320,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           } 
         });
         
-        onAddEvent(`Вы (lanakores) были приглашены пользователем romanaliev`, "info");
+        onAddEvent(`Вы (lanakores) б��ли приглашены пользователем romanaliev`, "info");
         setIsRefreshingReferrals(false);
         return;
       }
@@ -474,7 +504,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           count: building.count
         }));
       
-      console.log('Здания пользователя:', userBuildings);
+      console.log('Здания пользоват��ля:', userBuildings);
       
       if (referralId === '987654321' || referralId === '123456789') {
         console.log('Тестовый пользователь, возвращаем здания пользователя:', userBuildings);
@@ -546,8 +576,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       });
   };
 
-  const hireHelper = async (referralId: string) => {
-    if (!selectedBuildingId) {
+  const hireHelper = async (referralId: string, buildingId: string) => {
+    if (!buildingId) {
       toast({
         title: "Ошибка",
         description: "Выберите здание для помощника",
@@ -563,7 +593,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         type: "HIRE_REFERRAL_HELPER", 
         payload: { 
           referralId, 
-          buildingId: selectedBuildingId 
+          buildingId 
         } 
       });
 
@@ -572,7 +602,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         .insert({
           employer_id: userId,
           helper_id: referralId,
-          building_id: selectedBuildingId,
+          building_id: buildingId,
           status: 'pending'
         });
 
@@ -723,6 +753,13 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
     );
   };
+  
+  const getAssignedBuildingId = (referralId: string) => {
+    const helper = state.referralHelpers.find(
+      h => h.helperId === referralId && h.status === 'accepted'
+    );
+    return helper ? helper.buildingId : undefined;
+  };
 
   const loadAvailableBuildingsForReferral = async (referralId: string) => {
     try {
@@ -869,6 +906,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     onFire={fireHelper}
                     onLoadAvailableBuildings={loadAvailableBuildingsForReferral}
                     availableBuildings={availableBuildings}
+                    isMobile={isMobile}
+                    selectedBuildingId={selectedBuildingId}
+                    setSelectedBuildingId={setSelectedBuildingId}
+                    isHelperAssigned={isHelperAssigned}
+                    assignedBuildingId={getAssignedBuildingId(referral.id)}
                   />
                 ))}
               </div>
@@ -904,12 +946,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             {filteredReferrals.length > 0 ? (
               <div className="space-y-1.5">
                 {filteredReferrals.map(referral => {
-                  const assignedHelper = state.referralHelpers.find(
-                    h => h.helperId === referral.id && h.status === 'accepted'
-                  );
-                  
-                  const isAssigned = Boolean(assignedHelper);
-                  const assignedBuildingId = assignedHelper?.buildingId;
+                  const assignedBuildingId = getAssignedBuildingId(referral.id);
                   const assignedBuilding = assignedBuildingId ? state.buildings[assignedBuildingId] : null;
                   
                   return (
@@ -918,7 +955,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                       className="flex flex-col p-1.5 rounded-lg border bg-green-50"
                     >
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className={`${isMobile ? 'max-w-[75%]' : ''}`}>
                           <div className="text-[10px] font-medium">{referral.username}</div>
                           <div className="text-[9px] text-gray-500">
                             ID: <span className="font-mono">{referral.id}</span>
@@ -926,7 +963,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                           <div className="text-[9px] text-gray-500">
                             Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
                           </div>
-                          {isAssigned && assignedBuilding && (
+                          {assignedBuilding && (
                             <div className="text-[9px] text-green-600 mt-1">
                               Работает в здании: {assignedBuilding.name}
                             </div>
@@ -944,12 +981,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                         </div>
                         
                         <div className="ml-2 flex-shrink-0">
-                          {isAssigned ? (
+                          {assignedBuildingId ? (
                             <Button 
                               variant="outline" 
                               size="sm" 
                               className="h-6 px-2 text-[9px]"
-                              onClick={() => fireHelper(referral.id, assignedBuildingId!)}
+                              onClick={() => fireHelper(referral.id, assignedBuildingId)}
                             >
                               Уволить
                             </Button>
@@ -1005,7 +1042,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                                       <Button 
                                         size="sm" 
                                         className="h-7 text-[10px]"
-                                        onClick={() => hireHelper(referral.id)}
+                                        onClick={() => hireHelper(referral.id, selectedBuildingId)}
                                       >
                                         Нанять помощника
                                       </Button>
@@ -1084,3 +1121,4 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 };
 
 export default ReferralsTab;
+

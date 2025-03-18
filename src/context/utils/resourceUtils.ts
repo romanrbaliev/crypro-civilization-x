@@ -1,3 +1,4 @@
+
 import { Resource, Building, ReferralHelper, GameState } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 
@@ -18,7 +19,7 @@ export const calculateResourceProduction = (
     };
   });
   
-  // Получаем бонус от рефералов
+  // Получаем бонус от рефералов (ИСПРАВЛЕНО: функция calculateReferralBonus теперь учитывает только активных рефералов)
   const referralBonus = calculateReferralBonus(referrals);
   
   console.log(`Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%`);

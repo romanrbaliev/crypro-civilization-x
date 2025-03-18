@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { researchCategories } from '@/utils/gameConfig';
 import TechTreeCategory from './TechTreeCategory';
 import { Lightbulb } from 'lucide-react';
@@ -33,6 +33,21 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
   console.log("TechTree: исследования разблокированы:", hasUnlockedResearch);
   console.log("TechTree: флаг research в unlocks:", state.unlocks.research);
   console.log("TechTree: активных категорий:", activeCategoriesCount);
+
+  // ИСПРАВЛЕНО: Добавлена проверка разблокировки конкретных исследований
+  useEffect(() => {
+    if (state.unlocks.research && state.upgrades.blockchain_basics?.unlocked) {
+      console.log("TechTree: 'Основы блокчейна' разблокировано:", state.upgrades.blockchain_basics.unlocked);
+      console.log("TechTree: upgrade объект:", state.upgrades.blockchain_basics);
+    } else {
+      console.log("TechTree: 'Основы блокчейна' не разблокировано");
+      if (state.upgrades.blockchain_basics) {
+        console.log("TechTree: Статус blockchain_basics:", state.upgrades.blockchain_basics.unlocked);
+      } else {
+        console.log("TechTree: blockchain_basics не существует в state.upgrades");
+      }
+    }
+  }, [state.unlocks.research, state.upgrades.blockchain_basics]);
 
   return (
     <div className="p-2 flex flex-col h-full overflow-y-auto">

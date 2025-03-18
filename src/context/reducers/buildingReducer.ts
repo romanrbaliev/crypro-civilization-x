@@ -63,11 +63,12 @@ export const processPurchaseBuilding = (
         }
       };
       console.log("Исследование 'Основы блокчейна' разблокировано!");
+      safeDispatchGameEvent("Исследование 'Основы блокчейна' разблокировано!", "success");
     } else {
       console.warn("Не найдено исследование blockchain_basics");
     }
     
-    // Открываем вкладку исследований - ИСПРАВЛЕНО: используем явное присваивание true
+    // Открываем вкладку исследований - ИСПРАВЛЕНО: Явно устанавливаем флаг в true
     newUnlocks = {
       ...newUnlocks,
       research: true
