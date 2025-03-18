@@ -64,7 +64,7 @@ export const applyStorageBoosts = (
 ): { [key: string]: Resource } => {
   const newResources = { ...resources };
   
-  // Применяем увеличение хранилища от зданий
+  // Применяем увеличение хранилища от зданий, но только от эффектов Max, не от Boost
   Object.values(buildings).forEach(building => {
     if (building.count > 0) {
       Object.entries(building.production).forEach(([resourceId, amount]) => {
@@ -72,13 +72,10 @@ export const applyStorageBoosts = (
         if (resourceId.includes('Max') && !resourceId.includes('Boost')) {
           const actualResourceId = resourceId.replace('Max', '');
           if (newResources[actualResourceId]) {
-            const totalIncrease = Number(amount) * building.count;
-            newResources[actualResourceId] = {
-              ...newResources[actualResourceId],
-              max: newResources[actualResourceId].max + totalIncrease
-            };
-            
-            console.log(`Здание ${building.name} увеличивает максимум ${actualResourceId} на ${totalIncrease}`);
+            // Важное изменение: НЕ увеличиваем максимум ресурса каждый раз
+            // Это уже реализовано в функции updateResourceMaxValues
+            // Здесь мы просто логируем возможности зданий
+            console.log(`Здание ${building.name} может увеличивать максимум ${actualResourceId}`);
           }
         }
       });
@@ -185,9 +182,9 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       if (newResources.usdt) {
         newResources.usdt = {
           ...newResources.usdt,
-          max: newResources.usdt.max + (building.count * 50)
+          max: baseResourceValues.usdt + (building.count * 50)
         };
-        console.log(`Криптокошелек (${building.count} шт.) увеличивает максимум USDT до ${newResources.usdt.max}`);
+        console.log(`Криптокошелек (${building.count} шт.) устанавливает максимум USDT на ${newResources.usdt.max}`);
       }
       
       // Криптокошелек увеличивает максимальный лимит знаний на 25% за каждый
@@ -195,23 +192,32 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
         const boostFactor = 1 + (building.count * 0.25);
         newResources.knowledge = {
           ...newResources.knowledge,
-          max: Math.floor(newResources.knowledge.max * boostFactor)
+          max: Math.floor(baseResourceValues.knowledge * boostFactor)
         };
-        console.log(`Криптокошелек (${building.count} шт.) увеличивает максимум знаний до ${newResources.knowledge.max}`);
+        console.log(`Криптокошелек (${building.count} шт.) устанавливает максимум знаний на ${newResources.knowledge.max}`);
       }
     }
     
     // Применяем общие эффекты зданий на максимальные значения ресурсов
+    // ВАЖНО: Используем отдельные вычисления для каждого типа ресурса,
+    // а не накапливаем изменения от каждого здания
     Object.entries(building.production).forEach(([effectId, amount]) => {
       if (effectId.includes('Max') && !effectId.includes('Boost')) {
         const resourceId = effectId.replace('Max', '');
         if (newResources[resourceId]) {
+          const baseMax = baseResourceValues[resourceId] || newResources[resourceId].max;
           const totalIncrease = Number(amount) * building.count;
+          
+          if (resourceId === 'usdt' || resourceId === 'knowledge') {
+            // Пропускаем, так как уже обработано выше для криптокошелька
+            return;
+          }
+          
           newResources[resourceId] = {
             ...newResources[resourceId],
-            max: newResources[resourceId].max + totalIncrease
+            max: baseMax + totalIncrease
           };
-          console.log(`Здание ${building.name} (${building.count} шт.) увеличивает максимум ${resourceId} на ${totalIncrease}`);
+          console.log(`Здание ${building.name} (${building.count} шт.) устанавливает максимум ${resourceId} на ${baseMax + totalIncrease}`);
         }
       }
     });
@@ -261,7 +267,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       // Обработка boost для скорости накопления ресурсов
       else if (effectId === 'knowledgeBoost') {
         if (newResources.knowledge) {
-          const basePerSecond = newResources.knowledge.perSecond || 0.63; // Используем текущую скорость или базовую
+          const basePerSecond = newResources.knowledge.perSecond || 0.63; // ��спользуем текущую скорость или базовую
           const boostedPerSecond = basePerSecond * (1 + Number(amount));
           newResources.knowledge = {
             ...newResources.knowledge,
