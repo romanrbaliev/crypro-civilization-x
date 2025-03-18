@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counters, MiningParams } from './types';
 
 // Начальные здания
@@ -192,14 +191,14 @@ export const initialCounters: Counters = {
 
 // Упрощенные параметры майнинга
 export const initialMiningParams: MiningParams = {
-  miningEfficiency: 0.00005,
+  miningEfficiency: 0.00001,
   networkDifficulty: 1.0,
   energyEfficiency: 0,
-  exchangeRate: 100000,  // Обновлено на 100,000 USDT за 1 BTC
+  exchangeRate: 100000,
   exchangeCommission: 0.05,
   volatility: 0.2,
   exchangePeriod: 3600,
-  baseConsumption: 2  // Обновлено на 2 единицы электричества
+  baseConsumption: 1
 };
 
 // Начальное состояние игры

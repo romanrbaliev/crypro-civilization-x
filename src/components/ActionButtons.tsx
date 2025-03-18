@@ -81,12 +81,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) 
     );
   }
   
-  // Добавляем основную кнопку в конец
-  buttons.push(
-    <div key="learn">
-      <LearnButton onClick={handleLearnClick} />
-    </div>
-  );
+  // Добавляем основную кнопку в конец, только если скорость накопления знаний меньше 10
+  if (state.resources.knowledge.perSecond < 10) {
+    buttons.push(
+      <div key="learn">
+        <LearnButton onClick={handleLearnClick} />
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-2 mt-2">

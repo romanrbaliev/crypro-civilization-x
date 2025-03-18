@@ -164,8 +164,8 @@ function calculateBtcMining(
     }
     
     // Определяем ресурсы, необходимые для работы автомайнера
-    const requiredElectricity = state.buildings.autoMiner.count * state.miningParams.baseConsumption; // 2 эл/сек на автомайнер
-    const requiredComputingPower = state.buildings.autoMiner.count * 10; // 10 вычислительной мощности на автомайнер
+    const requiredElectricity = state.buildings.autoMiner.count * state.miningParams.baseConsumption; // 1 эл/сек на автомайнер
+    const requiredComputingPower = state.buildings.autoMiner.count * 2; // 2 вычислительных мощности на автомайнер
     
     // Проверяем, достаточно ли ресурсов
     const hasEnoughElectricity = state.resources.electricity.value >= requiredElectricity;
@@ -336,8 +336,8 @@ function handleSpecialResources(
   
   // Особый случай для вычислительной мощности - учитываем потребление автомайнером
   if (resourceId === 'computingPower' && state.buildings.autoMiner.count > 0 && !electricityShortage) {
-    // 10 вычислительной мощности на 1 автомайнер
-    const computingPowerConsumption = state.buildings.autoMiner.count * 10;
+    // 2 вычислительной мощности на 1 автомайнер
+    const computingPowerConsumption = state.buildings.autoMiner.count * 2;
     production -= computingPowerConsumption;
   }
   

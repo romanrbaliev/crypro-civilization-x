@@ -152,10 +152,26 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   }
   
   return (
-    <div className="p-2 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow mb-2">
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="p-2 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow mb-2"
+    >
       <div className="flex justify-between items-start w-full">
         <div className="w-full pr-2">
-          <h3 className="font-semibold text-[12px]">{name}</h3>
+          <div className="flex justify-between items-center w-full">
+            <h3 className="font-semibold text-[12px]">{name}</h3>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-0 h-6 w-6 min-w-6 ml-auto">
+                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </div>
+      </div>
+      
+      <CollapsibleContent>
+        <div className="mt-1">
           <p className="text-[10px] text-gray-600 mb-1 w-full">{description}</p>
           <div className="flex flex-col gap-1 w-full">
             {renderCost()}
@@ -163,30 +179,32 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
           <div className="mt-1 w-full">
             {renderEffects()}
           </div>
+          
+          <div className="mt-2 flex justify-end">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={handlePurchase} 
+                    disabled={!canAfford()}
+                    variant={canAfford() ? "default" : "outline"}
+                    size="sm"
+                    className="text-[10px] h-7 px-2 whitespace-nowrap"
+                  >
+                    Исследовать
+                  </Button>
+                </TooltipTrigger>
+                {!canAfford() && (
+                  <TooltipContent side="left">
+                    <p className="text-[10px]">Недостаточно ресурсов</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                onClick={handlePurchase} 
-                disabled={!canAfford()}
-                variant={canAfford() ? "default" : "outline"}
-                size="sm"
-                className="text-[10px] h-7 px-2 whitespace-nowrap"
-              >
-                Исследовать
-              </Button>
-            </TooltipTrigger>
-            {!canAfford() && (
-              <TooltipContent side="left">
-                <p className="text-[10px]">Недостаточно ресурсов</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 
