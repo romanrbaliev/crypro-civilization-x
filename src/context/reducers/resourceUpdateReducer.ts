@@ -6,19 +6,40 @@ export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const deltaTime = now - state.lastUpdate;
   
-  // Этап 1: Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
+  // Этап 1: Проверяем все рефералы на правильность статуса активации 
+  // (дополнительная проверка для исправления ошибок)
+  const validatedReferrals = state.referrals.map(referral => {
+    // Если статус активации неверный (активированный реферал без генератора)
+    // установим правильный статус
+    if (referral.activated === true && referral.helperStatus === undefined) {
+      console.log(`Исправляем статус реферала ${referral.id}: был активирован без покупки генератора`);
+      return {
+        ...referral,
+        activated: false
+      };
+    }
+    return referral;
+  });
+  
+  // Если были изменения в рефералах, создаем новый state
+  const stateWithValidReferrals = 
+    JSON.stringify(validatedReferrals) !== JSON.stringify(state.referrals) 
+      ? { ...state, referrals: validatedReferrals }
+      : state;
+  
+  // Этап 2: Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
-    state.resources, 
-    state.buildings, 
-    state.referralHelpers,
-    state.referrals,
-    state.referralCode
+    stateWithValidReferrals.resources, 
+    stateWithValidReferrals.buildings, 
+    stateWithValidReferrals.referralHelpers,
+    stateWithValidReferrals.referrals,
+    stateWithValidReferrals.referralCode
   );
   
-  // Этап 2: Применяем увеличение хранилища от зданий
-  updatedResources = applyStorageBoosts(updatedResources, state.buildings);
+  // Этап 3: Применяем увеличение хранилища от зданий
+  updatedResources = applyStorageBoosts(updatedResources, stateWithValidReferrals.buildings);
   
-  // Этап 3: Обновляем значения ресурсов с учетом времени
+  // Этап 4: Обновляем значения ресурсов с учетом времени
   updatedResources = updateResourceValues(updatedResources, deltaTime);
   
   // Выводим текущую информацию о производстве в консоль
@@ -29,9 +50,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
   });
   
   return {
-    ...state,
+    ...stateWithValidReferrals,
     resources: updatedResources,
     lastUpdate: now,
-    gameTime: state.gameTime + deltaTime
+    gameTime: stateWithValidReferrals.gameTime + deltaTime
   };
 };

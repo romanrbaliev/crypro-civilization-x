@@ -66,8 +66,9 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       console.log(`Игрок был приглашен по коду ${state.referredBy}. Активируем реферальную связь.`);
       
       // Отправляем ID текущего пользователя для активации у реферера
-      // Важно: получаем ID пользователя из window.__game_user_id или генерируем новый
       const userId = window.__game_user_id || `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
+      
+      console.log(`Активируем пользователя ${userId} как реферала пользователя с кодом ${state.referredBy}`);
       
       // Активируем реферала (асинхронно)
       activateReferral(userId).catch(err => 

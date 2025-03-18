@@ -44,7 +44,6 @@ export const processPurchaseUpgrade = (
   console.log(`Куплено исследование ${upgradeId} с эффектами:`, upgrade.effect);
   
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек
-  // и применяем эффекты увеличения хранилища знаний
   if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     // Разблокируем криптокошелек
     const newBuildings = {
@@ -72,8 +71,9 @@ export const processPurchaseUpgrade = (
       buildings: newBuildings
     };
     
-    // Обновляем максимальные значения ресурсов
-    return updateResourceMaxValues(stateAfterPurchase);
+    // Обновляем максимальные значения ресурсов и проверяем разблокировки
+    const updatedState = updateResourceMaxValues(stateAfterPurchase);
+    return checkUpgradeUnlocks(updatedState);
   }
   
   // Для других исследований просто обновляем состояние
@@ -83,10 +83,8 @@ export const processPurchaseUpgrade = (
     upgrades: newUpgrades
   };
   
-  // Проверяем все улучшения на возможность разблокировки
+  // Проверяем разблокировки и обновляем максимальные значения ресурсов
   const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
-  
-  // Обновляем максимальные значения ресурсов
   return updateResourceMaxValues(stateWithNewUnlocks);
 };
 

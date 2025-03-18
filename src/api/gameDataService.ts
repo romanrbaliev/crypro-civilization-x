@@ -1,4 +1,4 @@
-// API сервис для сохранения и загрузки игрового прогресса с Supabase
+// API ��ервис для сохранения и загрузки игрового прогресса с Supabase
 
 import { GameState } from '@/context/types';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
@@ -83,7 +83,7 @@ export const getUserIdentifier = async (): Promise<string> => {
       console.error('Ошибка при получении Telegram ID:', error);
     }
   } else {
-    console.log('Telegram WebApp не доступен, используем локальный ID');
+    console.log('Telegram WebApp ��е доступен, используем локальный ID');
   }
   
   // Для тестовых аккаунтов возвращаем хардкодированные идентификаторы
@@ -220,12 +220,16 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
             if (saveData && saveData.game_data) {
               // Добавляем нового реферала в список пригласившего
               const gameData = saveData.game_data as any;
+              
+              // ИСПРАВЛЕНИЕ: явно устанавливаем activated: false
               const newReferral = {
                 id: userId,
                 username: `Пользователь ${userId.substring(0, 6)}`,
-                activated: false, // Важно: всегда устанавливаем как неактивный
+                activated: false, // ВАЖНО: всегда устанавливаем как неактивный
                 joinedAt: Date.now()
               };
+              
+              console.log('Добавление реферала с явным статусом активации (false):', newReferral);
               
               const updatedReferrals = gameData.referrals 
                 ? [...gameData.referrals.filter((r: any) => r.id !== userId), newReferral]
@@ -293,12 +297,16 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
         if (saveData && saveData.game_data) {
           // Добавляем нового реферала в список пригласившего
           const gameData = saveData.game_data as any;
+          
+          // ИСПРАВЛЕНИЕ: явно устанавливаем activated: false
           const newReferral = {
             id: userId,
             username: `Пользователь ${userId.substring(0, 6)}`,
-            activated: false, // Важно: всегда устанавливаем как неактивный
+            activated: false, // ВАЖНО: устанавливаем явно как неактивный
             joinedAt: Date.now()
           };
+          
+          console.log('Добавление нового реферала с явным статусом активации (false):', newReferral);
           
           const updatedReferrals = gameData.referrals 
             ? [...gameData.referrals.filter((r: any) => r.id !== userId), newReferral]
@@ -565,7 +573,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       }
     }
     
-    console.log('❌ Сохранение в Supabase не найдено');
+    console.log('❌ Сохран��ние в Supabase не найдено');
     return null;
   } catch (error) {
     console.error('❌ Критическая ошибка при загрузке игры:', error);
@@ -673,13 +681,18 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       if (!referral) {
         console.warn('⚠️ Реферал с ID', referralId, 'не найден в списке рефералов');
         
-        // Добавляем реферала, если его нет в списке
-        gameData.referrals.push({
+        // ИСПРАВЛЕНИЕ: Добавляем реферала с правильным статусом
+        const newReferral = {
           id: referralId,
           username: `Пользователь ${referralId.substring(0, 6)}`,
-          activated: true, // Устанавливаем как активный, но только при покупке генератора
+          activated: true, // Активный, так как генератор куплен
           joinedAt: Date.now()
-        });
+        };
+        
+        console.log('Добавляем и активируем нового реферала:', newReferral);
+        
+        // Добавляем нового реферала
+        gameData.referrals.push(newReferral);
         
         // Сохраняем обновленные данные
         const { error } = await supabase
@@ -702,6 +715,8 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
         return true;
       }
       
+      console.log('Активируем реферала. Статус до:', referral.activated);
+      
       // Активируем реферала
       const updatedReferrals = gameData.referrals.map((ref: any) => 
         ref.id === referralId ? { ...ref, activated: true } : ref
@@ -712,6 +727,10 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
         ...gameData,
         referrals: updatedReferrals
       };
+      
+      console.log('Обновленные рефералы после активации:', 
+        updatedReferrals.map((r: any) => ({ id: r.id, activated: r.activated }))
+      );
       
       const { error } = await supabase
         .from(SAVES_TABLE)
@@ -727,9 +746,31 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       return true;
     } else {
       console.warn('⚠️ У пользователя нет списка рефералов');
+      
+      // ИСПРАВЛЕНИЕ: Создаем массив рефералов если его нет
+      gameData.referrals = [{
+        id: referralId,
+        username: `Пользователь ${referralId.substring(0, 6)}`,
+        activated: true, // Активный, так как генератор куплен
+        joinedAt: Date.now()
+      }];
+      
+      console.log('Создан новый массив рефералов:', gameData.referrals);
+      
+      // Сохраняем обновленные данные
+      const { error } = await supabase
+        .from(SAVES_TABLE)
+        .update({ game_data: gameData })
+        .eq('user_id', referrerData.user_id);
+        
+      if (error) {
+        console.error('❌ Ошибка при создании списка рефералов:', error);
+        return false;
+      }
+      
+      console.log('✅ Создан список рефералов и активирован реферал');
+      return true;
     }
-    
-    return false;
   } catch (error) {
     console.error('❌ Ошибка при активации реферала:', error);
     return false;
@@ -885,4 +926,3 @@ declare global {
     __game_user_id?: string;
   }
 }
-
