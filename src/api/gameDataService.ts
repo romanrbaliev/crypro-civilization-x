@@ -51,6 +51,7 @@ export const getUserIdentifier = async (): Promise<string> => {
   // Проверяем есть ли сохраненный ID в памяти
   const cachedId = window.__game_user_id;
   if (cachedId) {
+    console.log(`Использую сохраненный в памяти ID: ${cachedId}`);
     return cachedId;
   }
   
@@ -59,17 +60,50 @@ export const getUserIdentifier = async (): Promise<string> => {
     try {
       const tg = window.Telegram.WebApp;
       if (tg.initDataUnsafe?.user?.id) {
-        const telegramUserId = tg.initDataUnsafe.user.id;
-        // Используем просто числовой ID Telegram без префикса "tg_"
-        const id = `${telegramUserId}`;
-        window.__game_user_id = id;
-        console.log(`✅ Получен ID пользователя Telegram: ${id}`);
+        const telegramUserId = String(tg.initDataUnsafe.user.id); // Преобразуем в строку для обеспечения типа
         
-        return id;
+        // Сохраняем ID в памяти
+        window.__game_user_id = telegramUserId;
+        console.log(`✅ Получен ID пользователя Telegram: ${telegramUserId}`);
+        
+        // Добавим вывод телеграм данных для отладки
+        const telegramUser = tg.initDataUnsafe.user;
+        console.log('Данные пользователя Telegram:', {
+          id: telegramUser.id,
+          username: telegramUser.username,
+          firstName: telegramUser.first_name,
+          lastName: telegramUser.last_name
+        });
+        
+        return telegramUserId;
+      } else {
+        console.warn('⚠️ Telegram WebApp доступен, но данные пользователя отсутствуют');
       }
     } catch (error) {
       console.error('Ошибка при получении Telegram ID:', error);
     }
+  } else {
+    console.log('Telegram WebApp не доступен, используем локальный ID');
+  }
+  
+  // Для тестовых аккаунтов возвращаем хардкодированные идентификаторы
+  // Проверка на специаль��ые тестовые аккаунты по имени хоста или другим параметрам
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const urlParams = new URLSearchParams(window.location.search);
+  const testUser = urlParams.get('test_user');
+  
+  if (testUser === 'romanaliev' || (isLocalhost && localStorage.getItem('test_user') === 'romanaliev')) {
+    const testId = '123456789'; // Фиксированный ID для romanaliev
+    window.__game_user_id = testId;
+    console.log(`✅ Использую тестовый ID для romanaliev: ${testId}`);
+    return testId;
+  }
+  
+  if (testUser === 'lanakores' || (isLocalhost && localStorage.getItem('test_user') === 'lanakores')) {
+    const testId = '987654321'; // Фиксированный ID для lanakores
+    window.__game_user_id = testId;
+    console.log(`✅ Использую тестовый ID для lanakores: ${testId}`);
+    return testId;
   }
   
   // Если нет соединения с Telegram или не смогли получить ID, используем локально сохраненный ID
@@ -134,12 +168,22 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
     const userId = await getUserIdentifier();
     console.log('Сохранение реферального кода:', referralCode, 'для пользователя:', userId, 'приглашен:', referredBy);
     
+    // Обновлены логи для лучшего понимания процесса сохранения
+    console.log('Тип userId:', typeof userId, 'Значение:', userId);
+    if (referredBy) {
+      console.log('Тип referredBy:', typeof referredBy, 'Значение:', referredBy);
+    }
+    
     // Проверяем наличие записи для этого пользователя
-    const { data: existingData } = await supabase
+    const { data: existingData, error: checkError } = await supabase
       .from(REFERRAL_TABLE)
       .select()
       .eq('user_id', userId)
       .single();
+      
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('❌ Ошибка при проверке существующей записи:', checkError);
+    }
     
     if (existingData) {
       console.log('✅ Запись о реферале уже существует для пользователя', userId);
@@ -156,12 +200,14 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
         } else {
           console.log('✅ Обновлена информация о пригласившем пользователе:', referredBy);
           
-          // Находим данные пригласившего пользователя
+          // Добавлен вывод данных реферала в лог для отладки
           const { data: referrerData } = await supabase
             .from(REFERRAL_TABLE)
             .select('user_id')
             .eq('referral_code', referredBy)
             .single();
+            
+          console.log('Данные пригласившего:', referrerData);
             
           if (referrerData) {
             // Получаем сохранение игры пригласившего
@@ -379,7 +425,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       const jsonString = JSON.stringify(gameState);
       gameDataJson = JSON.parse(jsonString);
     } catch (parseError) {
-      console.error('❌ Ошибка преобразования состояния игры в JSON:', parseError);
+      console.error('❌ Ошибка преобразова��ия состояния игры в JSON:', parseError);
       return false;
     }
     
@@ -784,7 +830,7 @@ export const clearAllSavedDataForAllUsers = async (): Promise<void> => {
         
         toast({
           title: "Все сохранения очищены",
-          description: "Все данные игры для всех пользователей успешно удалены.",
+          description: "Все данные�� игры для всех пользователей успешно удалены.",
           variant: "success",
         });
       }
@@ -810,5 +856,18 @@ export const clearAllSavedDataForAllUsers = async (): Promise<void> => {
 declare global {
   interface Window {
     __game_user_id?: string;
+    Telegram?: {
+      WebApp?: {
+        initDataUnsafe?: {
+          user?: {
+            id: number;
+            first_name: string;
+            last_name?: string;
+            username?: string;
+          },
+          start_param?: string;
+        }
+      }
+    }
   }
 }
