@@ -1,5 +1,4 @@
 
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Проверка подключения к Supabase
@@ -17,10 +16,11 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
     // Выполняем проверку соединения простым запросом
     const connectionPromise = new Promise<boolean>(async (resolve) => {
       try {
-        // Используем простой запрос к таблице referral_data вместо RPC
+        // Используем простой запрос к таблице referral_data
+        // ИСПРАВЛЕНО: запрос больше не использует count(*), который вызывал ошибку
         const { data, error } = await supabase
           .from('referral_data')
-          .select('count(*)')
+          .select('user_id')
           .limit(1);
           
         if (error) {
