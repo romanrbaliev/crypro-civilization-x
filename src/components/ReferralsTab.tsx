@@ -67,7 +67,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
   return (
     <div className="p-1.5 rounded-lg border bg-white relative">
       <div className="flex justify-between items-start">
-        <div className={`${isMobile ? 'max-w-[75%]' : ''}`}>
+        <div className="flex-grow">
           <div className="text-[10px] font-medium">{referral.username}</div>
           <div className="text-[9px] text-gray-500">
             ID: <span className="font-mono">{referral.id}</span>
@@ -748,12 +748,14 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
   
+  // Определяем функцию isHelperAssigned для проверки, назначен ли помощник на здание
   const isHelperAssigned = (referralId: string, buildingId: string) => {
     return state.referralHelpers.some(
       h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
     );
   };
   
+  // Получаем ID здания, к которому прикреплен помощник
   const getAssignedBuildingId = (referralId: string) => {
     const helper = state.referralHelpers.find(
       h => h.helperId === referralId && h.status === 'accepted'
@@ -955,7 +957,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                       className="flex flex-col p-1.5 rounded-lg border bg-green-50"
                     >
                       <div className="flex justify-between items-start">
-                        <div className={`${isMobile ? 'max-w-[75%]' : ''}`}>
+                        <div className="flex-grow">
                           <div className="text-[10px] font-medium">{referral.username}</div>
                           <div className="text-[9px] text-gray-500">
                             ID: <span className="font-mono">{referral.id}</span>

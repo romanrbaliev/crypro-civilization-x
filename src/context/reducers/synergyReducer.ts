@@ -1,167 +1,118 @@
+import { GameState, GameAction } from '../types';
 
-import { GameState, SpecializationSynergy } from '../types';
-import { specializationSynergies } from '@/utils/gameConfig';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+export const synergyReducer = (state: GameState, action: GameAction): GameState => {
+  if (action.type === "CHECK_SYNERGIES") {
+    const { upgrades, specializationSynergies } = state;
 
-// Инициализация синергий при загрузке игры
-export const initializeSynergies = (state: GameState): GameState => {
-  const initialSynergies: { [key: string]: SpecializationSynergy } = {};
-  
-  Object.values(specializationSynergies).forEach(synergy => {
-    initialSynergies[synergy.id] = {
-      ...synergy,
-      unlocked: false,
-      active: false
-    };
-  });
-  
-  return {
-    ...state,
-    specializationSynergies: initialSynergies
-  };
-};
-
-// Проверка условий для разблокировки синергий
-export const checkSynergies = (state: GameState): GameState => {
-  const newSynergies = { ...state.specializationSynergies };
-  let hasChanges = false;
-  
-  // Подсчитываем количество исследований в каждой категории
-  const categoryResearchCount: { [category: string]: number } = {};
-  
-  Object.values(state.upgrades).forEach(upgrade => {
-    if (upgrade.purchased && upgrade.category) {
-      if (!categoryResearchCount[upgrade.category]) {
-        categoryResearchCount[upgrade.category] = 0;
+    const updatedSynergies = Object.entries(specializationSynergies).reduce((acc, [synergyId, synergy]) => {
+      if (synergy.unlocked || synergy.active) {
+        acc[synergyId] = synergy;
+        return acc;
       }
-      categoryResearchCount[upgrade.category]++;
-    }
-  });
-  
-  // Проверяем условия для каждой синергии
-  Object.values(newSynergies).forEach(synergy => {
-    // Если синергия уже разблокирована, пропускаем проверку
-    if (synergy.unlocked) return;
-    
-    // Проверяем, выполнены ли условия для разблокировки
-    const allCategoriesHaveEnough = synergy.requiredCategories.every(category => 
-      (categoryResearchCount[category] || 0) >= synergy.requiredCount
-    );
-    
-    if (allCategoriesHaveEnough) {
-      newSynergies[synergy.id] = {
-        ...synergy,
-        unlocked: true
-      };
-      hasChanges = true;
-      
-      // Отправляем сообщение о разблокировке синергии
-      safeDispatchGameEvent(
-        `Разблокирована новая синергия: ${synergy.name}`, 
-        "success"
-      );
-      
-      // Поясняющее сообщение
-      setTimeout(() => {
-        safeDispatchGameEvent(
-          synergy.description, 
-          "info"
-        );
-      }, 200);
-    }
-  });
-  
-  if (hasChanges) {
+
+      const categoryCounts: { [categoryId: string]: number } = {};
+      for (const categoryId of synergy.requiredCategories) {
+        categoryCounts[categoryId] = 0;
+      }
+
+      Object.values(upgrades).forEach(upgrade => {
+        if (upgrade.purchased && upgrade.category && synergy.requiredCategories.includes(upgrade.category)) {
+          categoryCounts[upgrade.category]++;
+        }
+      });
+
+      const allCategoriesFulfilled = synergy.requiredCategories.every(categoryId => categoryCounts[categoryId] >= synergy.requiredCount);
+
+      if (allCategoriesFulfilled) {
+        acc[synergyId] = { ...synergy, unlocked: true };
+      } else {
+        acc[synergyId] = synergy;
+      }
+
+      return acc;
+    }, {} as { [key: string]: any });
+
     return {
       ...state,
-      specializationSynergies: newSynergies
+      specializationSynergies: updatedSynergies,
+    };
+  }
+  
+  if (action.type === "ACTIVATE_SYNERGY") {
+    const { synergyId } = action.payload;
+    const synergy = state.specializationSynergies[synergyId];
+    
+    if (!synergy || !synergy.unlocked || synergy.active) {
+      return state;
+    }
+    
+    const updatedSynergies = {
+      ...state.specializationSynergies,
+      [synergyId]: { ...synergy, active: true }
+    };
+    
+    return {
+      ...state,
+      specializationSynergies: updatedSynergies
+    };
+  }
+  
+  if (action.type === "RESPOND_TO_HELPER_REQUEST") {
+    const { helperId, accepted } = action.payload;
+    
+    // Найдем запрос
+    const helperRequest = state.referralHelpers.find(h => h.id === helperId);
+    
+    if (!helperRequest) {
+      console.warn(`Запрос помощника с ID ${helperId} не найден`);
+      return state;
+    }
+    
+    console.log(`Ответ на запрос помощника ${helperId}: ${accepted ? 'принят' : 'отклонен'}`);
+    
+    // Обновляем статус помощника
+    const updatedHelpers = state.referralHelpers.map(h => 
+      h.id === helperId 
+        ? { ...h, status: accepted ? 'accepted' : 'rejected' } 
+        : h
+    );
+    
+    // Если помощник принят, также обновляем UI обоим игрокам
+    if (accepted) {
+      console.log(`Помощник (${helperRequest.helperId}) принят для здания ${helperRequest.buildingId}`);
+      
+      // Здесь могла бы быть логика уведомления другого игрока,
+      // но это требует асинхронных операций, которые нельзя выполнять в reducer
+    }
+    
+    return {
+      ...state,
+      referralHelpers: updatedHelpers,
+    };
+  }
+  
+  if (action.type === "HIRE_REFERRAL_HELPER") {
+    const { referralId, buildingId } = action.payload;
+    
+    console.log(`Запрос на найм помощника: реферал ${referralId}, здание ${buildingId}`);
+    
+    // Создаем новый запрос
+    const newHelper = {
+      id: Date.now().toString(),
+      buildingId,
+      helperId: referralId,
+      status: 'pending' as const,
+      createdAt: Date.now()
+    };
+    
+    // Добавляем запрос к существующим
+    const updatedHelpers = [...state.referralHelpers, newHelper];
+    
+    return {
+      ...state,
+      referralHelpers: updatedHelpers,
     };
   }
   
   return state;
 };
-
-// Активация синергии
-export const activateSynergy = (
-  state: GameState, 
-  payload: { synergyId: string }
-): GameState => {
-  const { synergyId } = payload;
-  const synergy = state.specializationSynergies[synergyId];
-  
-  // Если синергия не существует или не разблокирована, возвращаем текущее состояние
-  if (!synergy || !synergy.unlocked) {
-    return state;
-  }
-  
-  // Активируем синергию
-  const newSynergies = {
-    ...state.specializationSynergies,
-    [synergyId]: {
-      ...synergy,
-      active: true
-    }
-  };
-  
-  safeDispatchGameEvent(
-    `Активирована синергия: ${synergy.name}`, 
-    "success"
-  );
-  
-  // Перечисляем бонусы
-  const bonusDescriptions = Object.entries(synergy.bonus)
-    .map(([effectId, value]) => {
-      if (effectId.includes('Boost')) {
-        return `+${(value * 100).toFixed(0)}% к ${formatEffectName(effectId.replace('Boost', ''))}`;
-      }
-      return `+${value} к ${formatEffectName(effectId)}`;
-    })
-    .join(', ');
-  
-  setTimeout(() => {
-    safeDispatchGameEvent(
-      `Бонусы: ${bonusDescriptions}`, 
-      "info"
-    );
-  }, 200);
-  
-  return {
-    ...state,
-    specializationSynergies: newSynergies
-  };
-};
-
-// Форматирование имени эффекта (копия из researchUtils для независимости модуля)
-const formatEffectName = (name: string): string => {
-  const effectNameMap: {[key: string]: string} = {
-    knowledge: "знаниям",
-    miningEfficiency: "эффективности майнинга",
-    electricity: "электричеству",
-    computingPower: "вычислительной мощности",
-    electricityEfficiency: "эффективности электричества",
-    electricityConsumption: "потреблению электричества",
-    tradingEfficiency: "эффективности трейдинга",
-    marketAnalysis: "анализу рынка",
-    tradingProfit: "прибыли от трейдинга",
-    volatilityPrediction: "предсказанию волатильности",
-    automatedTrading: "автоматизированной торговле",
-    tradeSpeed: "скорости торговли",
-    security: "безопасности",
-    automation: "автоматизации",
-    reputation: "репутации",
-    hashrate: "хешрейту",
-    conversionRate: "конверсии",
-    usdtMax: "максимальному хранению USDT",
-    knowledgeMax: "максимальному хранению знаний",
-    stakingReward: "наградам за стейкинг",
-    portfolioGrowth: "росту портфеля",
-    marketSentiment: "настроению рынка",
-    defiYield: "доходности DeFi",
-    liquidityMining: "ликвидности майнинга",
-    passiveIncome: "пассивному доходу",
-    // И другие эффекты...
-  };
-  
-  return effectNameMap[name] || name;
-};
-

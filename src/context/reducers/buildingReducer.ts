@@ -1,141 +1,99 @@
 
-import { GameState } from '../types';
-import { canAffordCost, deductResources } from '../../utils/helpers';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { GameState, GameAction } from '../types';
+import { canAffordCost, deductResources } from '@/utils/helpers';
 
-export const processPurchaseBuilding = (
-  state: GameState,
-  payload: { buildingId: string }
-): GameState => {
-  const { buildingId } = payload;
-  
-  // Получаем здание из состояния
-  const building = state.buildings[buildingId];
-  
-  // Если здание не существует или не разблокировано, возвращаем состояние без изменений
-  if (!building || !building.unlocked) {
-    return state;
-  }
-  
-  // Расчет стоимости с учетом увеличения цены
-  const currentCost: { [key: string]: number } = {};
-  
-  Object.entries(building.cost).forEach(([resourceId, baseAmount]) => {
-    currentCost[resourceId] = Math.floor(
-      baseAmount * Math.pow(building.costMultiplier, building.count)
-    );
-  });
-  
-  // Проверяем, достаточно ли ресурсов
-  if (!canAffordCost(currentCost, state.resources)) {
-    safeDispatchGameEvent(`Недостаточно ресурсов для покупки ${building.name}`, "error");
-    return state;
-  }
-  
-  // Вычитаем ресурсы
-  const newResources = deductResources(currentCost, state.resources);
-  
-  // Обновляем количество зданий
-  const newBuildings = {
-    ...state.buildings,
-    [buildingId]: {
+export const buildingReducer = (state: GameState, action: GameAction): GameState => {
+  if (action.type === "PURCHASE_BUILDING") {
+    const buildingId = action.payload.buildingId;
+    const building = state.buildings[buildingId];
+
+    if (!building?.unlocked) {
+      return state;
+    }
+
+    const cost = calculateBuildingCost(building);
+
+    if (!canAffordCost(cost, state.resources)) {
+      return state;
+    }
+
+    const newResources = deductResources(cost, state.resources);
+    const newBuildings = { ...state.buildings };
+    
+    newBuildings[buildingId] = {
       ...building,
-      count: building.count + 1
-    }
-  };
-  
-  // Проверка на разблокировку исследований после первой покупки генератора
-  let newUpgrades = { ...state.upgrades };
-  let newUnlocks = { ...state.unlocks };
-  let updatedResources = { ...newResources };
-  
-  // Если это первый генератор, разблокируем исследования и электричество
-  if (buildingId === 'generator' && building.count === 0) {
-    console.log("Первый генератор куплен! Разблокировка исследований и электричества...");
-    
-    // Разблокируем первое исследование "Основы блокчейна"
-    // ИСПРАВЛЕНО: Проверяем наличие исследования с обоими возможными ID
-    if (newUpgrades["blockchain_basics"]) {
-      newUpgrades = {
-        ...newUpgrades,
-        "blockchain_basics": {
-          ...newUpgrades["blockchain_basics"],
-          unlocked: true
-        }
-      };
-      console.log("Исследование 'Основы блокчейна' (blockchain_basics) разблокировано!");
-      safeDispatchGameEvent("Исследование 'Основы блокчейна' разблокировано!", "success");
-    } else if (newUpgrades["basicBlockchain"]) {
-      newUpgrades = {
-        ...newUpgrades,
-        "basicBlockchain": {
-          ...newUpgrades["basicBlockchain"],
-          unlocked: true
-        }
-      };
-      console.log("Исследование 'Основы блокчейна' (basicBlockchain) разблокировано!");
-      safeDispatchGameEvent("Исследование 'Основы блокчейна' разблокировано!", "success");
-    } else {
-      console.warn("Не найдено исследование blockchain_basics или basicBlockchain");
-    }
-    
-    // Открываем вкладку исследований - ИСПРАВЛЕНО: Явно устанавливаем флаг в true
-    newUnlocks = {
-      ...newUnlocks,
-      research: true
+      count: building.count + 1,
+      cost: {
+        ...building.cost,
+      },
     };
 
-    // Для отладки добавляем больше логов
-    console.log("Установлен флаг research: true");
-    console.log("Текущие разблокированные функции:", Object.entries(newUnlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
+    // Особые случаи для определенных зданий
     
-    // Принудительная диспетчеризация события разблокировки исследований
-    safeDispatchGameEvent("Разблокирована вкладка Исследования!", "success");
-    
-    // Разблокируем ресурс электричество
-    if (state.resources.electricity) {
-      updatedResources = {
-        ...updatedResources,
-        electricity: {
-          ...state.resources.electricity,
-          unlocked: true,
-          value: 0,
-          perSecond: 0.5 // Генератор производит 0.5 электричества в секунду
-        }
-      };
-      console.log("Электричество разблокировано!");
-      safeDispatchGameEvent("Разблокирован ресурс: Электричество!", "success");
-    } else {
-      console.error("Ресурс электричество не найден в состоянии!");
-    }
-    
-    // Также активируем все рефералы, если они есть
-    if (state.referrals && state.referrals.length > 0) {
-      const activatedReferrals = state.referrals.map(ref => ({
-        ...ref,
-        activated: true
-      }));
+    // Если игрок купил генератор, разблокируем исследования
+    if (buildingId === 'generator' && building.count === 0) {
+      console.log('Игрок построил свой первый генератор, разблокируем исследования');
       
-      safeDispatchGameEvent(`${activatedReferrals.length} рефералов активированы!`, "success");
+      // Разблокируем вкладку исследований
+      const newUnlocks = { ...state.unlocks, research: true };
       
-      // Обратите внимание, что здесь мы уже возвращаем обновленное состояние
+      // Проверяем наличие и разблокируем "Основы блокчейна"
+      const newUpgrades = { ...state.upgrades };
+      
+      // Разблокировка по ID blockchain_basics
+      if (newUpgrades.blockchain_basics) {
+        console.log('Разблокируем исследование "Основы блокчейна" (blockchain_basics)');
+        newUpgrades.blockchain_basics = {
+          ...newUpgrades.blockchain_basics,
+          unlocked: true
+        };
+      }
+      
+      // Разблокировка по альтернативному ID basicBlockchain
+      if (newUpgrades.basicBlockchain) {
+        console.log('Разблокируем исследование "Основы блокчейна" (basicBlockchain)');
+        newUpgrades.basicBlockchain = {
+          ...newUpgrades.basicBlockchain,
+          unlocked: true
+        };
+      }
+      
       return {
         ...state,
-        resources: updatedResources,
+        resources: newResources,
         buildings: newBuildings,
-        upgrades: newUpgrades,
         unlocks: newUnlocks,
-        referrals: activatedReferrals
+        upgrades: newUpgrades,
       };
     }
+    
+    // Активация реферала, если построен генератор
+    if (buildingId === 'generator' && state.referredBy) {
+      console.log(`Игрок построил генератор, и был приглашен по коду ${state.referredBy}. Активируем реферальную связь.`);
+      
+      // Отправка данных в supabase могла бы быть здесь, но из-за синхронности reducer'а, 
+      // этой функциональности лучше быть в useEffect или в action creator
+      
+      // По хорошему, здесь стоит отметить что пользователь активирован для реферера,
+      // но это требует асинхронных запросов к бд
+    }
+    
+    return {
+      ...state,
+      resources: newResources,
+      buildings: newBuildings,
+    };
   }
+
+  return state;
+};
+
+const calculateBuildingCost = (building: any) => {
+  const result: { [key: string]: number } = {};
   
-  // Возвращаем обновленное состояние
-  return {
-    ...state,
-    resources: updatedResources,
-    buildings: newBuildings,
-    upgrades: newUpgrades,
-    unlocks: newUnlocks
-  };
+  Object.entries(building.cost).forEach(([resourceId, amount]) => {
+    result[resourceId] = Math.floor(Number(amount) * Math.pow(building.costMultiplier, building.count));
+  });
+  
+  return result;
 };
