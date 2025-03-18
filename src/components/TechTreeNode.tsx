@@ -216,12 +216,12 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
                 <div className="mt-1">
                   {upgrade.unlockCondition?.buildings && Object.entries(upgrade.unlockCondition.buildings).map(([buildingId, count]) => (
                     <div key={buildingId}>
-                      {state.buildings[buildingId]?.name || buildingId}: {count}
+                      {state.buildings[buildingId]?.name ?? buildingId}: {String(count)}
                     </div>
                   ))}
                   {upgrade.unlockCondition?.resources && Object.entries(upgrade.unlockCondition.resources).map(([resourceId, amount]) => (
                     <div key={resourceId}>
-                      {state.resources[resourceId]?.name || resourceId}: {amount}
+                      {state.resources[resourceId]?.name ?? resourceId}: {String(amount)}
                     </div>
                   ))}
                   {!upgrade.unlockCondition && "Продолжайте развиваться для открытия этого исследования."}
