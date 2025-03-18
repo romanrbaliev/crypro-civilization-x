@@ -15,13 +15,15 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
     
     // Выполняем проверку соединения с помощью RPC
     const connectionPromise = new Promise<boolean>((resolve) => {
-      supabase
-        .rpc('generate_unique_ref_code')
-        .then(() => {
+      // Используем функцию then вместо цепочки then/catch
+      supabase.rpc('generate_unique_ref_code').then(
+        // Обработчик успешного выполнения
+        () => {
           console.log('✅ Соединение с Supabase установлено');
           resolve(true);
-        })
-        .catch(err => {
+        },
+        // Обработчик ошибки
+        (err) => {
           // Даже если функция не существует, но соединение есть, считаем это успехом
           if (err.code === 'PGRST301' || err.message.includes('function') || err.message.includes('does not exist')) {
             console.log('✅ Соединение с Supabase установлено (ошибка функции)');
@@ -30,7 +32,8 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
             console.error('❌ Ошибка при проверке соединения с Supabase:', err);
             resolve(false);
           }
-        });
+        }
+      );
     });
     
     // Используем Promise.race для реализации таймаута
