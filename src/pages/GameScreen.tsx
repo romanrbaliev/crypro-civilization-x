@@ -27,6 +27,17 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { 
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { resetAllGameData } from "@/context/utils/gameStorage";
+import { toast } from "@/hooks/use-toast";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -34,7 +45,6 @@ const GameScreen = () => {
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   
   const hasUnlockedBuildings = Object.values(state.buildings)
     .some(b => b.unlocked && b.id !== "practice");
@@ -109,6 +119,28 @@ const GameScreen = () => {
     dispatch({ type: "RESET_GAME" });
     setResetConfirmOpen(false); // Закрываем диалог после сброса
     addEvent("Игра полностью сброшена", "info");
+  };
+  
+  const handleResetAll = async () => {
+    try {
+      await resetAllGameData();
+      toast({
+        title: "Сброс выполнен",
+        description: "Все сохранения успешно удалены. Страница будет перезагружена.",
+        variant: "success",
+      });
+      
+      // Перезагрузка страницы после небольшой задержки
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Ошибка сброса",
+        description: "Не удалось удалить сохранения игры.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -197,28 +229,43 @@ const GameScreen = () => {
               </DialogContent>
             </Dialog>
             
-            <Dialog open={showSettings} onOpenChange={setShowSettings}>
-              <DialogTrigger asChild>
+            <Sheet>
+              <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
+                  <Settings className="h-3.5 w-3.5 mr-1" />
                   Настройки
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Настройки</DialogTitle>
-                  <DialogDescription>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Настройки</SheetTitle>
+                  <SheetDescription>
                     Управление игрой и дополнительные опции
-                  </DialogDescription>
-                </DialogHeader>
+                  </SheetDescription>
+                </SheetHeader>
                 <div className="py-4">
+                  <h3 className="font-medium mb-2">Настройки игры</h3>
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
+                      onClick={() => setResetConfirmOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Сбросить прогресс
+                    </Button>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
                   <h3 className="font-medium mb-2">О игре</h3>
                   <p className="text-sm text-gray-500 mb-4">
                     Версия: 0.1.0 (Альфа)<br />
                     © 2023 Crypto Civilization
                   </p>
                 </div>
-              </DialogContent>
-            </Dialog>
+              </SheetContent>
+            </Sheet>
           </div>
           <div className="flex-1"></div>
         </div>
