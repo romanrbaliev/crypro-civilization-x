@@ -310,6 +310,28 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       
       if (error.code === 'PGRST116') {
         console.warn('⚠️ Таблица сохранений не существует в Supabase');
+        
+        // Пытаемся создать таблицу, если её нет
+        try {
+          // Вызываем функцию создания таблицы
+          await supabase.rpc('create_saves_table');
+          console.log('✅ Таблица сохранений создана');
+          
+          // Сразу попытаемся получить данные еще раз (после создания таблицы)
+          // Это скорее всего все равно вернет пустой результат, но стоит попробовать
+          const retryResult = await supabase
+            .from(SAVES_TABLE)
+            .select('game_data, updated_at')
+            .eq('user_id', userId)
+            .maybeSingle();
+            
+          if (retryResult.data && retryResult.data.game_data) {
+            console.log('✅ Данные успешно загружены после создания таблицы');
+            return retryResult.data.game_data as any;
+          }
+        } catch (createError) {
+          console.error('❌ Не удалось создать таблицу сохранений:', createError);
+        }
       }
       
       return null;

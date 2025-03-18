@@ -339,11 +339,17 @@ export function GameProvider({ children }: GameProviderProps) {
     loadSavedGame();
   }, []);
   
-  // КРИТИЧЕСКАЯ ОШИБКА: loadedState никогда не применяется к реальному состоянию!
-  // Исправляем это, добавляя зависимость от loadedState и применяя его к начальному состоянию
+  // Важное исправление: используем два useReducer
+  // Один для начального состояния (без загруженных данных)
+  const [initialGameState, initialDispatch] = useReducer(
+    gameReducer, 
+    { ...initialState, gameStarted: true, lastUpdate: Date.now(), lastSaved: Date.now() }
+  );
+  
+  // Второй для обновления состояния после загрузки сохранения
   const [state, dispatch] = useReducer(
     gameReducer, 
-    loadedState || { ...initialState, gameStarted: true, lastUpdate: Date.now(), lastSaved: Date.now() }
+    loadedState || initialGameState
   );
   
   // Применяем загруженное состояние после его получения через dispatch

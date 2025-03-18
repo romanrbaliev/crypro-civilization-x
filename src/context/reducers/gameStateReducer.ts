@@ -62,6 +62,12 @@ export const processLoadGame = (
     }
   }
   
+  // Проверка и добавление новых полей, которых могло не быть в сохранении
+  if (!loadedState.specializationSynergies) {
+    loadedState.specializationSynergies = { ...initialState.specializationSynergies };
+    console.log('✅ Добавлены отсутствующие данные о синергиях специализаций в редьюсере');
+  }
+  
   // Обновляем timestamp для правильной работы логики обновления
   loadedState.lastUpdate = Date.now();
   

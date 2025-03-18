@@ -109,13 +109,20 @@ export async function loadGameState(): Promise<GameState | null> {
           resources: { ...initialState.resources, ...(loadedState.resources || {}) },
           buildings: { ...initialState.buildings, ...(loadedState.buildings || {}) },
           upgrades: { ...initialState.upgrades, ...(loadedState.upgrades || {}) },
-          unlocks: { ...initialState.unlocks, ...(loadedState.unlocks || {}) }
+          unlocks: { ...initialState.unlocks, ...(loadedState.unlocks || {}) },
+          specializationSynergies: { ...initialState.specializationSynergies, ...(loadedState.specializationSynergies || {}) }
         };
         
         // Обновляем timestamp последнего обновления
         restoredState.lastUpdate = Date.now();
         
         return restoredState;
+      }
+      
+      // Проверка и добавление новых полей, которых могло не быть в сохранении
+      if (!loadedState.specializationSynergies) {
+        loadedState.specializationSynergies = { ...initialState.specializationSynergies };
+        console.log('✅ Добавлены отсутствующие данные о синергиях специализаций');
       }
       
       // Обновляем timestamp последнего обновления
