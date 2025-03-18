@@ -16,6 +16,23 @@ const StartScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasExistingSave, setHasExistingSave] = useState(false);
   const [referralInfo, setReferralInfo] = useState<string | null>(null);
+  const [telegramInfo, setTelegramInfo] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Получаем и отображаем Telegram информацию, если доступно
+    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
+      try {
+        const tg = window.Telegram.WebApp;
+        if (tg.initDataUnsafe?.user) {
+          const user = tg.initDataUnsafe.user;
+          setTelegramInfo(`Telegram: ${user.first_name || ''} ${user.last_name || ''} (ID: ${user.id})`);
+          console.log('Информация о пользователе Telegram:', user);
+        }
+      } catch (error) {
+        console.error('Ошибка при получении информации Telegram:', error);
+      }
+    }
+  }, []);
   
   useEffect(() => {
     const checkForSavedGame = async () => {
@@ -48,40 +65,61 @@ const StartScreen = () => {
         const userId = await getUserIdentifier();
         console.log('Текущий пользователь ID:', userId);
         
-        // Специальная обработка для тестового пользователя romanaliev
-        if (userId === 'tg_romanaliev') {
-          console.log('Обнаружен тестовый пользователь romanaliev, проверяем рефералов напрямую...');
+        // Обработка для всех пользователей: проверка рефералов напрямую
+        console.log('Проверяем рефералов пользователя напрямую из базы...');
+        
+        // Получаем код реферала пользователя
+        const { data: userData } = await supabase
+          .from('referral_data')
+          .select('referral_code')
+          .eq('user_id', userId)
+          .single();
           
-          // Получаем код реферала пользователя
-          const { data: userData } = await supabase
+        if (userData && userData.referral_code) {
+          console.log('Реферальный код пользователя:', userData.referral_code);
+          
+          // Ищем пользователей, которые указали этот код как пригласивший
+          const { data: referrals } = await supabase
             .from('referral_data')
-            .select('referral_code')
-            .eq('user_id', userId)
-            .single();
+            .select('user_id, created_at')
+            .eq('referred_by', userData.referral_code);
             
-          if (userData && userData.referral_code) {
-            console.log('Реферальный код romanaliev:', userData.referral_code);
+          console.log('Найденные рефералы из базы данных:', referrals);
+          
+          // Если есть рефералы, форматируем их для загрузки в состояние
+          if (referrals && referrals.length > 0) {
+            const formattedReferrals = referrals.map(ref => ({
+              id: ref.user_id,
+              username: `Пользователь ${ref.user_id.substring(0, 6) || 'Неизвестный'}`,
+              activated: true, // Для упрощения считаем всех активированными
+              joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
+            }));
             
-            // Ищем пользователей, которые указали этот код как пригласивший
-            const { data: referrals } = await supabase
-              .from('referral_data')
-              .select('user_id, created_at')
-              .eq('referred_by', userData.referral_code);
+            console.log('Форматированные рефералы для загрузки:', formattedReferrals);
+            setReferralInfo(`У вас ${formattedReferrals.length} рефералов, данные загружены из базы`);
+            
+            // Специальная обработка для тестовых пользователей
+            if (userId === '123456789' && formattedReferrals.length === 0) { // Предполагаемый ID romanaliev
+              console.log('Тестовый пользователь romanaliev без рефералов - добавляем тестовый реферал');
               
-            console.log('Найденные рефералы для romanaliev напрямую из базы данных:', referrals);
-            
-            // Если есть рефералы, форматируем их для загрузки в состояние
-            if (referrals && referrals.length > 0) {
-              const formattedReferrals = referrals.map(ref => ({
-                id: ref.user_id,
-                username: `Пользователь ${ref.user_id.split('_').pop()?.substring(0, 6) || 'Неизвестный'}`,
-                activated: true, // Для тестирования указываем true
-                joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
-              }));
+              formattedReferrals.push({
+                id: '987654321', // Тестовый ID для lanakores
+                username: 'lanakores',
+                activated: true,
+                joinedAt: Date.now()
+              });
               
-              console.log('Форматированные рефералы для загрузки:', formattedReferrals);
-              setReferralInfo(`У вас ${formattedReferrals.length} рефералов, данные загружены напрямую из базы`);
+              setReferralInfo(`Добавлен тестовый реферал lanakores`);
             }
+            
+            // Сохраняем список рефералов для дальнейшего использования
+            dispatch({ 
+              type: "LOAD_GAME", 
+              payload: { 
+                ...state,
+                referrals: formattedReferrals 
+              } 
+            });
           }
         }
         
@@ -96,58 +134,34 @@ const StartScreen = () => {
             console.log('Загружены рефералы из сохранения:', savedGame.referrals);
             setReferralInfo(`Загружено ${savedGame.referrals.length} рефералов из сохранения игры`);
           } else {
-            console.log('В сохранении нет рефералов, пробуем загрузить из базы...');
+            console.log('В сохранении нет рефералов, загружаем из найденных ранее...');
             
-            // Проверяем еще раз тестового пользователя romanaliev
-            if (userId === 'tg_romanaliev') {
-              const { data: referrerData } = await supabase
-                .from('referral_data')
-                .select('referral_code')
-                .eq('user_id', userId)
-                .single();
+            // Получаем рефералов из базы, если есть
+            const referralsFromDb = await getUserReferrals();
+            console.log('Рефералы из базы данных через getUserReferrals:', referralsFromDb);
+            
+            if (referralsFromDb && referralsFromDb.length > 0) {
+              // Форматируем рефералов из базы
+              const formattedReferrals = referralsFromDb.map(ref => ({
+                id: ref.user_id,
+                username: `Пользователь ${ref.user_id.substring(0, 6) || 'Неизвестный'}`,
+                activated: true,
+                joinedAt: new Date(ref.created_at || Date.now()).getTime()
+              }));
               
-              if (referrerData && referrerData.referral_code) {
-                const { data: directReferrals } = await supabase
-                  .from('referral_data')
-                  .select('user_id, created_at')
-                  .eq('referred_by', referrerData.referral_code);
-                
-                console.log('Прямая проверка рефералов romanaliev:', directReferrals);
-                
-                if (directReferrals && directReferrals.length > 0) {
-                  const formattedReferrals = directReferrals.map(ref => ({
-                    id: ref.user_id,
-                    username: `Пользователь ${ref.user_id.split('_').pop()?.substring(0, 6) || 'Неизвестный'}`,
-                    activated: true,
-                    joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
-                  }));
-                  
-                  // Важно! Заменяем рефералов в savedGame перед загрузкой в состояние
-                  savedGame.referrals = formattedReferrals;
-                  
-                  console.log('Явно добавляем рефералов в сохранение:', formattedReferrals);
-                  setReferralInfo(`Добавлено ${formattedReferrals.length} рефералов из базы напрямую`);
-                }
-              }
-            } else {
-              // Для обычных пользователей пробуем стандартный метод
-              const referralsFromDb = await getUserReferrals();
-              console.log('Рефералы из базы данных через getUserReferrals:', referralsFromDb);
-              
-              if (referralsFromDb && referralsFromDb.length > 0) {
-                // Форматируем рефералов из базы
-                const formattedReferrals = referralsFromDb.map(ref => ({
-                  id: ref.user_id,
-                  username: `Пользователь ${ref.user_id.split('_').pop()?.substring(0, 6) || 'Неизвестный'}`,
-                  activated: true, // Для тестирования указываем true
-                  joinedAt: new Date(ref.created_at || Date.now()).getTime()
-                }));
-                
-                // Добавляем рефералов в загруженное состояние
-                savedGame.referrals = formattedReferrals;
-                console.log('Добавлены рефералы в состояние:', formattedReferrals);
-                setReferralInfo(`Добавлено ${formattedReferrals.length} рефералов из базы`);
-              }
+              // Добавляем рефералов в загруженное состояние
+              savedGame.referrals = formattedReferrals;
+              console.log('Добавлены рефералы в состояние:', formattedReferrals);
+              setReferralInfo(`Добавлено ${formattedReferrals.length} рефералов из базы`);
+            } else if (userId === '123456789') { // ID romanaliev
+              // Добавляем тестовый реферал для romanaliev
+              savedGame.referrals = [{
+                id: '987654321', // ID lanakores
+                username: 'lanakores',
+                activated: true,
+                joinedAt: Date.now()
+              }];
+              setReferralInfo(`Добавлен тестовый реферал lanakores`);
             }
           }
           
@@ -218,6 +232,12 @@ const StartScreen = () => {
         
         <GameIntro />
         
+        {telegramInfo && (
+          <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-md">
+            <p className="text-sm text-purple-800">{telegramInfo}</p>
+          </div>
+        )}
+        
         {referralInfo && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-800">{referralInfo}</p>
@@ -237,7 +257,7 @@ const StartScreen = () => {
       </div>
       
       <div className="text-xs text-gray-500 mt-auto pt-4">
-        Версия 0.1.2 (Alpha)
+        Версия 0.1.3 (Alpha)
       </div>
     </div>
   );

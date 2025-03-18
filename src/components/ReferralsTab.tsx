@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw } from 'lucide-react';
@@ -36,7 +37,22 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [helperRequests, setHelperRequests] = useState<any[]>([]);
   const [isRefreshingReferrals, setIsRefreshingReferrals] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [testModeEnabled, setTestModeEnabled] = useState(false);
+  const [telegramUserInfo, setTelegramUserInfo] = useState<any>(null);
+  
+  // Получаем Telegram информацию о пользователе
+  useEffect(() => {
+    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
+      try {
+        const tg = window.Telegram.WebApp;
+        if (tg.initDataUnsafe?.user) {
+          setTelegramUserInfo(tg.initDataUnsafe.user);
+          console.log('Информация о пользователе Telegram в ReferralsTab:', tg.initDataUnsafe.user);
+        }
+      } catch (error) {
+        console.error('Ошибка при получении информации Telegram в ReferralsTab:', error);
+      }
+    }
+  }, []);
   
   useEffect(() => {
     const loadUserInfo = async () => {
@@ -44,11 +60,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         const id = await getUserIdentifier();
         setUserId(id);
         console.log(`ReferralsTab: Текущий пользователь ID: ${id}`);
-        
-        if (id === 'tg_romanaliev') {
-          setTestModeEnabled(true);
-          console.log('Включен тестовый режим для пользователя romanaliev');
-        }
       } catch (error) {
         console.error('Ошибка при получении ID пользователя:', error);
       }
@@ -75,116 +86,78 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const id = await getUserIdentifier();
       console.log('Загрузка рефералов для пользователя:', id);
       
-      if (id === 'tg_romanaliev' || testModeEnabled) {
-        console.log('Обнаружен тестовый пользователь, проверяем рефералов напрямую...');
+      // Загружаем информацию о рефералах напрямую из базы
+      const { data: userData } = await supabase
+        .from('referral_data')
+        .select('referral_code')
+        .eq('user_id', id)
+        .single();
         
-        const { data: userData } = await supabase
+      if (userData && userData.referral_code) {
+        console.log('Реферальный код пользователя:', userData.referral_code);
+        
+        // Загружаем всех рефералов для данного кода
+        const { data: directReferrals } = await supabase
           .from('referral_data')
-          .select('referral_code')
-          .eq('user_id', id)
-          .single();
+          .select('user_id, created_at, referred_by')
+          .eq('referred_by', userData.referral_code);
           
-        if (userData && userData.referral_code) {
-          console.log('Реферальный код пользователя:', userData.referral_code);
+        console.log('Найденные рефералы напрямую из базы:', directReferrals);
+        
+        if (directReferrals && directReferrals.length > 0) {
+          const formattedReferrals = directReferrals.map(ref => ({
+            id: ref.user_id,
+            username: `ID: ${ref.user_id.substring(0, 6) || 'Неизвестный'}`,
+            activated: true,
+            joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
+          }));
           
-          const { data: directReferrals } = await supabase
-            .from('referral_data')
-            .select('user_id, created_at, referred_by')
-            .eq('referred_by', userData.referral_code);
+          console.log('Форматированные рефералы для загрузки:', formattedReferrals);
+          
+          dispatch({ 
+            type: "LOAD_GAME", 
+            payload: { 
+              ...state, 
+              referrals: formattedReferrals 
+            } 
+          });
+          
+          onAddEvent(`Загружено ${formattedReferrals.length} рефералов напрямую из базы`, "success");
+          setIsRefreshingReferrals(false);
+          return;
+        } else {
+          // Если у пользователя ID 123456789 (romanaliev), добавляем тестовый реферал
+          if (id === '123456789') {
+            console.log('Рефералы не найдены, добавляем тестовые данные для romanaliev');
             
-          console.log('Найденные рефералы напрямую из базы:', directReferrals);
-          
-          if (directReferrals && directReferrals.length > 0) {
-            const formattedReferrals = directReferrals.map(ref => ({
-              id: ref.user_id,
-              username: `Пользователь ${ref.user_id.split('_').pop()?.substring(0, 6) || 'Неизвестный'}`,
+            const testReferral = {
+              id: '987654321', // Тестовый ID для lanakores
+              username: 'lanakores',
               activated: true,
-              joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
-            }));
-            
-            console.log('Форматированные рефералы для загрузки:', formattedReferrals);
+              joinedAt: Date.now()
+            };
             
             dispatch({ 
               type: "LOAD_GAME", 
               payload: { 
                 ...state, 
-                referrals: formattedReferrals 
+                referrals: [testReferral] 
               } 
             });
             
-            onAddEvent(`Загружено ${formattedReferrals.length} рефералов напрямую из базы`, "success");
+            onAddEvent(`Добавлен тестовый реферал lanakores`, "success");
             setIsRefreshingReferrals(false);
             return;
-          } else {
-            console.log('Рефералы не найдены, добавляем тестовые данные для romanaliev');
-            
-            const { data: lanaData } = await supabase
-              .from('referral_data')
-              .select('user_id, created_at, referral_code')
-              .eq('user_id', 'tg_lanakores')
-              .single();
-              
-            if (lanaData) {
-              console.log('Найдена запись для tg_lanakores:', lanaData);
-              
-              const { error } = await supabase
-                .from('referral_data')
-                .update({ referred_by: userData.referral_code })
-                .eq('user_id', 'tg_lanakores');
-                
-              if (error) {
-                console.error('Ошибка при обновлении referred_by для lanakores:', error);
-              } else {
-                console.log('Обновлен referred_by для lanakores на', userData.referral_code);
-                
-                const formattedReferrals = [{
-                  id: 'tg_lanakores',
-                  username: 'lanakores',
-                  activated: true,
-                  joinedAt: lanaData.created_at ? new Date(lanaData.created_at).getTime() : Date.now()
-                }];
-                
-                dispatch({ 
-                  type: "LOAD_GAME", 
-                  payload: { 
-                    ...state, 
-                    referrals: formattedReferrals 
-                  } 
-                });
-                
-                onAddEvent(`Добавлен тестовый реферал lanakores`, "success");
-                setIsRefreshingReferrals(false);
-                return;
-              }
-            }
           }
         }
       }
       
+      // Если в базе ничего не нашли, используем то, что есть в стейте
       if (state.referrals && state.referrals.length > 0) {
         console.log('Используем существующие рефералы из состояния:', state.referrals);
         onAddEvent(`Отображаем ${state.referrals.length} существующих рефералов`, "info");
-        setIsRefreshingReferrals(false);
-        return;
-      }
-          
-      if (id === 'tg_romanaliev') {
-        const testReferral = {
-          id: 'tg_lanakores',
-          username: 'lanakores',
-          activated: true,
-          joinedAt: Date.now()
-        };
-        
-        dispatch({ 
-          type: "LOAD_GAME", 
-          payload: { 
-            ...state, 
-            referrals: [testReferral] 
-          } 
-        });
-        
-        onAddEvent('Добавлен тестовый реферал для romanaliev', "info");
+      } else {
+        onAddEvent("У вас пока нет рефералов", "info");
       }
     } catch (error) {
       console.error('Ошибка при загрузке рефералов:', error);
@@ -194,29 +167,10 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
-  const mergeReferrals = (existingReferrals = [], newReferrals = []) => {
-    const mergedReferrals = [...existingReferrals];
-    
-    for (const newRef of newReferrals) {
-      const existingIndex = mergedReferrals.findIndex(ref => ref.id === newRef.id);
-      
-      if (existingIndex === -1) {
-        mergedReferrals.push(newRef);
-      } else {
-        mergedReferrals[existingIndex] = {
-          ...newRef,
-          activated: mergedReferrals[existingIndex].activated || true
-        };
-      }
-    }
-    
-    return mergedReferrals;
-  };
-
   useEffect(() => {
     console.log('ReferralsTab: Монтирование компонента, загружаем рефералов...');
     loadReferrals();
-    const intervalId = setInterval(loadReferrals, 60000);
+    const intervalId = setInterval(loadReferrals, 60000); // Обновление каждую минуту
     return () => clearInterval(intervalId);
   }, []);
 
@@ -390,13 +344,17 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   const hasHelperRequests = helperRequests.length > 0;
 
-  const isTestUser = userId === 'tg_romanaliev';
+  const isTelegramUser = telegramUserInfo !== null;
+  
+  // Проверка на тестовых пользователей
+  const isRomanAliev = userId === '123456789'; // Предполагаемый ID romanaliev
+  const isLanaKores = userId === '987654321'; // Предполагаемый ID lanakores
 
   return (
     <div className="p-2 flex flex-col h-full">
       <div className="mb-2">
         <div className="flex justify-between items-center">
-          <h2 className="text-xs font-medium mb-1">Реферальная программа {isTestUser && '(Тестовый аккаунт)'}</h2>
+          <h2 className="text-xs font-medium mb-1">Реферальная программа</h2>
           <Button 
             variant="outline" 
             size="sm" 
@@ -417,10 +375,22 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         
         {userId && (
           <div className="bg-blue-50 p-1.5 rounded-lg mb-2 text-[10px]">
-            Ваш ID: <span className="font-mono text-blue-600">{userId}</span>
-            {isTestUser && (
+            <div className="font-medium">Ваша информация:</div>
+            <div>ID: <span className="font-mono text-blue-600">{userId}</span></div>
+            {telegramUserInfo && (
               <div className="mt-1 text-green-600">
-                Тестовый аккаунт с автоматическим добавлением lanakores в рефералы
+                Telegram: {telegramUserInfo.first_name} {telegramUserInfo.last_name || ''} 
+                (ID: {telegramUserInfo.id})
+              </div>
+            )}
+            {isRomanAliev && (
+              <div className="mt-1 text-green-600">
+                Тестовый аккаунт romanaliev
+              </div>
+            )}
+            {isLanaKores && (
+              <div className="mt-1 text-green-600">
+                Тестовый аккаунт lanakores
               </div>
             )}
           </div>
@@ -486,7 +456,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     <div>
                       <div className="text-[10px] font-medium">{referral.username}</div>
                       <div className="text-[9px] text-gray-500">
-                        ID: <span className="font-mono">{referral.id.substring(0, 12)}</span>
+                        ID: <span className="font-mono">{referral.id}</span>
                       </div>
                       <div className="text-[9px] text-gray-500">
                         Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
@@ -541,7 +511,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     <div>
                       <div className="text-[10px] font-medium">{referral.username}</div>
                       <div className="text-[9px] text-gray-500">
-                        ID: <span className="font-mono">{referral.id.substring(0, 12)}</span>
+                        ID: <span className="font-mono">{referral.id}</span>
                       </div>
                       <div className="text-[9px] text-gray-500">
                         Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
