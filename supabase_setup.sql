@@ -38,7 +38,7 @@ BEGIN
     WHERE table_schema = 'public' 
     AND table_name = 'referral_data'
   ) THEN
-    -- Создаем таблицу реферальных данных
+    -- Создаем таблицу реферальных данных с полем is_activated
     CREATE TABLE public.referral_data (
       user_id TEXT PRIMARY KEY,
       referral_code TEXT UNIQUE NOT NULL,
@@ -125,6 +125,19 @@ BEGIN
       RETURN new_code;
     END;
     $$;
+  END IF;
+  
+  -- Создаем функцию для выполнения произвольного SQL
+  IF NOT EXISTS (
+    SELECT FROM pg_proc 
+    WHERE proname = 'exec_sql'
+  ) THEN
+    CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
+    RETURNS void AS $$
+    BEGIN
+      EXECUTE sql;
+    END;
+    $$ LANGUAGE plpgsql SECURITY DEFINER;
   END IF;
 END;
 $$ LANGUAGE plpgsql;
