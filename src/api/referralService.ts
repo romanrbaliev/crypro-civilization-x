@@ -1,3 +1,4 @@
+
 // Сервис для работы с реферальной системой
 
 import { supabase } from '@/integrations/supabase/client';
@@ -113,12 +114,13 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
     }
     
     // Создаем новую запись с is_activated
+    // Используем явное приведение типа с any для обхода проверки TypeScript
     const insertData = {
       user_id: userId,
       referral_code: referralCode,
       referred_by: referredBy,
       is_activated: false
-    } as any; // Используем any для обхода проверки типов
+    } as any;
     
     const { error } = await supabase
       .from(REFERRAL_TABLE)
@@ -224,8 +226,10 @@ export const getUserReferrals = async (): Promise<any[]> => {
     
     // Трансформируем данные из БД в формат, ожидаемый компонентами
     return (data || []).map(referral => {
+      // Здесь используем явное приведение типа для доступа к is_activated
+      const referralData = referral as unknown as ReferralDataWithActivation;
       // Активация либо из поля базы данных, либо по умолчанию false
-      const activated = typeof referral.is_activated === 'boolean' ? referral.is_activated : false;
+      const activated = typeof referralData.is_activated === 'boolean' ? referralData.is_activated : false;
       
       return {
         id: referral.user_id,
