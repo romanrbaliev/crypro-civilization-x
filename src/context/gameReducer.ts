@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -55,23 +54,69 @@ const processAddReferral = (state: GameState, payload: { referral: any }): GameS
     return state;
   }
   
+  // Нормализуем значение поля activated при добавлении
+  const normalizedReferral = {
+    ...payload.referral,
+    activated: typeof payload.referral.activated === 'boolean' 
+      ? payload.referral.activated 
+      : String(payload.referral.activated).toLowerCase() === 'true'
+  };
+  
+  console.log('Добавляем нового реферала с нормализованным значением activated:', normalizedReferral);
+  
   return {
     ...state,
-    referrals: [...state.referrals, payload.referral]
+    referrals: [...state.referrals, normalizedReferral]
   };
 };
 
 const processActivateReferral = (state: GameState, payload: { referralId: string }): GameState => {
+  console.log(`Активируем реферала ${payload.referralId}`);
+  
   // Активируем реферала в Supabase
   activateReferral(payload.referralId).catch(err => 
     console.error("Ошибка при активации реферала:", err)
   );
   
+  // Проверяем, существует ли реферал
+  const existingReferral = state.referrals.find(ref => ref.id === payload.referralId);
+  if (!existingReferral) {
+    console.warn(`Реферал ${payload.referralId} не найден в списке рефералов`);
+    return state;
+  }
+  
+  // Если реферал уже активирован, ничего не делаем
+  if (existingReferral.activated === true) {
+    console.log(`Реферал ${payload.referralId} уже активирован`);
+    return state;
+  }
+  
+  console.log(`Обновляем статус активации реферала ${payload.referralId} на true`);
+  
+  // Создаем новый список рефералов с обновленным статусом
+  const updatedReferrals = state.referrals.map(ref => 
+    ref.id === payload.referralId ? { ...ref, activated: true } : ref
+  );
+  
+  console.log('Обновленный список рефералов:', updatedReferrals);
+  
+  // Отправляем событие активации, чтобы обновить интерфейс
+  setTimeout(() => {
+    try {
+      const updateEvent = new CustomEvent('referral-activated', {
+        detail: { referralId: payload.referralId }
+      });
+      window.dispatchEvent(updateEvent);
+      console.log(`Отправлено событие активации реферала ${payload.referralId}`);
+    } catch (error) {
+      console.error('Ошибка при отправке события активации реферала:', error);
+    }
+  }, 0);
+  
+  // Возвращаем обновленное состояние
   return {
     ...state,
-    referrals: state.referrals.map(ref => 
-      ref.id === payload.referralId ? { ...ref, activated: true } : ref
-    )
+    referrals: updatedReferrals
   };
 };
 
@@ -100,7 +145,7 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
   );
   
   if (existingActiveHelper) {
-    // Если помощник уже работает на каком-то здании, сначала увольняем его
+    // Если помощник уже работает на каком-то здании, сначала увольняем ег��
     const updatedHelpers = state.referralHelpers.filter(h => h.id !== existingActiveHelper.id);
     
     // Генерируем уникальный ID для нового помощника

@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -96,9 +97,13 @@ export function Toaster() {
                     (typedGameData.upgrades['blockchain_basics']?.purchased || 
                      typedGameData.upgrades['basicBlockchain']?.purchased);
                 
-                  const isActivated = typeof referral.is_activated === 'boolean'
-                    ? referral.is_activated
-                    : String(referral.is_activated).toLowerCase() === 'true';
+                  // Надежное преобразование is_activated в булевое значение
+                  let isActivated = false;
+                  if (referral.is_activated !== null && referral.is_activated !== undefined) {
+                    isActivated = typeof referral.is_activated === 'boolean' 
+                      ? referral.is_activated 
+                      : String(referral.is_activated).toLowerCase() === 'true';
+                  }
                 
                   console.log(`Реферал ${referral.user_id}:`, {
                     hasBlockchainBasics,
@@ -110,6 +115,7 @@ export function Toaster() {
                   if (hasBlockchainBasics && !isActivated) {
                     console.log(`Обнаружено исследование "Основы блокчейна" у реферала ${referral.user_id}, но реферал не активирован`);
                     
+                    // Обновляем статус в БД
                     const { error: updateError } = await supabase
                       .from('referral_data')
                       .update({ is_activated: true })
@@ -119,6 +125,12 @@ export function Toaster() {
                       console.error(`❌ Ошибка при обновлении статуса активации реферала ${referral.user_id}:`, updateError);
                     } else {
                       console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
+                      
+                      // Принудительно отправляем событие для обновления интерфейса
+                      const updateEvent = new CustomEvent('referral-activated', {
+                        detail: { referralId: referral.user_id }
+                      });
+                      window.dispatchEvent(updateEvent);
                     }
                   } else if (!hasBlockchainBasics && isActivated) {
                     console.log(`У реферала ${referral.user_id} нет исследования "Основы блокчейна", но реферал активирован в базе`);
@@ -148,8 +160,21 @@ export function Toaster() {
     
     window.addEventListener('refresh-referrals', handleRefresh);
     
+    // Добавляем обработчик события активации реферала
+    const handleReferralActivated = (event) => {
+      const { referralId } = event.detail;
+      console.log(`Получено событие активации реферала: ${referralId}`);
+      
+      // Принудительно обновляем кэш и форсируем обновление интерфейса
+      const refreshEvent = new CustomEvent('refresh-referrals');
+      window.dispatchEvent(refreshEvent);
+    };
+    
+    window.addEventListener('referral-activated', handleReferralActivated);
+    
     return () => {
       window.removeEventListener('refresh-referrals', handleRefresh);
+      window.removeEventListener('referral-activated', handleReferralActivated);
     };
   }, []);
 

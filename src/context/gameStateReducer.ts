@@ -84,18 +84,31 @@ export const processLoadGame = (
     loadedState.referrals = [];
     console.log('✅ Инициализирован пустой массив рефералов');
   } else {
-    // Убеждаемся, что у всех рефералов есть поле activated
+    // Улучшенная обработка статуса активации рефералов
     loadedState.referrals = loadedState.referrals.map((referral) => {
-      if (typeof referral.activated !== 'boolean') {
+      // Установка значения по умолчанию, если поле отсутствует
+      if (referral.activated === undefined || referral.activated === null) {
         console.log(`Добавляем отсутствующее поле activated для реферала ${referral.id}`);
         return { ...referral, activated: false };
       }
+      
+      // Преобразуем строковое значение в булевое, если необходимо
+      if (typeof referral.activated === 'string') {
+        console.log(`Преобразуем строковое значение ${referral.activated} в булевое для реферала ${referral.id}`);
+        return { ...referral, activated: referral.activated.toLowerCase() === 'true' };
+      }
+      
       return referral;
     });
     
     // НОВОЕ: Проверяем и синхронизируем активацию с базой данных
     loadedState.referrals.forEach(referral => {
-      if (!referral.activated) {
+      // Нормализуем активацию для надежности (должна быть булевым значением)
+      const isActivated = typeof referral.activated === 'boolean' 
+        ? referral.activated 
+        : String(referral.activated).toLowerCase() === 'true';
+        
+      if (!isActivated) {
         // Проверяем наличие разблокированного исследования "Основы блокчейна"
         const hasBlockchainBasics = loadedState.upgrades && 
           (loadedState.upgrades.blockchain_basics?.purchased || 
@@ -109,6 +122,14 @@ export const processLoadGame = (
             activateReferral(referral.id)
               .then(success => {
                 console.log(`Результат активации реферала ${referral.id} при загрузке: ${success ? 'успешно' : 'неудачно'}`);
+                
+                if (success) {
+                  // Отправляем событие для обновления интерфейса
+                  const updateEvent = new CustomEvent('referral-activated', {
+                    detail: { referralId: referral.id }
+                  });
+                  window.dispatchEvent(updateEvent);
+                }
               })
               .catch(err => {
                 console.error(`Ошибка при активации реферала ${referral.id} при загрузке:`, err);
