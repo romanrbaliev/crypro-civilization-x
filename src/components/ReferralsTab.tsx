@@ -234,7 +234,7 @@ export default function ReferralsTab(): JSX.Element {
                   </div>
                   <div>
                     {ref.activated ? (
-                      <Badge className="bg-green-500">Активен</Badge>
+                      <Badge>Активен</Badge>
                     ) : (
                       <Badge variant="outline">Не активен</Badge>
                     )}

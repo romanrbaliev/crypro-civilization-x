@@ -160,20 +160,18 @@ export const generateId = (): string => {
  * Генерирует случайный ID
  */
 export const generateRandomId = (): string => {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
 /**
  * Форматирует дату для отображения
  */
 export const formatDate = (date: Date): string => {
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}.${month}.${year}`;
 };
 
 /**

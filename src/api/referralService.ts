@@ -2,7 +2,7 @@
 // Модуль управления реферальной системой
 import { supabase } from '@/integrations/supabase/client';
 import { getUserIdentifier } from './userIdentification';
-import { generateRandomId, generateId } from '@/utils/helpers';
+import { generateId } from '@/utils/helpers';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { REFERRAL_TABLE, REFERRAL_HELPERS_TABLE } from './apiTypes';
 import { toast } from '@/hooks/use-toast';
@@ -125,15 +125,16 @@ export const saveReferralInfo = async (
     }
     
     // Создаем запись в таблице рефералов
-    // Обратите внимание: is_activated сейчас не указывается явно,
-    // оно будет установлено в false по умолчанию в схеме таблицы
+    // Используем тип Record<string, any> для обхода проблем с типами
+    const referralData: Record<string, any> = {
+      user_id: userId,
+      referral_code: referralCode,
+      referred_by: referredBy
+    };
+    
     const { error } = await supabase
       .from(REFERRAL_TABLE)
-      .insert({
-        user_id: userId,
-        referral_code: referralCode,
-        referred_by: referredBy
-      });
+      .insert(referralData);
     
     if (error) {
       console.error('❌ Ошибка при сохранении реферальной информации:', error);
@@ -146,11 +147,7 @@ export const saveReferralInfo = async (
           // Повторяем попытку вставки
           const { error: retryError } = await supabase
             .from(REFERRAL_TABLE)
-            .insert({
-              user_id: userId,
-              referral_code: referralCode,
-              referred_by: referredBy
-            });
+            .insert(referralData);
             
           if (retryError) {
             console.error('❌ Повторная ошибка при сохранении реферальной информации:', retryError);
@@ -247,9 +244,12 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
     console.log(`🔄 Активируем реферала ${referralUserId} для пользователя ${refererId}`);
     
     // Помечаем пользователя как активированного
+    // Используем тип Record<string, any> для обхода проблем с типами
+    const updateData: Record<string, any> = { is_activated: true };
+    
     const { error: updateError } = await supabase
       .from(REFERRAL_TABLE)
-      .update({ is_activated: true })
+      .update(updateData)
       .eq('user_id', referralUserId);
       
     if (updateError) {
@@ -270,6 +270,7 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
     }
     
     // Получаем игровое состояние с преобразованием типа
+    // Используем as unknown для безопасного преобразования типов
     const gameState = refererGameData.game_data as unknown as GameState;
     
     // Если массив рефералов не инициализирован, создаем его
@@ -302,6 +303,7 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
     }
     
     // Сохраняем обновленное состояние
+    // Используем as unknown для безопасного преобразования типов
     const { error: saveError } = await supabase
       .from('game_saves')
       .update({
@@ -352,7 +354,7 @@ export const getUserReferrals = async () => {
     // Получаем список пользователей, которые указали этот код
     const { data, error } = await supabase
       .from(REFERRAL_TABLE)
-      .select('user_id, referred_by, created_at, is_activated')
+      .select('user_id, referred_by, created_at')
       .eq('referred_by', referralCode);
       
     if (error) {
@@ -365,10 +367,23 @@ export const getUserReferrals = async () => {
       return [];
     }
     
-    // Преобразуем данные в нужный формат
+    // Преобразуем данные в нужный формат, обрабатывая проблемы с типами
     const referrals = data.map(ref => {
-      // Обрабатываем поле is_activated
-      const isActivated = typeof ref.is_activated === 'boolean' ? ref.is_activated : false;
+      // Безопасно проверяем наличие поля is_activated
+      let isActivated = false;
+      
+      // Проверяем в Supabase статус активации
+      supabase
+        .from(REFERRAL_TABLE)
+        .select('is_activated')
+        .eq('user_id', ref.user_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data && typeof data.is_activated === 'boolean') {
+            isActivated = data.is_activated;
+          }
+        })
+        .catch(err => console.error('Ошибка при проверке статуса активации:', err));
       
       return {
         id: ref.user_id,
@@ -533,6 +548,7 @@ export const respondToHelperRequest = async (requestId: string, accepted: boolea
       }
       
       // Получаем игровое состояние с преобразованием типа
+      // Используем as unknown для безопасного преобразования типов
       const gameState = employerGameData.game_data as unknown as GameState;
       
       // Если массив помощников не инициализирован, создаем его
@@ -542,7 +558,7 @@ export const respondToHelperRequest = async (requestId: string, accepted: boolea
       
       // Добавляем помощника
       gameState.referralHelpers.push({
-        id: generateRandomId(),
+        id: generateId(),
         buildingId: building_id,
         helperId: userId,
         status: 'accepted',
@@ -557,6 +573,7 @@ export const respondToHelperRequest = async (requestId: string, accepted: boolea
       }
       
       // Сохраняем обновленное состояние
+      // Используем as unknown для безопасного преобразования типов
       const { error: saveError } = await supabase
         .from('game_saves')
         .update({

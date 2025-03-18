@@ -76,6 +76,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Функция для генерации уникального реферального кода
+CREATE OR REPLACE FUNCTION public.generate_unique_ref_code()
+RETURNS TEXT
+AS $$
+DECLARE
+  new_code TEXT;
+BEGIN
+  LOOP
+    -- Генерируем 8-значный код
+    new_code := 'CRY' || UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 5));
+    
+    -- Проверяем, что код уникальный
+    EXIT WHEN NOT EXISTS (
+      SELECT 1 FROM public.referral_data WHERE referral_code = new_code
+    );
+  END LOOP;
+  
+  RETURN new_code;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Также добавим функцию для выполнения произвольного SQL
 CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
 RETURNS void AS $$

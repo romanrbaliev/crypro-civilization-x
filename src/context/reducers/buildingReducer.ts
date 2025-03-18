@@ -70,12 +70,12 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       // Получаем ID текущего пользователя
       const userId = window.__game_user_id || `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
       
-      // Обновляем поле is_activated в базе данных напрямую
+      // Обновляем поле is_activated в базе данных напрямую с нужным типом данных
       try {
         // Асинхронно обновляем статус активации
         supabase
           .from(REFERRAL_TABLE)
-          .update({ is_activated: true })
+          .update({ is_activated: true } as any)
           .eq('user_id', userId)
           .then(({ error }) => {
             if (error) {
