@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
@@ -25,7 +24,6 @@ const Index = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
 
-  // Загрузка рекорда из localStorage
   useEffect(() => {
     const savedHighScore = localStorage.getItem('highScore');
     if (savedHighScore) {
@@ -33,7 +31,6 @@ const Index = () => {
     }
   }, []);
 
-  // Анимация для элементов
   useEffect(() => {
     const elements = document.querySelectorAll('.animate-stagger');
     
@@ -55,7 +52,6 @@ const Index = () => {
     });
   }, []);
 
-  // Обработчики событий
   const handlePlay = () => {
     navigate('/game');
   };
@@ -78,7 +74,6 @@ const Index = () => {
         position: 'top-center',
       });
       
-      // Перезагрузка страницы после небольшой задержки
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -91,14 +86,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative bg-gradient-to-b from-blue-50 to-white">
-      {/* Декоративный фон */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-blue-100 opacity-50"></div>
         <div className="absolute top-1/4 -left-20 w-80 h-80 rounded-full bg-green-100 opacity-40"></div>
         <div className="absolute bottom-1/4 right-10 w-40 h-40 rounded-full bg-red-100 opacity-30"></div>
       </div>
       
-      {/* Верхняя панель */}
       <div className="glass border-b border-white/20 p-4 flex justify-between items-center z-10">
         <Logo size="md" className="animate-stagger" />
         
@@ -114,7 +107,6 @@ const Index = () => {
         </div>
       </div>
       
-      {/* Основное содержимое */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-8">
         <div className="text-center mb-6">
           <h1 className="text-4xl md:text-5xl font-bold mb-2 animate-stagger">Космический Полет</h1>
@@ -140,7 +132,6 @@ const Index = () => {
         </Button>
       </div>
       
-      {/* Настройки */}
       {showSettings && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center animate-fade-in z-20">
           <div className="glass p-8 rounded-2xl max-w-sm w-full animate-scale-in">
@@ -159,13 +150,13 @@ const Index = () => {
                 </Button>
               </div>
               
-              <div className="flex justify-between items-center p-2 hover:bg-white/20 rounded-lg transition-colors">
-                <span>Сбросить для всех</span>
+              <div className="flex justify-between items-center p-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/30">
+                <span className="font-medium text-red-600">Сбросить для всех</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setResetAlertOpen(true)}
-                  className="rounded-full aspect-square p-2"
+                  className="rounded-full aspect-square p-2 bg-red-500/20 hover:bg-red-500/30"
                 >
                   <Trash className="w-5 h-5 text-red-500" />
                 </Button>
@@ -190,7 +181,6 @@ const Index = () => {
         </div>
       )}
       
-      {/* Диалог подтверждения сброса */}
       <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -209,7 +199,6 @@ const Index = () => {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Нижняя панель */}
       <div className="glass border-t border-white/20 p-4 text-center text-sm z-10">
         <p className="text-gray-600">© 2023 Telegram Mini Game. Все права защищены.</p>
       </div>
