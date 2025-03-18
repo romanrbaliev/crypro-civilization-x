@@ -33,6 +33,69 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_data: {
+        Row: {
+          created_at: string | null
+          referral_code: string
+          referred_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          referral_code: string
+          referred_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          referral_code?: string
+          referred_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_helpers: {
+        Row: {
+          building_id: string
+          created_at: string | null
+          employer_id: string
+          helper_id: string
+          id: string
+          status: string | null
+        }
+        Insert: {
+          building_id: string
+          created_at?: string | null
+          employer_id: string
+          helper_id: string
+          id?: string
+          status?: string | null
+        }
+        Update: {
+          building_id?: string
+          created_at?: string | null
+          employer_id?: string
+          helper_id?: string
+          id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_helpers_employer_id_fkey"
+            columns: ["employer_id"]
+            isOneToOne: false
+            referencedRelation: "referral_data"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "referral_helpers_helper_id_fkey"
+            columns: ["helper_id"]
+            isOneToOne: true
+            referencedRelation: "referral_data"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -41,6 +104,10 @@ export type Database = {
       create_saves_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_unique_ref_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
     }
     Enums: {

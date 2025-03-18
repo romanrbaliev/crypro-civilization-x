@@ -45,6 +45,7 @@ export interface Referral {
   username: string;
   activated: boolean;
   joinedAt: number;
+  helperStatus?: ReferralHelper;
 }
 
 export interface Unlocks {
@@ -59,7 +60,14 @@ export interface Counters {
   [counterId: string]: number;
 }
 
-// Упрощенные параметры для механики майнинга
+export interface ReferralHelper {
+  id: string;
+  buildingId: string;
+  helperId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: number;
+}
+
 export interface MiningParams {
   miningEfficiency: number;
   networkDifficulty: number;
@@ -83,21 +91,19 @@ export interface GameState {
   phase: number;
   eventMessages: { [key: string]: any };
   counters: Counters;
-  // Новые параметры для механики майнинга
   miningParams: MiningParams;
-  gameTime: number; // Игровое время в секундах для расчета волатильности
-  // Реферальная система
-  referralCode: string; // Реферальный код пользователя
-  referredBy: string | null; // Код пользователя, пригласившего текущего
-  referrals: Referral[]; // Список рефералов
+  gameTime: number;
+  referralCode: string;
+  referredBy: string | null;
+  referrals: Referral[];
+  referralHelpers: ReferralHelper[];
 }
 
-// Типы действий для редьюсера игры
 export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount?: number } }
   | { type: "UPDATE_RESOURCES" }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
-  | { type: "PRACTICE_PURCHASE" } // Добавлено новое действие для покупки практики
+  | { type: "PRACTICE_PURCHASE" }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
   | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }

@@ -220,8 +220,8 @@ export const initialState: GameState = {
   counters: initialCounters,
   miningParams: initialMiningParams,
   gameTime: 0,
-  // Новые поля для реферальной системы
   referralCode: "",
   referredBy: null,
-  referrals: []
+  referrals: [],
+  referralHelpers: []
 };

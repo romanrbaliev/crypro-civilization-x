@@ -1,12 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { Copy, Send, MessageSquare, Users } from 'lucide-react';
+import { Copy, Send, MessageSquare, Users, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
@@ -15,21 +30,13 @@ interface ReferralsTabProps {
 const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
   const [currentTab, setCurrentTab] = useState('all');
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [referralLink, setReferralLink] = useState('');
   
   // Генерация реферальной ссылки
   useEffect(() => {
-    // Если находимся в Telegram, используем встроенный механизм для создания ссылки
-    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
-      // Используем Telegram WebApp для получения ссылки на бота с параметром ref
-      const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param || '';
-      const baseUrl = startParam ? startParam : 'https://t.me/Crypto_civilization_bot?start=';
-      
-      setReferralLink(`${baseUrl}${state.referralCode}`);
-    } else {
-      // Fallback для тестирования вне Telegram
-      setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
-    }
+    // Используем прямую ссылку на бота
+    setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
   }, [state.referralCode]);
 
   // Копирование ссылки в буфер обмена
@@ -49,99 +56,81 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           variant: "destructive"
         });
         onAddEvent("Ошибка при копировании реферальной ссылки", "error");
-        console.error("Ошибка копирования:", err);
       });
   };
 
-  // Отправка реферальной ссылки через Telegram
-  const shareReferralLink = () => {
-    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp?.openTelegramLink) {
-      try {
-        window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent("Присоединяйся к Crypto Civilization! Начни свой путь в мире криптовалют:")}`);
-        onAddEvent("Открыто окно отправки реферальной ссылки", "info");
-      } catch (error) {
-        console.error("Ошибка при отправке через Telegram:", error);
-        toast({
-          title: "Ошибка отправки",
-          description: "Не удалось отправить ссылку через Telegram",
-          variant: "destructive"
-        });
-        onAddEvent("Ошибка при отправке реферальной ссылки", "error");
-      }
-    } else {
-      // Fallback для тестирования вне Telegram
+  // Отправка приглашения помощнику
+  const inviteHelper = async (referralId: string) => {
+    if (!selectedBuildingId) {
       toast({
-        title: "Функция недоступна",
-        description: "Отправка ссылки доступна только в Telegram",
+        title: "Ошибка",
+        description: "Выберите здание для помощника",
+        variant: "destructive"
       });
-      onAddEvent("Отправка ссылки доступна только в Telegram", "warning");
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://t.me/Crypto_civilization_bot/invite_helper`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employerId: state.referralCode,
+          helperId: referralId,
+          buildingId: selectedBuildingId
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Приглашение отправлено",
+          description: "Ожидаем ответа помощника",
+        });
+        onAddEvent("Приглашение помощника отправлено", "success");
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отправить приглашение",
+        variant: "destructive"
+      });
     }
   };
 
-  // Открытие чата с рефералом в Telegram
-  const openChatWithReferral = (username: string) => {
-    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp?.openTelegramLink) {
-      try {
-        // Если это имя вида "Player123456", извлекаем ID
-        if (username.startsWith('Player')) {
-          const userId = username.replace('Player', '');
-          window.Telegram.WebApp.openTelegramLink(`https://t.me/${userId}`);
-        } else {
-          window.Telegram.WebApp.openTelegramLink(`https://t.me/${username}`);
-        }
-        onAddEvent(`Открыт чат с рефералом ${username}`, "info");
-      } catch (error) {
-        console.error("Ошибка при открытии чата:", error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось открыть чат с пользователем",
-          variant: "destructive"
-        });
-      }
-    } else {
-      // Fallback для тестирования вне Telegram
-      toast({
-        title: "Функция недоступна",
-        description: "Открытие чата доступно только в Telegram",
-      });
-    }
-  };
+  const totalReferrals = state.referrals.length;
+  const activeReferrals = state.referrals.filter(ref => ref.activated).length;
 
   // Фильтрация рефералов по активности
   const filteredReferrals = currentTab === 'active' 
     ? state.referrals.filter(ref => ref.activated)
     : state.referrals;
 
-  const totalReferrals = state.referrals.length;
-  const activeReferrals = state.referrals.filter(ref => ref.activated).length;
+  const availableBuildings = Object.values(state.buildings)
+    .filter(b => b.count > 0);
 
   return (
     <div className="p-2 flex flex-col h-full">
-      <div className="mb-3">
-        <h2 className="text-sm font-semibold mb-1">Реферальная система</h2>
-        <p className="text-xs text-gray-600 mb-2">
-          Приглашайте друзей и получайте бонусы! За каждого активного реферала вы получаете 
-          +5% к производительности ресурсов. Реферал считается активным после покупки первого Генератора.
+      <div className="mb-2">
+        <h2 className="text-xs font-medium mb-1">Реферальная программа</h2>
+        <p className="text-[10px] text-gray-600 mb-2">
+          +5% к производительности за каждого активного реферала
         </p>
         
         <div className="bg-gray-50 p-2 rounded-lg border mb-2">
           <div className="flex items-center justify-between mb-1">
-            <div className="text-xs font-medium">Ваша реферальная ссылка:</div>
+            <div className="text-[10px] font-medium">Ваша реферальная ссылка:</div>
             <div className="flex space-x-1">
-              <Button variant="outline" size="sm" className="h-6 w-6 p-0" onClick={copyReferralLink}>
+              <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={copyReferralLink}>
                 <Copy className="h-3 w-3" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-6 w-6 p-0" onClick={shareReferralLink}>
-                <Send className="h-3 w-3" />
               </Button>
             </div>
           </div>
-          <div className="text-[10px] bg-white border rounded p-1.5 truncate">
+          <div className="text-[9px] bg-white border rounded p-1 truncate">
             {referralLink}
           </div>
         </div>
 
-        <div className="text-xs text-gray-500">
+        <div className="text-[10px] text-gray-500">
           Приглашено: {totalReferrals} | Активировано: {activeReferrals}
         </div>
       </div>
@@ -150,18 +139,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
       <div className="flex-1 overflow-auto">
         <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab}>
-          <TabsList className="grid grid-cols-2 mb-2">
-            <TabsTrigger value="all" className="text-xs h-7">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="all" className="text-[10px] h-6">
               <Users className="h-3 w-3 mr-1" />
               Все ({totalReferrals})
             </TabsTrigger>
-            <TabsTrigger value="active" className="text-xs h-7">
+            <TabsTrigger value="active" className="text-[10px] h-6">
               <Users className="h-3 w-3 mr-1" />
               Активные ({activeReferrals})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="mt-0">
+          <TabsContent value="all" className="mt-2">
             {filteredReferrals.length > 0 ? (
               <div className="space-y-1.5">
                 {filteredReferrals.map(referral => (
@@ -170,39 +159,31 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     className={`flex justify-between items-center p-1.5 rounded-lg border ${referral.activated ? 'bg-green-50' : 'bg-white'}`}
                   >
                     <div>
-                      <div className="text-xs font-medium">{referral.username}</div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="text-[10px] font-medium">{referral.username}</div>
+                      <div className="text-[9px] text-gray-500">
                         {new Date(referral.joinedAt).toLocaleDateString()}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       {referral.activated && (
-                        <div className="text-[9px] text-green-600 bg-green-100 px-1 py-0.5 rounded">
+                        <div className="text-[8px] text-green-600 bg-green-100 px-1 py-0.5 rounded">
                           Активен
                         </div>
                       )}
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0" 
-                        onClick={() => openChatWithReferral(referral.username)}
-                      >
-                        <MessageSquare className="h-3 w-3" />
-                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6 text-gray-500">
-                <Users className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                <p className="text-xs">У вас пока нет рефералов</p>
-                <p className="text-[10px] mt-1">Поделитесь своей реферальной ссылкой с друзьями</p>
+              <div className="text-center py-4 text-gray-500">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                <p className="text-[10px]">У вас пока нет рефералов</p>
+                <p className="text-[9px] mt-1">Поделитесь своей реферальной ссылкой</p>
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="active" className="mt-0">
+          <TabsContent value="active" className="mt-2">
             {filteredReferrals.length > 0 ? (
               <div className="space-y-1.5">
                 {filteredReferrals.map(referral => (
@@ -211,27 +192,70 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     className="flex justify-between items-center p-1.5 rounded-lg border bg-green-50"
                   >
                     <div>
-                      <div className="text-xs font-medium">{referral.username}</div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="text-[10px] font-medium">{referral.username}</div>
+                      <div className="text-[9px] text-gray-500">
                         {new Date(referral.joinedAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 w-6 p-0" 
-                      onClick={() => openChatWithReferral(referral.username)}
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-6 px-2 text-[9px]"
+                        >
+                          <Building className="h-3 w-3 mr-1" />
+                          Нанять
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-xs">
+                        <DialogHeader>
+                          <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
+                          <DialogDescription className="text-[10px]">
+                            Выберите здание, к которому хотите прикрепить помощника
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Select
+                          value={selectedBuildingId}
+                          onValueChange={setSelectedBuildingId}
+                        >
+                          <SelectTrigger className="text-[10px]">
+                            <SelectValue placeholder="Выберите здание" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableBuildings.map(building => (
+                              <SelectItem 
+                                key={building.id} 
+                                value={building.id}
+                                className="text-[10px]"
+                              >
+                                {building.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="text-[9px] text-gray-500 mt-2">
+                          Эффективность здания увеличится на 5%
+                        </div>
+                        <div className="flex justify-end mt-4">
+                          <Button
+                            size="sm"
+                            className="text-[9px] h-6"
+                            onClick={() => inviteHelper(referral.id)}
+                          >
+                            Отправить приглашение
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6 text-gray-500">
-                <Users className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                <p className="text-xs">У вас пока нет активных рефералов</p>
-                <p className="text-[10px] mt-1">Рефералы становятся активными после покупки Генератора</p>
+              <div className="text-center py-4 text-gray-500">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                <p className="text-[10px]">У вас пока нет активных рефералов</p>
+                <p className="text-[9px] mt-1">Рефералы становятся активными после покупки Генератора</p>
               </div>
             )}
           </TabsContent>
