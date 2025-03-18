@@ -24,6 +24,7 @@ export const formatEffectName = (name: string): string => {
     conversionRate: "конверсии",
     usdtMax: "максимальному хранению USDT",
     knowledgeMax: "максимальному хранению знаний",
+    knowledgeBoost: "скорости накопления знаний",
     // И другие эффекты...
   };
   
@@ -50,41 +51,50 @@ export const formatEffect = (effectId: string, amount: number): string => {
 
 // Проверка условий разблокировки для исследования
 export const checkUnlockConditions = (state: any, upgrade: any): boolean => {
-  // Проверка зависимостей от других исследований
+  console.log(`Проверка условий разблокировки для ${upgrade.id}: ${upgrade.name}`);
+  
+  // Проверяем зависимости от других исследований
   if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
     const allRequiredPurchased = upgrade.requiredUpgrades.every(
       (requiredId: string) => state.upgrades[requiredId]?.purchased
     );
     
-    if (!allRequiredPurchased) return false;
-  }
-  
-  // Проверка условий по зданиям
-  if (upgrade.unlockCondition?.buildings) {
-    for (const [buildingId, count] of Object.entries(upgrade.unlockCondition.buildings)) {
-      if (!state.buildings[buildingId] || state.buildings[buildingId].count < Number(count)) {
-        return false;
-      }
-    }
-  }
-  
-  // Проверка условий по ресурсам
-  if (upgrade.unlockCondition?.resources) {
-    for (const [resourceId, amount] of Object.entries(upgrade.unlockCondition.resources)) {
-      if (!state.resources[resourceId] || state.resources[resourceId].value < Number(amount)) {
-        return false;
-      }
-    }
-  }
-  
-  // Проверка условий по социальным метрикам
-  if (upgrade.unlockCondition?.referrals) {
-    const activeReferrals = state.referrals.filter((ref: any) => ref.activated).length;
-    if (activeReferrals < upgrade.unlockCondition.referrals) {
+    if (!allRequiredPurchased) {
+      console.log(`${upgrade.id}: Не выполнено условие requiredUpgrades`);
       return false;
     }
   }
   
+  // Проверяем условия по зданиям
+  if (upgrade.unlockCondition?.buildings) {
+    for (const [buildingId, count] of Object.entries(upgrade.unlockCondition.buildings)) {
+      if (!state.buildings[buildingId] || state.buildings[buildingId].count < Number(count)) {
+        console.log(`${upgrade.id}: Не выполнено условие по зданию ${buildingId} (требуется: ${count}, есть: ${state.buildings[buildingId]?.count || 0})`);
+        return false;
+      }
+    }
+  }
+  
+  // Проверяем условия по ресурсам
+  if (upgrade.unlockCondition?.resources) {
+    for (const [resourceId, amount] of Object.entries(upgrade.unlockCondition.resources)) {
+      if (!state.resources[resourceId] || state.resources[resourceId].value < Number(amount)) {
+        console.log(`${upgrade.id}: Не выполнено условие по ресурсу ${resourceId} (требуется: ${amount}, есть: ${state.resources[resourceId]?.value || 0})`);
+        return false;
+      }
+    }
+  }
+  
+  // Проверяем условия по социальным метрикам
+  if (upgrade.unlockCondition?.referrals) {
+    const activeReferrals = state.referrals.filter((ref: any) => ref.activated).length;
+    if (activeReferrals < upgrade.unlockCondition.referrals) {
+      console.log(`${upgrade.id}: Не выполнено условие по рефералам (требуется: ${upgrade.unlockCondition.referrals}, есть: ${activeReferrals})`);
+      return false;
+    }
+  }
+  
+  console.log(`${upgrade.id}: Все условия выполнены, разблокировка возможна`);
   return true;
 };
 
@@ -100,4 +110,24 @@ export const getSpecializationName = (spec: string): string => {
   };
   
   return specializationMap[spec] || spec;
+};
+
+// Проверка активации реферала по его ID
+export const isReferralActive = (referrals: any[], referralId: string): boolean => {
+  const referral = referrals.find(ref => ref.id === referralId);
+  
+  if (!referral) {
+    console.log(`Реферал с ID ${referralId} не найден в списке рефералов`);
+    return false;
+  }
+  
+  console.log(`Статус активации реферала ${referralId}: ${referral.activated ? 'активен' : 'не активен'}`);
+  return !!referral.activated;
+};
+
+// Подсчет активных рефералов
+export const countActiveReferrals = (referrals: any[]): number => {
+  const activeCount = referrals.filter(ref => ref.activated).length;
+  console.log(`Общее количество рефералов: ${referrals.length}, активных: ${activeCount}`);
+  return activeCount;
 };

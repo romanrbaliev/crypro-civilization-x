@@ -70,13 +70,17 @@ export const processPurchaseUpgrade = (
       const boostFactor = 1 + upgrade.effect.knowledgeMaxBoost;
       newResources.knowledge = {
         ...newResources.knowledge,
-        max: newResources.knowledge.max * boostFactor
+        max: Math.floor(newResources.knowledge.max * boostFactor)
       };
       console.log(`Увеличен максимум знаний на ${upgrade.effect.knowledgeMaxBoost * 100}% до ${newResources.knowledge.max}`);
     }
     
     if (upgrade.effect.knowledgeBoost) {
       console.log(`Применен буст скорости накопления знаний: +${upgrade.effect.knowledgeBoost * 100}%`);
+      
+      // Хотя мы не можем напрямую изменить perSecond здесь (это будет рассчитано в resourceUpdateReducer),
+      // сохраним информацию о примененных эффектах
+      safeDispatchGameEvent(`Скорость накопления знаний увеличена на ${upgrade.effect.knowledgeBoost * 100}%`, "success");
     }
     
     const newState = {

@@ -1,4 +1,3 @@
-
 // API сервис для сохранения и загрузки игрового прогресса с Supabase
 
 import { GameState } from '@/context/types';
@@ -569,7 +568,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     console.log('❌ Сохранение в Supabase не найдено');
     return null;
   } catch (error) {
-    console.error('❌ Критическая ошибк�� при загрузке игры:', error);
+    console.error('❌ Критическая ошибка при загрузке игры:', error);
     safeDispatchGameEvent(
       "Критическая ошибка при загрузке игры. Начинаем новую игру.",
       "error"
@@ -622,7 +621,7 @@ export const checkReferralInfo = async (referralCode: string, referredBy: string
 // Активация реферала (когда реферал покупает генератор)
 export const activateReferral = async (referralId: string): Promise<boolean> => {
   try {
-    console.log('Активация реферала:', referralId);
+    console.log('🔄 Активация реферала:', referralId);
     
     // Получаем ID пользователя, который пригласил текущего пользователя
     const userId = await getUserIdentifier();
@@ -678,7 +677,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
         gameData.referrals.push({
           id: referralId,
           username: `Пользователь ${referralId.substring(0, 6)}`,
-          activated: true,
+          activated: true, // Устанавливаем как активный, но только при покупке генератора
           joinedAt: Date.now()
         });
         

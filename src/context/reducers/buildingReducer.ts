@@ -1,6 +1,8 @@
 
 import { GameState, GameAction } from '../types';
 import { canAffordCost, deductResources } from '@/utils/helpers';
+import { activateReferral } from '@/api/gameDataService';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 // Экспортируем функцию для использования в gameReducer
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
@@ -30,9 +32,9 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
 
   // Особые случаи для определенных зданий
   
-  // Если игрок купил генератор, разблокируем исследования
+  // Если игрок купил генератор, разблокируем исследования и активируем реферальную связь
   if (buildingId === 'generator' && building.count === 0) {
-    console.log('Игрок построил свой первый генератор, разблокируем исследования');
+    console.log('Игрок построил свой первый генератор');
     
     // Разблокируем вкладку исследований
     const newUnlocks = { ...state.unlocks, research: true };
@@ -58,6 +60,23 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       };
     }
     
+    // Если пользователь был приглашен по реферальной ссылке, активируем его как реферала
+    if (state.referredBy) {
+      console.log(`Игрок был приглашен по коду ${state.referredBy}. Активируем реферальную связь.`);
+      
+      // Отправляем ID текущего пользователя для активации у реферера
+      // Важно: получаем ID пользователя из window.__game_user_id или генерируем новый
+      const userId = window.__game_user_id || `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
+      
+      // Активируем реферала (асинхронно)
+      activateReferral(userId).catch(err => 
+        console.error("Ошибка при активации реферальной связи:", err)
+      );
+      
+      // Отправляем уведомление
+      safeDispatchGameEvent("Вы активировали реферальную связь с пригласившим вас пользователем!", "success");
+    }
+    
     return {
       ...state,
       resources: newResources,
@@ -65,17 +84,6 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       unlocks: newUnlocks,
       upgrades: newUpgrades,
     };
-  }
-  
-  // Активация реферала, если построен генератор
-  if (buildingId === 'generator' && state.referredBy) {
-    console.log(`Игрок построил генератор, и был приглашен по коду ${state.referredBy}. Активируем реферальную связь.`);
-    
-    // Отправка данных в supabase могла бы быть здесь, но из-за синхронности reducer'а, 
-    // этой функциональности лучше быть в useEffect или в action creator
-    
-    // По хорошему, здесь стоит отметить что пользователь активирован для реферера,
-    // но это требует асинхронных запросов к бд
   }
   
   return {
@@ -101,3 +109,10 @@ const calculateBuildingCost = (building: any) => {
   
   return result;
 };
+
+// Глобальное объявление типа для window
+declare global {
+  interface Window {
+    __game_user_id?: string;
+  }
+}
