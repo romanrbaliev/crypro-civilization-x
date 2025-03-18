@@ -1,7 +1,7 @@
 
-import { GameState } from '../types';
-import { initialState } from '../initialState';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { GameState } from './types';
+import { initialState } from './initialState';
+import { safeDispatchGameEvent } from './utils/eventBusUtils';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
