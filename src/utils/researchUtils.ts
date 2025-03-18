@@ -74,7 +74,7 @@ export const checkUnlockConditions = (state: any, upgrade: any): boolean => {
     }
   }
   
-  // Проверяем условия по ресурсам
+  // Проверяем условия по рес��рсам
   if (upgrade.unlockCondition?.resources) {
     for (const [resourceId, amount] of Object.entries(upgrade.unlockCondition.resources)) {
       if (!state.resources[resourceId] || state.resources[resourceId].value < Number(amount)) {
@@ -112,12 +112,14 @@ export const getSpecializationName = (spec: string): string => {
 };
 
 // Проверка покупки "Основы блокчейна" у пользователя
-export const hasBlockchainBasics = (upgrades: any): boolean => {
-  // Проверяем оба возможных ID для этого исследования
-  return (
-    (upgrades.blockchain_basics && upgrades.blockchain_basics.purchased) ||
-    (upgrades.basicBlockchain && upgrades.basicBlockchain.purchased)
-  );
+export const hasBlockchainBasics = (upgrades: { [key: string]: any }): boolean => {
+  // Проверяем оба возможных ID исследования для обратной совместимости
+  const hasBasicBlockchain = 
+    (upgrades.basicBlockchain && upgrades.basicBlockchain.purchased) || 
+    (upgrades.blockchain_basics && upgrades.blockchain_basics.purchased);
+  
+  console.log('Проверка наличия исследования "Основы блокчейна":', hasBasicBlockchain ? 'ЕСТЬ' : 'НЕТ');
+  return hasBasicBlockchain;
 };
 
 // Проверка активации реферала по его ID

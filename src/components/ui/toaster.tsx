@@ -8,9 +8,27 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { useEffect } from "react"
+import { getUserIdentifier } from "@/api/userIdentification"
 
 export function Toaster() {
   const { toasts } = useToast()
+  
+  // Добавляем сохранение ID пользователя в глобальную переменную для доступа из других частей приложения
+  useEffect(() => {
+    const storeUserId = async () => {
+      try {
+        const userId = await getUserIdentifier();
+        // Сохраняем ID пользователя в глобальной переменной
+        window.__game_user_id = userId;
+        console.log('ID пользователя сохранен в глобальной переменной:', userId);
+      } catch (error) {
+        console.error('Ошибка при получении ID пользователя:', error);
+      }
+    };
+    
+    storeUserId();
+  }, []);
 
   return (
     <ToastProvider>

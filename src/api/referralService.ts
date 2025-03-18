@@ -272,7 +272,7 @@ export const checkReferralInfo = async (referralCode: string, referredBy: string
     // Если записи нет, сохраняем реферальную информацию
     await saveReferralInfo(referralCode, referredBy);
     
-    // Если есть информация о реферере, обновляем ег�� список рефералов
+    // Если есть информация о реферере, обновляем его список рефералов
     if (referredBy) {
       // Получаем информацию о реферере
       const { data: referrerData } = await supabase
@@ -293,27 +293,33 @@ export const checkReferralInfo = async (referralCode: string, referredBy: string
   }
 };
 
-// Активация реферала (когда реферал покупает генератор или исследование "Основы блокчейна")
+// Активация реферала (когда реферал покупает исследование "Основы блокчейна")
 export const activateReferral = async (referralId: string): Promise<boolean> => {
   try {
-    console.log('🔄 Активация реферала:', referralId);
+    console.log('🔄 Активация реферала с ID:', referralId);
+    
+    // Проверяем соединение с Supabase
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.error('❌ Ошибка соединения с Supabase при активации реферала');
+      return false;
+    }
     
     // Получаем ID пользователя
     const userId = await getUserIdentifier();
-    console.log('Активация для пользователя:', userId);
-    
-    // Отладочная информация
-    console.log('Проверяем референса, referralId:', referralId, 'userId:', userId);
+    console.log('Активация выполняется пользователем:', userId);
     
     // Получаем информацию о том, кто пригласил текущего пользователя
-    const { data: userData } = await supabase
+    const { data: userData, error: userError } = await supabase
       .from(REFERRAL_TABLE)
       .select('referred_by')
       .eq('user_id', userId)
       .single();
       
-    // Логируем результат запроса
-    console.log('Данные пользователя после запроса:', userData);
+    if (userError) {
+      console.error('❌ Ошибка при получении данных о пользователе:', userError);
+      return false;
+    }
       
     if (!userData || !userData.referred_by) {
       console.warn('⚠️ Нет информации о том, кто пригласил пользователя. userData:', userData);
@@ -323,14 +329,16 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     console.log('Получен код пригласившего:', userData.referred_by);
     
     // Получаем user_id пригласившего по его реферальному коду
-    const { data: referrerData } = await supabase
+    const { data: referrerData, error: referrerError } = await supabase
       .from(REFERRAL_TABLE)
       .select('user_id')
       .eq('referral_code', userData.referred_by)
       .single();
       
-    // Логируем данные реферера
-    console.log('Данные референса после запроса:', referrerData);
+    if (referrerError) {
+      console.error('❌ Ошибка при получении данных о пригласившем:', referrerError);
+      return false;
+    }
       
     if (!referrerData) {
       console.warn('⚠️ Не найден пользователь с реферальным кодом', userData.referred_by);
@@ -340,14 +348,16 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     console.log('✅ Найден пригласивший пользователь:', referrerData.user_id);
     
     // Получаем сохранение игры пригласившего
-    const { data: saveData } = await supabase
+    const { data: saveData, error: saveError } = await supabase
       .from(SAVES_TABLE)
       .select('game_data')
       .eq('user_id', referrerData.user_id)
       .single();
       
-    // Логируем полученные данные
-    console.log('Данные сохранения получены:', saveData ? 'да' : 'нет');
+    if (saveError) {
+      console.error('❌ Ошибка при получении данных сохранения:', saveError);
+      return false;
+    }
       
     if (!saveData || !saveData.game_data) {
       console.warn('⚠️ Не найдено сохранение игры для пользователя', referrerData.user_id);
@@ -359,18 +369,42 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     
     console.log('Текущие рефералы у пригласившего:', gameData.referrals);
     
-    if (gameData.referrals) {
-      // Ищем реферала в списке
-      const referral = gameData.referrals.find((ref: any) => ref.id === referralId);
+    if (!gameData.referrals) {
+      // Создаем массив рефералов если его нет
+      gameData.referrals = [{
+        id: referralId,
+        username: `Пользователь ${referralId.substring(0, 6)}`,
+        activated: true, // Активирован
+        joinedAt: Date.now()
+      }];
       
-      if (!referral) {
+      console.log('Создан новый массив рефералов:', gameData.referrals);
+      
+      // Сохраняем обновленные данные
+      const { error: updateError } = await supabase
+        .from(SAVES_TABLE)
+        .update({ game_data: gameData })
+        .eq('user_id', referrerData.user_id);
+        
+      if (updateError) {
+        console.error('❌ Ошибка при создании списка рефералов:', updateError);
+        return false;
+      }
+      
+      console.log('✅ Создан список рефералов и активирован реферал');
+      return true;
+    } else {
+      // Ищем реферала в списке
+      const referralIndex = gameData.referrals.findIndex((ref: any) => ref.id === referralId);
+      
+      if (referralIndex === -1) {
         console.log('⚠️ Реферал с ID', referralId, 'не найден в списке рефералов, добавляем новый');
         
         // Добавляем нового реферала (активированного!)
         const newReferral = {
           id: referralId,
           username: `Пользователь ${referralId.substring(0, 6)}`,
-          activated: true, // Активирован, т.к. куплено исследование
+          activated: true, // Активирован
           joinedAt: Date.now()
         };
         
@@ -378,82 +412,41 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
         
         // Добавляем нового реферала
         gameData.referrals.push(newReferral);
+      } else {
+        // Если реферал уже существует, проверяем его статус
+        const referral = gameData.referrals[referralIndex];
         
-        // Сохраняем обновленные данные
-        const { error } = await supabase
-          .from(SAVES_TABLE)
-          .update({ game_data: gameData })
-          .eq('user_id', referrerData.user_id);
-        
-        if (error) {
-          console.error('❌ Ошибка при добавлении нового реферала:', error);
-          return false;
+        // Если реферал уже активирован, ничего не делаем
+        if (referral.activated) {
+          console.log('⚠️ Реферал уже активирован');
+          return true;
         }
         
-        console.log('✅ Добавлен и активирован новый реферал с ID', referralId);
-        return true;
+        console.log('Активируем существующего реферала. Статус до:', referral.activated);
+        
+        // Активируем реферала
+        gameData.referrals[referralIndex] = {
+          ...referral,
+          activated: true
+        };
       }
-      
-      // Если реферал уже активирован, ничего не делаем
-      if (referral.activated) {
-        console.log('⚠️ Реферал уже активирован');
-        return true;
-      }
-      
-      console.log('Активируем реферала. Статус до:', referral.activated);
-      
-      // Активируем реферала
-      const updatedReferrals = gameData.referrals.map((ref: any) => 
-        ref.id === referralId ? { ...ref, activated: true } : ref
-      );
-      
-      // Обновляем только список рефералов
-      const updatedGameData = {
-        ...gameData,
-        referrals: updatedReferrals
-      };
       
       console.log('Обновленные рефералы после активации:', 
-        updatedReferrals.map((r: any) => ({ id: r.id, activated: r.activated }))
+        gameData.referrals.map((r: any) => ({ id: r.id, activated: r.activated }))
       );
       
-      const { error } = await supabase
+      // Сохраняем обновленные данные
+      const { error: updateError } = await supabase
         .from(SAVES_TABLE)
-        .update({ game_data: updatedGameData })
+        .update({ game_data: gameData })
         .eq('user_id', referrerData.user_id);
       
-      if (error) {
-        console.error('❌ Ошибка при обновлении списка рефералов:', error);
+      if (updateError) {
+        console.error('❌ Ошибка при обновлении списка рефералов:', updateError);
         return false;
       }
       
       console.log('✅ Реферал успешно активирован');
-      return true;
-    } else {
-      console.log('⚠️ У пользователя нет списка рефералов, создаем новый');
-      
-      // Создаем массив рефералов если его нет
-      gameData.referrals = [{
-        id: referralId,
-        username: `Пользователь ${referralId.substring(0, 6)}`,
-        activated: true, // Активирован, т.к. куплено исследование
-        joinedAt: Date.now()
-      }];
-      
-      console.log('Создан новый массив рефералов:', gameData.referrals);
-      
-      // Сохраняем обновленные данные
-      const { error } = await supabase
-        .from(SAVES_TABLE)
-        .update({ game_data: gameData })
-        .eq('user_id', referrerData.user_id);
-        
-      if (error) {
-        console.error('❌ Ошибка при создании списка рефералов:', error);
-        return false;
-      }
-      
-      console.log('✅ Создан список рефералов и активирован реферал');
       return true;
     }
   } catch (error) {
@@ -461,4 +454,3 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     return false;
   }
 };
-
