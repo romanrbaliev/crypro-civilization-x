@@ -11,6 +11,7 @@ import {
 import { useEffect } from "react"
 import { getUserIdentifier } from "@/api/userIdentification"
 import { supabase } from "@/integrations/supabase/client"
+import { GameState } from "@/context/types"
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -98,39 +99,48 @@ export function Toaster() {
                 .single();
                 
               if (saveData && saveData.game_data) {
-                const gameData = saveData.game_data;
-                const hasBlockchainBasics = gameData.upgrades && 
-                  (gameData.upgrades.blockchain_basics?.purchased || 
-                   gameData.upgrades.basicBlockchain?.purchased);
+                // Типизируем game_data как потенциальный GameState и проверяем его структуру
+                const gameData = saveData.game_data as unknown;
                 
-                if (hasBlockchainBasics && (!referral.is_activated || referral.is_activated !== true)) {
-                  console.log(`Обнаружено исследование "Основы блокчейна" у реферала ${referral.user_id}, но реферал не активирован`);
-                  
-                  // Обновляем статус активации в базе данных
-                  const { error: updateError } = await supabase
-                    .from('referral_data')
-                    .update({ is_activated: true })
-                    .eq('user_id', referral.user_id);
+                // Проверяем, что gameData - это объект
+                if (typeof gameData === 'object' && gameData !== null) {
+                  // Безопасно проверяем наличие свойства upgrades и исследований
+                  const typedGameData = gameData as Partial<GameState>;
+                  const hasBlockchainBasics = typedGameData.upgrades && 
+                    (typedGameData.upgrades['blockchain_basics']?.purchased || 
+                     typedGameData.upgrades['basicBlockchain']?.purchased);
+                
+                  if (hasBlockchainBasics && (!referral.is_activated || referral.is_activated !== true)) {
+                    console.log(`Обнаружено исследование "Основы блокчейна" у реферала ${referral.user_id}, но реферал не активирован`);
                     
-                  if (updateError) {
-                    console.error(`❌ Ошибка при обновлении статуса активации реферала ${referral.user_id}:`, updateError);
-                  } else {
-                    console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
-                  }
-                } else if (!hasBlockchainBasics && referral.is_activated === true) {
-                  console.log(`У реферала ${referral.user_id} нет исследования "Основы блокчейна", но реферал активирован в базе`);
-                  
-                  // Обновляем статус активации в базе данных
-                  const { error: updateError } = await supabase
-                    .from('referral_data')
-                    .update({ is_activated: false })
-                    .eq('user_id', referral.user_id);
+                    // Обновляем статус активации в базе данных
+                    const { error: updateError } = await supabase
+                      .from('referral_data')
+                      .update({ is_activated: true })
+                      .eq('user_id', referral.user_id);
+                      
+                    if (updateError) {
+                      console.error(`❌ Ошибка при обновлении статуса активации реферала ${referral.user_id}:`, updateError);
+                    } else {
+                      console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
+                    }
+                  } else if (!hasBlockchainBasics && referral.is_activated === true) {
+                    console.log(`У реферала ${referral.user_id} нет исследования "Основы блокчейна", но реферал активирован в базе`);
                     
-                  if (updateError) {
-                    console.error(`❌ Ошибка при обновлении статуса активации реферала ${referral.user_id}:`, updateError);
-                  } else {
-                    console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
+                    // Обновляем статус активации в базе данных
+                    const { error: updateError } = await supabase
+                      .from('referral_data')
+                      .update({ is_activated: false })
+                      .eq('user_id', referral.user_id);
+                      
+                    if (updateError) {
+                      console.error(`❌ Ошибка при обновлении статуса активации реферала ${referral.user_id}:`, updateError);
+                    } else {
+                      console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
+                    }
                   }
+                } else {
+                  console.warn(`Данные игры для пользователя ${referral.user_id} имеют неверный формат:`, gameData);
                 }
               }
             }
