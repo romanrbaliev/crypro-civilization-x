@@ -1,5 +1,4 @@
-
-import { GameState, GameAction } from './types';
+import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
 // Импортируем все обработчики редьюсеров
@@ -63,8 +62,8 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
   // Генерируем уникальный ID для помощника
   const helperId = `helper_${generateId()}`;
   
-  // Создаем запись помощника
-  const newHelper = {
+  // Создаем запись помощника с явным указанием типа status
+  const newHelper: ReferralHelper = {
     id: helperId,
     buildingId,
     helperId: referralId,
@@ -87,10 +86,10 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
 const processRespondToHelperRequest = (state: GameState, payload: { helperId: string; accepted: boolean }): GameState => {
   const { helperId, accepted } = payload;
   
-  // Обновляем статус запроса
+  // Обновляем статус запроса с явным указанием типа
   const updatedHelpers = state.referralHelpers.map(helper => 
     helper.id === helperId 
-      ? { ...helper, status: accepted ? 'accepted' : 'rejected' }
+      ? { ...helper, status: accepted ? 'accepted' as const : 'rejected' as const }
       : helper
   );
   

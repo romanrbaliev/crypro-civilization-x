@@ -203,7 +203,7 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
               <div className="mt-2 text-red-500">
                 <div className="font-medium">Требуются исследования:</div>
                 <ul className="list-disc list-inside mt-1">
-                  {upgrade.requiredUpgrades.map((requiredId: string) => (
+                  {upgrade.requiredUpgrades?.map((requiredId: string) => (
                     <li key={requiredId}>{getRequiredUpgradeName(requiredId)}</li>
                   ))}
                 </ul>
