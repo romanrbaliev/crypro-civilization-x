@@ -1,6 +1,3 @@
-
-// Сервис для работы с реферальной системой
-
 import { supabase } from '@/integrations/supabase/client';
 import { getUserIdentifier } from './userIdentification';
 import { checkSupabaseConnection } from './connectionUtils';
