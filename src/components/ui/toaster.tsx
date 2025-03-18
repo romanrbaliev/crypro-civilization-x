@@ -113,7 +113,7 @@ export function Toaster() {
                      typedGameData.upgrades['basicBlockchain']?.purchased);
                 
                   // Преобразуем is_activated в булевое значение для сравнения
-                  const isActivated = referral.is_activated === true || referral.is_activated === "true";
+                  const isActivated = referral.is_activated === true || referral.is_activated === 'true';
                 
                   console.log(`Реферал ${referral.user_id}:`, {
                     hasBlockchainBasics,

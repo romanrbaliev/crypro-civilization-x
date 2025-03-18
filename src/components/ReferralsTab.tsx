@@ -64,7 +64,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
 }) => {
   const isAssigned = Boolean(assignedBuildingId);
   
-  const isActivated = referral.activated === true || referral.activated === "true";
+  const isActivated = referral.activated === true || referral.activated === 'true';
   
   console.log(`Отображение карточки реферала ${referral.id}:`, {
     activated: referral.activated,
@@ -375,7 +375,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               // Приоритет: используем значение is_activated из базы, если оно есть
               if (ref.is_activated !== null && ref.is_activated !== undefined) {
                 // Убедимся, что activationStatus - это булево значение, а не строка
-                activationStatus = ref.is_activated === true || ref.is_activated === "true";
+                activationStatus = ref.is_activated === true || ref.is_activated === 'true';
                 console.log(`Реферал ${ref.user_id} имеет статус активации из БД:`, 
                   ref.is_activated, 
                   `(тип: ${typeof ref.is_activated})`, 
@@ -383,7 +383,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                 );
               } else if (existingRef && existingRef.activated !== undefined) {
                 // Как запасной вариант используем существующие данные
-                activationStatus = existingRef.activated === true || existingRef.activated === "true";
+                activationStatus = existingRef.activated === true || existingRef.activated === 'true';
                 console.log(`Реферал ${ref.user_id} использует существующий статус активации:`, 
                   existingRef.activated, 
                   `(тип: ${typeof existingRef.activated})`, 
@@ -775,10 +775,10 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   };
 
   const totalReferrals = state.referrals?.length || 0;
-  const activeReferrals = state.referrals?.filter(ref => ref.activated === true || ref.activated === "true")?.length || 0;
+  const activeReferrals = state.referrals?.filter(ref => ref.activated === true || ref.activated === 'true')?.length || 0;
 
   const filteredReferrals = currentTab === 'active' 
-    ? (state.referrals || []).filter(ref => ref.activated === true || ref.activated === "true")
+    ? (state.referrals || []).filter(ref => ref.activated === true || ref.activated === 'true')
     : (state.referrals || []);
 
   const getUserBuildings = () => Object.values(state.buildings || {})
@@ -1042,7 +1042,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             ) : (
               <div className="text-center py-4 text-gray-500">
                 <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                <p className="text-[10px]">У вас пока нет активных рефералов</p>
+                <p className="text-[10px]">У ва�� пока нет активных рефералов</p>
               </div>
             )}
           </TabsContent>
