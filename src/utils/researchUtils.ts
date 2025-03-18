@@ -71,3 +71,63 @@ export const hasBlockchainBasics = (upgrades: { [key: string]: Upgrade }): boole
   // Проверяем как новый, так и старый ID исследования
   return basicBlockchainPurchased || blockchainBasicsPurchased;
 };
+
+// Форматирование название эффекта для отображения
+export const formatEffectName = (effectId: string): string => {
+  const effectMap: { [key: string]: string } = {
+    'knowledge_max': 'Максимум знаний',
+    'knowledge_rate': 'Скорость получения знаний',
+    'energy_max': 'Максимум энергии',
+    'energy_rate': 'Скорость генерации энергии',
+    'mining_efficiency': 'Эффективность майнинга',
+    'usdt_max': 'Максимум USDT',
+    'click_power': 'Сила клика',
+    'computing_power_rate': 'Вычислительная мощность',
+    'trading_efficiency': 'Эффективность трейдинга',
+    'altcoin_earnings': 'Доход от альткоинов',
+    'reputation_gain': 'Прирост репутации',
+    'staking_efficiency': 'Эффективность стейкинга',
+    'referal_bonus': 'Бонус от рефералов',
+    'hashrate_efficiency': 'Эффективность хешрейта',
+    'offline_production': 'Оффлайн-производство',
+    'building_cost': 'Стоимость зданий',
+    'research_speed': 'Скорость исследований',
+    'storage_capacity': 'Вместимость хранилищ',
+    'electricity_consumption': 'Потребление электричества',
+    'project_development_speed': 'Скорость разработки проектов'
+  };
+  
+  return effectMap[effectId] || effectId;
+};
+
+// Форматирование эффекта для отображения, включая значение
+export const formatEffect = (effectId: string, value: number): string => {
+  const effectName = formatEffectName(effectId);
+  
+  // Определение знака и форматирование
+  const sign = value >= 0 ? '+' : '';
+  const formattedValue = `${sign}${value}%`;
+  
+  // Исключения для отображения без процентов
+  const noPercentEffects = ['building_count', 'resource_amount'];
+  const format = noPercentEffects.includes(effectId) ? value.toString() : formattedValue;
+  
+  return `${effectName}: ${format}`;
+};
+
+// Получение названия специализации по идентификатору
+export const getSpecializationName = (specializationId: string): string => {
+  const specializationMap: {[key: string]: string} = {
+    'miner': 'Майнер',
+    'trader': 'Трейдер', 
+    'investor': 'Инвестор',
+    'influencer': 'Инфлюенсер',
+    'defi': 'DeFi',
+    'founder': 'Основатель',
+    'analyst': 'Аналитик',
+    'arbitrage': 'Арбитражник',
+    'general': 'Общее'
+  };
+  
+  return specializationMap[specializationId] || specializationId;
+};

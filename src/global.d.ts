@@ -13,7 +13,7 @@ interface Window {
         };
         start_param?: string;
       };
-      // Добавляем недостающие методы и свойства Telegram WebApp
+      // Добавляем все необходимые методы и свойства Telegram WebApp
       close?: () => void;
       share?: (url: string) => void;
       ready?: () => void;
@@ -21,8 +21,20 @@ interface Window {
       platform?: string;
       version?: string;
       initData?: string;
-      CloudStorage?: any;
-      showPopup?: (params: any) => void;
+      CloudStorage?: {
+        getItem: (key: string) => Promise<string | null>;
+        setItem: (key: string, value: string) => Promise<void>;
+        removeItem: (key: string) => Promise<void>;
+      };
+      showPopup?: (params: {
+        title?: string;
+        message: string;
+        buttons?: Array<{
+          id?: string;
+          type?: string;
+          text?: string;
+        }>;
+      }, callback?: (buttonId: string) => void) => void;
       openTelegramLink?: (url: string) => void;
     };
   };
