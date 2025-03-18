@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, UserPlus } from 'lucide-react';
@@ -22,9 +21,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     // Если находимся в Telegram, используем встроенный механизм для создания ссылки
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
       // Используем Telegram WebApp для получения ссылки на бота с параметром ref
-      const baseUrl = window.Telegram.WebApp.initDataUnsafe?.start_param 
-        ? window.Telegram.WebApp.initDataUnsafe.start_param 
-        : 'https://t.me/YourBotUsername?start=';
+      const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param || '';
+      const baseUrl = startParam ? startParam : 'https://t.me/YourBotUsername?start=';
       
       setReferralLink(`${baseUrl}${state.referralCode}`);
     } else {
@@ -56,7 +54,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   // Отправка реферальной ссылки через Telegram
   const shareReferralLink = () => {
-    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp?.showPopup) {
+    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp?.openTelegramLink) {
       try {
         window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent("Присоединяйся к Crypto Civilization! Начни свой путь в мире криптовалют:")}`);
         onAddEvent("Открыто окно отправки реферальной ссылки", "info");
@@ -81,7 +79,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   // Открытие чата с рефералом в Telegram
   const openChatWithReferral = (username: string) => {
-    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
+    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp?.openTelegramLink) {
       try {
         // Если это имя вида "Player123456", извлекаем ID
         if (username.startsWith('Player')) {

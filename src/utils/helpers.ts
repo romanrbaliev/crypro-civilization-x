@@ -1,4 +1,4 @@
-// ��орматирование чисел для отображения
+// Форматирование чисел для отображения
 export const formatNumber = (num: number): string => {
   if (num === Infinity) return "∞";
   
@@ -94,64 +94,6 @@ export const generateReferralCode = () => {
 };
 
 // Проверка доступности Telegram WebApp API
-export const isTelegramWebAppAvailable = () => {
-  if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-    return true;
-  }
-  
-  // Для тестирования вне Telegram или если Telegram WebApp недоступен
-  if (typeof window !== 'undefined' && window.__FORCE_TELEGRAM_MODE) {
-    return true;
-  }
-  
-  return false;
-};
-
-// Проверка условий для открытия нового контента
-export const checkUnlockConditions = (
-  resources: { [key: string]: number },
-  requirements: { [key: string]: number }
-): boolean => {
-  for (const [resourceId, requiredAmount] of Object.entries(requirements)) {
-    if (!resources[resourceId] || resources[resourceId] < requiredAmount) {
-      return false;
-    }
-  }
-  return true;
-};
-
-// Расчет эффективности производства с учетом бонусов
-export const calculateEfficiency = (
-  baseValue: number,
-  boostPercent: number
-): number => {
-  return baseValue * (1 + boostPercent / 100);
-};
-
-// Функция для проверки, может ли игрок позволить себе покупку
-export const canAfford = (
-  resources: { [key: string]: number },
-  costs: { [key: string]: number }
-): boolean => {
-  for (const [resourceId, cost] of Object.entries(costs)) {
-    if (!resources[resourceId] || resources[resourceId] < cost) {
-      return false;
-    }
-  }
-  return true;
-};
-
-// Функция для получения следующего уровня прогресса
-export const getNextMilestone = (currentScore: number, milestones: number[]): number => {
-  for (const milestone of milestones) {
-    if (milestone > currentScore) {
-      return milestone;
-    }
-  }
-  return Infinity;
-};
-
-// Улучшенная проверка наличия Telegram WebApp API с детальным логированием
 export const isTelegramWebAppAvailable = (): boolean => {
   // Сначала проверяем, выполняется ли код в Telegram WebApp
   if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -215,6 +157,50 @@ export const isTelegramWebAppAvailable = (): boolean => {
   
   console.log('Telegram WebApp API не обнаружен - работаем в обычном браузере');
   return false;
+};
+
+// Проверка условий для открытия нового контента
+export const checkUnlockConditions = (
+  resources: { [key: string]: number },
+  requirements: { [key: string]: number }
+): boolean => {
+  for (const [resourceId, requiredAmount] of Object.entries(requirements)) {
+    if (!resources[resourceId] || resources[resourceId] < requiredAmount) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Расчет эффективности производства с учетом бонусов
+export const calculateEfficiency = (
+  baseValue: number,
+  boostPercent: number
+): number => {
+  return baseValue * (1 + boostPercent / 100);
+};
+
+// Функция для проверки, может ли игрок позволить себе покупку
+export const canAfford = (
+  resources: { [key: string]: number },
+  costs: { [key: string]: number }
+): boolean => {
+  for (const [resourceId, cost] of Object.entries(costs)) {
+    if (!resources[resourceId] || resources[resourceId] < cost) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Функция для получения следующего уровня прогресса
+export const getNextMilestone = (currentScore: number, milestones: number[]): number => {
+  for (const milestone of milestones) {
+    if (milestone > currentScore) {
+      return milestone;
+    }
+  }
+  return Infinity;
 };
 
 // Улучшенная проверка доступности Telegram CloudStorage

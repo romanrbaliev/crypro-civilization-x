@@ -17,9 +17,12 @@ interface Window {
           first_name?: string;
           last_name?: string;
           username?: string;
-        }
-      }
+        };
+        start_param?: string; // Добавлено для поддержки параметра запуска
+      };
       CloudStorage?: any;
+      showPopup?: (params: any) => void; // Добавлено для поддержки метода showPopup
+      openTelegramLink?: (url: string) => void; // Добавлено для поддержки метода openTelegramLink
     }
   };
   __telegramInitialized?: boolean;
