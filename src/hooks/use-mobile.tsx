@@ -1,9 +1,7 @@
-
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
-// Основная функция для проверки мобильной версии
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
@@ -18,23 +16,4 @@ export function useIsMobile() {
   }, [])
 
   return !!isMobile
-}
-
-// Добавляем функцию useMediaQuery для обратной совместимости
-export function useMediaQuery(query: string) {
-  const [matches, setMatches] = React.useState<boolean>(false)
-
-  React.useEffect(() => {
-    const media = window.matchMedia(query)
-    setMatches(media.matches)
-
-    const listener = (e: MediaQueryListEvent) => {
-      setMatches(e.matches)
-    }
-
-    media.addEventListener("change", listener)
-    return () => media.removeEventListener("change", listener)
-  }, [query])
-
-  return matches
 }

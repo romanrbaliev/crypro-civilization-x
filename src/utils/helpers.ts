@@ -68,12 +68,12 @@ export const calculateBuildingBoostFromHelpers = (
 
 /**
  * Вычисляет общий бонус от рефералов
- * ИСПРАВЛЕНО: Строго проверяем только активированных рефералов с явным true
+ * ИСПРАВЛЕНО: Проверяем только активированных рефералов с генератором
  */
 export const calculateReferralBonus = (referrals: any[] = []): number => {
   if (!referrals || referrals.length === 0) return 0;
   
-  // ИСПРАВЛЕНО: Фильтруем только явно активированных рефералов
+  // ИСПРАВЛЕНО: Учитываем только активированных рефералов с явной проверкой activated === true
   const activeReferrals = referrals.filter(ref => ref.activated === true);
   console.log(`Расчет бонуса от рефералов: ${activeReferrals.length} активных из ${referrals.length} всего`);
   

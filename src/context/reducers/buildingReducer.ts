@@ -68,19 +68,6 @@ export const processPurchaseBuilding = (
       console.warn("Не найдено исследование blockchain_basics");
     }
     
-    // Проверка наличия исследования basicBlockchain (альтернативный ID)
-    if (newUpgrades["basicBlockchain"]) {
-      newUpgrades = {
-        ...newUpgrades,
-        "basicBlockchain": {
-          ...newUpgrades["basicBlockchain"],
-          unlocked: true
-        }
-      };
-      console.log("Исследование 'Основы блокчейна' (basicBlockchain) разблокировано!");
-      safeDispatchGameEvent("Исследование 'Основы блокчейна' разблокировано!", "success");
-    }
-    
     // Открываем вкладку исследований - ИСПРАВЛЕНО: Явно устанавливаем флаг в true
     newUnlocks = {
       ...newUnlocks,

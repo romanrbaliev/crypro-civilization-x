@@ -14,14 +14,12 @@ export const processPurchaseUpgrade = (
   
   // Если улучшение не существует, не разблокировано или уже куплено, возвращаем текущее состояние
   if (!upgrade || !upgrade.unlocked || upgrade.purchased) {
-    console.log(`Не удалось приобрести улучшение ${upgradeId}: существует=${!!upgrade}, разблокировано=${upgrade?.unlocked}, уже куплено=${upgrade?.purchased}`);
     return state;
   }
   
   // Проверяем, хватает ли ресурсов
   const canAfford = hasEnoughResources(state, upgrade.cost);
   if (!canAfford) {
-    console.log(`Недостаточно ресурсов для приобретения улучшения ${upgradeId}`);
     return state;
   }
   
@@ -43,10 +41,8 @@ export const processPurchaseUpgrade = (
     }
   };
   
-  console.log(`Исследование ${upgrade.name} (${upgradeId}) успешно приобретено`);
-  
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек
-  if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
+  if (upgradeId === 'basicBlockchain') {
     const newBuildings = {
       ...state.buildings,
       cryptoWallet: {
@@ -55,7 +51,7 @@ export const processPurchaseUpgrade = (
       }
     };
 
-    console.log(`Разблокирован криптокошелек из-за исследования '${upgrade.name}'`);
+    console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
     
     // Отправляем сообщение о разблокировке криптокошелька
     safeDispatchGameEvent("Разблокирован криптокошелек", "info");
@@ -115,13 +111,6 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       // Отправляем сообщение о разблокировке нового исследования
       const categoryText = upgrade.category ? ` (${upgrade.specialization || upgrade.category})` : '';
       safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
-      
-      // Если разблокировали "Основы блокчейна", также разблокируем вкладку исследований
-      if (upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
-        console.log(`Разблокирована вкладка исследований после разблокировки '${upgrade.name}'`);
-        const newUnlocks = {...state.unlocks, research: true};
-        state = {...state, unlocks: newUnlocks};
-      }
     }
   });
   
