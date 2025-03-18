@@ -141,3 +141,6 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Вызываем функцию для создания таблиц и функций
+SELECT create_saves_table();

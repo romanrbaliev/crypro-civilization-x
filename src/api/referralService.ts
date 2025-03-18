@@ -105,11 +105,12 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
     }
     
     // Создаем новую запись - используя только поля, которые существуют в типе
-    // Обратите внимание, что мы не включаем is_activated напрямую
-    const insertData = {
+    // Обратите внимание, что мы не включаем is_activated напрямую в объект TypeScript
+    const insertData: any = {
       user_id: userId,
       referral_code: referralCode,
-      referred_by: referredBy
+      referred_by: referredBy,
+      is_activated: false // Добавляем здесь, но тип обходим с помощью any
     };
     
     // Используем метод RLS для добавления дополнительных полей, которые может не знать TypeScript
@@ -329,7 +330,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     
     // Выполняем SQL-запрос для проверки, не активирован ли уже реферал
     const { data: activationCheck, error: checkError } = await supabase
-      .from('referral_data')
+      .from(REFERRAL_TABLE)
       .select('*')
       .eq('user_id', referralId)
       .single();
@@ -408,18 +409,21 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     }
     
     // Обновляем в базе данных флаг активации реферала
-    // Используем raw SQL, чтобы обойти ограничения типов
+    // Используем прямой SQL-запрос через функцию ниже
+    const updateSql = `UPDATE ${REFERRAL_TABLE} SET is_activated = TRUE WHERE user_id = '${referralId}'`;
+    
+    // Выполняем SQL-запрос напрямую через запрос к таблице, а не через RPC
     const { error: updateReferralError } = await supabase
-      .rpc('exec_sql', {
-        sql: `UPDATE ${REFERRAL_TABLE} SET is_activated = TRUE WHERE user_id = '${referralId}'`
-      });
+      .from(REFERRAL_TABLE)
+      .update({ is_activated: true } as any) // Используем any чтобы обойти ограничения TypeScript
+      .eq('user_id', referralId);
       
     if (updateReferralError) {
       console.error('❌ Ошибка при обновлении статуса активации реферала:', updateReferralError);
       return false;
     }
     
-    console.log('✅ Обновлен статус активации реферала в базе данных через SQL');
+    console.log('✅ Обновлен статус активации реферала в базе данных');
     
     // Обновляем список рефералов в сохранении пригласившего
     const gameData = saveData.game_data as any;
@@ -519,3 +523,4 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     return false;
   }
 };
+
