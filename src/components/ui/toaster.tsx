@@ -11,7 +11,6 @@ import {
 import { useEffect } from "react"
 import { getUserIdentifier } from "@/api/userIdentification"
 import { supabase } from "@/integrations/supabase/client"
-import { GameState } from "@/context/types"
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -40,7 +39,7 @@ export function Toaster() {
     
     storeUserId();
     
-    // Обновляем обработчик обновления рефералов для более точной синхронизации с БД
+    // Улучшенный обработчик для принудительного обновления из БД
     const handleRefresh = async (event) => {
       console.log('Получено событие обновления рефералов');
       try {
@@ -71,7 +70,7 @@ export function Toaster() {
             const referralCode = referralCodeData.referral_code;
             console.log('Получен реферальный код пользователя:', referralCode);
             
-            // Получаем список рефералов пользователя напрямую из базы данных
+            // Получаем ТОЛЬКО ФАКТЫ из базы данных, не пытаясь интерпретировать
             const { data: referrals, error: referralsError } = await supabase
               .from('referral_data')
               .select('user_id, created_at, is_activated')
@@ -82,20 +81,25 @@ export function Toaster() {
               return;
             }
             
-            console.log('Получены рефералы из базы данных:', referrals);
+            console.log('Получены рефералы из базы данных:', JSON.stringify(referrals || [], null, 2));
             
-            // Проходим по каждому рефералу и проверяем его состояние, не пытаясь его автоматически изменить
+            // Проходим по каждому рефералу и передаем только факты из БД, не меняя ничего
             for (const referral of (referrals || [])) {
               console.log(`Реферал ${referral.user_id}:`, {
                 is_activated: referral.is_activated,
                 typeOfIs_activated: typeof referral.is_activated
               });
               
-              // Отправляем событие обновления чтобы UI отобразил актуальное состояние из БД
-              const updateEvent = new CustomEvent('referral-activated', {
+              // Создаем событие с точным значением из БД
+              const isActivatedInDb = referral.is_activated === true;
+              
+              console.log(`Отправка события с точным статусом активации из БД: ${isActivatedInDb}`);
+              
+              // Отправляем событие обновления для синхронизации UI с БД
+              const updateEvent = new CustomEvent('referral-db-status', {
                 detail: { 
                   referralId: referral.user_id,
-                  activated: referral.is_activated === true
+                  activated: isActivatedInDb
                 }
               });
               window.dispatchEvent(updateEvent);
@@ -109,21 +113,44 @@ export function Toaster() {
     
     window.addEventListener('refresh-referrals', handleRefresh);
     
-    // Изменяем обработчик события активации реферала для более точного управления состоянием
-    const handleReferralActivated = (event) => {
-      // Проверяем, есть ли в событии информация об активации
+    // Добавляем новый обработчик для прямого обновления статуса активации реферала
+    const handleReferralDbStatus = (event) => {
       const { referralId, activated } = event.detail;
-      console.log(`Получено событие активации реферала: ${referralId}, статус: ${activated}`);
+      console.log(`Получен статус из БД для реферала ${referralId}: активирован=${activated}`);
       
-      // Принудительно обновляем интерфейс
-      const refreshEvent = new CustomEvent('refresh-referrals');
-      window.dispatchEvent(refreshEvent);
+      // Создаем событие для обновления состояния в Redux
+      const stateUpdateEvent = new CustomEvent('update-referral-status', {
+        detail: { 
+          referralId: referralId,
+          activated: activated
+        }
+      });
+      window.dispatchEvent(stateUpdateEvent);
+    };
+    
+    window.addEventListener('referral-db-status', handleReferralDbStatus);
+    
+    // Нам все еще нужен этот обработчик, но мы изменим порядок обработки
+    const handleReferralActivated = (event) => {
+      const { referralId } = event.detail;
+      console.log(`Получено событие активации реферала: ${referralId}`);
+      
+      // Принудительно запрашиваем обновление из БД после активации
+      setTimeout(() => {
+        const refreshEvent = new CustomEvent('refresh-referrals');
+        window.dispatchEvent(refreshEvent);
+      }, 500); // Небольшая задержка для завершения операции в БД
     };
     
     window.addEventListener('referral-activated', handleReferralActivated);
     
+    // Запрашиваем обновление статусов при первом рендере
+    const refreshEvent = new CustomEvent('refresh-referrals');
+    window.dispatchEvent(refreshEvent);
+    
     return () => {
       window.removeEventListener('refresh-referrals', handleRefresh);
+      window.removeEventListener('referral-db-status', handleReferralDbStatus);
       window.removeEventListener('referral-activated', handleReferralActivated);
     };
   }, []);

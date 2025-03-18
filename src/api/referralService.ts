@@ -492,6 +492,16 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       
       safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
       
+      setTimeout(() => {
+        try {
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+          console.log(`Отправлено событие обновления для всех рефералов`);
+        } catch (error) {
+          console.error(`Ошибка при отправке события обновления рефералов:`, error);
+        }
+      }, 500);
+      
       return true;
     }
   } catch (error) {

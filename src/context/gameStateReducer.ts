@@ -1,7 +1,6 @@
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
-import { activateReferral } from '@/api/referralService';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
@@ -83,7 +82,8 @@ export const processLoadGame = (
     loadedState.referrals = [];
     console.log('✅ Инициализирован пустой массив рефералов');
   } else {
-    // Улучшенная обработка статуса активации рефералов
+    // Обработка данных о рефералах - НЕ ИЗМЕНЯЕМ статус активации!
+    // Только конвертируем нестандартные значения в булев тип
     loadedState.referrals = loadedState.referrals.map((referral) => {
       // Установка значения по умолчанию, если поле отсутствует
       if (referral.activated === undefined || referral.activated === null) {
@@ -98,11 +98,10 @@ export const processLoadGame = (
         return { ...referral, activated: isActivated };
       }
       
+      // Сохраняем исходное булево значение
       return referral;
     });
     
-    // НОВОЕ: НЕ запускаем автоматическую активацию при загрузке игры.
-    // Теперь статус активации будет строго соответствовать базе данных
     console.log('✅ Окончательные статусы рефералов после обработки:', 
       loadedState.referrals.map(r => ({ id: r.id, activated: r.activated, type: typeof r.activated }))
     );

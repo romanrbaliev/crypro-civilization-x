@@ -1,4 +1,3 @@
-
 /**
  * Проверяет, достаточно ли ресурсов для совершения покупки
  */
@@ -94,6 +93,7 @@ export const calculateReferralBonus = (referrals: any[]): number => {
   console.log(`Детальная информация о рефералах:`, JSON.stringify(referralDetails, null, 2));
   
   // Считаем только рефералов с явным значением activated === true
+  // ВАЖНО: Ещё более строгая проверка, только true без автоматического преобразования
   const activeReferrals = referrals.filter(ref => ref.activated === true);
   console.log(`Расчет бонуса от рефералов: ${activeReferrals.length} активных из ${referrals.length} всего`);
   
