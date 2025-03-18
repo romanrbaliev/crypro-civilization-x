@@ -1,4 +1,5 @@
-import { Resource, Building, Upgrade, GameState, Counters, MiningParams } from './types';
+import { Resource, Building, Upgrade, GameState, Counters, MiningParams, Referral } from './types';
+import { generateReferralCode } from '@/utils/helpers';
 
 // Начальные здания
 export const initialBuildings: { [key: string]: Building } = {
@@ -218,5 +219,9 @@ export const initialState: GameState = {
   eventMessages: {},
   counters: initialCounters,
   miningParams: initialMiningParams,
-  gameTime: 0
+  gameTime: 0,
+  // Новые поля для реферальной системы
+  referralCode: "",
+  referredBy: null,
+  referrals: []
 };

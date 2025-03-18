@@ -1,3 +1,4 @@
+
 export interface Resource {
   id: string;
   name: string;
@@ -30,6 +31,13 @@ export interface Upgrade {
   unlocked: boolean;
   purchased: boolean;
   requirements?: { [key: string]: number };
+}
+
+export interface Referral {
+  id: string;
+  username: string;
+  activated: boolean;
+  joinedAt: number;
 }
 
 export interface Unlocks {
@@ -71,6 +79,10 @@ export interface GameState {
   // Новые параметры для механики майнинга
   miningParams: MiningParams;
   gameTime: number; // Игровое время в секундах для расчета волатильности
+  // Реферальная система
+  referralCode: string; // Реферальный код пользователя
+  referredBy: string | null; // Код пользователя, пригласившего текущего
+  referrals: Referral[]; // Список рефералов
 }
 
 // Типы действий для редьюсера игры
@@ -91,4 +103,7 @@ export type GameAction =
   | { type: "RESTART_COMPUTERS" }
   | { type: "APPLY_KNOWLEDGE" }
   | { type: "MINE_COMPUTING_POWER" }
-  | { type: "EXCHANGE_BTC" };
+  | { type: "EXCHANGE_BTC" }
+  | { type: "SET_REFERRAL_CODE"; payload: { code: string } }
+  | { type: "ADD_REFERRAL"; payload: { referral: Referral } }
+  | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } };

@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from "react";
-import { useGame } from "@/context/GameContext";
+import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
-import { Building, Lightbulb, Info, Trash2, Settings } from "lucide-react";
+import { Building, Lightbulb, Info, Trash2, Settings, Users } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
 import Header from "@/components/Header";
 import EquipmentTab from "@/components/EquipmentTab";
 import ResearchTab from "@/components/ResearchTab";
+import ReferralsTab from "@/components/ReferralsTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
@@ -229,32 +230,38 @@ const GameScreen = () => {
             <ResourceList resources={unlockedResources} />
           </div>
           
-          {(hasUnlockedBuildings || hasUnlockedResearch) && (
-            <div className="border-t mt-auto">
-              <div className="flex flex-col">
-                {hasUnlockedBuildings && (
-                  <Button 
-                    variant={selectedTab === "equipment" ? "default" : "ghost"} 
-                    className="justify-start rounded-none section-title h-6 px-3"
-                    onClick={() => setSelectedTab("equipment")}
-                  >
-                    <Building className="h-3 w-3 mr-2" />
-                    Оборудование
-                  </Button>
-                )}
-                {hasUnlockedResearch && (
-                  <Button 
-                    variant={selectedTab === "research" ? "default" : "ghost"} 
-                    className="justify-start rounded-none section-title h-6 px-3"
-                    onClick={() => setSelectedTab("research")}
-                  >
-                    <Lightbulb className="h-3 w-3 mr-2" />
-                    Исследования
-                  </Button>
-                )}
-              </div>
+          <div className="border-t mt-auto">
+            <div className="flex flex-col">
+              {hasUnlockedBuildings && (
+                <Button 
+                  variant={selectedTab === "equipment" ? "default" : "ghost"} 
+                  className="justify-start rounded-none section-title h-6 px-3"
+                  onClick={() => setSelectedTab("equipment")}
+                >
+                  <Building className="h-3 w-3 mr-2" />
+                  Оборудование
+                </Button>
+              )}
+              {hasUnlockedResearch && (
+                <Button 
+                  variant={selectedTab === "research" ? "default" : "ghost"} 
+                  className="justify-start rounded-none section-title h-6 px-3"
+                  onClick={() => setSelectedTab("research")}
+                >
+                  <Lightbulb className="h-3 w-3 mr-2" />
+                  Исследования
+                </Button>
+              )}
+              <Button 
+                variant={selectedTab === "referrals" ? "default" : "ghost"} 
+                className="justify-start rounded-none section-title h-6 px-3"
+                onClick={() => setSelectedTab("referrals")}
+              >
+                <Users className="h-3 w-3 mr-2" />
+                Рефералы
+              </Button>
             </div>
-          )}
+          </div>
         </div>
         
         <div className="w-3/5 flex flex-col overflow-hidden">
@@ -266,6 +273,10 @@ const GameScreen = () => {
               
               {selectedTab === "research" && hasUnlockedResearch && (
                 <ResearchTab onAddEvent={addEvent} />
+              )}
+              
+              {selectedTab === "referrals" && (
+                <ReferralsTab onAddEvent={addEvent} />
               )}
             </div>
             

@@ -1,5 +1,4 @@
-
-// Форматирование чисел для отображения
+// ��орматирование чисел для отображения
 export const formatNumber = (num: number): string => {
   if (num === Infinity) return "∞";
   
@@ -87,6 +86,25 @@ export const resetGame = () => {
 // Генерация случайного ID
 export const generateId = (): string => {
   return Math.random().toString(36).substr(2, 9);
+};
+
+// Генерация уникального реферального кода
+export const generateReferralCode = () => {
+  return Math.random().toString(36).substring(2, 10).toUpperCase();
+};
+
+// Проверка доступности Telegram WebApp API
+export const isTelegramWebAppAvailable = () => {
+  if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+    return true;
+  }
+  
+  // Для тестирования вне Telegram или если Telegram WebApp недоступен
+  if (typeof window !== 'undefined' && window.__FORCE_TELEGRAM_MODE) {
+    return true;
+  }
+  
+  return false;
 };
 
 // Проверка условий для открытия нового контента

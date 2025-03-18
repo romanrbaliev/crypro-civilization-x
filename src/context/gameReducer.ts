@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
@@ -25,6 +24,31 @@ import {
   processResetGame,
   processRestartComputers
 } from './reducers/gameStateReducer';
+import { generateReferralCode } from '@/utils/helpers';
+
+// Обработка реферальной системы
+const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
+  return {
+    ...state,
+    referralCode: payload.code
+  };
+};
+
+const processAddReferral = (state: GameState, payload: { referral: any }): GameState => {
+  return {
+    ...state,
+    referrals: [...state.referrals, payload.referral]
+  };
+};
+
+const processActivateReferral = (state: GameState, payload: { referralId: string }): GameState => {
+  return {
+    ...state,
+    referrals: state.referrals.map(ref => 
+      ref.id === payload.referralId ? { ...ref, activated: true } : ref
+    )
+  };
+};
 
 // Главный редьюсер игры - координирует все остальные редьюсеры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
@@ -67,9 +91,23 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "INCREMENT_COUNTER": 
       return processIncrementCounter(state, action.payload);
     
-    // Запуск игры
-    case "START_GAME": 
-      return processStartGame(state);
+    // Запуск игры с генерацией реферального кода
+    case "START_GAME": {
+      // Сначала обработаем базовую логику START_GAME
+      let newState = processStartGame(state);
+      
+      // Если реферальный код еще не установлен, генерируем его
+      if (!newState.referralCode) {
+        const code = generateReferralCode();
+        newState = {
+          ...newState,
+          referralCode: code
+        };
+        console.log(`Сгенерирован реферальный код: ${code}`);
+      }
+      
+      return newState;
+    }
     
     // Загрузка сохраненной игры
     case "LOAD_GAME": 
@@ -99,6 +137,16 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "EXCHANGE_BTC": 
       return processExchangeBtc(state);
     
+    // Реферальная система
+    case "SET_REFERRAL_CODE":
+      return processSetReferralCode(state, action.payload);
+    
+    case "ADD_REFERRAL":
+      return processAddReferral(state, action.payload);
+    
+    case "ACTIVATE_REFERRAL":
+      return processActivateReferral(state, action.payload);
+      
     default:
       return state;
   }
