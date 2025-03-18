@@ -55,19 +55,18 @@ export const processPurchaseUpgrade = (
         ...newBuildings.cryptoWallet,
         unlocked: true
       };
+      console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
+      
+      // Отправляем сообщение о разблокировке криптокошелька
+      safeDispatchGameEvent("Разблокирован криптокошелек", "info");
+      
+      // Добавлен описательное сообщение о криптокошельке
+      setTimeout(() => {
+        safeDispatchGameEvent("Криптокошелек увеличивает максимальное хранение USDT и знаний", "info");
+      }, 200);
     } else {
       console.warn("Внимание: cryptoWallet не найден в зданиях при обновлении после покупки исследования");
     }
-
-    console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
-    
-    // Отправляем сообщение о разблокировке криптокошелька
-    safeDispatchGameEvent("Разблокирован криптокошелек", "info");
-    
-    // Добавлен описательное сообщение о криптокошельке
-    setTimeout(() => {
-      safeDispatchGameEvent("Криптокошелек увеличивает максимальное хранение USDT и знаний", "info");
-    }, 200);
     
     // Активируем реферала, если пользователь был приглашен
     if (state.referredBy) {
@@ -75,13 +74,23 @@ export const processPurchaseUpgrade = (
       // Запоминаем текущий userId для активации как реферала
       const userId = window.__game_user_id || 'unknown';
       
+      console.log('Текущий userId для активации:', userId);
+      
       // Асинхронно активируем реферала (вызываем API без ожидания результата)
-      activateReferral(userId).then(result => {
-        console.log('Результат активации реферала для', userId, ':', result);
-        if (result) {
-          safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
-        }
-      });
+      activateReferral(userId)
+        .then(result => {
+          console.log('Результат активации реферала для', userId, ':', result);
+          if (result) {
+            safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
+          } else {
+            console.warn("Активация реферала не удалась");
+          }
+        })
+        .catch(error => {
+          console.error("Ошибка при активации реферала:", error);
+        });
+    } else {
+      console.log('Пользователь не был приглашен по реферальной ссылке, активация не требуется');
     }
     
     // Обновляем состояние

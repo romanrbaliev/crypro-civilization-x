@@ -17,8 +17,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
     // Проверяем статус активации реферала
     // Реферал считается активированным только если пользователь купил исследование "Основы блокчейна"
     
-    // Если статус активации неверный, исправляем его
+    // Получаем текущий статус наличия исследования
     const userHasBasicBlockchain = hasBlockchainBasics(state.upgrades);
+    console.log('Пользователь', userHasBasicBlockchain ? 'имеет' : 'НЕ имеет', 'купленного исследования "Основы блокчейна"');
     
     if (userHasBasicBlockchain && !referral.activated) {
       // Если у пользователя куплено исследование, но реферал не активирован - активируем его

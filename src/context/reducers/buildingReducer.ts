@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from '../types';
 import { canAffordCost, deductResources } from '@/utils/helpers';
 import { activateReferral } from '@/api/gameDataService';
@@ -63,20 +62,17 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     
     // Если пользователь был приглашен по реферальной ссылке, активируем его как реферала
     if (state.referredBy) {
-      console.log(`Игрок был приглашен по коду ${state.referredBy}. Активируем реферальную связь.`);
+      console.log(`Игрок был приглашен по коду ${state.referredBy}. Подготавливаем реферальную связь.`);
       
-      // Отправляем ID текущего пользователя для активации у реферера
+      // Отправляем ID текущего пользователя для проверки активации у реферера
       const userId = window.__game_user_id || `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
       
-      console.log(`Активируем пользователя ${userId} как реферала пользователя с кодом ${state.referredBy}`);
-      
-      // Активируем реферала (асинхронно)
-      activateReferral(userId).catch(err => 
-        console.error("Ошибка при активации реферальной связи:", err)
-      );
+      console.log(`Подготавливаем пользователя ${userId} как реферала пользователя с кодом ${state.referredBy}`);
       
       // Отправляем уведомление
-      safeDispatchGameEvent("Вы активировали реферальную связь с пригласившим вас пользователем!", "success");
+      safeDispatchGameEvent("Реферальная связь готова к активации. После исследования \"Основы блокчейна\" вы активируете бонус для пригласившего вас!", "info");
+      
+      // НЕ активируем реферала автоматически, это происходит только после покупки исследования
     }
     
     // Обновляем максимальные значения ресурсов
