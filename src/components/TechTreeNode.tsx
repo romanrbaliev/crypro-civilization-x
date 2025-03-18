@@ -120,7 +120,8 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
       miner: "Майнер",
       trader: "Трейдер",
       investor: "Инвестор",
-      influencer: "Инфлюенсер"
+      influencer: "Инфлюенсер",
+      defi: "DeFi"
     };
     
     return (
@@ -142,6 +143,12 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
       return "border-blue-200 bg-blue-50";
     }
     return "border-gray-200 bg-white";
+  };
+  
+  // Получение имени требуемого улучшения
+  const getRequiredUpgradeName = (requiredId: string) => {
+    const upgrade = state.upgrades[requiredId];
+    return upgrade ? upgrade.name : requiredId;
   };
   
   return (
@@ -197,7 +204,7 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
                 <div className="font-medium">Требуются исследования:</div>
                 <ul className="list-disc list-inside mt-1">
                   {upgrade.requiredUpgrades.map((requiredId: string) => (
-                    <li key={requiredId}>{state.upgrades[requiredId]?.name || requiredId}</li>
+                    <li key={requiredId}>{getRequiredUpgradeName(requiredId)}</li>
                   ))}
                 </ul>
               </div>
@@ -206,7 +213,19 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
             {(!upgrade.unlocked && !hasMissingDependencies()) && (
               <div className="mt-2 text-amber-500">
                 <div className="font-medium">Условия разблокировки:</div>
-                <div className="mt-1">Продолжайте развиваться для открытия этого исследования.</div>
+                <div className="mt-1">
+                  {upgrade.unlockCondition?.buildings && Object.entries(upgrade.unlockCondition.buildings).map(([buildingId, count]) => (
+                    <div key={buildingId}>
+                      {state.buildings[buildingId]?.name || buildingId}: {count}
+                    </div>
+                  ))}
+                  {upgrade.unlockCondition?.resources && Object.entries(upgrade.unlockCondition.resources).map(([resourceId, amount]) => (
+                    <div key={resourceId}>
+                      {state.resources[resourceId]?.name || resourceId}: {amount}
+                    </div>
+                  ))}
+                  {!upgrade.unlockCondition && "Продолжайте развиваться для открытия этого исследования."}
+                </div>
               </div>
             )}
             
@@ -232,6 +251,13 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
               <div className="mt-2 text-purple-600">
                 <div className="font-medium">Специализация:</div>
                 <div className="mt-1">{upgrade.specialization}</div>
+              </div>
+            )}
+            
+            {upgrade.tier > 0 && (
+              <div className="mt-2 text-gray-500">
+                <div className="font-medium">Уровень технологии:</div>
+                <div className="mt-1">{upgrade.tier}</div>
               </div>
             )}
           </div>

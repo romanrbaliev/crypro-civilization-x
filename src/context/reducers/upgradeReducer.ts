@@ -105,7 +105,8 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       hasChanges = true;
       
       // Отправляем сообщение о разблокировке нового исследования
-      safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}`, "info");
+      const categoryText = upgrade.category ? ` (${upgrade.specialization || upgrade.category})` : '';
+      safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
     }
   });
   
@@ -145,6 +146,14 @@ const checkUnlockConditions = (state: GameState, upgrade: any): boolean => {
       if (!state.resources[resourceId] || state.resources[resourceId].value < Number(amount)) {
         return false;
       }
+    }
+  }
+  
+  // Проверка условий по социальным метрикам
+  if (upgrade.unlockCondition?.referrals) {
+    const activeReferrals = state.referrals.filter(ref => ref.activated).length;
+    if (activeReferrals < upgrade.unlockCondition.referrals) {
+      return false;
     }
   }
   

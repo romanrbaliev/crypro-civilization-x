@@ -54,6 +54,7 @@ export const deductResources = (
 };
 
 export const generateReferralCode = (): string => {
+  // Генерируем 8-значный шестнадцатеричный код
   return Array.from({ length: 8 }, () => 
     Math.floor(Math.random() * 16).toString(16).toUpperCase()
   ).join('');
@@ -124,4 +125,31 @@ export const calculateTimeToReach = (
   
   const timeInSeconds = (targetValue - currentValue) / perSecond;
   return formatTime(timeInSeconds);
+};
+
+// Новые хелперы для системы помощников
+export const calculateBuildingBoostFromHelpers = (
+  buildingId: string,
+  referralHelpers: any[]
+): number => {
+  // Находим всех активных помощников для этого здания
+  const activeHelpers = referralHelpers.filter(
+    h => h.buildingId === buildingId && h.status === 'accepted'
+  );
+  
+  // Каждый помощник дает 5% буст к производительности
+  return activeHelpers.length * 0.05;
+};
+
+export const calculateHelperBoost = (
+  employerId: string,
+  referralHelpers: any[]
+): number => {
+  // Находим все задания, где пользователь выступает помощником
+  const activeJobs = referralHelpers.filter(
+    h => h.helperId === employerId && h.status === 'accepted'
+  );
+  
+  // Каждая принятая работа дает 10% буст к производительности
+  return activeJobs.length * 0.10;
 };

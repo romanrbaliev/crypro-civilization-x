@@ -13,7 +13,9 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
   // Проверяем, есть ли разблокированные или купленные исследования
-  const hasUnlockedResearch = Object.values(state.upgrades).some(u => u.unlocked || u.purchased);
+  const hasUnlockedResearch = Object.values(state.upgrades).some(u => 
+    (u.unlocked || u.purchased) && u.category
+  );
 
   return (
     <div className="p-2 flex flex-col h-full overflow-y-auto">

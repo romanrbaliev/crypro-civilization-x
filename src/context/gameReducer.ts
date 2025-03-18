@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
@@ -25,6 +26,7 @@ import {
   processRestartComputers
 } from './reducers/gameStateReducer';
 import { generateReferralCode } from '@/utils/helpers';
+import { safeDispatchGameEvent } from './utils/eventBusUtils';
 
 // Обработка реферальной системы
 const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
@@ -48,6 +50,73 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
       ref.id === payload.referralId ? { ...ref, activated: true } : ref
     )
   };
+};
+
+// Новые обработчики для системы помощников
+const processHireReferralHelper = (state: GameState, payload: { referralId: string; buildingId: string }): GameState => {
+  const { referralId, buildingId } = payload;
+  
+  // Находим реферала
+  const referral = state.referrals.find(ref => ref.id === referralId);
+  if (!referral) return state;
+  
+  // Генерируем уникальный ID для помощника
+  const helperId = `helper_${generateId()}`;
+  
+  // Создаем запись помощника
+  const newHelper = {
+    id: helperId,
+    buildingId,
+    helperId: referralId,
+    status: 'pending',
+    createdAt: Date.now()
+  };
+  
+  // Добавляем в список помощников
+  const updatedState = {
+    ...state,
+    referralHelpers: [...state.referralHelpers, newHelper]
+  };
+  
+  // Отправляем уведомление
+  safeDispatchGameEvent(`Отправлено предложение о работе ${referral.username}`, "info");
+  
+  return updatedState;
+};
+
+const processRespondToHelperRequest = (state: GameState, payload: { helperId: string; accepted: boolean }): GameState => {
+  const { helperId, accepted } = payload;
+  
+  // Обновляем статус запроса
+  const updatedHelpers = state.referralHelpers.map(helper => 
+    helper.id === helperId 
+      ? { ...helper, status: accepted ? 'accepted' : 'rejected' }
+      : helper
+  );
+  
+  const helper = state.referralHelpers.find(h => h.id === helperId);
+  if (!helper) return state;
+  
+  // Находим имя здания для сообщения
+  const building = state.buildings[helper.buildingId];
+  const buildingName = building ? building.name : helper.buildingId;
+  
+  // Отправляем уведомление
+  if (accepted) {
+    safeDispatchGameEvent(`Вы приняли предложение о работе для здания "${buildingName}"`, "success");
+  } else {
+    safeDispatchGameEvent(`Вы отклонили предложение о работе для здания "${buildingName}"`, "info");
+  }
+  
+  return {
+    ...state,
+    referralHelpers: updatedHelpers
+  };
+};
+
+// Функция для генерации уникального ID
+const generateId = (): string => {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
 // Главный редьюсер игры - координирует все остальные редьюсеры
@@ -146,6 +215,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "ACTIVATE_REFERRAL":
       return processActivateReferral(state, action.payload);
+    
+    // Система помощников
+    case "HIRE_REFERRAL_HELPER":
+      return processHireReferralHelper(state, action.payload);
+    
+    case "RESPOND_TO_HELPER_REQUEST":
+      return processRespondToHelperRequest(state, action.payload);
       
     default:
       return state;

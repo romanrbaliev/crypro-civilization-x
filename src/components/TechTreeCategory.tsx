@@ -27,7 +27,18 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
   // Фильтруем исследования, принадлежащие к данной категории
   const categoryUpgrades = Object.values(state.upgrades)
     .filter(upgrade => upgrade.category === categoryId)
-    .sort((a, b) => a.tier - b.tier);
+    .sort((a, b) => {
+      // Сначала сортируем по tier
+      if (a.tier !== b.tier) {
+        return a.tier - b.tier;
+      }
+      // Если tier одинаковый, сортируем по specialization
+      // Исследования без специализации идут первыми
+      if (!a.specialization && b.specialization) return -1;
+      if (a.specialization && !b.specialization) return 1;
+      if (a.specialization === b.specialization) return 0;
+      return a.specialization < b.specialization ? -1 : 1;
+    });
 
   // Группируем исследования по уровням (tier)
   const upgradeTiers: { [key: number]: typeof categoryUpgrades } = {};
@@ -69,20 +80,44 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
         <p className="text-xs text-gray-500 mt-1 mb-3">{description}</p>
         
         <div className="space-y-4">
-          {tiers.map(tier => (
-            <div key={tier} className="flex flex-col gap-2">
-              <div className="text-[10px] text-gray-500 font-medium">Уровень {tier}</div>
-              <div className="grid grid-cols-1 gap-2">
-                {upgradeTiers[tier].map(upgrade => (
-                  <TechTreeNode 
-                    key={upgrade.id} 
-                    upgrade={upgrade}
-                    onAddEvent={onAddEvent}
-                  />
+          {tiers.map(tier => {
+            // Сгруппируем исследования этого уровня по специализациям
+            const tierUpgrades = upgradeTiers[tier];
+            const specializations = {} as { [key: string]: typeof tierUpgrades };
+            
+            tierUpgrades.forEach(upgrade => {
+              const spec = upgrade.specialization || 'general';
+              if (!specializations[spec]) {
+                specializations[spec] = [];
+              }
+              specializations[spec].push(upgrade);
+            });
+            
+            return (
+              <div key={tier} className="flex flex-col gap-2">
+                <div className="text-[10px] text-gray-500 font-medium">Уровень {tier}</div>
+                
+                {Object.entries(specializations).map(([spec, upgrades]) => (
+                  <div key={spec} className="mb-2">
+                    {spec !== 'general' && (
+                      <div className="text-[9px] text-purple-600 mb-1 font-medium">
+                        Специализация: {spec}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 gap-2">
+                      {upgrades.map(upgrade => (
+                        <TechTreeNode 
+                          key={upgrade.id} 
+                          upgrade={upgrade}
+                          onAddEvent={onAddEvent}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CollapsibleContent>
     </Collapsible>

@@ -12,7 +12,7 @@ interface ResearchTabProps {
 
 const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
-  const [currentTab, setCurrentTab] = useState("list");
+  const [currentTab, setCurrentTab] = useState("tree");
   
   const unlockedUpgrades = Object.values(state.upgrades)
     .filter(u => u.unlocked && !u.purchased && !u.category); // Фильтруем только старые исследования без категории

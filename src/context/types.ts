@@ -1,3 +1,4 @@
+
 export interface Resource {
   id: string;
   name: string;
@@ -119,4 +120,6 @@ export type GameAction =
   | { type: "EXCHANGE_BTC" }
   | { type: "SET_REFERRAL_CODE"; payload: { code: string } }
   | { type: "ADD_REFERRAL"; payload: { referral: Referral } }
-  | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } };
+  | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
+  | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
+  | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } };
