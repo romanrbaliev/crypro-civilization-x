@@ -54,6 +54,7 @@ export const processPurchaseBuilding = (
     console.log("Первый генератор куплен! Разблокировка исследований и электричества...");
     
     // Разблокируем первое исследование "Основы блокчейна"
+    // ИСПРАВЛЕНО: Проверяем наличие исследования с обоими возможными ID
     if (newUpgrades["blockchain_basics"]) {
       newUpgrades = {
         ...newUpgrades,
@@ -62,10 +63,20 @@ export const processPurchaseBuilding = (
           unlocked: true
         }
       };
-      console.log("Исследование 'Основы блокчейна' разблокировано!");
+      console.log("Исследование 'Основы блокчейна' (blockchain_basics) разблокировано!");
+      safeDispatchGameEvent("Исследование 'Основы блокчейна' разблокировано!", "success");
+    } else if (newUpgrades["basicBlockchain"]) {
+      newUpgrades = {
+        ...newUpgrades,
+        "basicBlockchain": {
+          ...newUpgrades["basicBlockchain"],
+          unlocked: true
+        }
+      };
+      console.log("Исследование 'Основы блокчейна' (basicBlockchain) разблокировано!");
       safeDispatchGameEvent("Исследование 'Основы блокчейна' разблокировано!", "success");
     } else {
-      console.warn("Не найдено исследование blockchain_basics");
+      console.warn("Не найдено исследование blockchain_basics или basicBlockchain");
     }
     
     // Открываем вкладку исследований - ИСПРАВЛЕНО: Явно устанавливаем флаг в true

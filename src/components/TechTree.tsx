@@ -30,24 +30,48 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
   // Количество активных категорий
   const activeCategoriesCount = getActiveCategoriesCount();
 
+  // ИСПРАВЛЕНО: Добавлен подробный лог для отладки
   console.log("TechTree: исследования разблокированы:", hasUnlockedResearch);
   console.log("TechTree: флаг research в unlocks:", state.unlocks.research);
   console.log("TechTree: активных категорий:", activeCategoriesCount);
-
-  // ИСПРАВЛЕНО: Добавлена проверка разблокировки конкретных исследований
+  console.log("TechTree: все разблокировки:", state.unlocks);
+  
+  // Доступен ли в принципе "Основы блокчейна" в обеих вариациях ID
   useEffect(() => {
-    if (state.unlocks.research && state.upgrades.blockchain_basics?.unlocked) {
-      console.log("TechTree: 'Основы блокчейна' разблокировано:", state.upgrades.blockchain_basics.unlocked);
-      console.log("TechTree: upgrade объект:", state.upgrades.blockchain_basics);
-    } else {
-      console.log("TechTree: 'Основы блокчейна' не разблокировано");
+    const basicBlockchainExists = state.upgrades.basicBlockchain !== undefined;
+    const blockchainBasicsExists = state.upgrades.blockchain_basics !== undefined;
+    
+    console.log("TechTree: Существует basicBlockchain:", basicBlockchainExists);
+    console.log("TechTree: Существует blockchain_basics:", blockchainBasicsExists);
+    
+    if (basicBlockchainExists) {
+      console.log("TechTree: Статус basicBlockchain:", state.upgrades.basicBlockchain.unlocked, state.upgrades.basicBlockchain.purchased);
+    }
+    
+    if (blockchainBasicsExists) {
+      console.log("TechTree: Статус blockchain_basics:", state.upgrades.blockchain_basics.unlocked, state.upgrades.blockchain_basics.purchased);
+    }
+  }, [state.upgrades]);
+
+  // ИСПРАВЛЕНО: Проверка разблокировки конкретных исследований
+  useEffect(() => {
+    if (state.unlocks.research) {
+      console.log("TechTree: Вкладка исследований разблокирована");
+      
+      // Проверяем оба возможных ID для "Основы блокчейна"
       if (state.upgrades.blockchain_basics) {
-        console.log("TechTree: Статус blockchain_basics:", state.upgrades.blockchain_basics.unlocked);
-      } else {
-        console.log("TechTree: blockchain_basics не существует в state.upgrades");
+        console.log("TechTree: 'Основы блокчейна' (blockchain_basics) статус:", 
+          state.upgrades.blockchain_basics.unlocked ? "разблокировано" : "заблокировано",
+          state.upgrades.blockchain_basics.purchased ? "куплено" : "не куплено");
+      }
+      
+      if (state.upgrades.basicBlockchain) {
+        console.log("TechTree: 'Основы блокчейна' (basicBlockchain) статус:", 
+          state.upgrades.basicBlockchain.unlocked ? "разблокировано" : "заблокировано",
+          state.upgrades.basicBlockchain.purchased ? "куплено" : "не куплено");
       }
     }
-  }, [state.unlocks.research, state.upgrades.blockchain_basics]);
+  }, [state.unlocks.research, state.upgrades.blockchain_basics, state.upgrades.basicBlockchain]);
 
   return (
     <div className="p-2 flex flex-col h-full overflow-y-auto">

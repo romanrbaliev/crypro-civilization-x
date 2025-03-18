@@ -145,6 +145,7 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
   return updatedState;
 };
 
+// ИСПРАВЛЕНО: Улучшенная реализация ответа на запрос помощника
 const processRespondToHelperRequest = (state: GameState, payload: { helperId: string; accepted: boolean }): GameState => {
   const { helperId, accepted } = payload;
   
@@ -157,11 +158,39 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
   
   console.log('Обработка ответа на запрос помощника:', helper, 'accepted:', accepted);
   
-  // Обновляем статус запроса с явным указанием типа
-  const updatedHelpers = state.referralHelpers.map(h => 
-    h.id === helperId 
-      ? { ...h, status: accepted ? 'accepted' as const : 'rejected' as const }
-      : h
+  // Если помощник отклонен, просто обновляем его статус
+  if (!accepted) {
+    // Обновляем статус запроса с явным указанием типа
+    const updatedHelpers = state.referralHelpers.map(h => 
+      h.id === helperId ? { ...h, status: 'rejected' as const } : h
+    );
+    
+    // Находим имя здания для сообщения
+    const building = state.buildings[helper.buildingId];
+    const buildingName = building ? building.name : helper.buildingId;
+    
+    // Отправляем уведомление
+    safeDispatchGameEvent(`Вы отклонили предложение о работе для здания "${buildingName}"`, "info");
+    
+    return {
+      ...state,
+      referralHelpers: updatedHelpers
+    };
+  }
+  
+  // Если помощник принят, нужно проверить, есть ли другие принятые помощники на это здание
+  const existingHelpersForBuilding = state.referralHelpers.filter(
+    h => h.helperId !== helper.helperId && h.buildingId === helper.buildingId && h.status === 'accepted'
+  );
+  
+  // Удаляем существующих помощников на это здание (от других рефералов)
+  let updatedHelpers = state.referralHelpers.filter(h => 
+    !(existingHelpersForBuilding.some(eh => eh.id === h.id))
+  );
+  
+  // Теперь обновляем статус текущего помощника
+  updatedHelpers = updatedHelpers.map(h => 
+    h.id === helperId ? { ...h, status: 'accepted' as const } : h
   );
   
   // Находим имя здания для сообщения
@@ -169,11 +198,7 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
   const buildingName = building ? building.name : helper.buildingId;
   
   // Отправляем уведомление
-  if (accepted) {
-    safeDispatchGameEvent(`Вы приняли предложение о работе для здания "${buildingName}"`, "success");
-  } else {
-    safeDispatchGameEvent(`Вы отклонили предложение о работе для здания "${buildingName}"`, "info");
-  }
+  safeDispatchGameEvent(`Вы приняли предложение о работе для здания "${buildingName}"`, "success");
   
   // Проверяем логи после обновления
   console.log('Помощники после обновления:', updatedHelpers);
@@ -202,7 +227,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "UPDATE_RESOURCES": 
       return processResourceUpdate(state);
     
-    // Покупка здания
+    // Покупка здан��я
     case "PURCHASE_BUILDING": 
       return processPurchaseBuilding(state, action.payload);
     
