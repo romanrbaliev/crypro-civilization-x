@@ -1,3 +1,4 @@
+
 /**
  * Проверяет, достаточно ли ресурсов для совершения покупки
  */
@@ -112,5 +113,56 @@ export const getUserIdentifier = async (): Promise<string> => {
   } else {
     // Возвращаем случайный ID для веб-версии
     return 'web_user_' + Math.random().toString(36).substring(2, 15);
+  }
+};
+
+/**
+ * Форматирует число для отображения (добавляет разделители)
+ */
+export const formatNumber = (num: number): string => {
+  if (num === Infinity) return "∞";
+  if (Math.abs(num) < 1000) return num.toString();
+  
+  const suffixes = ['', 'K', 'M', 'B', 'T'];
+  const suffixIndex = Math.floor(Math.log10(Math.abs(num)) / 3);
+  
+  if (suffixIndex >= suffixes.length) {
+    return num.toExponential(2);
+  }
+  
+  const scaledNum = num / Math.pow(10, 3 * suffixIndex);
+  const formatted = scaledNum.toFixed(scaledNum < 10 ? 1 : 0);
+  
+  return `${formatted}${suffixes[suffixIndex]}`;
+};
+
+/**
+ * Генерирует уникальный ID
+ */
+export const generateId = (): string => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
+/**
+ * Рассчитывает время до достижения определенного значения ресурса
+ */
+export const calculateTimeToReach = (
+  currentValue: number,
+  targetValue: number,
+  perSecond: number
+): string => {
+  if (perSecond <= 0) return "∞";
+  if (currentValue >= targetValue) return "Готово!";
+  
+  const secondsRemaining = (targetValue - currentValue) / perSecond;
+  
+  if (secondsRemaining < 60) {
+    return `${Math.ceil(secondsRemaining)}с`;
+  } else if (secondsRemaining < 3600) {
+    return `${Math.ceil(secondsRemaining / 60)}м`;
+  } else if (secondsRemaining < 86400) {
+    return `${Math.ceil(secondsRemaining / 3600)}ч`;
+  } else {
+    return `${Math.ceil(secondsRemaining / 86400)}д`;
   }
 };
