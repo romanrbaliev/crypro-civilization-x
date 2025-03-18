@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -25,7 +24,7 @@ import {
   processResetGame,
   processRestartComputers
 } from './reducers/gameStateReducer';
-import { generateReferralCode } from '@/utils/helpers';
+import { generateReferralCode, generateId } from '@/utils/helpers';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
 import { 
@@ -220,6 +219,14 @@ const generateId = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
+// Добавляем обработчик действия SET_REFERRED_BY
+const processSetReferredBy = (state: GameState, payload: { referredBy: string }): GameState => {
+  return {
+    ...state,
+    referredBy: payload.referredBy
+  };
+};
+
 // Главный редьюсер игры - координирует все остальные редьюсеры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
@@ -372,6 +379,9 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "RESPOND_TO_HELPER_REQUEST":
       return processRespondToHelperRequest(state, action.payload);
+      
+    case "SET_REFERRED_BY":
+      return processSetReferredBy(state, action.payload);
       
     default:
       return state;

@@ -76,7 +76,7 @@ export default function ReferralsTab(): JSX.Element {
         toast({
           title: "Скопировано!",
           description: "Ссылка скопирована в буфер обмена",
-          variant: "success",
+          variant: "default",
         });
         onAddEvent("Реферальная ссылка скопирована в буфер обмена", "success");
       },
@@ -144,7 +144,7 @@ export default function ReferralsTab(): JSX.Element {
       toast({
         title: "Успешно!",
         description: "Реферальный код успешно применен",
-        variant: "success",
+        variant: "default",
       });
       
       // Обновляем состояние игры
@@ -234,7 +234,7 @@ export default function ReferralsTab(): JSX.Element {
                   </div>
                   <div>
                     {ref.activated ? (
-                      <Badge variant="success" className="bg-green-500">Активен</Badge>
+                      <Badge className="bg-green-500">Активен</Badge>
                     ) : (
                       <Badge variant="outline">Не активен</Badge>
                     )}

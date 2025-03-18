@@ -2,7 +2,7 @@
 // Модуль управления реферальной системой
 import { supabase } from '@/integrations/supabase/client';
 import { getUserIdentifier } from './userIdentification';
-import { generateRandomId } from '@/utils/helpers';
+import { generateRandomId, generateId } from '@/utils/helpers';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { REFERRAL_TABLE, REFERRAL_HELPERS_TABLE } from './apiTypes';
 import { toast } from '@/hooks/use-toast';
@@ -12,7 +12,6 @@ import { GameState } from '@/context/types';
 export const createReferralTableIfNotExists = async (): Promise<boolean> => {
   try {
     // Вместо вызова exec_sql используем вызов create_saves_table
-    // который имеет необходимую логику создания всех таблиц
     const { error } = await supabase.rpc('create_saves_table');
     
     if (error) {
@@ -270,8 +269,8 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
       return false;
     }
     
-    // Получаем игровое состояние
-    const gameState: GameState = refererGameData.game_data as GameState;
+    // Получаем игровое состояние с преобразованием типа
+    const gameState = refererGameData.game_data as unknown as GameState;
     
     // Если массив рефералов не инициализирован, создаем его
     if (!gameState.referrals) {
@@ -306,7 +305,7 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
     const { error: saveError } = await supabase
       .from('game_saves')
       .update({
-        game_data: gameState,
+        game_data: gameState as unknown as Record<string, unknown>,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', refererId);
@@ -368,14 +367,13 @@ export const getUserReferrals = async () => {
     
     // Преобразуем данные в нужный формат
     const referrals = data.map(ref => {
-      // Обрабатываем случай, когда is_activated не определено (может быть в старых записях)
-      // Так как is_activated не существует в типах, используем динамический доступ
-      const isActivated = ref.is_activated !== undefined ? ref.is_activated : false;
+      // Обрабатываем поле is_activated
+      const isActivated = typeof ref.is_activated === 'boolean' ? ref.is_activated : false;
       
       return {
         id: ref.user_id,
         username: `Пользователь_${ref.user_id.substring(0, 4)}`,
-        activated: Boolean(isActivated),
+        activated: isActivated,
         joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
       };
     });
@@ -534,8 +532,8 @@ export const respondToHelperRequest = async (requestId: string, accepted: boolea
         return false;
       }
       
-      // Получаем игровое состояние
-      const gameState: GameState = employerGameData.game_data as GameState;
+      // Получаем игровое состояние с преобразованием типа
+      const gameState = employerGameData.game_data as unknown as GameState;
       
       // Если массив помощников не инициализирован, создаем его
       if (!gameState.referralHelpers) {
@@ -562,7 +560,7 @@ export const respondToHelperRequest = async (requestId: string, accepted: boolea
       const { error: saveError } = await supabase
         .from('game_saves')
         .update({
-          game_data: gameState,
+          game_data: gameState as unknown as Record<string, unknown>,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', employer_id);

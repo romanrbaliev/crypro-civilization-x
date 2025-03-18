@@ -125,7 +125,7 @@ export const getUserIdentifier = async (): Promise<string> => {
     return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
   } else {
     // Возвращаем случайный ID для веб-версии
-    return 'web_user_' + Math.random().toString(36).substring(2, 15);
+    return 'web_user_' + Math.random().toString(36).substring(2);
   }
 };
 
@@ -154,6 +154,26 @@ export const formatNumber = (num: number): string => {
  */
 export const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
+/**
+ * Генерирует случайный ID
+ */
+export const generateRandomId = (): string => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
+/**
+ * Форматирует дату для отображения
+ */
+export const formatDate = (date: Date): string => {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
 };
 
 /**

@@ -75,10 +75,7 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
         // Асинхронно обновляем статус активации
         supabase
           .from(REFERRAL_TABLE)
-          .update({ 
-            // Важно: используем объект без явного типа, чтобы обойти ограничения типов
-            is_activated: true 
-          })
+          .update({ is_activated: true })
           .eq('user_id', userId)
           .then(({ error }) => {
             if (error) {
