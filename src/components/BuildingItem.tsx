@@ -55,7 +55,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   const formatDecimal = (num: number): string => {
     if (num === Infinity) return "∞";
     if (num % 1 === 0) return formatNumber(num);
-    return num.toFixed(2);
+    return num.toFixed(3);
   };
   
   const renderCost = () => {

@@ -54,14 +54,17 @@ export const processPurchaseBuilding = (
     console.log("Первый генератор куплен! Разблокировка исследований и электричества...");
     
     // Разблокируем первое исследование "Основы блокчейна"
-    if (state.upgrades["blockchain_basics"]) {
+    if (newUpgrades["blockchain_basics"]) {
       newUpgrades = {
         ...newUpgrades,
         "blockchain_basics": {
-          ...state.upgrades["blockchain_basics"],
+          ...newUpgrades["blockchain_basics"],
           unlocked: true
         }
       };
+      console.log("Исследование 'Основы блокчейна' разблокировано!");
+    } else {
+      console.warn("Не найдено исследование blockchain_basics");
     }
     
     // Открываем вкладку исследований
@@ -75,6 +78,9 @@ export const processPurchaseBuilding = (
     console.log("Текущее состояние вкладки research:", state.unlocks.research);
     console.log("Новое состояние вкладки research:", newUnlocks.research);
     
+    // Принудительная диспетчеризация события разблокировки исследований
+    safeDispatchGameEvent("Разблокирована вкладка Исследования!", "success");
+    
     // Разблокируем ресурс электричество
     if (state.resources.electricity) {
       updatedResources = {
@@ -87,6 +93,7 @@ export const processPurchaseBuilding = (
         }
       };
       console.log("Электричество разблокировано!");
+      safeDispatchGameEvent("Разблокирован ресурс: Электричество!", "success");
     } else {
       console.error("Ресурс электричество не найден в состоянии!");
     }

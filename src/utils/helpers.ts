@@ -1,4 +1,3 @@
-
 /**
  * Проверяет, достаточно ли ресурсов для совершения покупки
  */
@@ -121,7 +120,7 @@ export const getUserIdentifier = async (): Promise<string> => {
  */
 export const formatNumber = (num: number): string => {
   if (num === Infinity) return "∞";
-  if (Math.abs(num) < 1000) return num.toString();
+  if (Math.abs(num) < 1000) return num.toFixed(3);
   
   const suffixes = ['', 'K', 'M', 'B', 'T'];
   const suffixIndex = Math.floor(Math.log10(Math.abs(num)) / 3);

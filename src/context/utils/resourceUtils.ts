@@ -1,4 +1,3 @@
-
 import { Resource, Building, ReferralHelper, GameState } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { formatNumber, calculateTimeToReach } from "@/utils/helpers";
-import { Resource } from "@/context/GameContext";
+import { Resource } from "@/context/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Clock } from "lucide-react";
 
