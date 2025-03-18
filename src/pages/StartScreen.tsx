@@ -97,12 +97,8 @@ const StartScreen = () => {
         if (savedGame) {
           console.log('Загружено сохранение:', savedGame);
           
-          // Не теряем информацию о рефералах при загрузке игры
-          const currentReferrals = state.referrals || [];
-          if (currentReferrals.length > 0 && (!savedGame.referrals || savedGame.referrals.length === 0)) {
-            savedGame.referrals = currentReferrals;
-            console.log('Добавлены текущие рефералы в загруженное состояние:', currentReferrals);
-          }
+          // ВАЖНО: Не изменяем статус активации рефералов при загрузке
+          // Просто загружаем рефералов из сохранения как есть
           
           // Проверяем реферальный код и устанавливаем, если отсутствует
           if (!savedGame.referralCode) {
@@ -121,6 +117,12 @@ const StartScreen = () => {
           
           // Принудительно обновляем информацию в таблице referral_data
           await saveReferralInfo(savedGame.referralCode, state.referredBy || null);
+          
+          // Принудительно запрашиваем обновление статусов рефералов из БД
+          setTimeout(() => {
+            const refreshEvent = new CustomEvent('refresh-referrals');
+            window.dispatchEvent(refreshEvent);
+          }, 500);
           
           // Автоматически перенаправляем на экран игры
           navigate('/game');

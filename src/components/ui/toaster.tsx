@@ -83,14 +83,15 @@ export function Toaster() {
             
             console.log('Получены рефералы из базы данных:', JSON.stringify(referrals || [], null, 2));
             
-            // Проходим по каждому рефералу и передаем только факты из БД, не меняя ничего
+            // Проходим по каждому рефералу и передаем только точные данные из БД
             for (const referral of (referrals || [])) {
-              console.log(`Реферал ${referral.user_id}:`, {
+              console.log(`Реферал ${referral.user_id}, статус в БД:`, {
                 is_activated: referral.is_activated,
                 typeOfIs_activated: typeof referral.is_activated
               });
               
-              // Создаем событие с точным значением из БД
+              // Создаем событие с точным булевым значением из БД, без преобразований типов
+              // ВАЖНО: Используем строгое сравнение с true, чтобы избежать автоматического преобразования типов
               const isActivatedInDb = referral.is_activated === true;
               
               console.log(`Отправка события с точным статусом активации из БД: ${isActivatedInDb}`);
@@ -113,7 +114,7 @@ export function Toaster() {
     
     window.addEventListener('refresh-referrals', handleRefresh);
     
-    // Добавляем новый обработчик для прямого обновления статуса активации реферала
+    // Обработчик для прямого обновления статуса активации в UI
     const handleReferralDbStatus = (event) => {
       const { referralId, activated } = event.detail;
       console.log(`Получен статус из БД для реферала ${referralId}: активирован=${activated}`);
@@ -130,7 +131,7 @@ export function Toaster() {
     
     window.addEventListener('referral-db-status', handleReferralDbStatus);
     
-    // Нам все еще нужен этот обработчик, но мы изменим порядок обработки
+    // Обработчик событий активации рефералов
     const handleReferralActivated = (event) => {
       const { referralId } = event.detail;
       console.log(`Получено событие активации реферала: ${referralId}`);
