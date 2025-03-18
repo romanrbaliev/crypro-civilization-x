@@ -1,5 +1,5 @@
 
-import { Resource, Building, ReferralHelper } from '../types';
+import { Resource, Building, ReferralHelper, GameState } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost } from '@/utils/helpers';
 
 /**
@@ -143,4 +143,130 @@ export const updateResourceValues = (
   });
   
   return updatedResources;
+};
+
+/**
+ * Проверяет наличие достаточного количества ресурсов для приобретения
+ * @param state Текущее состояние игры
+ * @param cost Стоимость в виде объекта {ресурс: количество}
+ * @returns Булево значение, указывающее на достаточность ресурсов
+ */
+export const hasEnoughResources = (
+  state: GameState,
+  cost: { [resourceId: string]: number }
+): boolean => {
+  return Object.entries(cost).every(([resourceId, amount]) => {
+    return state.resources[resourceId] && state.resources[resourceId].value >= amount;
+  });
+};
+
+/**
+ * Обновляет максимальные значения ресурсов в зависимости от приобретенных улучшений и зданий
+ * @param state Текущее состояние игры
+ * @returns Обновленное состояние игры с пересчитанными максимальными значениями ресурсов
+ */
+export const updateResourceMaxValues = (state: GameState): GameState => {
+  // Копируем ресурсы для обновления
+  const updatedResources = { ...state.resources };
+  
+  // Сначала устанавливаем базовые значения максимума для всех ресурсов
+  Object.keys(updatedResources).forEach(resourceId => {
+    const resource = updatedResources[resourceId];
+    // Базовые максимальные значения
+    let baseMax = 100; // Значение по умолчанию
+    
+    switch (resourceId) {
+      case 'knowledge':
+        baseMax = 100;
+        break;
+      case 'usdt':
+        baseMax = 50;
+        break;
+      case 'electricity':
+        baseMax = 1000;
+        break;
+      case 'computingPower':
+        baseMax = 500;
+        break;
+      case 'btc':
+        baseMax = 1;
+        break;
+      // Добавьте другие ресурсы при необходимости
+      default:
+        baseMax = 100;
+    }
+    
+    updatedResources[resourceId] = {
+      ...resource,
+      max: baseMax
+    };
+  });
+  
+  // Применяем множители от исследований
+  Object.values(state.upgrades).forEach(upgrade => {
+    if (upgrade.purchased) {
+      Object.entries(upgrade.effect).forEach(([effectId, value]) => {
+        if (effectId.endsWith('Max')) {
+          const resourceId = effectId.replace('Max', '');
+          if (updatedResources[resourceId]) {
+            updatedResources[resourceId] = {
+              ...updatedResources[resourceId],
+              max: updatedResources[resourceId].max * (1 + value)
+            };
+          }
+        }
+      });
+    }
+  });
+  
+  // Применяем бонусы от зданий
+  const boostedResources = applyStorageBoosts(updatedResources, state.buildings);
+  
+  return {
+    ...state,
+    resources: boostedResources
+  };
+};
+
+/**
+ * Проверяет условия для разблокировки ресурсов, зданий и улучшений на основе текущего состояния
+ * @param state Текущее состояние игры
+ * @returns Обновленное состояние с разблокированными элементами, если выполнены условия
+ */
+export const checkUnlocks = (state: GameState): GameState => {
+  let newState = { ...state };
+  let hasChanges = false;
+  
+  // Проверяем разблокировку генератора
+  if (!state.buildings.generator.unlocked && state.resources.usdt.value >= 11) {
+    newState = {
+      ...newState,
+      buildings: {
+        ...newState.buildings,
+        generator: {
+          ...newState.buildings.generator,
+          unlocked: true
+        }
+      }
+    };
+    hasChanges = true;
+  }
+  
+  // Проверяем разблокировку домашнего компьютера
+  if (!state.buildings.homeComputer.unlocked && state.resources.electricity.unlocked && state.resources.electricity.value >= 10) {
+    newState = {
+      ...newState,
+      buildings: {
+        ...newState.buildings,
+        homeComputer: {
+          ...newState.buildings.homeComputer,
+          unlocked: true
+        }
+      }
+    };
+    hasChanges = true;
+  }
+  
+  // Возвращаем обновленное состояние только если были изменения
+  return hasChanges ? newState : state;
 };
