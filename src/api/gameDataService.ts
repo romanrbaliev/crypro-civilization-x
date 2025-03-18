@@ -23,46 +23,13 @@ export const createSavesTableIfNotExists = async (): Promise<boolean> => {
   try {
     console.log('🔄 Проверка существования и создание таблицы сохранений если необходима...');
     
-    // SQL для создания таблицы game_saves
-    const createTableSQL = `
-      CREATE TABLE IF NOT EXISTS public.${SAVES_TABLE} (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT NOT NULL UNIQUE,
-        game_data JSONB NOT NULL,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-      );
-    `;
-    
-    const { error } = await supabase.rpc('exec_sql', { sql: createTableSQL });
+    // Вызываем функцию create_saves_table, которая создаст таблицы если они не существуют
+    const { error } = await supabase.rpc('create_saves_table');
     
     if (error) {
       console.error('❌ Ошибка при создании таблицы сохранений:', error);
       
-      // Пробуем создать функцию exec_sql если её нет
-      const createFunctionSQL = `
-        CREATE OR REPLACE FUNCTION exec_sql(sql text) RETURNS void AS $$
-        BEGIN
-          EXECUTE sql;
-        END;
-        $$ LANGUAGE plpgsql SECURITY DEFINER;
-      `;
-      
-      // Создаем функцию напрямую через SQL
-      const { error: functionError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL }).catch(() => {
-        // Если функции нет, пробуем выполнить SQL напрямую
-        return supabase.from(SAVES_TABLE).select('count').limit(1);
-      });
-      
-      if (!functionError) {
-        // Повторная попытка создать таблицу
-        const { error: retryError } = await supabase.rpc('exec_sql', { sql: createTableSQL });
-        if (!retryError) {
-          console.log('✅ Таблица сохранений успешно создана после создания функции');
-          return true;
-        }
-      }
-      
-      // Еще один запасной вариант - проверить существует ли таблица
+      // Проверяем существование таблицы напрямую
       const { error: checkError } = await supabase.from(SAVES_TABLE).select('count').limit(1);
       if (!checkError) {
         console.log('✅ Таблица сохранений уже существует');
