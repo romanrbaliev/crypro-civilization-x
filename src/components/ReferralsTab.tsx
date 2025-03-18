@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw } from 'lucide-react';
+import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,10 +39,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [telegramUserInfo, setTelegramUserInfo] = useState<any>(null);
 
   const REFERRAL_TABLE = 'referral_data';
-  const REFERRAL_DATA = 'referral_data';
-  const SAVES_TABLE = 'saves';
+  const SAVES_TABLE = 'game_saves';
 
-  // Получаем Telegram информацию о пользователе
   useEffect(() => {
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
       try {
@@ -80,12 +78,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
       console.log(`ReferralsTab: Используем существующий реферальный код: ${state.referralCode}`);
     } else {
-      // Генерируем код в зависимости от ID пользователя
       let newCode;
       
-      if (userId === '123456789') { // romanaliev
+      if (userId === '123456789') {
         newCode = 'TEST_REF_CODE_ROMAN';
-      } else if (userId === '987654321') { // lanakores
+      } else if (userId === '987654321') {
         newCode = 'TEST_REF_CODE_LANA';
       } else {
         newCode = generateReferralCode();
@@ -103,15 +100,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const id = await getUserIdentifier();
       console.log('Загрузка рефералов для пользователя:', id);
       
-      // Проверка для тестовых аккаунтов
       const isRomanaliev = id === '123456789';
       const isLanakores = id === '987654321';
       
-      // Специальная обработка для romanaliev
       if (isRomanaliev) {
         console.log('Загрузка тестовых рефералов для romanaliev');
         
-        // Проверяем существует ли запись о lanakores как реферале romanaliev
         const { data: existingReferral } = await supabase
           .from('referral_data')
           .select('*')
@@ -122,19 +116,17 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         if (!existingReferral) {
           console.log('Создаем тестовую запись реферала lanakores для romanaliev');
           
-          // Создаем запись в базе данных
           await supabase
             .from('referral_data')
             .upsert({
-              user_id: '987654321', // ID lanakores
+              user_id: '987654321',
               referral_code: 'TEST_REF_CODE_LANA',
-              referred_by: 'TEST_REF_CODE_ROMAN' // Реферальный код romanaliev
+              referred_by: 'TEST_REF_CODE_ROMAN'
             });
         }
         
-        // Устанавливаем тестовый реферал для romanaliev
         const testReferral = {
-          id: '987654321', // ID lanakores
+          id: '987654321',
           username: 'lanakores',
           activated: true,
           joinedAt: Date.now()
@@ -154,11 +146,9 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         return;
       }
       
-      // Специальная обработка для lanakores
       if (isLanakores) {
         console.log('Обновление реферальной информации для lanakores');
         
-        // Устанавливаем код и реферера для lanakores
         dispatch({ 
           type: "LOAD_GAME", 
           payload: { 
@@ -173,10 +163,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         return;
       }
       
-      // Загружаем информацию о рефералах напрямую из базы
-      // 1. Получаем реферальный код пользователя
       const { data: userData } = await supabase
-        .from('referral_data')
+        .from(REFERRAL_TABLE)
         .select('referral_code')
         .eq('user_id', id)
         .single();
@@ -184,9 +172,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       if (userData && userData.referral_code) {
         console.log('Реферальный код пользователя:', userData.referral_code);
         
-        // 2. Загружаем всех рефералов для данного кода
         const { data: directReferrals } = await supabase
-          .from('referral_data')
+          .from(REFERRAL_TABLE)
           .select('user_id, created_at, referred_by')
           .eq('referred_by', userData.referral_code);
           
@@ -199,8 +186,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             activated: true,
             joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
           }));
-          
-          console.log('Форматированные рефералы для загрузки:', formattedReferrals);
           
           dispatch({ 
             type: "LOAD_GAME", 
@@ -216,7 +201,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         }
       }
       
-      // Если в базе ничего не нашли, используем то, что есть в стейте
       if (state.referrals && state.referrals.length > 0) {
         console.log('Используем существующие рефералы из состояния:', state.referrals);
         onAddEvent(`Отображаем ${state.referrals.length} существующих рефералов`, "info");
@@ -237,7 +221,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const id = await getUserIdentifier();
       console.log('Принудительное обновление рефералов для пользователя:', id);
       
-      // Получаем реферальный код пользователя напрямую из базы
       const { data: userData } = await supabase
         .from(REFERRAL_TABLE)
         .select('referral_code')
@@ -247,15 +230,13 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       if (userData && userData.referral_code) {
         console.log('Найден реферальный код в базе:', userData.referral_code);
         
-        // Загружаем всех рефералов для данного кода
         const { data: directReferrals } = await supabase
-          .from(REFERRAL_DATA)
+          .from(REFERRAL_TABLE)
           .select('user_id, created_at, referred_by')
           .eq('referred_by', userData.referral_code);
           
         console.log('Найдено рефералов в базе данных:', directReferrals?.length || 0, directReferrals);
         
-        // Загрузим текущее сохранение игры, чтобы проверить, какие рефералы активированы
         const { data: saveData } = await supabase
           .from(SAVES_TABLE)
           .select('game_data')
@@ -266,24 +247,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           const gameState = saveData.game_data as any;
           console.log('Текущие рефералы в сохранении:', gameState.referrals);
           
-          // Проверяем каждого реферала на активацию
           if (directReferrals && directReferrals.length > 0) {
             const formattedReferrals = directReferrals.map(ref => {
-              // Ищем этого реферала в текущем сохранении
               const existingRef = gameState.referrals?.find((r: any) => r.id === ref.user_id);
               
               return {
                 id: ref.user_id,
                 username: `ID: ${ref.user_id}`,
-                // Если реферал найден в сохранении и он активирован, сохраняем этот статус
                 activated: existingRef ? existingRef.activated : false,
                 joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
               };
             });
             
-            console.log('Обновляем список рефералов:', formattedReferrals);
-            
-            // Обновляем состояние игры с новым списком рефералов
             dispatch({ 
               type: "LOAD_GAME", 
               payload: { 
@@ -307,7 +282,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   useEffect(() => {
     console.log('ReferralsTab: Монтирование компонента, загружаем рефералов...');
     loadReferrals();
-    const intervalId = setInterval(loadReferrals, 60000); // Обновление каждую минуту
+    const intervalId = setInterval(loadReferrals, 60000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -483,9 +458,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   const isTelegramUser = telegramUserInfo !== null;
   
-  // Проверка на тестовых пользователей
-  const isRomanAliev = userId === '123456789'; // ID romanaliev
-  const isLanaKores = userId === '987654321'; // ID lanakores
+  const isRomanAliev = userId === '123456789';
+  const isLanaKores = userId === '987654321';
 
   return (
     <div className="p-2 flex flex-col h-full">
