@@ -90,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
                 </SheetDescription>
               </SheetHeader>
               <div className="py-4">
-                <h3 className="font-medium mb-2">Геймплей</h3>
+                <h3 className="font-medium mb-2">Настройки игры</h3>
                 <div className="space-y-2">
                   <Button
                     variant="outline"
