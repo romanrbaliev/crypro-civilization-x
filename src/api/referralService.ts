@@ -7,6 +7,7 @@ import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { REFERRAL_TABLE, REFERRAL_HELPERS_TABLE } from './apiTypes';
 import { toast } from '@/hooks/use-toast';
 import { GameState } from '@/context/types';
+import { Json } from '@/integrations/supabase/types';
 
 // Создание или проверка таблицы рефералов
 export const createReferralTableIfNotExists = async (): Promise<boolean> => {
@@ -124,9 +125,8 @@ export const saveReferralInfo = async (
       return null;
     }
     
-    // Создаем запись в таблице рефералов
-    // Используем тип Record<string, any> для обхода проблем с типами
-    const referralData: Record<string, any> = {
+    // Создаем запись в таблице рефералов с правильной типизацией
+    const referralData = {
       user_id: userId,
       referral_code: referralCode,
       referred_by: referredBy
@@ -243,17 +243,27 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
     
     console.log(`🔄 Активируем реферала ${referralUserId} для пользователя ${refererId}`);
     
-    // Помечаем пользователя как активированного
-    // Используем тип Record<string, any> для обхода проблем с типами
-    const updateData: Record<string, any> = { is_activated: true };
-    
-    const { error: updateError } = await supabase
-      .from(REFERRAL_TABLE)
-      .update(updateData)
-      .eq('user_id', referralUserId);
+    // Обновляем запись с правильно типизированными данными
+    try {
+      const { error: updateError } = await supabase.rpc('update_referral_activation', {
+        p_user_id: referralUserId,
+        p_activated: true
+      });
       
-    if (updateError) {
-      console.error('❌ Ошибка при обновлении статуса активации:', updateError);
+      if (updateError) {
+        console.error('❌ Ошибка при обновлении статуса активации через RPC:', updateError);
+        
+        // Альтернативный подход: выполняем SQL напрямую через exec_sql
+        const sql = `UPDATE ${REFERRAL_TABLE} SET is_activated = true WHERE user_id = '${referralUserId}'`;
+        const { error: execError } = await supabase.rpc('exec_sql', { sql });
+        
+        if (execError) {
+          console.error('❌ Ошибка при обновлении статуса активации через exec_sql:', execError);
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ошибка при обновлении статуса активации:', error);
       return false;
     }
     
@@ -269,8 +279,7 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
       return false;
     }
     
-    // Получаем игровое состояние с преобразованием типа
-    // Используем as unknown для безопасного преобразования типов
+    // Получаем игровое состояние с безопасным преобразованием типов
     const gameState = refererGameData.game_data as unknown as GameState;
     
     // Если массив рефералов не инициализирован, создаем его
@@ -302,12 +311,11 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
       console.log(`✅ Добавлен бонус ${bonus} USDT за активированного реферала`);
     }
     
-    // Сохраняем обновленное состояние
-    // Используем as unknown для безопасного преобразования типов
+    // Сохраняем обновленное состояние с правильным преобразованием типов
     const { error: saveError } = await supabase
       .from('game_saves')
       .update({
-        game_data: gameState as unknown as Record<string, unknown>,
+        game_data: gameState as unknown as Json,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', refererId);
@@ -367,23 +375,23 @@ export const getUserReferrals = async () => {
       return [];
     }
     
-    // Преобразуем данные в нужный формат, обрабатывая проблемы с типами
-    const referrals = data.map(ref => {
-      // Безопасно проверяем наличие поля is_activated
+    // Преобразуем данные в нужный формат, безопасно обрабатывая типы
+    const referrals = await Promise.all(data.map(async ref => {
+      // Проверяем статус активации для каждого реферала
       let isActivated = false;
       
-      // Проверяем в Supabase статус активации
-      supabase
-        .from(REFERRAL_TABLE)
-        .select('is_activated')
-        .eq('user_id', ref.user_id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data && typeof data.is_activated === 'boolean') {
-            isActivated = data.is_activated;
-          }
-        })
-        .catch(err => console.error('Ошибка при проверке статуса активации:', err));
+      try {
+        // Выполняем SQL-запрос через RPC для проверки is_activated
+        const { data: actData } = await supabase.rpc('check_referral_activation', {
+          p_user_id: ref.user_id
+        });
+        
+        if (actData !== null) {
+          isActivated = !!actData;
+        }
+      } catch (e) {
+        console.error('Ошибка при проверке статуса активации:', e);
+      }
       
       return {
         id: ref.user_id,
@@ -391,7 +399,7 @@ export const getUserReferrals = async () => {
         activated: isActivated,
         joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
       };
-    });
+    }));
     
     console.log(`✅ Загружены ${referrals.length} рефералов`);
     return referrals;
@@ -405,15 +413,17 @@ export const getUserReferrals = async () => {
 // Приглашение реферала на помощь в здании
 export const hireReferralHelper = async (employerId: string, helperId: string, buildingId: string): Promise<boolean> => {
   try {
-    // Создаем запись в таблице referral_helpers
+    // Создаем запись в таблице referral_helpers с правильной типизацией
+    const helperData = {
+      employer_id: employerId,
+      helper_id: helperId,
+      building_id: buildingId,
+      status: 'pending'
+    };
+    
     const { error } = await supabase
       .from(REFERRAL_HELPERS_TABLE)
-      .insert({
-        employer_id: employerId,
-        helper_id: helperId,
-        building_id: buildingId,
-        status: 'pending'
-      });
+      .insert(helperData);
     
     if (error) {
       console.error('❌ Ошибка при создании запроса на помощь:', error);
@@ -426,12 +436,7 @@ export const hireReferralHelper = async (employerId: string, helperId: string, b
           // Повторяем попытку вставки
           const { error: retryError } = await supabase
             .from(REFERRAL_HELPERS_TABLE)
-            .insert({
-              employer_id: employerId,
-              helper_id: helperId,
-              building_id: buildingId,
-              status: 'pending'
-            });
+            .insert(helperData);
             
           if (retryError) {
             console.error('❌ Повторная ошибка при создании запроса на помощь:', retryError);
@@ -547,8 +552,7 @@ export const respondToHelperRequest = async (requestId: string, accepted: boolea
         return false;
       }
       
-      // Получаем игровое состояние с преобразованием типа
-      // Используем as unknown для безопасного преобразования типов
+      // Получаем игровое состояние с безопасным преобразованием типов
       const gameState = employerGameData.game_data as unknown as GameState;
       
       // Если массив помощников не инициализирован, создаем его
@@ -568,16 +572,14 @@ export const respondToHelperRequest = async (requestId: string, accepted: boolea
       // Применяем бонусы к соответствующему зданию
       if (gameState.buildings && gameState.buildings[building_id]) {
         // В будущем можно добавить логику для улучшения здания с помощью помощника
-        // Например, увеличить производительность на 10%
         console.log(`✅ Применен бонус помощника к зданию ${building_id}`);
       }
       
-      // Сохраняем обновленное состояние
-      // Используем as unknown для безопасного преобразования типов
+      // Сохраняем обновленное состояние с безопасным преобразованием типов
       const { error: saveError } = await supabase
         .from('game_saves')
         .update({
-          game_data: gameState as unknown as Record<string, unknown>,
+          game_data: gameState as unknown as Json,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', employer_id);

@@ -167,11 +167,13 @@ export const generateRandomId = (): string => {
  * Форматирует дату для отображения
  */
 export const formatDate = (date: Date): string => {
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  
-  return `${day}.${month}.${year}`;
+  return date.toLocaleDateString('ru-RU', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 /**

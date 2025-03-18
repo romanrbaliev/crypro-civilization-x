@@ -70,16 +70,35 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       // Получаем ID текущего пользователя
       const userId = window.__game_user_id || `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
       
-      // Обновляем поле is_activated в базе данных напрямую с нужным типом данных
+      // Обновляем статус активации через RPC функцию
       try {
         // Асинхронно обновляем статус активации
         supabase
-          .from(REFERRAL_TABLE)
-          .update({ is_activated: true } as any)
-          .eq('user_id', userId)
+          .rpc('update_referral_activation', {
+            p_user_id: userId,
+            p_activated: true
+          })
           .then(({ error }) => {
             if (error) {
               console.error('❌ Ошибка при обновлении статуса активации:', error);
+              
+              // Запасной вариант через exec_sql
+              const sql = `UPDATE ${REFERRAL_TABLE} SET is_activated = true WHERE user_id = '${userId}'`;
+              supabase.rpc('exec_sql', { sql }).then(({ error: execError }) => {
+                if (execError) {
+                  console.error('❌ Ошибка при обновлении статуса активации через exec_sql:', execError);
+                } else {
+                  console.log('✅ Статус активации обновлен через exec_sql');
+                  
+                  // Теперь активируем связь в сохранении реферера
+                  activateReferral(userId).catch(err => 
+                    console.error("Ошибка при активации реферала:", err)
+                  );
+                  
+                  // Отправляем уведомление
+                  safeDispatchGameEvent("Реферальная связь активирована! Ваш реферер получил бонус.", "success");
+                }
+              });
             } else {
               console.log('✅ Статус активации обновлен в базе данных');
               

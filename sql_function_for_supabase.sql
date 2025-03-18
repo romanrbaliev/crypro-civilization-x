@@ -97,6 +97,59 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Функция для обновления статуса активации реферала
+CREATE OR REPLACE FUNCTION public.update_referral_activation(p_user_id TEXT, p_activated BOOLEAN)
+RETURNS void AS $$
+BEGIN
+  -- Проверяем существует ли поле is_activated
+  IF EXISTS (
+    SELECT FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'referral_data' 
+    AND column_name = 'is_activated'
+  ) THEN
+    -- Обновляем статус активации для пользователя
+    UPDATE public.referral_data 
+    SET is_activated = p_activated
+    WHERE user_id = p_user_id;
+  ELSE
+    -- Если поле не существует, сначала добавляем его
+    ALTER TABLE public.referral_data ADD COLUMN is_activated BOOLEAN DEFAULT FALSE;
+    
+    -- Затем обновляем статус активации
+    UPDATE public.referral_data 
+    SET is_activated = p_activated
+    WHERE user_id = p_user_id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция для проверки статуса активации реферала
+CREATE OR REPLACE FUNCTION public.check_referral_activation(p_user_id TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  is_active BOOLEAN;
+BEGIN
+  -- Проверяем существует ли поле is_activated
+  IF EXISTS (
+    SELECT FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'referral_data' 
+    AND column_name = 'is_activated'
+  ) THEN
+    -- Получаем статус активации
+    SELECT is_activated INTO is_active
+    FROM public.referral_data
+    WHERE user_id = p_user_id;
+    
+    RETURN is_active;
+  ELSE
+    -- Если поле не существует, возвращаем false
+    RETURN FALSE;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Также добавим функцию для выполнения произвольного SQL
 CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
 RETURNS void AS $$
