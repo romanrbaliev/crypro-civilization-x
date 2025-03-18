@@ -1,282 +1,123 @@
-import { GameState } from '../types';
-import { Building } from '../types';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { GameState, GameAction } from '../types';
+import { canAffordCost, deductResources } from '@/utils/helpers';
+import { activateReferral } from '@/api/gameDataService';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { updateResourceMaxValues } from '../utils/resourceUtils';
 
-// Функция для разблокировки здания
-const processUnlockBuilding = (
-  state: GameState,
-  payload: { buildingId: string }
-): GameState => {
-  const { buildingId } = payload;
-  
-  if (!state.buildings[buildingId]) {
-    console.warn(`Здание ${buildingId} не найдено.`);
-    return state;
-  }
-  
-  const updatedBuildings = {
-    ...state.buildings,
-    [buildingId]: {
-      ...state.buildings[buildingId],
-      unlocked: true
-    }
-  };
-  
-  console.log(`Здание ${buildingId} успешно разблокировано.`);
-  safeDispatchGameEvent(`Здание ${buildingId} разблокировано!`, 'success');
-  
-  return {
-    ...state,
-    buildings: updatedBuildings
-  };
-};
-
-// Функция для покупки здания
-const processBuyBuilding = (
-  state: GameState,
-  payload: { buildingId: string }
-): GameState => {
-  const { buildingId } = payload;
-  
-  if (!state.buildings[buildingId]) {
-    console.warn(`Здание ${buildingId} не найдено.`);
-    return state;
-  }
-  
+// Экспортируем функцию для использования в gameReducer
+export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
+  const buildingId = payload.buildingId;
   const building = state.buildings[buildingId];
-  if (!building.unlocked) {
-    console.warn(`Здание ${buildingId} заблокировано и не может быть куплено.`);
-    safeDispatchGameEvent(`Здание ${buildingId} заблокировано!`, 'warning');
+
+  if (!building?.unlocked) {
     return state;
   }
-  
-  const cost = building.cost;
-  for (const resourceId in cost) {
-    if (state.resources[resourceId].value < cost[resourceId]) {
-      console.warn(`Недостаточно ресурсов для покупки здания ${buildingId}.`);
-      safeDispatchGameEvent(`Недостаточно ${state.resources[resourceId].label}!`, 'warning');
-      return state;
-    }
+
+  const cost = calculateBuildingCost(building);
+
+  if (!canAffordCost(cost, state.resources)) {
+    return state;
   }
+
+  const newResources = deductResources(cost, state.resources);
+  const newBuildings = { ...state.buildings };
   
-  let updatedResources = { ...state.resources };
-  for (const resourceId in cost) {
-    updatedResources = {
-      ...updatedResources,
-      [resourceId]: {
-        ...updatedResources[resourceId],
-        value: updatedResources[resourceId].value - cost[resourceId]
-      }
+  newBuildings[buildingId] = {
+    ...building,
+    count: building.count + 1,
+    cost: {
+      ...building.cost,
+    },
+  };
+
+  // Особые случаи для определенных зданий
+  
+  // Если игрок купил генератор, разблокируем исследования и активируем реферальную связь
+  if (buildingId === 'generator' && building.count === 0) {
+    console.log('Игрок построил свой первый генератор');
+    
+    // Разблокируем вкладку исследований
+    const newUnlocks = { ...state.unlocks, research: true };
+    
+    // Проверяем наличие и разблокируем "Основы блокчейна"
+    const newUpgrades = { ...state.upgrades };
+    
+    // Разблокировка по ID blockchain_basics
+    if (newUpgrades.blockchain_basics) {
+      console.log('Разблокируем исследование "Основы блокчейна" (blockchain_basics)');
+      newUpgrades.blockchain_basics = {
+        ...newUpgrades.blockchain_basics,
+        unlocked: true
+      };
+    }
+    
+    // Разблокировка по альтернативному ID basicBlockchain
+    if (newUpgrades.basicBlockchain) {
+      console.log('Разблокируем исследование "Основы блокчейна" (basicBlockchain)');
+      newUpgrades.basicBlockchain = {
+        ...newUpgrades.basicBlockchain,
+        unlocked: true
+      };
+    }
+    
+    // Если пользователь был приглашен по реферальной ссылке, активируем его как реферала
+    if (state.referredBy) {
+      console.log(`Игрок был приглашен по коду ${state.referredBy}. Подготавливаем реферальную связь.`);
+      
+      // Отправляем ID текущего пользователя для проверки активации у реферера
+      const userId = window.__game_user_id || `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
+      
+      console.log(`Подготавливаем пользователя ${userId} как реферала пользователя с кодом ${state.referredBy}`);
+      
+      // Отправляем уведомление
+      safeDispatchGameEvent("Реферальная связь готова к активации. После исследования \"Основы блокчейна\" вы активируете бонус для пригласившего вас!", "info");
+      
+      // НЕ активируем реферала автоматически, это происходит только после покупки исследования
+    }
+    
+    // Обновляем максимальные значения ресурсов
+    const stateWithNewUpgrades = {
+      ...state,
+      resources: newResources,
+      buildings: newBuildings,
+      unlocks: newUnlocks,
+      upgrades: newUpgrades,
     };
+    
+    return updateResourceMaxValues(stateWithNewUpgrades);
   }
   
-  const updatedBuildings = {
-    ...state.buildings,
-    [buildingId]: {
-      ...building,
-      level: building.level + 1
-    }
-  };
-  
-  console.log(`Здание ${buildingId} успешно куплено и улучшено до уровня ${updatedBuildings[buildingId].level}.`);
-  safeDispatchGameEvent(`Здание ${buildingId} улучшено!`, 'success');
-  
-  return {
+  // Обновляем состояние с новым зданием и затем обновляем максимальные значения ресурсов
+  const newState = {
     ...state,
-    resources: updatedResources,
-    buildings: updatedBuildings
+    resources: newResources,
+    buildings: newBuildings,
   };
+  
+  // Применяем изменения к максимальным значениям ресурсов
+  return updateResourceMaxValues(newState);
 };
 
-// Функция для апгрейда здания
-const processUpgradeBuilding = (
-  state: GameState,
-  payload: { buildingId: string }
-): GameState => {
-  const { buildingId } = payload;
-  
-  if (!state.buildings[buildingId]) {
-    console.warn(`Здание ${buildingId} не найдено.`);
-    return state;
+export const buildingReducer = (state: GameState, action: GameAction): GameState => {
+  if (action.type === "PURCHASE_BUILDING") {
+    return processPurchaseBuilding(state, action.payload);
   }
-  
-  const building = state.buildings[buildingId];
-  if (!building.unlocked) {
-    console.warn(`Здание ${buildingId} заблокировано и не может быть улучшено.`);
-    safeDispatchGameEvent(`Здание ${buildingId} заблокировано!`, 'warning');
-    return state;
-  }
-  
-  const upgradeCost = building.upgradeCost;
-  if (!upgradeCost) {
-    console.warn(`Для здания ${buildingId} нет стоимости улучшения.`);
-    safeDispatchGameEvent(`Для ${building.label} нет улучшений!`, 'info');
-    return state;
-  }
-  
-  for (const resourceId in upgradeCost) {
-    if (state.resources[resourceId].value < upgradeCost[resourceId]) {
-      console.warn(`Недостаточно ресурсов для улучшения здания ${buildingId}.`);
-      safeDispatchGameEvent(`Недостаточно ${state.resources[resourceId].label}!`, 'warning');
-      return state;
-    }
-  }
-  
-  let updatedResources = { ...state.resources };
-  for (const resourceId in upgradeCost) {
-    updatedResources = {
-      ...updatedResources,
-      [resourceId]: {
-        ...updatedResources[resourceId],
-        value: updatedResources[resourceId].value - upgradeCost[resourceId]
-      }
-    };
-  }
-  
-  const updatedBuildings = {
-    ...state.buildings,
-    [buildingId]: {
-      ...building,
-      upgradeLevel: building.upgradeLevel ? building.upgradeLevel + 1 : 1
-    }
-  };
-  
-  console.log(`Здание ${buildingId} успешно улучшено до уровня ${updatedBuildings[buildingId].upgradeLevel}.`);
-  safeDispatchGameEvent(`Здание ${buildingId} улучшено!`, 'success');
-  
-  // Если это действие связано с рефералом, обновляем его статус активации
-  if (state.referrals && state.referrals.length > 0) {
-    try {
-      const userId = state.userId || '';
-      if (userId) {
-        // Вместо RPC используем прямое обновление через API
-        import('@/api/referralService').then(module => {
-          if (typeof module.updateReferralActivation === 'function') {
-            module.updateReferralActivation(userId, true);
-          }
-        });
-        
-        console.log('Обновление статуса активации реферала запущено для:', userId);
-        
-        // Для выполнения SQL используем обходной метод
-        const sqlQuery = `
-          UPDATE referral_data
-          SET is_activated = true
-          WHERE user_id = '${userId}'
-        `;
-        
-        import('@/api/referralService').then(module => {
-          if (typeof module.executeCustomSql === 'function') {
-            module.executeCustomSql(sqlQuery);
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Ошибка при обновлении статуса активации реферала:', error);
-    }
-  }
-  
-  return {
-    ...state,
-    resources: updatedResources,
-    buildings: updatedBuildings
-  };
+  return state;
 };
 
-// Функция для изменения статуса помощника
-const processChangeHelperStatus = (
-  state: GameState,
-  payload: { helperId: string; status: string }
-): GameState => {
-  const { helperId, status } = payload;
+const calculateBuildingCost = (building: any) => {
+  const result: { [key: string]: number } = {};
   
-  // Находим помощника в массиве
-  const helperIndex = state.referralHelpers.findIndex(h => h.helperId === helperId);
+  Object.entries(building.cost).forEach(([resourceId, amount]) => {
+    result[resourceId] = Math.floor(Number(amount) * Math.pow(building.costMultiplier, building.count));
+  });
   
-  if (helperIndex === -1) {
-    console.warn(`Помощник с ID ${helperId} не найден.`);
-    return state;
-  }
-  
-  // Обновляем статус помощника
-  const updatedHelpers = [...state.referralHelpers];
-  updatedHelpers[helperIndex] = {
-    ...updatedHelpers[helperIndex],
-    status: status
-  };
-  
-  console.log(`Статус помощника ${helperId} изменен на ${status}.`);
-  safeDispatchGameEvent(`Статус помощника изменен на ${status}!`, 'success');
-  
-  return {
-    ...state,
-    referralHelpers: updatedHelpers
-  };
+  return result;
 };
 
-// Функция для добавления нового помощника
-const processAddHelper = (
-  state: GameState,
-  payload: { helper: any }
-): GameState => {
-  const { helper } = payload;
-  
-  // Проверяем, что все необходимые данные присутствуют
-  if (!helper.helperId || !helper.employerId || !helper.buildingId) {
-    console.warn('Недостаточно данных для добавления помощника.');
-    return state;
+// Глобальное объявление типа для window
+declare global {
+  interface Window {
+    __game_user_id?: string;
   }
-  
-  // Добавляем нового помощника в массив
-  const updatedHelpers = [...state.referralHelpers, helper];
-  
-  console.log(`Добавлен новый помощник с ID ${helper.helperId}.`);
-  safeDispatchGameEvent(`Добавлен новый помощник!`, 'success');
-  
-  return {
-    ...state,
-    referralHelpers: updatedHelpers
-  };
-};
-
-// Функция для удаления помощника
-const processRemoveHelper = (
-  state: GameState,
-  payload: { helperId: string }
-): GameState => {
-  const { helperId } = payload;
-  
-  // Фильтруем массив, чтобы удалить помощника с указанным ID
-  const updatedHelpers = state.referralHelpers.filter(h => h.helperId !== helperId);
-  
-  console.log(`Удален помощник с ID ${helperId}.`);
-  safeDispatchGameEvent(`Помощник удален!`, 'success');
-  
-  return {
-    ...state,
-    referralHelpers: updatedHelpers
-  };
-};
-
-// Reducer для обработки действий, связанных со зданиями
-export const buildingReducer = (
-  state: GameState,
-  action: { type: string; payload?: any }
-): GameState => {
-  switch (action.type) {
-    case 'UNLOCK_BUILDING':
-      return processUnlockBuilding(state, action.payload);
-    case 'BUY_BUILDING':
-      return processBuyBuilding(state, action.payload);
-    case 'UPGRADE_BUILDING':
-      return processUpgradeBuilding(state, action.payload);
-    case 'CHANGE_HELPER_STATUS':
-      return processChangeHelperStatus(state, action.payload);
-    case 'ADD_HELPER':
-      return processAddHelper(state, action.payload);
-    case 'REMOVE_HELPER':
-      return processRemoveHelper(state, action.payload);
-    default:
-      return state;
-  }
-};
+}

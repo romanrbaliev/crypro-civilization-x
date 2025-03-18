@@ -33,23 +33,12 @@ BEGIN
       user_id TEXT NOT NULL UNIQUE,
       referral_code TEXT NOT NULL UNIQUE,
       referred_by TEXT,
-      is_activated BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
     );
     
     -- Добавляем индексы
     CREATE INDEX idx_referral_data_user_id ON public.referral_data(user_id);
     CREATE INDEX idx_referral_data_referral_code ON public.referral_data(referral_code);
-  ELSE
-    -- Если таблица существует, но поле is_activated отсутствует, добавляем его
-    IF NOT EXISTS (
-      SELECT FROM information_schema.columns 
-      WHERE table_schema = 'public' 
-      AND table_name = 'referral_data' 
-      AND column_name = 'is_activated'
-    ) THEN
-      ALTER TABLE public.referral_data ADD COLUMN is_activated BOOLEAN DEFAULT FALSE;
-    END IF;
   END IF;
   
   -- Проверяем существует ли таблица referral_helpers
@@ -72,80 +61,6 @@ BEGIN
     -- Добавляем индексы
     CREATE INDEX idx_referral_helpers_helper_id ON public.referral_helpers(helper_id);
     CREATE INDEX idx_referral_helpers_employer_id ON public.referral_helpers(employer_id);
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для генерации уникального реферального кода
-CREATE OR REPLACE FUNCTION public.generate_unique_ref_code()
-RETURNS TEXT
-AS $$
-DECLARE
-  new_code TEXT;
-BEGIN
-  LOOP
-    -- Генерируем 8-значный код
-    new_code := 'CRY' || UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 5));
-    
-    -- Проверяем, что код уникальный
-    EXIT WHEN NOT EXISTS (
-      SELECT 1 FROM public.referral_data WHERE referral_code = new_code
-    );
-  END LOOP;
-  
-  RETURN new_code;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для обновления статуса активации реферала
-CREATE OR REPLACE FUNCTION public.update_referral_activation(p_user_id TEXT, p_activated BOOLEAN)
-RETURNS void AS $$
-BEGIN
-  -- Проверяем существует ли поле is_activated
-  IF EXISTS (
-    SELECT FROM information_schema.columns 
-    WHERE table_schema = 'public' 
-    AND table_name = 'referral_data' 
-    AND column_name = 'is_activated'
-  ) THEN
-    -- Обновляем статус активации для пользователя
-    UPDATE public.referral_data 
-    SET is_activated = p_activated
-    WHERE user_id = p_user_id;
-  ELSE
-    -- Если поле не существует, сначала добавляем его
-    ALTER TABLE public.referral_data ADD COLUMN is_activated BOOLEAN DEFAULT FALSE;
-    
-    -- Затем обновляем статус активации
-    UPDATE public.referral_data 
-    SET is_activated = p_activated
-    WHERE user_id = p_user_id;
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для проверки статуса активации реферала
-CREATE OR REPLACE FUNCTION public.check_referral_activation(p_user_id TEXT)
-RETURNS BOOLEAN AS $$
-DECLARE
-  is_active BOOLEAN;
-BEGIN
-  -- Проверяем существует ли поле is_activated
-  IF EXISTS (
-    SELECT FROM information_schema.columns 
-    WHERE table_schema = 'public' 
-    AND table_name = 'referral_data' 
-    AND column_name = 'is_activated'
-  ) THEN
-    -- Получаем статус активации
-    SELECT is_activated INTO is_active
-    FROM public.referral_data
-    WHERE user_id = p_user_id;
-    
-    RETURN is_active;
-  ELSE
-    -- Если поле не существует, возвращаем false
-    RETURN FALSE;
   END IF;
 END;
 $$ LANGUAGE plpgsql;

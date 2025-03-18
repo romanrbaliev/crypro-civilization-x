@@ -43,7 +43,6 @@ BEGIN
       user_id TEXT PRIMARY KEY,
       referral_code TEXT UNIQUE NOT NULL,
       referred_by TEXT REFERENCES public.referral_data(referral_code),
-      is_activated BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
     
@@ -58,16 +57,6 @@ BEGIN
     ON public.referral_data 
     USING (true) 
     WITH CHECK (true);
-  ELSE
-    -- Если таблица существует, но поле is_activated отсутствует, добавляем его
-    IF NOT EXISTS (
-      SELECT FROM information_schema.columns 
-      WHERE table_schema = 'public' 
-      AND table_name = 'referral_data' 
-      AND column_name = 'is_activated'
-    ) THEN
-      ALTER TABLE public.referral_data ADD COLUMN is_activated BOOLEAN DEFAULT FALSE;
-    END IF;
   END IF;
   
   -- Проверяем существование таблицы referral_helpers
@@ -127,3 +116,4 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql;
+

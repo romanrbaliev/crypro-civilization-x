@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -33,9 +34,6 @@ import {
   initializeSynergies,
   synergyReducer 
 } from './reducers/synergyReducer';
-
-// Импортируем generateId из helpers (избегаем конфликта)
-import { generateId as utilsGenerateId } from '@/utils/helpers';
 
 // Обработка реферальной системы
 const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
@@ -106,7 +104,7 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
     const updatedHelpers = state.referralHelpers.filter(h => h.id !== existingActiveHelper.id);
     
     // Генерируем уникальный ID для нового помощника
-    const helperId = `helper_${utilsGenerateId()}`;
+    const helperId = `helper_${generateId()}`;
     
     // Создаем запись помощника с явным указанием типа для status
     const newHelper: ReferralHelper = {
@@ -130,7 +128,7 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
   }
   
   // Генерируем уникальный ID для помощника
-  const helperId = `helper_${utilsGenerateId()}`;
+  const helperId = `helper_${generateId()}`;
   
   // Создаем запись помощника с явным указанием типа для status
   const newHelper: ReferralHelper = {
@@ -217,12 +215,9 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
   };
 };
 
-// Добавляем обработчик действия SET_REFERRED_BY
-const processSetReferredBy = (state: GameState, payload: { referredBy: string }): GameState => {
-  return {
-    ...state,
-    referredBy: payload.referredBy
-  };
+// Функция для генерации уникального ID
+const generateId = (): string => {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
 // Главный редьюсер игры - координирует все остальные редьюсеры
@@ -293,7 +288,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           ...newState,
           referralCode: code
         };
-        console.log(`Сгенерирован реферальный код при загрузк��: ${code}`);
+        console.log(`Сгенерирован реферальный код при загрузке: ${code}`);
       }
       
       return newState;
@@ -377,9 +372,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "RESPOND_TO_HELPER_REQUEST":
       return processRespondToHelperRequest(state, action.payload);
-      
-    case "SET_REFERRED_BY":
-      return processSetReferredBy(state, action.payload);
       
     default:
       return state;

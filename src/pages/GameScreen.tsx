@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -45,15 +46,18 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
+  // ИСПРАВЛЕНО: Улучшенная проверка разблокировки зданий
   const hasUnlockedBuildings = Object.values(state.buildings)
     .some(b => b.unlocked && b.id !== "practice");
     
+  // ИСПРАВЛЕНО: Улучшенная проверка разблокировки исследований
   const hasUnlockedResearch = state.unlocks.research === true;
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
   
+  // Для отладки логика разблокировки
   useEffect(() => {
     console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
     console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
@@ -108,6 +112,7 @@ const GameScreen = () => {
     }
   }, []);
   
+  // Автоматический выбор вкладки при их разблокировке
   useEffect(() => {
     if (hasUnlockedBuildings) {
       setSelectedTab("equipment");
@@ -115,6 +120,7 @@ const GameScreen = () => {
       setSelectedTab("research");
     }
     
+    // Логи для отладки переключения вкладок
     console.log("Обновление выбранной вкладки:", {
       hasUnlockedBuildings,
       hasUnlockedResearch,
@@ -126,7 +132,7 @@ const GameScreen = () => {
   
   const handleResetGame = () => {
     dispatch({ type: "RESET_GAME" });
-    setResetConfirmOpen(false);
+    setResetConfirmOpen(false); // Закрываем диалог после сброса
     addEvent("Игра полностью сброшена", "info");
   };
   
@@ -139,6 +145,7 @@ const GameScreen = () => {
         variant: "success",
       });
       
+      // Перезагрузка страницы после небольшой задержки
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -151,6 +158,7 @@ const GameScreen = () => {
     }
   };
   
+  // Функция для отображения блоков вкладок
   const renderTabButton = (id: string, label: string, icon: React.ReactNode) => {
     return (
       <Button 
@@ -321,7 +329,7 @@ const GameScreen = () => {
               )}
               
               {selectedTab === "referrals" && (
-                <ReferralsTab />
+                <ReferralsTab onAddEvent={addEvent} />
               )}
             </div>
             
