@@ -1,246 +1,283 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { getUserReferrals } from '@/api/gameDataService';
+
+// Компонент вкладки с реферальной системой
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Loader2, RefreshCw, UserPlus } from 'lucide-react';
+import { useGame } from '@/context/hooks/useGame';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { getUserReferralCode, getUserReferrals, checkReferralInfo } from '@/api/gameDataService';
 import { toast } from '@/hooks/use-toast';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { getUserIdentifier } from '@/api/userIdentification';
+import { saveReferralInfo } from '@/api/gameDataService';
+import { formatDate } from '@/utils/helpers';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
-interface BuildingOption {
-  id: string;
-  name: string;
-  count: number;
-}
-
-const ReferralsTab = () => {
-  const { state, dispatch, onAddEvent } = useGame();
-  const [loading, setLoading] = useState(true);
-  const [referralLink, setReferralLink] = useState<string | null>(null);
-  const [buildingOptions, setBuildingOptions] = useState<BuildingOption[]>([]);
+/**
+ * Компонент вкладки с реферальной системой
+ * @returns {JSX.Element} Компонент вкладки
+ */
+export default function ReferralsTab(): JSX.Element {
+  const { dispatch, state } = useGame();
+  const [referralCode, setReferralCode] = useState<string>('Загрузка...');
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [referCode, setReferCode] = useState<string>('');
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   
-  useEffect(() => {
-    // Формируем реферальную ссылку при загрузке компонента
-    if (state.referralCode) {
-      const baseUrl = window.location.origin;
-      const referralUrl = `${baseUrl}?start=${state.referralCode}`;
-      setReferralLink(referralUrl);
-    }
-  }, [state.referralCode]);
-
-  useEffect(() => {
-    // Загружаем рефералов при монтировании компонента
-    loadReferrals();
-  }, [loadReferrals]);
+  // Функция для добавления ивентов (используется локально)
+  const onAddEvent = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    safeDispatchGameEvent(message, type);
+  };
   
-  useEffect(() => {
-    // Обновляем список зданий, доступных для найма
-    const availableBuildings = Object.values(state.buildings)
-      .filter(building => building.unlocked && building.count > 0)
-      .map(building => ({
-        id: building.id,
-        name: building.name,
-        count: building.count
-      }));
-    
-    setBuildingOptions(availableBuildings);
-  }, [state.buildings]);
-
-  const loadReferrals = useCallback(async () => {
+  // Функция загрузки реферального кода
+  const loadReferralCode = async (): Promise<void> => {
     try {
-      setLoading(true);
-      console.log('Загрузка рефералов...');
-      
-      // Получаем текущие рефералы
-      const referrals = await getUserReferrals();
-      
-      if (referrals && referrals.length > 0) {
-        console.log('Загружено рефералов из БД:', referrals.length);
-        
-        // Обновляем состояние игры с загруженными рефералами
-        dispatch({ 
-          type: "LOAD_GAME", 
-          payload: { 
-            ...state, 
-            referrals: referrals
-          } 
-        });
-        
-        onAddEvent(`Загружено ${referrals.length} рефералов`, "info");
-      } else if (state.referrals && state.referrals.length > 0) {
-        console.log('Используем существующие рефералы из состояния:', state.referrals);
-        onAddEvent(`Отображаем ${state.referrals.length} существующих рефералов`, "info");
-      } else {
-        console.log('У вас пока нет рефералов');
-        onAddEvent("У вас пока нет рефералов", "info");
+      const code = await getUserReferralCode();
+      if (code) {
+        setReferralCode(code);
+        dispatch({ type: 'SET_REFERRAL_CODE', payload: { code } });
       }
-      
     } catch (error) {
-      console.error('Ошибка при загрузке рефералов:', error);
-      onAddEvent("Ошибка при загрузке рефералов", "error");
-    } finally {
+      console.error('Ошибка при загрузке реферального кода:', error);
+      setReferralCode('Ошибка загрузки');
+    }
+  };
+  
+  // Функция загрузки списка рефералов
+  const loadReferrals = async (): Promise<void> => {
+    try {
+      const refs = await getUserReferrals();
+      setReferrals(refs);
+      
+      // Добавляем рефералов в состояние игры
+      refs.forEach(ref => {
+        dispatch({ 
+          type: 'ADD_REFERRAL', 
+          payload: { referral: ref } 
+        });
+      });
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Ошибка при загрузке списка рефералов:', error);
       setLoading(false);
     }
-  }, [dispatch, state, onAddEvent]);
-
-  // Функция для копирования реферальной ссылки
-  const copyReferralLink = useCallback(() => {
+  };
+  
+  // Обработка копирования в буфер обмена
+  const copyToClipboard = () => {
+    const url = `https://t.me/crypto_civilization_bot?start=${referralCode}`;
+    navigator.clipboard.writeText(url).then(
+      () => {
+        toast({
+          title: "Скопировано!",
+          description: "Ссылка скопирована в буфер обмена",
+          variant: "success",
+        });
+        onAddEvent("Реферальная ссылка скопирована в буфер обмена", "success");
+      },
+      () => {
+        toast({
+          title: "Ошибка!",
+          description: "Не удалось скопировать ссылку",
+          variant: "destructive",
+        });
+        onAddEvent("Не удалось скопировать реферальную ссылку", "error");
+      }
+    );
+  };
+  
+  // Проверка реферального кода
+  const checkReferCode = async () => {
+    if (!referCode || referCode.length < 4) {
+      toast({
+        title: "Неверный код",
+        description: "Введите корректный реферальный код",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const result = await checkReferralInfo(referCode);
+    
+    if (!result.exists) {
+      toast({
+        title: "Код не найден",
+        description: "Введенный реферальный код не существует",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (result.isSelf) {
+      toast({
+        title: "Ошибка",
+        description: "Вы не можете использовать свой собственный код",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsDialogOpen(true);
+  };
+  
+  // Подтверждение использования реферального кода
+  const confirmUseReferCode = async () => {
     try {
-      if (!referralLink) {
+      const userId = await getUserIdentifier();
+      
+      if (!userId) {
         toast({
           title: "Ошибка",
-          description: "Реферальная ссылка еще не сформирована",
-          variant: "destructive"
+          description: "Не удалось определить пользователя",
+          variant: "destructive",
         });
-        onAddEvent("Реферальная ссылка еще не сформирована", "error");
         return;
       }
       
-      navigator.clipboard.writeText(referralLink);
+      await saveReferralInfo(userId, referCode);
+      
       toast({
-        title: "Ссылка скопирована",
-        description: "Реферальная ссылка успешно скопирована в буфер обмена",
+        title: "Успешно!",
+        description: "Реферальный код успешно применен",
+        variant: "success",
       });
-      onAddEvent("Реферальная ссылка скопирована", "success");
+      
+      // Обновляем состояние игры
+      dispatch({ 
+        type: 'SET_REFERRED_BY', 
+        payload: { referredBy: referCode } 
+      });
+      
+      setIsDialogOpen(false);
+      
+      // Обновляем информацию
+      loadReferralCode();
     } catch (error) {
-      console.error('Ошибка при копировании реферальной ссылки:', error);
-      onAddEvent("Не удалось скопировать ссылку", "error");
+      console.error('Ошибка при применении реферального кода:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось применить реферальный код",
+        variant: "destructive",
+      });
     }
-  }, [state.referralCode, onAddEvent]);
-
-  // Функция для найма помощника
-  const handleHireHelper = (referralId: string, buildingId: string) => {
-    dispatch({ 
-      type: "HIRE_REFERRAL_HELPER", 
-      payload: { referralId, buildingId } 
-    });
   };
-
-  // Рассчитываем бонус от рефералов
-  const { activatedCount, totalCount, bonus } = useMemo(() => {
-    const totalCount = state.referrals?.length || 0;
-    // Считаем активированных рефералов
-    const activatedCount = state.referrals?.filter(ref => ref.activated).length || 0;
-    
-    // Рассчитываем общий бонус (5% за каждого активированного реферала)
-    const bonus = activatedCount * 5;
-    
-    console.log('Расчет бонуса от рефералов:', activatedCount, 'активных из', totalCount, 'всего');
-    return { activatedCount, totalCount, bonus };
-  }, [state.referrals]);
-
+  
+  // Загрузка данных при монтировании компонента
+  useEffect(() => {
+    loadReferralCode();
+    loadReferrals();
+  }, []);
+  
   return (
-    <div className="p-4">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-2">Ваша реферальная ссылка</h2>
-        <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
-          <div className="flex-1 bg-gray-100 p-2 rounded text-xs break-all">
-            {referralLink || "Загрузка..."}
+    <div className="p-4 space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Ваш реферальный код</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center space-x-2">
+              <Input value={referralCode} readOnly className="bg-gray-100" />
+              <Button onClick={copyToClipboard}>Копировать ссылку</Button>
+            </div>
+            <p className="text-sm text-gray-500">
+              Поделитесь этим кодом с друзьями и получите бонусы за каждого нового игрока!
+            </p>
           </div>
-          <Button 
-            size="sm" 
-            onClick={copyReferralLink}
-            className="whitespace-nowrap"
-          >
-            <Copy className="h-4 w-4 mr-1" />
-            Скопировать
-          </Button>
-        </div>
-        
-        {/* Добавлено пояснение о статусе активации */}
-        <p className="text-xs text-gray-500 mt-2">
-          Реферал считается активированным, когда он строит свой первый генератор.
-        </p>
-      </div>
+        </CardContent>
+      </Card>
       
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-2">Бонусы от рефералов</h2>
-        <div className="bg-gray-100 p-3 rounded">
-          <p className="mb-1">Активировано рефералов: <span className="font-bold">{activatedCount}</span> из {totalCount}</p>
-          <p className="text-green-600 font-bold mb-1">Текущий бонус: +{bonus}% к производству</p>
-          <p className="text-xs text-gray-600">Каждый активированный реферал даёт +5% к производству ресурсов</p>
-        </div>
-      </div>
-      
-      <div>
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-xl font-bold">Ваши рефералы</h2>
-          <Button size="sm" variant="outline" onClick={loadReferrals} disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Загрузка...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Обновить
-              </>
-            )}
-          </Button>
-        </div>
-        
-        {state.referrals && state.referrals.length > 0 ? (
-          <div className="space-y-3">
-            {state.referrals.map((referral) => (
-              <div key={referral.id} className="border rounded p-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-semibold">{referral.username}</p>
-                    <div className="text-[9px] text-gray-500">
-                      Присоединился: {new Date(referral.joinedAt).toLocaleString()}
-                    </div>
-                    <div className="text-[9px] mt-1">
-                      Статус: {' '}
-                      <span className={referral.activated ? "text-green-600" : "text-gray-500"}>
-                        {referral.activated ? "Активирован" : "Не активирован"}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Кнопка для найма помощника */}
-                  {referral.activated && buildingOptions.length > 0 && (
-                    <div className="ml-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            <UserPlus className="h-3 w-3 mr-1" />
-                            Нанять
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Выберите здание</DropdownMenuLabel>
-                          {buildingOptions.map((building) => (
-                            <DropdownMenuItem 
-                              key={building.id} 
-                              onClick={() => handleHireHelper(referral.id, building.id)}
-                            >
-                              {building.name} (x{building.count})
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  )}
-                </div>
+      {!state.referredBy && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Ввести реферальный код</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center space-x-2">
+                <Input 
+                  value={referCode} 
+                  onChange={(e) => setReferCode(e.target.value.toUpperCase())}
+                  placeholder="Введите реферальный код" 
+                  maxLength={8}
+                />
+                <Button onClick={checkReferCode}>Применить</Button>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center p-8 bg-gray-50 rounded">
-            <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">У вас пока нет рефералов</p>
-            <p className="text-sm text-gray-400 mt-2">Поделитесь своей реферальной ссылкой с друзьями</p>
-          </div>
-        )}
-      </div>
+              <p className="text-sm text-gray-500">
+                Введите реферальный код, чтобы получить стартовые бонусы. 
+                Код можно ввести только один раз.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Ваши рефералы {referrals.length > 0 && `(${referrals.length})`}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p>Загрузка списка рефералов...</p>
+          ) : referrals.length > 0 ? (
+            <div className="space-y-4">
+              {referrals.map((ref, index) => (
+                <div key={index} className="flex justify-between items-center p-2 border rounded">
+                  <div>
+                    <p className="font-medium">{ref.username}</p>
+                    <p className="text-xs text-gray-500">Присоединился: {formatDate(new Date(ref.joinedAt))}</p>
+                  </div>
+                  <div>
+                    {ref.activated ? (
+                      <Badge variant="success" className="bg-green-500">Активен</Badge>
+                    ) : (
+                      <Badge variant="outline">Не активен</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              <div className="mt-4 p-3 bg-gray-50 rounded text-sm">
+                <p className="font-medium">Что дают рефералы?</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>50 USDT за каждого активированного реферала</li>
+                  <li>+5% к производительности за каждого активного реферала</li>
+                  <li>Возможность приглашать рефералов на работу в ваши здания</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-500">У вас пока нет рефералов</p>
+              <p className="text-sm mt-2">Поделитесь своим реферальным кодом, чтобы привлечь новых игроков</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Подтверждение использования реферального кода</DialogTitle>
+          </DialogHeader>
+          <p>
+            Вы собираетесь использовать реферальный код: <strong>{referCode}</strong>
+          </p>
+          <p className="text-sm text-gray-500">
+            Реферальный код можно использовать только один раз. 
+            После применения изменить его будет невозможно.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Отмена</Button>
+            <Button onClick={confirmUseReferCode}>Подтвердить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default ReferralsTab;
+}
