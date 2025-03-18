@@ -168,7 +168,7 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
     const userId = await getUserIdentifier();
     console.log('Сохранение реферального кода:', referralCode, 'для пользователя:', userId, 'приглашен:', referredBy);
     
-    // Обновлены логи для лучшего понимания процесса сохранения
+    // Обновлены логи дл�� лучшего понимания процесса сохранения
     console.log('Тип userId:', typeof userId, 'Значение:', userId);
     if (referredBy) {
       console.log('Тип referredBy:', typeof referredBy, 'Значение:', referredBy);
@@ -255,7 +255,7 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
       return true;
     }
     
-    // Создаем новую запись
+    // Создаем новую з��пись
     const { error } = await supabase
       .from(REFERRAL_TABLE)
       .insert({
@@ -568,7 +568,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     console.log('❌ Сохранение в Supabase не найдено');
     return null;
   } catch (error) {
-    console.error('❌ Критическая ошибка при загрузке игры:', error);
+    console.error('❌ Критическая ошибк�� при загрузке игры:', error);
     safeDispatchGameEvent(
       "Критическая ошибка при загрузке игры. Начинаем новую игру.",
       "error"
@@ -856,18 +856,6 @@ export const clearAllSavedDataForAllUsers = async (): Promise<void> => {
 declare global {
   interface Window {
     __game_user_id?: string;
-    Telegram?: {
-      WebApp?: {
-        initDataUnsafe?: {
-          user?: {
-            id: number;
-            first_name: string;
-            last_name?: string;
-            username?: string;
-          },
-          start_param?: string;
-        }
-      }
-    }
   }
 }
+
