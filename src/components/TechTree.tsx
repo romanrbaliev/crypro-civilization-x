@@ -16,6 +16,20 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
   const hasUnlockedResearch = Object.values(state.upgrades).some(u => 
     (u.unlocked || u.purchased) && u.category
   );
+  
+  // Получаем количество активных категорий
+  const getActiveCategoriesCount = () => {
+    return Object.values(researchCategories)
+      .filter(category => {
+        const categoryUpgrades = Object.values(state.upgrades)
+          .filter(u => u.category === category.id);
+        
+        return categoryUpgrades.some(u => u.unlocked || u.purchased);
+      }).length;
+  };
+  
+  // Количество активных категорий
+  const activeCategoriesCount = getActiveCategoriesCount();
 
   return (
     <div className="p-2 flex flex-col h-full overflow-y-auto">
@@ -33,6 +47,7 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
                 description={category.description}
                 icon={category.icon}
                 onAddEvent={onAddEvent}
+                initialOpen={activeCategoriesCount <= 3} // Автоматически открываем категории, если их мало
               />
             ))}
         </div>

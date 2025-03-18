@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import TechTreeNode from './TechTreeNode';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { getSpecializationName } from '@/utils/researchUtils';
 
 interface TechTreeCategoryProps {
   categoryId: string;
@@ -12,6 +13,7 @@ interface TechTreeCategoryProps {
   description: string;
   icon: string;
   onAddEvent: (message: string, type: string) => void;
+  initialOpen?: boolean;
 }
 
 const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({ 
@@ -19,10 +21,11 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
   name, 
   description, 
   icon,
-  onAddEvent
+  onAddEvent,
+  initialOpen = true
 }) => {
   const { state } = useGame();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(initialOpen);
 
   // Фильтруем исследования, принадлежащие к данной категории
   const categoryUpgrades = Object.values(state.upgrades)
@@ -55,6 +58,20 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
   // Проверяем, есть ли разблокированные или купленные исследования в этой категории
   const hasUnlockedOrPurchased = categoryUpgrades.some(u => u.unlocked || u.purchased);
   
+  // Подсчет разблокированных исследований
+  const unlockedResearchCount = categoryUpgrades.filter(u => u.unlocked && !u.purchased).length;
+  
+  // Подсчет завершенных исследований
+  const purchasedResearchCount = categoryUpgrades.filter(u => u.purchased).length;
+  
+  // Общее количество исследований в категории
+  const totalResearchCount = categoryUpgrades.length;
+  
+  // Процент завершения категории
+  const completionPercentage = totalResearchCount > 0 
+    ? Math.round((purchasedResearchCount / totalResearchCount) * 100) 
+    : 0;
+  
   // Если в этой категории нет разблокированных или купленных исследований, не показываем категорию
   if (!hasUnlockedOrPurchased) return null;
 
@@ -67,7 +84,15 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">{icon}</span>
-          <h3 className="text-sm font-medium">{name}</h3>
+          <div>
+            <h3 className="text-sm font-medium">{name}</h3>
+            <div className="flex items-center gap-2 text-[10px] text-gray-500">
+              <span>{purchasedResearchCount}/{totalResearchCount} изучено</span>
+              {unlockedResearchCount > 0 && (
+                <span className="text-blue-500">{unlockedResearchCount} доступно</span>
+              )}
+            </div>
+          </div>
         </div>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm" className="p-0 h-7 w-7">
@@ -78,6 +103,14 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
       
       <CollapsibleContent>
         <p className="text-xs text-gray-500 mt-1 mb-3">{description}</p>
+        
+        {/* Индикатор прогресса категории */}
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4">
+          <div 
+            className="bg-blue-600 h-1.5 rounded-full" 
+            style={{ width: `${completionPercentage}%` }}
+          ></div>
+        </div>
         
         <div className="space-y-4">
           {tiers.map(tier => {
@@ -101,7 +134,7 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
                   <div key={spec} className="mb-2">
                     {spec !== 'general' && (
                       <div className="text-[9px] text-purple-600 mb-1 font-medium">
-                        Специализация: {spec}
+                        Специализация: {getSpecializationName(spec)}
                       </div>
                     )}
                     <div className="grid grid-cols-1 gap-2">

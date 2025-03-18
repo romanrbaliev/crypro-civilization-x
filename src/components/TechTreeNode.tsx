@@ -10,6 +10,7 @@ import {
   TooltipTrigger 
 } from '@/components/ui/tooltip';
 import { Sparkles, Lock, AlertCircle } from 'lucide-react';
+import { formatEffectName, formatEffect } from '@/utils/researchUtils';
 
 interface TechTreeNodeProps {
   upgrade: any;
@@ -71,45 +72,6 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
         </div>
       );
     });
-  };
-  
-  // Форматирование описания эффекта
-  const formatEffect = (effectId: string, amount: number) => {
-    if (effectId.includes('Boost')) {
-      const baseName = effectId.replace('Boost', '');
-      return `+${(amount * 100).toFixed(0)}% к ${formatEffectName(baseName)}`;
-    } else if (effectId.includes('Reduction')) {
-      const baseName = effectId.replace('Reduction', '');
-      return `-${(amount * 100).toFixed(0)}% к ${formatEffectName(baseName)}`;
-    }
-    return `+${amount} к ${formatEffectName(effectId)}`;
-  };
-  
-  // Форматирование названия эффекта
-  const formatEffectName = (name: string) => {
-    // Словарь для перевода названий эффектов
-    const effectNameMap: {[key: string]: string} = {
-      knowledge: "знаниям",
-      miningEfficiency: "эффективности майнинга",
-      electricity: "электричеству",
-      computingPower: "вычислительной мощности",
-      electricityEfficiency: "эффективности электричества",
-      electricityConsumption: "потреблению электричества",
-      tradingEfficiency: "эффективности трейдинга",
-      marketAnalysis: "анализу рынка",
-      tradingProfit: "прибыли от трейдинга",
-      volatilityPrediction: "предсказанию волатильности",
-      automatedTrading: "автоматизированной торговле",
-      tradeSpeed: "скорости торговли",
-      security: "безопасности",
-      automation: "автоматизации",
-      reputation: "репутации",
-      hashrate: "хешрейту",
-      conversionRate: "конверсии",
-      // И другие эффекты...
-    };
-    
-    return effectNameMap[name] || name;
   };
   
   // Отображение специализации

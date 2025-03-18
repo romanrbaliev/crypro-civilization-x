@@ -2,6 +2,7 @@
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { checkUnlockConditions } from '@/utils/researchUtils';
 
 // Обработка покупки улучшений
 export const processPurchaseUpgrade = (
@@ -118,44 +119,4 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
   }
   
   return state;
-};
-
-// Проверка условий разблокировки для улучшения
-const checkUnlockConditions = (state: GameState, upgrade: any): boolean => {
-  // Проверка зависимостей от других исследований
-  if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
-    const allRequiredPurchased = upgrade.requiredUpgrades.every(
-      (requiredId: string) => state.upgrades[requiredId]?.purchased
-    );
-    
-    if (!allRequiredPurchased) return false;
-  }
-  
-  // Проверка условий по зданиям
-  if (upgrade.unlockCondition?.buildings) {
-    for (const [buildingId, count] of Object.entries(upgrade.unlockCondition.buildings)) {
-      if (!state.buildings[buildingId] || state.buildings[buildingId].count < Number(count)) {
-        return false;
-      }
-    }
-  }
-  
-  // Проверка условий по ресурсам
-  if (upgrade.unlockCondition?.resources) {
-    for (const [resourceId, amount] of Object.entries(upgrade.unlockCondition.resources)) {
-      if (!state.resources[resourceId] || state.resources[resourceId].value < Number(amount)) {
-        return false;
-      }
-    }
-  }
-  
-  // Проверка условий по социальным метрикам
-  if (upgrade.unlockCondition?.referrals) {
-    const activeReferrals = state.referrals.filter(ref => ref.activated).length;
-    if (activeReferrals < upgrade.unlockCondition.referrals) {
-      return false;
-    }
-  }
-  
-  return true;
 };
