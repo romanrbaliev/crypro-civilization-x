@@ -2,6 +2,7 @@
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
+import { activateReferral } from '@/api/referralService';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
@@ -91,6 +92,35 @@ export const processLoadGame = (
       }
       return referral;
     });
+    
+    // НОВОЕ: Проверяем и синхронизируем активацию с базой данных
+    loadedState.referrals.forEach(referral => {
+      if (!referral.activated) {
+        // Проверяем наличие разблокированного исследования "Основы блокчейна"
+        const hasBlockchainBasics = loadedState.upgrades && 
+          (loadedState.upgrades.blockchain_basics?.purchased || 
+           loadedState.upgrades.basicBlockchain?.purchased);
+        
+        if (hasBlockchainBasics) {
+          console.log(`Обнаружено разблокированное исследование "Основы блокчейна", активируем реферала ${referral.id}`);
+          
+          // Асинхронно вызываем API для активации реферала
+          setTimeout(() => {
+            activateReferral(referral.id)
+              .then(success => {
+                console.log(`Результат активации реферала ${referral.id} при загрузке: ${success ? 'успешно' : 'неудачно'}`);
+              })
+              .catch(err => {
+                console.error(`Ошибка при активации реферала ${referral.id} при загрузке:`, err);
+              });
+          }, 0);
+          
+          // Обновляем статус в локальном состоянии
+          referral.activated = true;
+        }
+      }
+    });
+    
     console.log('✅ Проверены и скорректированы данные рефералов');
   }
   

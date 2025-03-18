@@ -2,6 +2,7 @@
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
 import { hasBlockchainBasics, isBlockchainBasicsUnlocked } from '@/utils/researchUtils';
+import { activateReferral } from '@/api/referralService';
 
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
@@ -24,6 +25,19 @@ export const processResourceUpdate = (state: GameState): GameState => {
     if (userHasBasicBlockchainUnlocked && !referral.activated) {
       // Если у пользователя разблокировано исследование, но реферал не активирован - активируем его
       console.log(`Исправляем статус активации реферала ${referral.id}: был неактивен, но у пользователя разблокированы "Основы блокчейна"`);
+      
+      // Важное изменение: асинхронно вызываем API для активации реферала
+      // Это не будет блокировать основной поток выполнения
+      setTimeout(() => {
+        activateReferral(referral.id)
+          .then(success => {
+            console.log(`Результат асинхронной активации реферала ${referral.id}: ${success ? 'успешно' : 'неудачно'}`);
+          })
+          .catch(err => {
+            console.error(`Ошибка при асинхронной активации реферала ${referral.id}:`, err);
+          });
+      }, 0);
+      
       referralsChanged = true;
       return { ...referral, activated: true };
     }
