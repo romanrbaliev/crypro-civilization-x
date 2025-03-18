@@ -1,4 +1,3 @@
-
 export interface Resource {
   id: string;
   name: string;
@@ -31,6 +30,14 @@ export interface Upgrade {
   unlocked: boolean;
   purchased: boolean;
   requirements?: { [key: string]: number };
+  category?: string;
+  tier?: number;
+  requiredUpgrades?: string[];
+  unlockCondition?: {
+    buildings?: { [buildingId: string]: number };
+    resources?: { [resourceId: string]: number };
+  };
+  specialization?: string | null;
 }
 
 export interface Referral {

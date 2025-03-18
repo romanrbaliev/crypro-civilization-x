@@ -166,35 +166,319 @@ export const phases = [
 
 // Формулы расчетов
 export const formulas = {
-  // Базовая формула накопления знаний
   knowledgeGain: (baseRate: number, buildingsBonus: number, skillsBonus: number, socialBonus: number) => {
     return baseRate * (1 + buildingsBonus) * (1 + skillsBonus) * (1 + socialBonus);
   },
-  
-  // Формула конвертации знаний в USDT
   knowledgeToUsdt: (baseConversion: number, efficiency: number) => {
     return baseConversion * (1 + efficiency);
   },
-  
-  // Формула расчета стоимости здания
   buildingCost: (baseCost: number, multiplier: number, count: number) => {
     return baseCost * Math.pow(multiplier, count);
   },
-  
-  // Формула расчета хешрейта
   hashrate: (computingPower: number, miningEfficiency: number, specialization: number) => {
     return computingPower * miningEfficiency * (1 + specialization);
   },
-  
-  // Формула роста подписчиков
   subscriberGrowth: (baseGrowth: number, currentSubscribers: number, virality: number, reputation: number, trustCoefficient: number) => {
     return baseGrowth * (1 + currentSubscribers * virality) * (1 + reputation * trustCoefficient);
   },
-  
-  // Формула волатильности цены актива
   assetPrice: (basePrice: number, volatility: number, time: number, period: number, trend: number, randomness: number) => {
     const oscillation = volatility * Math.sin(time / period);
     const random = (Math.random() * 2 - 1) * randomness;
     return basePrice * (1 + oscillation + trend + random);
+  }
+};
+
+// Категории исследований
+export const researchCategories = {
+  blockchain: {
+    id: "blockchain",
+    name: "Блокчейн",
+    description: "Основы блокчейн-технологий и их применение",
+    icon: "⛓️",
+    order: 1
+  },
+  mining: {
+    id: "mining",
+    name: "Майнинг",
+    description: "Технологии добычи криптовалют",
+    icon: "⛏️",
+    order: 2
+  },
+  trading: {
+    id: "trading",
+    name: "Трейдинг",
+    description: "Методы торговли на криптовалютных рынках",
+    icon: "📈",
+    order: 3
+  },
+  investment: {
+    id: "investment",
+    name: "Инвестиции",
+    description: "Долгосрочные инвестиционные стратегии",
+    icon: "💼",
+    order: 4
+  },
+  defi: {
+    id: "defi",
+    name: "DeFi",
+    description: "Децентрализованные финансы и протоколы",
+    icon: "🏦",
+    order: 5
+  },
+  social: {
+    id: "social",
+    name: "Социальное влияние",
+    description: "Коммуникация и управление сообществом",
+    icon: "🌐",
+    order: 6
+  }
+};
+
+// Расширенные исследования по категориям
+export const techTreeUpgrades = {
+  basicBlockchain: {
+    id: "basicBlockchain",
+    name: "Основы блокчейна",
+    description: "Базовое понимание принципов работы блокчейна",
+    category: "blockchain",
+    tier: 1,
+    cost: { knowledge: 50 },
+    effect: { knowledgeMaxBoost: 0.5 },
+    requiredUpgrades: [],
+    unlockCondition: { buildings: { generator: 1 } },
+    specialization: null
+  },
+  walletSecurity: {
+    id: "walletSecurity",
+    name: "Безопасность криптокошельков",
+    description: "Защита криптовалютных активов от взлома",
+    category: "blockchain",
+    tier: 1,
+    cost: { knowledge: 75 },
+    effect: { usdtMaxBoost: 0.25, securityBoost: 0.05 },
+    requiredUpgrades: ["basicBlockchain"],
+    unlockCondition: { buildings: { cryptoWallet: 1 } },
+    specialization: null
+  },
+  cryptoCurrencyBasics: {
+    id: "cryptoCurrencyBasics",
+    name: "Основы криптовалют",
+    description: "Изучение принципов работы различных криптовалют",
+    category: "blockchain",
+    tier: 1,
+    cost: { knowledge: 100 },
+    effect: { miningEfficiencyBoost: 0.1 },
+    requiredUpgrades: ["basicBlockchain"],
+    unlockCondition: { resources: { knowledge: 150 } },
+    specialization: null
+  },
+  smartContracts: {
+    id: "smartContracts",
+    name: "Смарт-контракты",
+    description: "Автоматическое выполнение контрактов в блокчейне",
+    category: "blockchain",
+    tier: 2,
+    cost: { knowledge: 350, usdt: 150 },
+    effect: { automationBoost: 0.15, reputationBoost: 0.05 },
+    requiredUpgrades: ["basicBlockchain"],
+    unlockCondition: { resources: { knowledge: 500 } },
+    specialization: null
+  },
+  blockchainScalability: {
+    id: "blockchainScalability",
+    name: "Масштабируемость блокчейна",
+    description: "Решения для увеличения пропускной способности блокчейна",
+    category: "blockchain",
+    tier: 3,
+    cost: { knowledge: 750, usdt: 300 },
+    effect: { transactionSpeedBoost: 0.2, networkEfficiencyBoost: 0.15 },
+    requiredUpgrades: ["smartContracts"],
+    unlockCondition: { resources: { knowledge: 1000 } },
+    specialization: null
+  },
+  
+  proofOfWork: {
+    id: "proofOfWork",
+    name: "Proof of Work",
+    description: "Алгоритм консенсуса, используемый в Bitcoin",
+    category: "mining",
+    tier: 1,
+    cost: { knowledge: 200, usdt: 50 },
+    effect: { miningEfficiencyBoost: 0.25 },
+    requiredUpgrades: ["cryptoCurrencyBasics"],
+    unlockCondition: { buildings: { homeComputer: 3 } },
+    specialization: "miner"
+  },
+  miningOptimization: {
+    id: "miningOptimization",
+    name: "Оптимизация майнинга",
+    description: "Методы повышения эффективности майнинга",
+    category: "mining",
+    tier: 2,
+    cost: { knowledge: 300, usdt: 100, electricity: 100 },
+    effect: { electricityEfficiencyBoost: 0.15, computingPowerBoost: 0.1 },
+    requiredUpgrades: ["proofOfWork"],
+    unlockCondition: { resources: { computingPower: 500 } },
+    specialization: "miner"
+  },
+  asicMining: {
+    id: "asicMining",
+    name: "ASIC-майнинг",
+    description: "Специализированное оборудование для майнинга",
+    category: "mining",
+    tier: 3,
+    cost: { knowledge: 500, usdt: 250, electricity: 200 },
+    effect: { hashrateBoost: 0.3, electricityConsumptionReduction: 0.1 },
+    requiredUpgrades: ["miningOptimization"],
+    unlockCondition: { resources: { hashrate: 100 } },
+    specialization: "miner"
+  },
+  
+  cryptoTrading: {
+    id: "cryptoTrading",
+    name: "Криптовалютный трейдинг",
+    description: "Основы торговли на криптовалютных биржах",
+    category: "trading",
+    tier: 1,
+    cost: { knowledge: 100, usdt: 20 },
+    effect: { tradingEfficiencyBoost: 0.1, marketAnalysisBoost: 0.05 },
+    requiredUpgrades: ["cryptoCurrencyBasics"],
+    unlockCondition: { resources: { usdt: 100 } },
+    specialization: "trader"
+  },
+  technicalAnalysis: {
+    id: "technicalAnalysis",
+    name: "Технический анализ",
+    description: "Прогнозирование цен на основе графиков и индикаторов",
+    category: "trading",
+    tier: 2,
+    cost: { knowledge: 250, usdt: 100 },
+    effect: { tradingProfitBoost: 0.15, volatilityPredictionBoost: 0.1 },
+    requiredUpgrades: ["cryptoTrading"],
+    unlockCondition: { resources: { knowledge: 400 } },
+    specialization: "trader"
+  },
+  tradingBots: {
+    id: "tradingBots",
+    name: "Торговые боты",
+    description: "Автоматизированные системы торговли",
+    category: "trading",
+    tier: 3,
+    cost: { knowledge: 500, usdt: 200, computingPower: 100 },
+    effect: { automatedTradingBoost: 0.25, tradeSpeedBoost: 0.2 },
+    requiredUpgrades: ["technicalAnalysis", "smartContracts"],
+    unlockCondition: { resources: { usdt: 400 } },
+    specialization: "trader"
+  },
+  
+  portfolioDiversification: {
+    id: "portfolioDiversification",
+    name: "Диверсификация портфеля",
+    description: "Распределение инвестиций между разными активами",
+    category: "investment",
+    tier: 1,
+    cost: { knowledge: 200, usdt: 100 },
+    effect: { riskReductionBoost: 0.1, passiveIncomeBoost: 0.05 },
+    requiredUpgrades: ["cryptoCurrencyBasics"],
+    unlockCondition: { resources: { usdt: 150 } },
+    specialization: "investor"
+  },
+  proofOfStake: {
+    id: "proofOfStake",
+    name: "Proof of Stake",
+    description: "Механизм консенсуса, основанный на доле владения",
+    category: "investment",
+    tier: 2,
+    cost: { knowledge: 250, usdt: 100 },
+    effect: { stakingRewardBoost: 0.25, stakingEfficiencyBoost: 0.15 },
+    requiredUpgrades: ["portfolioDiversification"],
+    unlockCondition: { resources: { usdt: 250 } },
+    specialization: "investor"
+  },
+  wealthManagement: {
+    id: "wealthManagement",
+    name: "Управление капиталом",
+    description: "Стратегии долгосрочного управления криптовалютными активами",
+    category: "investment",
+    tier: 3,
+    cost: { knowledge: 600, usdt: 300 },
+    effect: { passiveIncomeBoost: 0.2, portfolioGrowthBoost: 0.15 },
+    requiredUpgrades: ["proofOfStake"],
+    unlockCondition: { resources: { usdt: 500 } },
+    specialization: "investor"
+  },
+  
+  defiBasics: {
+    id: "defiBasics",
+    name: "Основы DeFi",
+    description: "Введение в децентрализованные финансы",
+    category: "defi",
+    tier: 1,
+    cost: { knowledge: 500, usdt: 200 },
+    effect: { defiYieldBoost: 0.1, liquidityBoost: 0.05 },
+    requiredUpgrades: ["smartContracts"],
+    unlockCondition: { resources: { knowledge: 800 } },
+    specialization: null
+  },
+  liquidityProviding: {
+    id: "liquidityProviding",
+    name: "Предоставление ликвидности",
+    description: "Участие в пулах ликвидности на DEX",
+    category: "defi",
+    tier: 2,
+    cost: { knowledge: 650, usdt: 300 },
+    effect: { liquidityMiningBoost: 0.2, marketStabilityBoost: 0.1 },
+    requiredUpgrades: ["defiBasics"],
+    unlockCondition: { resources: { usdt: 600 } },
+    specialization: null
+  },
+  yieldFarming: {
+    id: "yieldFarming",
+    name: "Yield Farming",
+    description: "Максимизация доходности через DeFi-протоколы",
+    category: "defi",
+    tier: 3,
+    cost: { knowledge: 800, usdt: 400 },
+    effect: { passiveYieldBoost: 0.25, defiOptimizationBoost: 0.15 },
+    requiredUpgrades: ["liquidityProviding"],
+    unlockCondition: { resources: { usdt: 800 } },
+    specialization: null
+  },
+  
+  cryptoCommunity: {
+    id: "cryptoCommunity",
+    name: "Крипто-сообщество",
+    description: "Основы взаимодействия в криптовалютном сообществе",
+    category: "social",
+    tier: 1,
+    cost: { knowledge: 150, usdt: 50 },
+    effect: { reputationGainBoost: 0.15, subscriberGrowthBoost: 0.1 },
+    requiredUpgrades: ["basicBlockchain"],
+    unlockCondition: { resources: { reputation: 10 } },
+    specialization: "influencer"
+  },
+  contentCreation: {
+    id: "contentCreation",
+    name: "Создание контента",
+    description: "Методы создания качественного контента о криптовалютах",
+    category: "social",
+    tier: 2,
+    cost: { knowledge: 300, usdt: 100 },
+    effect: { subscriberGrowthBoost: 0.2, contentQualityBoost: 0.15 },
+    requiredUpgrades: ["cryptoCommunity"],
+    unlockCondition: { resources: { subscribers: 20 } },
+    specialization: "influencer"
+  },
+  marketInfluence: {
+    id: "marketInfluence",
+    name: "Влияние на рынок",
+    description: "Способы воздействия на настроения рынка",
+    category: "social",
+    tier: 3,
+    cost: { knowledge: 600, usdt: 200, subscribers: 50 },
+    effect: { marketSentimentBoost: 0.25, reputationLeverageBoost: 0.2 },
+    requiredUpgrades: ["contentCreation"],
+    unlockCondition: { resources: { subscribers: 100 } },
+    specialization: "influencer"
   }
 };
