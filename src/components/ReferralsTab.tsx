@@ -64,7 +64,9 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
 }) => {
   const isAssigned = Boolean(assignedBuildingId);
   
-  const isActivated = referral.activated === true || referral.activated === 'true';
+  const isActivated = typeof referral.activated === 'boolean' 
+    ? referral.activated 
+    : String(referral.activated).toLowerCase() === 'true';
   
   console.log(`Отображение карточки реферала ${referral.id}:`, {
     activated: referral.activated,
@@ -309,7 +311,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const id = await getUserIdentifier();
       console.log('Принудительное обновление рефералов для пользователя:', id);
       
-      // Проверяем соединение с Supabase
       const connectionResult = await supabase.from('referral_data').select('count(*)');
       if (connectionResult.error) {
         console.error('❌ Ошибка соединения с Supabase при обновлении рефералов:', connectionResult.error);
@@ -329,7 +330,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       if (userData && userData.referral_code) {
         console.log('Найден реферальный код в базе:', userData.referral_code);
         
-        // Получаем данные всех рефералов
         const { data: directReferrals, error: referralError } = await supabase
           .from('referral_data')
           .select('user_id, created_at, referred_by, is_activated')
@@ -345,7 +345,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         console.log('Найдено рефералов в базе данных:', directReferrals?.length || 0);
         console.log('Детальные данные рефералов из базы:', JSON.stringify(directReferrals, null, 2));
         
-        // Получаем текущее сохранение игры для согласования данных
         const { data: saveData, error: saveError } = await supabase
           .from('game_saves')
           .select('game_data')
@@ -364,26 +363,26 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           console.log('Текущие рефералы в сохранении:', JSON.stringify(gameState.referrals || [], null, 2));
           
           if (directReferrals && directReferrals.length > 0) {
-            // Преобразуем данные рефералов, сохраняя статус активации
             const formattedReferrals = directReferrals.map(ref => {
-              // Ищем существующие данные реферала в сохранении
               const existingRef = gameState.referrals?.find((r: any) => r.id === ref.user_id);
               
-              // Явно проверяем статус активации из БД
               let activationStatus = false;
               
-              // Приоритет: используем значение is_activated из базы, если оно есть
               if (ref.is_activated !== null && ref.is_activated !== undefined) {
-                // Убедимся, что activationStatus - это булево значение, а не строка
-                activationStatus = ref.is_activated === true || ref.is_activated === 'true';
+                activationStatus = typeof ref.is_activated === 'boolean' 
+                  ? ref.is_activated 
+                  : String(ref.is_activated).toLowerCase() === 'true';
+                
                 console.log(`Реферал ${ref.user_id} имеет статус активации из БД:`, 
                   ref.is_activated, 
                   `(тип: ${typeof ref.is_activated})`, 
                   `преобразовано в: ${activationStatus}`
                 );
               } else if (existingRef && existingRef.activated !== undefined) {
-                // Как запасной вариант используем существующие данные
-                activationStatus = existingRef.activated === true || existingRef.activated === 'true';
+                activationStatus = typeof existingRef.activated === 'boolean'
+                  ? existingRef.activated
+                  : String(existingRef.activated).toLowerCase() === 'true';
+                
                 console.log(`Реферал ${ref.user_id} использует существующий статус активации:`, 
                   existingRef.activated, 
                   `(тип: ${typeof existingRef.activated})`, 
@@ -395,7 +394,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                 id: ref.user_id,
                 username: `ID: ${ref.user_id.substring(0, 6)}`,
                 activated: activationStatus,
-                typeOfActivated: typeof activationStatus, // Добавляем для отладки
+                typeOfActivated: typeof activationStatus,
                 joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
               };
             });
@@ -403,7 +402,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             console.log('Обновленные данные рефералов для сохранения:', 
               JSON.stringify(formattedReferrals, null, 2));
             
-            // Диспатчим обновленный массив рефералов
             dispatch({ 
               type: "LOAD_GAME", 
               payload: { 
@@ -412,11 +410,9 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               } 
             });
             
-            // Отправляем событие с актуальной информацией
             const activeCount = formattedReferrals.filter(r => r.activated === true).length;
             onAddEvent(`Обновлено ${formattedReferrals.length} рефералов. Активных: ${activeCount}`, "success");
             
-            // Отправляем событие, чтобы другие компоненты могли обновиться
             const refreshEvent = new CustomEvent('refresh-referrals');
             window.dispatchEvent(refreshEvent);
           } else {
@@ -775,10 +771,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   };
 
   const totalReferrals = state.referrals?.length || 0;
-  const activeReferrals = state.referrals?.filter(ref => ref.activated === true || ref.activated === 'true')?.length || 0;
+  const activeReferrals = state.referrals?.filter(ref => 
+    typeof ref.activated === 'boolean' 
+      ? ref.activated 
+      : String(ref.activated).toLowerCase() === 'true'
+  )?.length || 0;
 
   const filteredReferrals = currentTab === 'active' 
-    ? (state.referrals || []).filter(ref => ref.activated === true || ref.activated === 'true')
+    ? (state.referrals || []).filter(ref => 
+        typeof ref.activated === 'boolean' 
+          ? ref.activated 
+          : String(ref.activated).toLowerCase() === 'true'
+      )
     : (state.referrals || []);
 
   const getUserBuildings = () => Object.values(state.buildings || {})
@@ -1092,3 +1096,4 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 };
 
 export default ReferralsTab;
+

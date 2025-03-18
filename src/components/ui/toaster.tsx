@@ -1,4 +1,3 @@
-
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -16,16 +15,13 @@ import { GameState } from "@/context/types"
 export function Toaster() {
   const { toasts } = useToast()
   
-  // Добавляем сохранение ID пользователя в глобальную переменную для доступа из других частей приложения
   useEffect(() => {
     const storeUserId = async () => {
       try {
         const userId = await getUserIdentifier();
-        // Сохраняем ID пользователя в глобальной переменной
         window.__game_user_id = userId;
         console.log('ID пользователя сохранен в глобальной переменной:', userId);
         
-        // Проверка статуса соединения с Supabase при каждой загрузке
         try {
           const { data, error } = await supabase.from('referral_data').select('count(*)');
           if (!error) {
@@ -43,7 +39,6 @@ export function Toaster() {
     
     storeUserId();
     
-    // Улучшаем обработчик для события обновления из страницы с рефералами
     const handleRefresh = async (event) => {
       console.log('Получено событие обновления рефералов');
       try {
@@ -51,7 +46,6 @@ export function Toaster() {
         if (userId) {
           console.log('Запрос обновления для пользователя:', userId);
           
-          // Выполняем явную проверку подключения к Supabase
           const { data: connectionCheck, error: connectionError } = await supabase
             .from('referral_data')
             .select('count(*)');
@@ -63,7 +57,6 @@ export function Toaster() {
           
           console.log('✅ Подключение к Supabase подтверждено при обновлении');
           
-          // Получаем актуальные данные о рефералах
           const { data: referralCodeData } = await supabase
             .from('referral_data')
             .select('referral_code')
@@ -74,7 +67,6 @@ export function Toaster() {
             const referralCode = referralCodeData.referral_code;
             console.log('Получен реферальный код пользователя:', referralCode);
             
-            // Запрашиваем список рефералов по реферальному коду
             const { data: referrals, error: referralsError } = await supabase
               .from('referral_data')
               .select('user_id, created_at, is_activated')
@@ -87,11 +79,7 @@ export function Toaster() {
             
             console.log('Получены рефералы из базы данных:', referrals);
             
-            // Проверяем каждого реферала на наличие исследования "Основы блокчейна"
             for (const referral of (referrals || [])) {
-              console.log(`Проверка статуса активации для реферала ${referral.user_id}`);
-              
-              // Получаем сохранение игры реферала
               const { data: saveData } = await supabase
                 .from('game_saves')
                 .select('game_data')
@@ -99,21 +87,18 @@ export function Toaster() {
                 .single();
                 
               if (saveData && saveData.game_data) {
-                // Типизируем game_data как потенциальный GameState и проверяем его структуру
-                // Сначала приводим к типу unknown для безопасного последующего приведения
                 const gameData = saveData.game_data as unknown;
                 
-                // Проверяем, что gameData - это объект
                 if (typeof gameData === 'object' && gameData !== null) {
-                  // Безопасно проверяем наличие свойства upgrades и исследований
                   const typedGameData = gameData as Partial<GameState>;
                   
                   const hasBlockchainBasics = typedGameData.upgrades && 
                     (typedGameData.upgrades['blockchain_basics']?.purchased || 
                      typedGameData.upgrades['basicBlockchain']?.purchased);
                 
-                  // Преобразуем is_activated в булевое значение для сравнения
-                  const isActivated = referral.is_activated === true || referral.is_activated === 'true';
+                  const isActivated = typeof referral.is_activated === 'boolean'
+                    ? referral.is_activated
+                    : String(referral.is_activated).toLowerCase() === 'true';
                 
                   console.log(`Реферал ${referral.user_id}:`, {
                     hasBlockchainBasics,
@@ -125,7 +110,6 @@ export function Toaster() {
                   if (hasBlockchainBasics && !isActivated) {
                     console.log(`Обнаружено исследование "Основы блокчейна" у реферала ${referral.user_id}, но реферал не активирован`);
                     
-                    // Обновляем статус активации в базе данных
                     const { error: updateError } = await supabase
                       .from('referral_data')
                       .update({ is_activated: true })
@@ -139,7 +123,6 @@ export function Toaster() {
                   } else if (!hasBlockchainBasics && isActivated) {
                     console.log(`У реферала ${referral.user_id} нет исследования "Основы блокчейна", но реферал активирован в базе`);
                     
-                    // Обновляем статус активации в базе данных
                     const { error: updateError } = await supabase
                       .from('referral_data')
                       .update({ is_activated: false })
