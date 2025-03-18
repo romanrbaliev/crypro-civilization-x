@@ -99,6 +99,15 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
                   >
                     Вернуться в главное меню
                   </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
+                    onClick={() => setResetAlertOpen(true)}
+                  >
+                    <RefreshCcw className="h-4 w-4 mr-2" />
+                    Сбросить прогресс
+                  </Button>
                 </div>
                 
                 <Separator className="my-4" />
@@ -111,16 +120,6 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
               </div>
             </SheetContent>
           </Sheet>
-          
-          {/* Кнопка сброса всех сохранений */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setResetAlertOpen(true)}
-            title="Сбросить все сохранения"
-          >
-            <RefreshCcw className="h-5 w-5 text-red-500" />
-          </Button>
         </div>
       </div>
       
