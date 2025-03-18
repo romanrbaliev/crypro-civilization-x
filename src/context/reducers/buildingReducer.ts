@@ -1,8 +1,11 @@
+
 import { GameState, GameAction } from '../types';
 import { canAffordCost, deductResources } from '@/utils/helpers';
 import { activateReferral } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { REFERRAL_TABLE } from '@/api/apiTypes';
 
 // Экспортируем функцию для использования в gameReducer
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
@@ -62,17 +65,36 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     
     // Если пользователь был приглашен по реферальной ссылке, активируем его как реферала
     if (state.referredBy) {
-      console.log(`Игрок был приглашен по коду ${state.referredBy}. Подготавливаем реферальную связь.`);
+      console.log(`Игрок был приглашен по коду ${state.referredBy}. Активируем реферальную связь.`);
       
-      // Отправляем ID текущего пользователя для проверки активации у реферера
+      // Получаем ID текущего пользователя
       const userId = window.__game_user_id || `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
       
-      console.log(`Подготавливаем пользователя ${userId} как реферала пользователя с кодом ${state.referredBy}`);
-      
-      // Отправляем уведомление
-      safeDispatchGameEvent("Реферальная связь готова к активации. После исследования \"Основы блокчейна\" вы активируете бонус для пригласившего вас!", "info");
-      
-      // НЕ активируем реферала автоматически, это происходит только после покупки исследования
+      // Обновляем поле is_activated в базе данных напрямую
+      try {
+        // Асинхронно обновляем статус активации
+        supabase
+          .from(REFERRAL_TABLE)
+          .update({ is_activated: true })
+          .eq('user_id', userId)
+          .then(({ error }) => {
+            if (error) {
+              console.error('❌ Ошибка при обновлении статуса активации:', error);
+            } else {
+              console.log('✅ Статус активации обновлен в базе данных');
+              
+              // Теперь активируем связь в сохранении реферера
+              activateReferral(userId).catch(err => 
+                console.error("Ошибка при активации реферала:", err)
+              );
+              
+              // Отправляем уведомление
+              safeDispatchGameEvent("Реферальная связь активирована! Ваш реферер получил бонус.", "success");
+            }
+          });
+      } catch (error) {
+        console.error('❌ Ошибка при активации реферальной связи:', error);
+      }
     }
     
     // Обновляем максимальные значения ресурсов

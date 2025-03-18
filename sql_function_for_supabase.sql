@@ -33,12 +33,23 @@ BEGIN
       user_id TEXT NOT NULL UNIQUE,
       referral_code TEXT NOT NULL UNIQUE,
       referred_by TEXT,
+      is_activated BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
     );
     
     -- Добавляем индексы
     CREATE INDEX idx_referral_data_user_id ON public.referral_data(user_id);
     CREATE INDEX idx_referral_data_referral_code ON public.referral_data(referral_code);
+  ELSE
+    -- Если таблица существует, но поле is_activated отсутствует, добавляем его
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'referral_data' 
+      AND column_name = 'is_activated'
+    ) THEN
+      ALTER TABLE public.referral_data ADD COLUMN is_activated BOOLEAN DEFAULT FALSE;
+    END IF;
   END IF;
   
   -- Проверяем существует ли таблица referral_helpers
