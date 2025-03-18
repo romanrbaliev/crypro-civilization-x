@@ -3,15 +3,27 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
 import Logo from '@/components/Logo';
-import { Play, Trophy, Settings, Volume2, VolumeX } from 'lucide-react';
+import { Play, Trophy, Settings, Volume2, VolumeX, RefreshCcw, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { Animator, easing } from '@/utils/animations';
+import { resetAllGameData } from '@/context/utils/gameStorage';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Index = () => {
   const navigate = useNavigate();
   const [highScore, setHighScore] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [resetAlertOpen, setResetAlertOpen] = useState(false);
 
   // Загрузка рекорда из localStorage
   useEffect(() => {
@@ -57,6 +69,24 @@ const Index = () => {
     toast.success(isMuted ? 'Звук включен' : 'Звук выключен', {
       position: 'top-center',
     });
+  };
+
+  const handleResetAll = async () => {
+    try {
+      await resetAllGameData();
+      toast.success('Все сохранения для всех пользователей успешно удалены', {
+        position: 'top-center',
+      });
+      
+      // Перезагрузка страницы после небольшой задержки
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      toast.error('Не удалось удалить сохранения игры.', {
+        position: 'top-center',
+      });
+    }
   };
 
   return (
@@ -130,6 +160,18 @@ const Index = () => {
               </div>
               
               <div className="flex justify-between items-center p-2 hover:bg-white/20 rounded-lg transition-colors">
+                <span>Сбросить для всех</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setResetAlertOpen(true)}
+                  className="rounded-full aspect-square p-2"
+                >
+                  <Trash className="w-5 h-5 text-red-500" />
+                </Button>
+              </div>
+              
+              <div className="flex justify-between items-center p-2 hover:bg-white/20 rounded-lg transition-colors">
                 <span>Версия</span>
                 <span className="text-sm text-gray-500">1.0.0</span>
               </div>
@@ -147,6 +189,25 @@ const Index = () => {
           </div>
         </div>
       )}
+      
+      {/* Диалог подтверждения сброса */}
+      <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Сбросить все сохранения?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие удалит все сохранения игры для всех пользователей.
+              Данное действие невозможно отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetAll} className="bg-red-500 hover:bg-red-600">
+              Сбросить все сохранения
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       {/* Нижняя панель */}
       <div className="glass border-t border-white/20 p-4 text-center text-sm z-10">
