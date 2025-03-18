@@ -4,6 +4,7 @@ import { researchCategories } from '@/utils/gameConfig';
 import TechTreeCategory from './TechTreeCategory';
 import { Lightbulb } from 'lucide-react';
 import { useGame } from '@/context/hooks/useGame';
+import { isBlockchainBasicsUnlocked } from '@/utils/researchUtils';
 
 interface TechTreeProps {
   onAddEvent: (message: string, type: string) => void;
@@ -45,12 +46,22 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
     console.log("TechTree: Существует blockchain_basics:", blockchainBasicsExists);
     
     if (basicBlockchainExists) {
-      console.log("TechTree: Статус basicBlockchain:", state.upgrades.basicBlockchain.unlocked, state.upgrades.basicBlockchain.purchased);
+      console.log("TechTree: Статус basicBlockchain:", 
+        state.upgrades.basicBlockchain.unlocked, 
+        state.upgrades.basicBlockchain.purchased
+      );
     }
     
     if (blockchainBasicsExists) {
-      console.log("TechTree: Статус blockchain_basics:", state.upgrades.blockchain_basics.unlocked, state.upgrades.blockchain_basics.purchased);
+      console.log("TechTree: Статус blockchain_basics:", 
+        state.upgrades.blockchain_basics.unlocked, 
+        state.upgrades.blockchain_basics.purchased
+      );
     }
+    
+    // Проверка статуса разблокировки "Основы блокчейна"
+    const isUnlocked = isBlockchainBasicsUnlocked(state.upgrades);
+    console.log("TechTree: 'Основы блокчейна' РАЗБЛОКИРОВАНО:", isUnlocked);
   }, [state.upgrades]);
 
   // ИСПРАВЛЕНО: Проверка разблокировки конкретных исследований
