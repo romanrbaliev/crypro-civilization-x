@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { Copy, Send, MessageSquare, Users, Building } from 'lucide-react';
+import { Copy, Send, MessageSquare, Users, Building, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -28,16 +29,31 @@ interface ReferralsTabProps {
 }
 
 const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const [currentTab, setCurrentTab] = useState('all');
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [referralLink, setReferralLink] = useState('');
+  const [helperRequests, setHelperRequests] = useState<any[]>([]);
   
   // Генерация реферальной ссылки
   useEffect(() => {
-    // Используем прямую ссылку на бота
-    setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
-  }, [state.referralCode]);
+    // Если код реферала уже есть в состоянии, используем его
+    if (state.referralCode) {
+      setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
+    } else {
+      // Если кода нет, генерируем новый и обновляем состояние
+      const newCode = generateReferralCode();
+      dispatch({ type: "SET_REFERRAL_CODE", payload: { code: newCode } });
+      setReferralLink(`https://t.me/Crypto_civilization_bot?start=${newCode}`);
+    }
+  }, [state.referralCode, dispatch]);
+
+  // Функция генерации реферального кода (8 значный hex код)
+  const generateReferralCode = () => {
+    return Array.from({ length: 8 }, () => 
+      Math.floor(Math.random() * 16).toString(16).toUpperCase()
+    ).join('');
+  };
 
   // Копирование ссылки в буфер обмена
   const copyReferralLink = () => {
@@ -59,8 +75,24 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       });
   };
 
-  // Отправка приглашения помощнику
-  const inviteHelper = async (referralId: string) => {
+  // Отправка приглашения через Telegram
+  const sendTelegramInvite = () => {
+    if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
+      try {
+        window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`);
+        onAddEvent("Отправка приглашения через Telegram", "info");
+      } catch (error) {
+        console.error('Ошибка при открытии ссылки в Telegram:', error);
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`, '_blank');
+      }
+    } else {
+      // Fallback для браузеров без Telegram WebApp
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`, '_blank');
+    }
+  };
+
+  // Запрос на наем помощника
+  const hireHelper = async (referralId: string) => {
     if (!selectedBuildingId) {
       toast({
         title: "Ошибка",
@@ -71,27 +103,110 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
 
     try {
-      const response = await fetch(`https://t.me/Crypto_civilization_bot/invite_helper`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employerId: state.referralCode,
-          helperId: referralId,
-          buildingId: selectedBuildingId
-        })
+      // Обновляем состояние игры
+      dispatch({ 
+        type: "HIRE_REFERRAL_HELPER", 
+        payload: { 
+          referralId, 
+          buildingId: selectedBuildingId 
+        } 
       });
 
-      if (response.ok) {
-        toast({
-          title: "Приглашение отправлено",
-          description: "Ожидаем ответа помощника",
+      // Записываем в Supabase информацию о запросе на наем помощника
+      const { data, error } = await supabase
+        .from('referral_helpers')
+        .insert({
+          employer_id: state.referralCode,
+          helper_id: referralId,
+          building_id: selectedBuildingId,
+          status: 'pending'
         });
-        onAddEvent("Приглашение помощника отправлено", "success");
+
+      if (error) {
+        console.error("Ошибка при отправке запроса в БД:", error);
+        throw error;
       }
+
+      toast({
+        title: "Приглашение отправлено",
+        description: "Ожидаем ответа помощника",
+      });
+      onAddEvent("Приглашение помощника отправлено", "success");
     } catch (error) {
+      console.error("Ошибка при отправке приглашения:", error);
       toast({
         title: "Ошибка",
         description: "Не удалось отправить приглашение",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Загрузка запросов на должность помощника
+  useEffect(() => {
+    const loadHelperRequests = async () => {
+      if (!state.referralCode) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('referral_helpers')
+          .select('*')
+          .eq('helper_id', state.referralCode)
+          .eq('status', 'pending');
+
+        if (error) {
+          console.error("Ошибка при загрузке запросов:", error);
+          return;
+        }
+
+        setHelperRequests(data || []);
+      } catch (error) {
+        console.error("Ошибка при загрузке запросов помощника:", error);
+      }
+    };
+
+    loadHelperRequests();
+    // Периодическое обновление запросов на работу
+    const intervalId = setInterval(loadHelperRequests, 30000);
+    return () => clearInterval(intervalId);
+  }, [state.referralCode]);
+
+  // Ответ на запрос о найме
+  const respondToHelperRequest = async (helperId: string, accepted: boolean) => {
+    try {
+      // Обновляем состояние игры
+      dispatch({ 
+        type: "RESPOND_TO_HELPER_REQUEST", 
+        payload: { 
+          helperId, 
+          accepted 
+        } 
+      });
+
+      // Обновляем статус в Supabase
+      const { error } = await supabase
+        .from('referral_helpers')
+        .update({ status: accepted ? 'accepted' : 'rejected' })
+        .eq('id', helperId);
+
+      if (error) {
+        console.error("Ошибка при обновлении статуса:", error);
+        throw error;
+      }
+
+      // Обновляем локальный список запросов
+      setHelperRequests(prev => prev.filter(req => req.id !== helperId));
+
+      toast({
+        title: accepted ? "Вы приняли предложение" : "Вы отклонили предложение",
+        description: accepted ? "Теперь вы получаете бонус +10% к производительности" : "Предложение отклонено",
+      });
+      onAddEvent(accepted ? "Вы приняли предложение о работе" : "Вы отклонили предложение о работе", accepted ? "success" : "info");
+    } catch (error) {
+      console.error("Ошибка при ответе на запрос:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обработать ваш ответ",
         variant: "destructive"
       });
     }
@@ -108,6 +223,9 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const availableBuildings = Object.values(state.buildings)
     .filter(b => b.count > 0);
 
+  // Проверка на наличие запросов о работе
+  const hasHelperRequests = helperRequests.length > 0;
+
   return (
     <div className="p-2 flex flex-col h-full">
       <div className="mb-2">
@@ -122,6 +240,9 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             <div className="flex space-x-1">
               <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={copyReferralLink}>
                 <Copy className="h-3 w-3" />
+              </Button>
+              <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={sendTelegramInvite}>
+                <Send className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -139,7 +260,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
       <div className="flex-1 overflow-auto">
         <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab}>
-          <TabsList className="grid grid-cols-2">
+          <TabsList className="grid grid-cols-3">
             <TabsTrigger value="all" className="text-[10px] h-6">
               <Users className="h-3 w-3 mr-1" />
               Все ({totalReferrals})
@@ -147,6 +268,10 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             <TabsTrigger value="active" className="text-[10px] h-6">
               <Users className="h-3 w-3 mr-1" />
               Активные ({activeReferrals})
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="text-[10px] h-6">
+              <MessageSquare className="h-3 w-3 mr-1" />
+              Запросы {hasHelperRequests && <span className="bg-red-500 text-white text-[8px] rounded-full px-1 ml-1">{helperRequests.length}</span>}
             </TabsTrigger>
           </TabsList>
 
@@ -241,7 +366,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                           <Button
                             size="sm"
                             className="text-[9px] h-6"
-                            onClick={() => inviteHelper(referral.id)}
+                            onClick={() => hireHelper(referral.id)}
                           >
                             Отправить приглашение
                           </Button>
@@ -256,6 +381,57 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                 <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
                 <p className="text-[10px]">У вас пока нет активных рефералов</p>
                 <p className="text-[9px] mt-1">Рефералы становятся активными после покупки Генератора</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="requests" className="mt-2">
+            {helperRequests.length > 0 ? (
+              <div className="space-y-1.5">
+                {helperRequests.map(request => (
+                  <div 
+                    key={request.id} 
+                    className="p-1.5 rounded-lg border bg-blue-50"
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="text-[10px] font-medium">Предложение работы</div>
+                      <div className="text-[9px] text-gray-500">
+                        {new Date(request.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="text-[9px] mb-2">
+                      Здание: <span className="font-medium">{state.buildings[request.building_id]?.name || request.building_id}</span>
+                    </div>
+                    <div className="text-[9px] text-gray-600 mb-2">
+                      Вы получите +10% к производительности, если примете предложение
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-6 px-2 text-[9px]"
+                        onClick={() => respondToHelperRequest(request.id, false)}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Отклонить
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="h-6 px-2 text-[9px]"
+                        onClick={() => respondToHelperRequest(request.id, true)}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Принять
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                <p className="text-[10px]">У вас нет запросов о работе</p>
+                <p className="text-[9px] mt-1">Здесь будут отображаться предложения о найме от других игроков</p>
               </div>
             )}
           </TabsContent>

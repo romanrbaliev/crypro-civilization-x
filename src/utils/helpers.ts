@@ -1,5 +1,5 @@
 
-import { Resource } from "@/context/types";
+import { Resource, ReferralHelper } from "@/context/types";
 
 export const formatNumber = (num: number): string => {
   if (num >= 1e6) {
@@ -114,7 +114,7 @@ export const formatTime = (seconds: number): string => {
   return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 };
 
-// Добавляем отсутствующую функцию calculateTimeToReach
+// Функция для расчета времени до достижения цели
 export const calculateTimeToReach = (
   currentValue: number,
   targetValue: number,
@@ -127,10 +127,10 @@ export const calculateTimeToReach = (
   return formatTime(timeInSeconds);
 };
 
-// Новые хелперы для системы помощников
+// Хелперы для системы помощников
 export const calculateBuildingBoostFromHelpers = (
   buildingId: string,
-  referralHelpers: any[]
+  referralHelpers: ReferralHelper[]
 ): number => {
   // Находим всех активных помощников для этого здания
   const activeHelpers = referralHelpers.filter(
@@ -143,7 +143,7 @@ export const calculateBuildingBoostFromHelpers = (
 
 export const calculateHelperBoost = (
   employerId: string,
-  referralHelpers: any[]
+  referralHelpers: ReferralHelper[]
 ): number => {
   // Находим все задания, где пользователь выступает помощником
   const activeJobs = referralHelpers.filter(
