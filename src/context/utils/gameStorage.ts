@@ -3,170 +3,64 @@ import { GameState } from '../types';
 import { initialState } from '../initialState';
 import { saveGameToServer, loadGameFromServer } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from './eventBusUtils';
+import { toast } from '@/hooks/use-toast';
 
-// Константа с именем ключа локального хранилища (для совместимости со старыми версиями)
-export const GAME_STORAGE_KEY = 'cryptoCivilizationSave';
-
-// Глубокое слияние объектов для корректного обновления
-function deepMerge(target: any, source: any): any {
-  // Если source не объект или null, возвращаем target
-  if (!source || typeof source !== 'object') {
-    return { ...target };
-  }
-  
-  // Создаем копию target
-  const output = { ...target };
-  
-  // Перебираем все ключи в source
-  for (const key in source) {
-    if (source.hasOwnProperty(key)) {
-      // Если значение - объект и не массив, рекурсивно объединяем
-      if (
-        typeof source[key] === 'object' && 
-        source[key] !== null &&
-        !Array.isArray(source[key])
-      ) {
-        // Если ключ есть в target и это объект, выполняем глубокое слияние
-        if (key in target && typeof target[key] === 'object' && target[key] !== null) {
-          output[key] = deepMerge(target[key], source[key]);
-        } else {
-          // Иначе просто копируем объект
-          output[key] = { ...source[key] };
-        }
-      } else {
-        // Для простых типов и массивов просто заменяем значение
-        output[key] = source[key];
-      }
-    }
-  }
-  
-  return output;
-}
-
-// Флаги для контроля сохранения
-let lastSaveTime = 0;
-const SAVE_THROTTLE = 3000; // 3 секунды
-let saveInProgress = false;
-
-// Сохранение состояния игры
+// Сохранение состояния игры только в серверном хранилище
 export async function saveGameState(state: GameState): Promise<boolean> {
   try {
-    // Предотвращаем параллельные сохранения
-    if (saveInProgress) {
-      console.log('⏳ Сохранение уже выполняется, пропускаем...');
-      return true;
-    }
-    
-    // Проверка дросселирования сохранений
-    const now = Date.now();
-    if (now - lastSaveTime < SAVE_THROTTLE) {
-      console.log(`⏱️ Сохранение пропущено (прошло ${now - lastSaveTime}мс из ${SAVE_THROTTLE}мс)`);
-      return true;
-    }
-    
-    // Устанавливаем флаг сохранения
-    saveInProgress = true;
-    
-    // Обновляем timestamp последнего сохранения
-    lastSaveTime = now;
+    console.log('🔄 Сохранение игры в облачное хранилище...');
     
     // Обновляем timestamp перед сохранением
     const stateToSave = {
       ...state,
-      lastSaved: now
+      lastSaved: Date.now()
     };
     
-    console.log(`🔄 Сохранение игры (размер данных: ~${JSON.stringify(stateToSave).length} байт)`);
-    
-    try {
-      // Сначала сохраняем в localStorage для резервного копирования
-      localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(stateToSave));
-      console.log('✅ Резервная копия сохранена в localStorage');
-    } catch (localError) {
-      console.warn('⚠️ Не удалось сохранить резервную копию в localStorage:', localError);
-    }
-    
-    // Сохраняем через gameDataService (работает с Supabase или локально)
+    // Сохраняем через gameDataService
     const saved = await saveGameToServer(stateToSave);
     
     if (saved) {
       console.log('✅ Игра успешно сохранена в облаке');
+      return true;
     } else {
       console.warn('⚠️ Возникли проблемы при сохранении игры в облаке');
+      toast({
+        title: "Проблема с сохранением",
+        description: "Не удалось сохранить прогресс в облаке. Проверьте подключение к интернету.",
+        variant: "warning",
+      });
       safeDispatchGameEvent(
-        "Возникли проблемы при сохранении игры в облаке",
+        "Не удалось сохранить прогресс в облаке",
         "warning"
-      );
-    }
-    
-    // Освобождаем флаг сохранения
-    saveInProgress = false;
-    return saved;
-  } catch (error) {
-    console.error('❌ Критическая ошибка при сохранении состояния игры:', error);
-    
-    // Освобождаем флаг сохранения даже при ошибке
-    saveInProgress = false;
-    
-    // При ошибке пытаемся сохранить в localStorage
-    try {
-      localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({
-        ...state,
-        lastSaved: Date.now()
-      }));
-      console.log('✅ Аварийная копия сохранена в localStorage');
-      safeDispatchGameEvent(
-        "Аварийная копия сохранена локально",
-        "warning"
-      );
-      return true;
-    } catch (localError) {
-      console.error('❌ Полная ошибка сохранения:', localError);
-      safeDispatchGameEvent(
-        "Не удалось сохранить игру",
-        "error"
       );
       return false;
     }
+  } catch (error) {
+    console.error('❌ Критическая ошибка при сохранении состояния игры:', error);
+    
+    toast({
+      title: "Ошибка сохранения",
+      description: "Произошла ошибка при сохранении. Проверьте подключение к интернету.",
+      variant: "destructive",
+    });
+    safeDispatchGameEvent(
+      "Произошла ошибка при сохранении. Проверьте подключение к интернету.",
+      "error"
+    );
+    return false;
   }
 }
 
-// Загрузка состояния игры с поддержкой восстановления из различных источников
+// Загрузка состояния игры только из серверного хранилища
 export async function loadGameState(): Promise<GameState | null> {
   try {
-    console.log('🔄 Начинаем загрузку сохраненной игры...');
+    console.log('🔄 Начинаем загрузку сохраненной игры из облака...');
     
-    // Загружаем через gameDataService (работает с Supabase или локально)
-    let loadedState = await loadGameFromServer();
-    let stateSource = 'server';
-    
-    if (!loadedState) {
-      console.log('⚠️ Не удалось загрузить из облачной базы данных, пробуем localStorage напрямую...');
-      
-      // Проверяем localStorage для резервного копирования
-      try {
-        const localData = localStorage.getItem(GAME_STORAGE_KEY);
-        if (localData) {
-          loadedState = JSON.parse(localData);
-          stateSource = 'localStorage';
-          console.log('✅ Игра загружена из localStorage');
-          safeDispatchGameEvent(
-            "Игра загружена из локального хранилища",
-            "info"
-          );
-        }
-      } catch (localError) {
-        console.error('❌ Ошибка при загрузке из localStorage:', localError);
-        safeDispatchGameEvent(
-          "Ошибка при загрузке из localStorage",
-          "error"
-        );
-      }
-    }
+    // Загружаем через gameDataService
+    const loadedState = await loadGameFromServer();
     
     if (loadedState) {
-      console.log(`✅ Игра успешно загружена из ${stateSource} (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
-      console.log('👉 Загруженные данные:', JSON.stringify(loadedState).substring(0, 100) + '...');
+      console.log(`✅ Игра успешно загружена из облака (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
       
       // Проверяем целостность загруженных данных
       if (!loadedState.resources || !loadedState.buildings || !loadedState.upgrades) {
@@ -177,7 +71,7 @@ export async function loadGameState(): Promise<GameState | null> {
         );
         
         // Восстанавливаем недостающие данные из initialState
-        loadedState = {
+        const restoredState = {
           ...initialState,
           ...loadedState,
           resources: { ...initialState.resources, ...(loadedState.resources || {}) },
@@ -185,29 +79,33 @@ export async function loadGameState(): Promise<GameState | null> {
           upgrades: { ...initialState.upgrades, ...(loadedState.upgrades || {}) },
           unlocks: { ...initialState.unlocks, ...(loadedState.unlocks || {}) }
         };
+        
+        // Обновляем timestamp последнего обновления
+        restoredState.lastUpdate = Date.now();
+        
+        return restoredState;
       }
       
-      // Используем глубокое объединение для правильного слияния всех вложенных объектов
-      const mergedState = deepMerge(initialState, loadedState);
-      
       // Обновляем timestamp последнего обновления
-      mergedState.lastUpdate = Date.now();
+      loadedState.lastUpdate = Date.now();
       
-      return mergedState;
+      return loadedState;
     }
     
-    console.log('❌ Не удалось загрузить сохранение игры');
+    console.log('❌ Не удалось загрузить сохранение игры из облака');
     safeDispatchGameEvent(
       "Не удалось загрузить сохранение игры, начинаем новую игру",
       "info"
     );
+    // Если не смогли загрузить из облака, начинаем новую игру
     return null;
   } catch (error) {
     console.error('❌ Критическая ошибка при загрузке состояния игры:', error);
     safeDispatchGameEvent(
-      "Критическая ошибка при загрузке состояния игры",
+      "Критическая ошибка при загрузке состояния игры, начинаем новую игру",
       "error"
     );
+    // При ошибке также начинаем новую игру
     return null;
   }
 }
@@ -215,11 +113,7 @@ export async function loadGameState(): Promise<GameState | null> {
 // Удаление сохраненного состояния игры
 export async function clearGameState(): Promise<void> {
   try {
-    console.log('🔄 Удаление всех сохранений игры...');
-    
-    // Удаляем из localStorage
-    localStorage.removeItem(GAME_STORAGE_KEY);
-    console.log('✅ Локальное сохранение удалено');
+    console.log('🔄 Удаление сохранения игры из облака...');
     
     // Очищаем через gameDataService
     try {
@@ -229,15 +123,29 @@ export async function clearGameState(): Promise<void> {
         }
       });
       console.log('✅ Серверное сохранение запрошено на удаление');
+      
+      toast({
+        title: "Сохранения очищены",
+        description: "Все сохранения игры успешно удалены",
+        variant: "success",
+      });
+      safeDispatchGameEvent(
+        "Все сохранения игры успешно удалены",
+        "success"
+      );
     } catch (serviceError) {
       console.error('❌ Ошибка при обращении к сервису данных:', serviceError);
+      
+      toast({
+        title: "Ошибка очистки",
+        description: "Произошла ошибка при удалении сохранений",
+        variant: "destructive",
+      });
+      safeDispatchGameEvent(
+        "Произошла ошибка при удалении сохранений",
+        "error"
+      );
     }
-    
-    console.log('✅ Все сохранения игры успешно удалены');
-    safeDispatchGameEvent(
-      "Все сохранения игры успешно удалены",
-      "success"
-    );
   } catch (error) {
     console.error('❌ Не удалось удалить сохранение игры:', error);
     safeDispatchGameEvent(

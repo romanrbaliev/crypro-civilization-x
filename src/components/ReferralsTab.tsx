@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getUserIdentifier } from '@/api/gameDataService';
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
@@ -103,6 +104,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
 
     try {
+      const userId = await getUserIdentifier();
+      
       // Обновляем состояние игры
       dispatch({ 
         type: "HIRE_REFERRAL_HELPER", 
@@ -116,7 +119,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const { data, error } = await supabase
         .from('referral_helpers')
         .insert({
-          employer_id: state.referralCode,
+          employer_id: userId,
           helper_id: referralId,
           building_id: selectedBuildingId,
           status: 'pending'
@@ -145,13 +148,13 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   // Загрузка запросов на должность помощника
   useEffect(() => {
     const loadHelperRequests = async () => {
-      if (!state.referralCode) return;
-
       try {
+        const userId = await getUserIdentifier();
+        
         const { data, error } = await supabase
           .from('referral_helpers')
           .select('*')
-          .eq('helper_id', state.referralCode)
+          .eq('helper_id', userId)
           .eq('status', 'pending');
 
         if (error) {
@@ -169,7 +172,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     // Периодическое обновление запросов на работу
     const intervalId = setInterval(loadHelperRequests, 30000);
     return () => clearInterval(intervalId);
-  }, [state.referralCode]);
+  }, []);
 
   // Ответ на запрос о найме
   const respondToHelperRequest = async (helperId: string, accepted: boolean) => {
@@ -263,15 +266,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           <TabsList className="grid grid-cols-3">
             <TabsTrigger value="all" className="text-[10px] h-6">
               <Users className="h-3 w-3 mr-1" />
-              Все ({totalReferrals})
+              Все
             </TabsTrigger>
             <TabsTrigger value="active" className="text-[10px] h-6">
               <Users className="h-3 w-3 mr-1" />
-              Активные ({activeReferrals})
+              Активные
             </TabsTrigger>
-            <TabsTrigger value="requests" className="text-[10px] h-6">
+            <TabsTrigger value="requests" className="text-[10px] h-6 relative">
               <MessageSquare className="h-3 w-3 mr-1" />
-              Запросы {hasHelperRequests && <span className="bg-red-500 text-white text-[8px] rounded-full px-1 ml-1">{helperRequests.length}</span>}
+              Запросы
+              {hasHelperRequests && (
+                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
             </TabsTrigger>
           </TabsList>
 

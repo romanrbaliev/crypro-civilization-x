@@ -8,22 +8,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Json } from '@/integrations/supabase/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
-// Флаги состояния
-let supabaseChecked = false;
-let supabaseAvailable = false;
-let supabaseNotificationShown = false;
-
 // Константы
 const SAVES_TABLE = 'game_saves';
-const LOCAL_BACKUP_KEY = 'cryptoCivilizationLocalBackup';
-const LAST_CHECK_INTERVAL = 5000; // 5 секунд между проверками соединения
+const REFERRAL_TABLE = 'referral_data';
+const REFERRAL_HELPERS_TABLE = 'referral_helpers';
+const CHECK_CONNECTION_INTERVAL = 5000; // 5 секунд между проверками соединения
 
 // Кэш для проверки соединения
 let lastCheckTime = 0;
 let cachedConnectionResult = false;
 
 // Получение идентификатора пользователя с приоритетом Telegram
-const getUserIdentifier = async (): Promise<string> => {
+export const getUserIdentifier = async (): Promise<string> => {
   // Проверяем есть ли сохраненный ID в памяти
   const cachedId = window.__game_user_id;
   if (cachedId) {
@@ -40,68 +36,24 @@ const getUserIdentifier = async (): Promise<string> => {
         window.__game_user_id = id;
         console.log(`✅ Получен ID пользователя Telegram: ${id}`);
         
-        // Сохраняем ID в localStorage для резерва
-        try {
-          localStorage.setItem('telegram_user_id', telegramUserId.toString());
-        } catch (e) {
-          console.warn('⚠️ Не удалось сохранить Telegram ID в localStorage:', e);
-        }
-        
         return id;
-      } else {
-        // Пытаемся восстановить из localStorage
-        const storedTelegramId = localStorage.getItem('telegram_user_id');
-        if (storedTelegramId) {
-          const id = `tg_${storedTelegramId}`;
-          window.__game_user_id = id;
-          console.log(`✅ Восстановлен ID пользователя Telegram из localStorage: ${id}`);
-          return id;
-        }
       }
     } catch (error) {
       console.error('Ошибка при получении Telegram ID:', error);
     }
   }
   
-  // Проверяем авторизацию в Supabase
-  if (supabase) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id) {
-        const id = `sb_${user.id}`;
-        window.__game_user_id = id;
-        return id;
-      }
-    } catch (error) {
-      console.error('Ошибка при получении ID пользователя Supabase:', error);
-    }
-  }
-  
-  // Используем локальный идентификатор из localStorage
-  let localId = localStorage.getItem('game_user_id');
-  if (!localId) {
-    localId = `local_${Math.random().toString(36).substring(2, 15)}`;
-    try {
-      localStorage.setItem('game_user_id', localId);
-    } catch (e) {
-      console.warn('⚠️ Не удалось сохранить локальный ID в localStorage:', e);
-    }
-  }
-  
-  window.__game_user_id = localId;
-  return localId;
+  // Генерируем уникальный ID сессии
+  const sessionId = `session_${Math.random().toString(36).substring(2)}`;
+  window.__game_user_id = sessionId;
+  return sessionId;
 };
 
 // Проверка подключения к Supabase
 export const checkSupabaseConnection = async (): Promise<boolean> => {
-  // Если уже проверяли - возвращаем кешированный результат
-  if (supabaseChecked) {
-    return supabaseAvailable;
-  }
-  
   // Дебаунс: если прошло менее 5 секунд с последней проверки, возвращаем кешированный результат
   const now = Date.now();
-  if (now - lastCheckTime < LAST_CHECK_INTERVAL) {
+  if (now - lastCheckTime < CHECK_CONNECTION_INTERVAL) {
     return cachedConnectionResult;
   }
   
@@ -114,44 +66,9 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
       .select('count')
       .limit(1);
     
-    if (error && error.code === 'PGRST116') {
-      console.log('⚠️ Таблица сохранений не найдена, пробуем создать...');
-      
-      // Создаем таблицу через RPC
-      const { error: createError } = await supabase.rpc('create_saves_table');
-      
-      if (createError) {
-        console.error('❌ Не удалось создать таблицу:', createError);
-        
-        // Проверяем еще раз
-        const { error: retryError } = await supabase
-          .from(SAVES_TABLE)
-          .select('count')
-          .limit(1);
-        
-        const isConnected = !retryError || (retryError.code !== 'PGRST116');
-        supabaseChecked = true;
-        supabaseAvailable = isConnected;
-        lastCheckTime = now;
-        cachedConnectionResult = isConnected;
-        
-        return isConnected;
-      }
-      
-      // Если таблица успешно создана
-      console.log('✅ Таблица сохранений успешно создана');
-      supabaseChecked = true;
-      supabaseAvailable = true;
-      lastCheckTime = now;
-      cachedConnectionResult = true;
-      
-      return true;
-    }
-    
     // Подключение работает если нет ошибки или ошибка не связана с отсутствием таблицы
     const isConnected = !error || (error.code !== 'PGRST116');
-    supabaseChecked = true;
-    supabaseAvailable = isConnected;
+    
     lastCheckTime = now;
     cachedConnectionResult = isConnected;
     
@@ -159,75 +76,169 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
       console.log('✅ Соединение с Supabase установлено');
     } else {
       console.warn('⚠️ Не удалось подключиться к Supabase:', error);
+      toast({
+        title: "Ошибка соединения",
+        description: "Не удалось подключиться к серверу. Проверьте соединение с интернетом.",
+        variant: "destructive",
+      });
     }
     
     return isConnected;
   } catch (error) {
     console.error('❌ Ошибка при проверке подключения к Supabase:', error);
     
-    supabaseChecked = true;
-    supabaseAvailable = false;
     lastCheckTime = now;
     cachedConnectionResult = false;
+    
+    toast({
+      title: "Ошибка соединения",
+      description: "Не удалось подключиться к серверу. Проверьте соединение с интернетом.",
+      variant: "destructive",
+    });
     
     return false;
   }
 };
 
-// Сохранение игры в Supabase или локально
+// Сохранение информации о реферале
+export const saveReferralInfo = async (referralCode: string, referredBy: string | null = null): Promise<boolean> => {
+  try {
+    const userId = await getUserIdentifier();
+    
+    // Проверяем наличие записи для этого пользователя
+    const { data: existingData } = await supabase
+      .from(REFERRAL_TABLE)
+      .select()
+      .eq('user_id', userId)
+      .single();
+    
+    if (existingData) {
+      console.log('✅ Запись о реферале уже существует для пользователя', userId);
+      return true;
+    }
+    
+    // Создаем новую запись
+    const { error } = await supabase
+      .from(REFERRAL_TABLE)
+      .insert({
+        user_id: userId,
+        referral_code: referralCode,
+        referred_by: referredBy
+      });
+    
+    if (error) {
+      console.error('❌ Ошибка при сохранении информации о реферале:', error);
+      return false;
+    }
+    
+    console.log('✅ Информация о реферале сохранена успешно');
+    
+    // Если есть информация о том, кто пригласил пользователя
+    if (referredBy) {
+      // Проверяем существование пользователя, который пригласил
+      const { data: referrer } = await supabase
+        .from(REFERRAL_TABLE)
+        .select()
+        .eq('referral_code', referredBy)
+        .single();
+      
+      if (referrer) {
+        console.log('✅ Найден пригласивший пользователь:', referrer.user_id);
+        // В дальнейшем здесь можно добавить логику для уведомлений или бонусов
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Ошибка при работе с реферальной информацией:', error);
+    return false;
+  }
+};
+
+// Получение рефералов пользователя
+export const getUserReferrals = async (): Promise<any[]> => {
+  try {
+    const userId = await getUserIdentifier();
+    const userReferralCode = await getUserReferralCode(userId);
+    
+    if (!userReferralCode) {
+      console.warn('⚠️ Не удалось получить реферальный код пользователя');
+      return [];
+    }
+    
+    const { data, error } = await supabase
+      .from(REFERRAL_TABLE)
+      .select('*')
+      .eq('referred_by', userReferralCode);
+    
+    if (error) {
+      console.error('❌ Ошибка при получении списка рефералов:', error);
+      return [];
+    }
+    
+    console.log(`✅ Получено ${data?.length || 0} рефералов`);
+    return data || [];
+  } catch (error) {
+    console.error('❌ Ошибка при получении рефералов:', error);
+    return [];
+  }
+};
+
+// Получение реферального кода пользователя
+export const getUserReferralCode = async (userId?: string): Promise<string | null> => {
+  try {
+    const userIdToUse = userId || await getUserIdentifier();
+    
+    const { data, error } = await supabase
+      .from(REFERRAL_TABLE)
+      .select('referral_code')
+      .eq('user_id', userIdToUse)
+      .single();
+    
+    if (error || !data) {
+      console.warn('⚠️ Не удалось получить реферальный код:', error);
+      return null;
+    }
+    
+    return data.referral_code;
+  } catch (error) {
+    console.error('❌ Ошибка при получении реферального кода:', error);
+    return null;
+  }
+};
+
+// Сохранение игры в Supabase
 export const saveGameToServer = async (gameState: GameState): Promise<boolean> => {
   try {
     const userId = await getUserIdentifier();
     console.log(`🔄 Сохранение игры для пользователя: ${userId}`);
     
-    let saveSuccess = false;
-    
-    // Всегда сохраняем копию локально как резервный вариант
-    try {
-      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
-        gameData: gameState,
-        timestamp: Date.now(),
-        userId
-      }));
-      console.log('✅ Создана локальная резервная копия игры');
-      saveSuccess = true;
-    } catch (backupError) {
-      console.error('❌ Ошибка при создании локальной резервной копии:', backupError);
-    }
-    
     // Проверяем подключение к Supabase
     const isConnected = await checkSupabaseConnection();
       
     if (!isConnected) {
-      // Предотвращаем многократные уведомления
-      if (!supabaseNotificationShown) {
-        supabaseNotificationShown = true;
-        toast({
-          title: "Локальное сохранение",
-          description: "Облачное сохранение недоступно. Прогресс сохранен локально.",
-          variant: "warning",
-        });
-        safeDispatchGameEvent(
-          "Облачное сохранение недоступно. Прогресс сохранен локально.", 
-          "warning"
-        );
-      }
-      
-      return saveSuccess; // Локальное сохранение успешно
+      toast({
+        title: "Ошибка соединения",
+        description: "Не удалось сохранить прогресс. Проверьте соединение с интернетом.",
+        variant: "destructive",
+      });
+      safeDispatchGameEvent(
+        "Не удалось сохранить прогресс. Проверьте соединение с интернетом.", 
+        "error"
+      );
+      return false;
     }
     
     console.log('🔄 Сохранение в Supabase...');
     
-    // Преобразуем GameState в Json с полной проверкой
-    // Строго контролируем преобразование типов
+    // Преобразуем GameState в Json
     let gameDataJson: Json;
     try {
-      // Используем JSON.stringify и JSON.parse для преобразования в корректный тип Json
       const jsonString = JSON.stringify(gameState);
       gameDataJson = JSON.parse(jsonString);
     } catch (parseError) {
       console.error('❌ Ошибка преобразования состояния игры в JSON:', parseError);
-      return saveSuccess; // Возвращаем результат локального сохранения
+      return false;
     }
     
     // Готовим данные для сохранения
@@ -237,67 +248,38 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       updated_at: new Date().toISOString()
     };
     
-    console.log('👉 Данные для сохранения в Supabase:', saveData);
-    
-    // Пытаемся обновить существующую запись с явным преобразованием типов
-    const { error: upsertError } = await supabase
+    // Обновляем существующую запись
+    const { error } = await supabase
       .from(SAVES_TABLE)
       .upsert(saveData, { onConflict: 'user_id' });
     
-    if (upsertError) {
-      console.error('❌ Ошибка при сохранении в Supabase:', upsertError);
-      
-      if (!supabaseNotificationShown) {
-        supabaseNotificationShown = true;
-        toast({
-          title: "Частичное сохранение",
-          description: "Не удалось сохранить в облаке. Данные сохранены локально.",
-          variant: "warning",
-        });
-        safeDispatchGameEvent(
-          "Не удалось сохранить в облаке. Данные сохранены локально.",
-          "warning"
-        );
-      }
-      
-      return saveSuccess;
+    if (error) {
+      console.error('❌ Ошибка при сохранении в Supabase:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить прогресс. Попробуйте позже.",
+        variant: "destructive",
+      });
+      return false;
     }
     
     console.log('✅ Игра успешно сохранена в Supabase');
-    
-    // Сбрасываем флаг уведомлений, так как Supabase стал доступен
-    if (supabaseNotificationShown) {
-      supabaseNotificationShown = false;
-      safeDispatchGameEvent(
-        "Подключение к облаку восстановлено. Данные синхронизированы.",
-        "success"
-      );
-    }
-    
     return true;
     
   } catch (error) {
     console.error('❌ Критическая ошибка при сохранении игры:', error);
     
-    if (!supabaseNotificationShown) {
-      supabaseNotificationShown = true;
-      toast({
-        title: "Ошибка сохранения",
-        description: "Произошла ошибка при сохранении. Попробуйте еще раз позже.",
-        variant: "destructive",
-      });
-      safeDispatchGameEvent(
-        "Произошла ошибка при сохранении. Попробуйте еще раз позже.",
-        "error"
-      );
-    }
+    toast({
+      title: "Ошибка сохранения",
+      description: "Произошла ошибка при сохранении. Попробуйте еще раз позже.",
+      variant: "destructive",
+    });
     
-    // Возвращаем true, если есть локальная копия
-    return localStorage.getItem(LOCAL_BACKUP_KEY) !== null;
+    return false;
   }
 };
 
-// Загрузка игры из Supabase или локального хранилища
+// Загрузка игры из Supabase
 export const loadGameFromServer = async (): Promise<GameState | null> => {
   try {
     const userId = await getUserIdentifier();
@@ -306,164 +288,67 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     // Проверяем подключение к Supabase
     const isConnected = await checkSupabaseConnection();
       
-    if (isConnected) {
-      console.log('🔄 Загрузка из Supabase...');
+    if (!isConnected) {
+      toast({
+        title: "Ошибка соединения",
+        description: "Не удалось загрузить прогресс. Проверьте соединение с интернетом.",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
+    console.log('🔄 Загрузка из Supabase...');
+    
+    const { data, error } = await supabase
+      .from(SAVES_TABLE)
+      .select('game_data, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('❌ Ошибка при загрузке из Supabase:', error);
+      
+      if (error.code === 'PGRST116') {
+        console.warn('⚠️ Таблица сохранений не существует в Supabase');
+      }
+      
+      return null;
+    } 
+    
+    if (data && data.game_data) {
+      console.log('✅ Игра загружена из Supabase, дата обновления:', data.updated_at);
       
       try {
-        const { data, error } = await supabase
-          .from(SAVES_TABLE)
-          .select('game_data, updated_at')
-          .eq('user_id', userId)
-          .maybeSingle();
+        const gameState = data.game_data as any;
         
-        if (error) {
-          console.error('❌ Ошибка при загрузке из Supabase:', error);
+        // Проверка целостности данных
+        if (validateGameState(gameState)) {
+          console.log('✅ Проверка целостности данных из Supabase пройдена');
           
-          if (error.code === 'PGRST116') {
-            console.warn('⚠️ Таблица сохранений не существует в Supabase');
-            safeDispatchGameEvent(
-              "Таблица сохранений не найдена в облаке.",
-              "warning"
-            );
+          // Обновляем lastUpdate и lastSaved
+          if (!gameState.lastUpdate) {
+            gameState.lastUpdate = Date.now();
           }
-        } else if (data && data.game_data) {
-          console.log('✅ Игра загружена из Supabase, дата обновления:', data.updated_at);
-          console.log('👉 Данные из Supabase:', JSON.stringify(data.game_data).substring(0, 100) + '...');
+          if (!gameState.lastSaved) {
+            gameState.lastSaved = Date.now();
+          }
           
-          try {
-            // Строгое преобразование типа с проверкой структуры
-            const gameState = data.game_data as any;
-            
-            // Проверка целостности данных
-            if (validateGameState(gameState)) {
-              console.log('✅ Проверка целостности данных из Supabase пройдена');
-              
-              // Обновляем локальную копию для резерва
-              try {
-                localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({
-                  gameData: gameState,
-                  timestamp: Date.now(),
-                  userId
-                }));
-                console.log('✅ Локальная резервная копия обновлена из Supabase');
-                
-                safeDispatchGameEvent(
-                  "Игра успешно загружена из облачного хранилища.",
-                  "success"
-                );
-                
-                // Добавляем поля lastUpdate и lastSaved, если их нет
-                if (!gameState.lastUpdate) {
-                  gameState.lastUpdate = Date.now();
-                }
-                if (!gameState.lastSaved) {
-                  gameState.lastSaved = Date.now();
-                }
-                
-                return gameState;
-              } catch (localError) {
-                console.warn('⚠️ Не удалось обновить локальную копию:', localError);
-              }
-              
-              return gameState;
-            } else {
-              console.error('❌ Проверка целостности данных из Supabase не пройдена');
-              safeDispatchGameEvent(
-                "Данные из облака повреждены. Попытка восстановления из локальной копии.",
-                "warning"
-              );
-            }
-          } catch (parseError) {
-            console.error('❌ Ошибка при обработке данных из Supabase:', parseError);
-          }
+          return gameState;
         } else {
-          console.log('❌ Сохранение в Supabase не найдено');
+          console.error('❌ Проверка целостности данных из Supabase не пройдена');
+          safeDispatchGameEvent(
+            "Данные из облака повреждены. Начинаем новую игру.",
+            "warning"
+          );
+          return null;
         }
-      } catch (supabaseError) {
-        console.error('❌ Критическая ошибка при работе с Supabase:', supabaseError);
+      } catch (parseError) {
+        console.error('❌ Ошибка при обработке данных из Supabase:', parseError);
+        return null;
       }
     }
     
-    // Если данные не загружены из Supabase, пытаемся загрузить из локального хранилища
-    try {
-      console.log('🔄 Попытка загрузки из локального хранилища...');
-      
-      // Сначала проверяем LOCAL_BACKUP_KEY (основное резервное хранилище)
-      const backupData = localStorage.getItem(LOCAL_BACKUP_KEY);
-      if (backupData) {
-        try {
-          const localBackup = JSON.parse(backupData);
-          console.log('✅ Найдена локальная копия от:', new Date(localBackup.timestamp).toLocaleString());
-          
-          if (localBackup.gameData) {
-            const gameState = localBackup.gameData;
-            
-            // Проверка целостности данных
-            if (validateGameState(gameState)) {
-              console.log('✅ Проверка целостности данных из локальной копии пройдена');
-              safeDispatchGameEvent(
-                "Игра загружена из локальной копии.",
-                "info"
-              );
-              
-              // Добавляем поля lastUpdate и lastSaved, если их нет
-              if (!gameState.lastUpdate) {
-                gameState.lastUpdate = Date.now();
-              }
-              if (!gameState.lastSaved) {
-                gameState.lastSaved = Date.now();
-              }
-              
-              return gameState;
-            } else {
-              console.error('❌ Проверка целостности данных из локальной копии не пройдена');
-            }
-          }
-        } catch (parseError) {
-          console.error('❌ Ошибка при разборе локальной копии:', parseError);
-        }
-      }
-      
-      // Затем проверяем GAME_STORAGE_KEY (базовое хранилище)
-      const mainData = localStorage.getItem('cryptoCivilizationSave');
-      if (mainData) {
-        try {
-          const mainSave = JSON.parse(mainData);
-          console.log('✅ Найдено основное сохранение');
-          
-          // Проверка целостности данных
-          if (validateGameState(mainSave)) {
-            console.log('✅ Проверка целостности данных из основного сохранения пройдена');
-            safeDispatchGameEvent(
-              "Игра загружена из основного сохранения.",
-              "info"
-            );
-            
-            // Добавляем поля lastUpdate и lastSaved, если их нет
-            if (!mainSave.lastUpdate) {
-              mainSave.lastUpdate = Date.now();
-            }
-            if (!mainSave.lastSaved) {
-              mainSave.lastSaved = Date.now();
-            }
-            
-            return mainSave;
-          } else {
-            console.error('❌ Проверка целостности данных из основного сохранения не пройдена');
-          }
-        } catch (parseError) {
-          console.error('❌ Ошибка при разборе основного сохранения:', parseError);
-        }
-      }
-    } catch (backupError) {
-      console.error('❌ Ошибка при чтении локальной копии:', backupError);
-    }
-    
-    console.log('❌ Ни одно сохранение не найдено или все сохранения повреждены');
-    safeDispatchGameEvent(
-      "Сохранения не найдены. Начинаем новую игру.",
-      "info"
-    );
+    console.log('❌ Сохранение в Supabase не найдено');
     return null;
   } catch (error) {
     console.error('❌ Критическая ошибка при загрузке игры:', error);
@@ -472,6 +357,128 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       "error"
     );
     return null;
+  }
+};
+
+// Проверка и обновление реферальной информации при запуске
+export const checkReferralInfo = async (referralCode: string, referredBy: string | null): Promise<void> => {
+  try {
+    const userId = await getUserIdentifier();
+    
+    // Проверяем наличие записи для этого пользователя
+    const { data: existingData } = await supabase
+      .from(REFERRAL_TABLE)
+      .select()
+      .eq('user_id', userId)
+      .single();
+    
+    if (existingData) {
+      console.log('✅ Реферальная информация уже существует для пользователя', userId);
+      return;
+    }
+    
+    // Если записи нет, сохраняем реферальную информацию
+    await saveReferralInfo(referralCode, referredBy);
+    
+    // Если есть информация о реферере, обновляем его список рефералов
+    if (referredBy) {
+      // Получаем информацию о реферере
+      const { data: referrerData } = await supabase
+        .from(REFERRAL_TABLE)
+        .select('user_id')
+        .eq('referral_code', referredBy)
+        .single();
+        
+      if (referrerData) {
+        console.log('✅ Обновляем информацию о рефералах для пользователя', referrerData.user_id);
+        
+        // Здесь можно добавить код для обновления статистики реферера
+        // или отправки уведомления о новом реферале
+      }
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при проверке реферальной информации:', error);
+  }
+};
+
+// Активация реферала (когда реферал покупает генератор)
+export const activateReferral = async (referralId: string): Promise<boolean> => {
+  try {
+    // Получаем ID пользователя, который пригласил текущего пользователя
+    const userId = await getUserIdentifier();
+    
+    // Получаем информацию о том, кто пригласил текущего пользователя
+    const { data: userData } = await supabase
+      .from(REFERRAL_TABLE)
+      .select('referred_by')
+      .eq('user_id', userId)
+      .single();
+      
+    if (!userData || !userData.referred_by) {
+      console.warn('⚠️ Нет информации о том, кто пригласил пользователя');
+      return false;
+    }
+    
+    // Получаем user_id пригласившего по его реферальному коду
+    const { data: referrerData } = await supabase
+      .from(REFERRAL_TABLE)
+      .select('user_id')
+      .eq('referral_code', userData.referred_by)
+      .single();
+      
+    if (!referrerData) {
+      console.warn('⚠️ Не найден пользователь с реферальным кодом', userData.referred_by);
+      return false;
+    }
+    
+    // Получаем сохранение игры пригласившего
+    const { data: saveData } = await supabase
+      .from(SAVES_TABLE)
+      .select('game_data')
+      .eq('user_id', referrerData.user_id)
+      .single();
+      
+    if (!saveData || !saveData.game_data) {
+      console.warn('⚠️ Не найдено сохранение игры для пользователя', referrerData.user_id);
+      return false;
+    }
+    
+    // Обновляем список рефералов, активируя нужного
+    const gameData = saveData.game_data as any;
+    if (gameData.referrals) {
+      const updatedReferrals = gameData.referrals.map((ref: any) => 
+        ref.id === referralId ? { ...ref, activated: true } : ref
+      );
+      
+      // Проверяем, изменился ли хоть один реферал
+      const wasUpdated = JSON.stringify(updatedReferrals) !== JSON.stringify(gameData.referrals);
+      
+      if (wasUpdated) {
+        // Обновляем только список рефералов
+        const updatedGameData = {
+          ...gameData,
+          referrals: updatedReferrals
+        };
+        
+        const { error } = await supabase
+          .from(SAVES_TABLE)
+          .update({ game_data: updatedGameData })
+          .eq('user_id', referrerData.user_id);
+        
+        if (error) {
+          console.error('❌ Ошибка при обновлении списка рефералов:', error);
+          return false;
+        }
+        
+        console.log('✅ Реферал успешно активирован');
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('❌ Ошибка при активации реферала:', error);
+    return false;
   }
 };
 
@@ -502,11 +509,6 @@ export const clearAllSavedData = async (): Promise<void> => {
   try {
     const userId = await getUserIdentifier();
     
-    // Очищаем локальное хранилище
-    localStorage.removeItem(LOCAL_BACKUP_KEY);
-    localStorage.removeItem('cryptoCivilizationSave');
-    console.log('✅ Локальное сохранение очищено');
-    
     // Проверяем подключение к Supabase
     const isConnected = await checkSupabaseConnection();
       
@@ -522,37 +524,25 @@ export const clearAllSavedData = async (): Promise<void> => {
         console.error('❌ Ошибка при удалении сохранения из Supabase:', error);
         
         toast({
-          title: "Частичная очистка",
-          description: "Локальные данные удалены, но не удалось очистить облачное хранилище.",
-          variant: "warning",
+          title: "Ошибка очистки",
+          description: "Не удалось очистить сохранения.",
+          variant: "destructive",
         });
-        safeDispatchGameEvent(
-          "Локальные данные удалены, но не удалось очистить облачное хранилище.",
-          "warning"
-        );
       } else {
         console.log('✅ Сохранение в Supabase удалено');
         
         toast({
           title: "Сохранения очищены",
           description: "Все сохранения игры успешно удалены.",
-          variant: "default",
+          variant: "success",
         });
-        safeDispatchGameEvent(
-          "Все сохранения игры успешно удалены.",
-          "success"
-        );
       }
     } else {
       toast({
-        title: "Локальная очистка",
-        description: "Локальные сохранения удалены. Облачное хранилище недоступно.",
-        variant: "warning",
+        title: "Ошибка соединения",
+        description: "Не удалось подключиться к серверу для очистки сохранений.",
+        variant: "destructive",
       });
-      safeDispatchGameEvent(
-        "Локальные сохранения удалены. Облачное хранилище недоступно.",
-        "warning"
-      );
     }
   } catch (error) {
     console.error('❌ Ошибка при очистке сохранений:', error);
@@ -562,10 +552,6 @@ export const clearAllSavedData = async (): Promise<void> => {
       description: "Произошла ошибка при удалении сохранений.",
       variant: "destructive",
     });
-    safeDispatchGameEvent(
-      "Произошла ошибка при удалении сохранений.",
-      "error"
-    );
   }
 };
 

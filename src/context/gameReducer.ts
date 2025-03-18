@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -26,9 +27,15 @@ import {
 } from './reducers/gameStateReducer';
 import { generateReferralCode } from '@/utils/helpers';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
+import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
 
 // Обработка реферальной системы
 const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
+  // Сохраняем реферальный код в Supabase
+  saveReferralInfo(payload.code, state.referredBy).catch(err => 
+    console.error("Ошибка при сохранении реферального кода:", err)
+  );
+  
   return {
     ...state,
     referralCode: payload.code
@@ -36,6 +43,12 @@ const processSetReferralCode = (state: GameState, payload: { code: string }): Ga
 };
 
 const processAddReferral = (state: GameState, payload: { referral: any }): GameState => {
+  // Проверяем, не существует ли уже такой реферал
+  const existingReferral = state.referrals.find(ref => ref.id === payload.referral.id);
+  if (existingReferral) {
+    return state;
+  }
+  
   return {
     ...state,
     referrals: [...state.referrals, payload.referral]
@@ -43,6 +56,11 @@ const processAddReferral = (state: GameState, payload: { referral: any }): GameS
 };
 
 const processActivateReferral = (state: GameState, payload: { referralId: string }): GameState => {
+  // Активируем реферала в Supabase
+  activateReferral(payload.referralId).catch(err => 
+    console.error("Ошибка при активации реферала:", err)
+  );
+  
   return {
     ...state,
     referrals: state.referrals.map(ref => 
@@ -172,6 +190,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           referralCode: code
         };
         console.log(`Сгенерирован реферальный код: ${code}`);
+        
+        // Сохраняем реферальный код в Supabase
+        saveReferralInfo(code, newState.referredBy).catch(err => 
+          console.error("Ошибка при сохранении реферального кода:", err)
+        );
       }
       
       return newState;

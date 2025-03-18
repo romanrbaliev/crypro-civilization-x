@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -5,11 +6,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import GameScreen from "./pages/GameScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { toast } from "@/hooks/use-toast";
-import "./index.css"; // Импортируем CSS стили
+import { checkSupabaseConnection } from "./api/gameDataService";
+import "./index.css";
 
 // Настраиваем клиент для React Query
 const queryClient = new QueryClient({
@@ -44,6 +46,58 @@ if (typeof window !== 'undefined') {
 }
 
 const App = () => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Обработчик статуса соединения
+  useEffect(() => {
+    const handleOnlineStatusChange = () => {
+      setIsOnline(navigator.onLine);
+      if (!navigator.onLine) {
+        toast({
+          title: "Отсутствует подключение к интернету",
+          description: "Для игры требуется стабильное интернет-соединение.",
+          variant: "destructive",
+        });
+      } else {
+        // Повторно проверяем подключение к Supabase при восстановлении интернета
+        checkSupabaseConnection().then(connected => {
+          setIsSupabaseConnected(connected);
+          if (connected) {
+            toast({
+              title: "Соединение восстановлено",
+              description: "Подключение к интернету и серверу восстановлено.",
+              variant: "success",
+            });
+          }
+        });
+      }
+    };
+    
+    window.addEventListener('online', handleOnlineStatusChange);
+    window.addEventListener('offline', handleOnlineStatusChange);
+    
+    // Начальная проверка подключения к Supabase
+    checkSupabaseConnection().then(connected => {
+      setIsSupabaseConnected(connected);
+      setIsInitialized(true);
+      
+      if (!connected) {
+        toast({
+          title: "Ошибка подключения к серверу",
+          description: "Невозможно подключиться к серверу. Проверьте интернет-соединение.",
+          variant: "destructive",
+        });
+      }
+    });
+    
+    return () => {
+      window.removeEventListener('online', handleOnlineStatusChange);
+      window.removeEventListener('offline', handleOnlineStatusChange);
+    };
+  }, []);
+  
   // Устанавливаем мета-данные при загрузке приложения
   useEffect(() => {
     setTelegramMeta();
@@ -78,23 +132,6 @@ const App = () => {
         console.log('- Версия:', window.Telegram.WebApp.version);
         console.log('- Длина initData:', window.Telegram.WebApp.initData?.length || 0);
         
-        // Сохраняем данные о пользователе при наличии
-        if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-          try {
-            const telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
-            localStorage.setItem('telegram_user_id', telegramUserId.toString());
-            console.log('✅ ID пользователя Telegram сохранен в localStorage:', telegramUserId);
-            
-            // Запускаем инициализацию Supabase
-            initializeSupabase(telegramUserId);
-          } catch (e) {
-            console.warn('⚠️ Не удалось сохранить ID пользователя Telegram:', e);
-          }
-        } else {
-          // Даже без ID пользователя, инициализируем Supabase
-          initializeSupabase();
-        }
-        
         // Показываем toast с информацией о режиме Telegram только один раз в продакшене
         if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
           window.__telegramNotificationShown = true;
@@ -113,19 +150,13 @@ const App = () => {
         if (process.env.NODE_ENV !== 'development') {
           toast({
             title: "Ошибка Telegram интеграции",
-            description: "Произошла ошибка при инициализации Telegram WebApp. Игра будет работать в автономном режиме.",
+            description: "Произошла ошибка при инициализации Telegram WebApp.",
             variant: "destructive",
           });
         }
-        
-        // Даже при ошибке Telegram, инициализируем Supabase
-        initializeSupabase();
       }
     } else {
-      console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме');
-      
-      // Инициализируем Supabase в стандартном режиме
-      initializeSupabase();
+      console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме браузера');
       
       // Показываем toast с информацией о стандартном режиме только один раз
       // и не показываем в режиме разработки, чтобы не мешать разработчикам
@@ -133,8 +164,8 @@ const App = () => {
         window.__telegramNotificationShown = true;
         setTimeout(() => {
           toast({
-            title: "Стандартный режим",
-            description: "Приложение запущено в браузере. Прогресс будет сохранен в облаке.",
+            title: "Стандартный режим браузера",
+            description: "Приложение запущено в браузере. Для полного функционала рекомендуем использовать Telegram.",
             variant: "default",
           });
         }, 1000);
@@ -142,57 +173,29 @@ const App = () => {
     }
   }, []);
 
-  // Инициализация Supabase
-  const initializeSupabase = async (telegramUserId?: number) => {
-    // Предотвращаем повторную инициализацию
-    if (window.__supabaseInitialized) {
-      return;
-    }
-    
-    window.__supabaseInitialized = true;
-    
-    try {
-      // Импортируем и инициализируем подключение к базе данных
-      const gameDataService = await import('./api/gameDataService');
-      
-      if (typeof gameDataService.checkSupabaseConnection === 'function') {
-        console.log('🔄 Проверка подключения к Supabase...');
-        const isConnected = await gameDataService.checkSupabaseConnection();
-        
-        if (isConnected) {
-          console.log('✅ Соединение с Supabase установлено успешно');
-          
-          if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
-            window.__telegramNotificationShown = true;
-            setTimeout(() => {
-              toast({
-                title: "Облачное сохранение",
-                description: "Подключение к облачной базе данных установлено.",
-                variant: "default",
-              });
-            }, 1500);
-          }
-        } else {
-          console.warn('⚠️ Не удалось подключиться к Supabase');
-          
-          if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
-            window.__telegramNotificationShown = true;
-            setTimeout(() => {
-              toast({
-                title: "Локальный режим",
-                description: "Не удалось подключиться к облачной базе данных. Прогресс будет сохранен локально.",
-                variant: "warning",
-              });
-            }, 1500);
-          }
-        }
-      } else {
-        console.warn('⚠️ Функция проверки Supabase не найдена');
-      }
-    } catch (error) {
-      console.error('❌ Ошибка при инициализации Supabase:', error);
-    }
-  };
+  // Для оффлайн-режима или отсутствия соединения с Supabase показываем заглушку
+  if (isInitialized && (!isOnline || !isSupabaseConnected)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
+        <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Отсутствует соединение</h1>
+          <p className="text-gray-600">
+            Для игры в Crypto Civilization требуется стабильное подключение к интернету.
+          </p>
+          <p className="text-gray-500 text-sm">
+            Проверьте соединение и перезагрузите страницу.
+          </p>
+          <button 
+            className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={() => window.location.reload()}
+          >
+            Обновить страницу
+          </button>
+        </div>
+        <Toaster />
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
