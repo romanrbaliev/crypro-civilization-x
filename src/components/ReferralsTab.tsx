@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -329,6 +330,64 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     forceRefreshReferrals();
     onAddEvent("Обновление списка рефералов...", "info");
   };
+  
+  // Получение списка зданий, которые есть и у реферала, и у реферрера
+  const getCompatibleBuildings = (referralId: string) => {
+    try {
+      // Здания текущего пользователя, которые уже построены (count > 0)
+      const userBuildings = Object.entries(state.buildings)
+        .filter(([_, building]) => building.count > 0)
+        .map(([id]) => id);
+        
+      // Загружаем состояние игры реферала из базы данных
+      const loadReferralGameState = async () => {
+        const { data } = await supabase
+          .from(SAVES_TABLE)
+          .select('game_data')
+          .eq('user_id', referralId)
+          .single();
+          
+        if (data && data.game_data) {
+          const referralBuildings = Object.entries(data.game_data.buildings || {})
+            .filter(([_, building]: [string, any]) => building.count > 0)
+            .map(([id]) => id);
+            
+          // Находим пересечение двух списков зданий
+          return userBuildings.filter(id => referralBuildings.includes(id));
+        }
+        
+        return userBuildings; // Если не удалось загрузить, разрешаем все здания пользователя
+      };
+      
+      // Т.к. это асинхронная функция, мы используем Promise.all для фиктивного тестирования
+      if (referralId === '987654321' || referralId === '123456789') {
+        return userBuildings; // Для тестовых пользователей разрешаем все здания
+      }
+      
+      return loadReferralGameState();
+      
+    } catch (error) {
+      console.error('Ошибка при получении совместимых зданий:', error);
+      return [];
+    }
+  };
+
+  // Функция для нахождения ресурсов, производимых зданием
+  const getBuildingResources = (buildingId: string) => {
+    const building = state.buildings[buildingId];
+    if (!building) return [];
+    
+    return Object.entries(building.production)
+      .filter(([_, amount]) => amount > 0)
+      .map(([resourceId, amount]) => {
+        const resource = state.resources[resourceId];
+        return {
+          id: resourceId,
+          name: resource?.name || resourceId,
+          amount: amount
+        };
+      });
+  };
 
   const hireHelper = async (referralId: string) => {
     if (!selectedBuildingId) {
@@ -375,6 +434,67 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       toast({
         title: "Ошибка",
         description: "Не удалось отправить приглашение",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const fireHelper = async (referralId: string, buildingId: string) => {
+    try {
+      // Находим помощника в списке
+      const helper = state.referralHelpers.find(
+        h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
+      );
+      
+      if (!helper) {
+        console.error("Не найден активный помощник для увольнения");
+        toast({
+          title: "Ошибка",
+          description: "Не найден активный помощник для увольнения",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Обновляем статус в базе данных
+      const { error } = await supabase
+        .from('referral_helpers')
+        .update({ status: 'rejected' })
+        .eq('helper_id', referralId)
+        .eq('building_id', buildingId)
+        .eq('status', 'accepted');
+        
+      if (error) {
+        console.error("Ошибка при увольнении помощника в БД:", error);
+        throw error;
+      }
+      
+      // Обновляем локальное состояние
+      const updatedHelpers = state.referralHelpers.map(h => 
+        (h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted')
+          ? { ...h, status: 'rejected' as const }
+          : h
+      );
+      
+      dispatch({ 
+        type: "LOAD_GAME", 
+        payload: { 
+          ...state, 
+          referralHelpers: updatedHelpers 
+        } 
+      });
+      
+      toast({
+        title: "Помощник уволен",
+        description: "Бонус к производительности здания отменен",
+      });
+      onAddEvent("Помощник уволен", "info");
+      
+    } catch (error) {
+      console.error("Ошибка при увольнении помощника:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось уволить помощника",
         variant: "destructive"
       });
     }
@@ -442,6 +562,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         variant: "destructive"
       });
     }
+  };
+  
+  const isHelperAssigned = (referralId: string, buildingId: string) => {
+    return state.referralHelpers.some(
+      h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
+    );
   };
 
   const totalReferrals = state.referrals?.length || 0;
@@ -562,7 +688,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                 {filteredReferrals.map(referral => (
                   <div 
                     key={referral.id} 
-                    className={`flex justify-between items-center p-1.5 rounded-lg border ${referral.activated ? 'bg-green-50' : 'bg-white'}`}
+                    className={`relative flex justify-between items-center p-1.5 rounded-lg border ${referral.activated ? 'bg-green-50' : 'bg-white'}`}
                   >
                     <div>
                       <div className="text-[10px] font-medium">{referral.username}</div>
@@ -583,19 +709,17 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {referral.activated ? (
-                        <div className="text-[8px] text-green-600 bg-green-100 px-1 py-0.5 rounded flex items-center">
-                          <Check className="h-2 w-2 mr-0.5" />
-                          Активен
-                        </div>
-                      ) : (
-                        <div className="text-[8px] text-orange-600 bg-orange-100 px-1 py-0.5 rounded flex items-center">
-                          <AlertCircle className="h-2 w-2 mr-0.5" />
-                          Не активирован
-                        </div>
-                      )}
-                    </div>
+                    {referral.activated ? (
+                      <div className="absolute top-1 right-1 text-[8px] text-green-600 bg-green-100 px-1 py-0.5 rounded flex items-center">
+                        <Check className="h-2 w-2 mr-0.5" />
+                        Активен
+                      </div>
+                    ) : (
+                      <div className="absolute top-1 right-1 text-[8px] text-orange-600 bg-orange-100 px-1 py-0.5 rounded flex items-center">
+                        <AlertCircle className="h-2 w-2 mr-0.5" />
+                        Не активирован
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -630,83 +754,110 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           <TabsContent value="active" className="mt-2">
             {filteredReferrals.length > 0 ? (
               <div className="space-y-1.5">
-                {filteredReferrals.map(referral => (
-                  <div 
-                    key={referral.id} 
-                    className="flex justify-between items-center p-1.5 rounded-lg border bg-green-50"
-                  >
-                    <div>
-                      <div className="text-[10px] font-medium">{referral.username}</div>
-                      <div className="text-[9px] text-gray-500">
-                        ID: <span className="font-mono">{referral.id}</span>
-                      </div>
-                      <div className="text-[9px] text-gray-500">
-                        Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
-                      </div>
-                      {referral.id === '123456789' && (
-                        <div className="text-[9px] text-blue-600">
-                          Тестовый пользователь romanaliev
+                {filteredReferrals.map(referral => {
+                  // Проверяем, назначен ли уже этот реферал на какое-то здание
+                  const assignedHelper = state.referralHelpers.find(
+                    h => h.helperId === referral.id && h.status === 'accepted'
+                  );
+                  
+                  const isAssigned = Boolean(assignedHelper);
+                  const assignedBuildingId = assignedHelper?.buildingId;
+                  const assignedBuilding = assignedBuildingId ? state.buildings[assignedBuildingId] : null;
+                  
+                  return (
+                    <div 
+                      key={referral.id} 
+                      className="flex justify-between items-center p-1.5 rounded-lg border bg-green-50"
+                    >
+                      <div>
+                        <div className="text-[10px] font-medium">{referral.username}</div>
+                        <div className="text-[9px] text-gray-500">
+                          ID: <span className="font-mono">{referral.id}</span>
                         </div>
-                      )}
-                      {referral.id === '987654321' && (
-                        <div className="text-[9px] text-blue-600">
-                          Тестовый пользователь lanakores
+                        <div className="text-[9px] text-gray-500">
+                          Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
                         </div>
-                      )}
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
+                        {isAssigned && assignedBuilding && (
+                          <div className="text-[9px] text-green-600 mt-1">
+                            Работает в здании: {assignedBuilding.name}
+                          </div>
+                        )}
+                        {referral.id === '123456789' && (
+                          <div className="text-[9px] text-blue-600">
+                            Тестовый пользователь romanaliev
+                          </div>
+                        )}
+                        {referral.id === '987654321' && (
+                          <div className="text-[9px] text-blue-600">
+                            Тестовый пользователь lanakores
+                          </div>
+                        )}
+                      </div>
+                      
+                      {isAssigned ? (
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="h-6 px-2 text-[9px]"
+                          onClick={() => fireHelper(referral.id, assignedBuildingId!)}
                         >
-                          <Building className="h-3 w-3 mr-1" />
-                          Нанять
+                          Уволить
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-xs">
-                        <DialogHeader>
-                          <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
-                          <DialogDescription className="text-[10px]">
-                            Выберите здание, к которому хотите прикрепить помощника
-                          </DialogDescription>
-                        </DialogHeader>
-                        <Select
-                          value={selectedBuildingId}
-                          onValueChange={setSelectedBuildingId}
-                        >
-                          <SelectTrigger className="text-[10px]">
-                            <SelectValue placeholder="Выберите здание" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableBuildings.map(building => (
-                              <SelectItem 
-                                key={building.id} 
-                                value={building.id}
-                                className="text-[10px]"
+                      ) : (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-6 px-2 text-[9px]"
+                            >
+                              Нанять
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-xs">
+                            <DialogHeader>
+                              <DialogTitle className="text-sm">Нанять помощника</DialogTitle>
+                              <DialogDescription className="text-[10px]">
+                                Выберите здание, к которому хотите прикрепить помощника
+                              </DialogDescription>
+                            </DialogHeader>
+                            <Select
+                              value={selectedBuildingId}
+                              onValueChange={setSelectedBuildingId}
+                            >
+                              <SelectTrigger className="text-[10px]">
+                                <SelectValue placeholder="Выберите здание" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableBuildings.map(building => (
+                                  <SelectItem 
+                                    key={building.id} 
+                                    value={building.id}
+                                    className="text-[10px]"
+                                  >
+                                    {building.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="text-[9px] text-gray-500 mt-2">
+                              Эффективность здания увеличится на 5%
+                            </div>
+                            <div className="flex justify-end mt-4">
+                              <Button
+                                size="sm"
+                                className="text-[9px] h-6"
+                                onClick={() => hireHelper(referral.id)}
                               >
-                                {building.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="text-[9px] text-gray-500 mt-2">
-                          Эффективность здания увеличится на 5%
-                        </div>
-                        <div className="flex justify-end mt-4">
-                          <Button
-                            size="sm"
-                            className="text-[9px] h-6"
-                            onClick={() => hireHelper(referral.id)}
-                          >
-                            Отправить приглашение
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                ))}
+                                Отправить приглашение
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-4 text-gray-500">
@@ -729,44 +880,68 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           <TabsContent value="requests" className="mt-2">
             {helperRequests.length > 0 ? (
               <div className="space-y-1.5">
-                {helperRequests.map(request => (
-                  <div 
-                    key={request.id} 
-                    className="p-1.5 rounded-lg border bg-blue-50"
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="text-[10px] font-medium">Предложение работы</div>
-                      <div className="text-[9px] text-gray-500">
-                        {new Date(request.created_at).toLocaleDateString()}
+                {helperRequests.map(request => {
+                  // Получаем информацию о здании
+                  const building = state.buildings[request.building_id];
+                  const buildingName = building ? building.name : request.building_id;
+                  
+                  // Получаем список ресурсов, которые производит здание
+                  const producedResources = getBuildingResources(request.building_id);
+                  
+                  return (
+                    <div 
+                      key={request.id} 
+                      className="p-1.5 rounded-lg border bg-blue-50"
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="text-[10px] font-medium">Предложение работы</div>
+                        <div className="text-[9px] text-gray-500">
+                          {new Date(request.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="text-[9px] mb-2">
+                        Здание: <span className="font-medium">{buildingName}</span>
+                      </div>
+                      
+                      {producedResources.length > 0 && (
+                        <div className="mb-2 p-1 rounded bg-white">
+                          <div className="text-[9px] font-medium mb-1">Усиление ресурсов:</div>
+                          <div className="space-y-0.5">
+                            {producedResources.map(resource => (
+                              <div key={resource.id} className="text-[8px] flex justify-between">
+                                <span>{resource.name}:</span>
+                                <span className="text-green-600">+10% к накоплению</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="text-[9px] text-gray-600 mb-2">
+                        Вы получите +10% к производительности, если примете предложение
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-6 px-2 text-[9px]"
+                          onClick={() => respondToHelperRequest(request.id, false)}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Отклонить
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="h-6 px-2 text-[9px]"
+                          onClick={() => respondToHelperRequest(request.id, true)}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Принять
+                        </Button>
                       </div>
                     </div>
-                    <div className="text-[9px] mb-2">
-                      Здание: <span className="font-medium">{state.buildings[request.building_id]?.name || request.building_id}</span>
-                    </div>
-                    <div className="text-[9px] text-gray-600 mb-2">
-                      Вы получите +10% к производительности, если примете предложение
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-6 px-2 text-[9px]"
-                        onClick={() => respondToHelperRequest(request.id, false)}
-                      >
-                        <X className="h-3 w-3 mr-1" />
-                        Отклонить
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="h-6 px-2 text-[9px]"
-                        onClick={() => respondToHelperRequest(request.id, true)}
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Принять
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-4 text-gray-500">

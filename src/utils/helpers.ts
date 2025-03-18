@@ -1,4 +1,3 @@
-
 import { Resource, ReferralHelper } from "@/context/types";
 
 export const formatNumber = (num: number): string => {
@@ -137,6 +136,8 @@ export const calculateBuildingBoostFromHelpers = (
     h => h.buildingId === buildingId && h.status === 'accepted'
   );
   
+  console.log(`Расчет бонуса для здания ${buildingId}:`, activeHelpers.length, 'помощников');
+  
   // Каждый помощник дает 5% буст к производительности
   return activeHelpers.length * 0.05;
 };
@@ -150,6 +151,8 @@ export const calculateHelperBoost = (
     h => h.helperId === employerId && h.status === 'accepted'
   );
   
+  console.log(`Расчет бонуса для пользователя ${employerId}:`, activeJobs.length, 'заданий');
+  
   // Каждая принятая работа дает 10% буст к производительности
   return activeJobs.length * 0.10;
 };
@@ -161,7 +164,8 @@ export const calculateReferralBonus = (
   // Учитываем только активированных рефералов
   const activeReferrals = referrals.filter(ref => ref.activated === true);
   
+  console.log(`Расчет бонуса от рефералов: ${activeReferrals.length} активных из ${referrals.length} всего`);
+  
   // Каждый активный реферал дает +5% к производительности
   return activeReferrals.length * 0.05;
 };
-

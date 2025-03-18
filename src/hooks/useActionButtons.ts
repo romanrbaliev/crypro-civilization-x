@@ -9,6 +9,7 @@ export interface UseActionButtonsProps {
 export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProps) {
   const { state, dispatch } = useGame();
   const [practiceMessageSent, setPracticeMessageSent] = useState(false);
+  const [researchMessageSent, setResearchMessageSent] = useState(false);
 
   // Следим за разблокировкой практики
   useEffect(() => {
@@ -27,6 +28,15 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
       setPracticeMessageSent(true);
     }
   }, [state.unlocks.practice, onAddEvent, practiceMessageSent]);
+  
+  // Отправляем сообщение когда исследования разблокированы
+  useEffect(() => {
+    if (state.unlocks.research && !researchMessageSent) {
+      onAddEvent("Вкладка 'Исследования' разблокирована", "success");
+      onAddEvent("Теперь вы можете изучать новые технологии", "info");
+      setResearchMessageSent(true);
+    }
+  }, [state.unlocks.research, onAddEvent, researchMessageSent]);
 
   // Обработчики для кнопок
   const handleLearnClick = () => {

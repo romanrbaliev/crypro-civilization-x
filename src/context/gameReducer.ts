@@ -78,6 +78,17 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
   const referral = state.referrals.find(ref => ref.id === referralId);
   if (!referral) return state;
   
+  // Проверяем, существует ли уже такое назначение
+  const existingHelper = state.referralHelpers.find(
+    h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'pending'
+  );
+  
+  if (existingHelper) {
+    console.log('Помощник уже назначен на это здание', existingHelper);
+    safeDispatchGameEvent("Этот помощник уже назначен на выбранное здание", "warning");
+    return state;
+  }
+  
   // Генерируем уникальный ID для помощника
   const helperId = `helper_${generateId()}`;
   
@@ -105,15 +116,21 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
 const processRespondToHelperRequest = (state: GameState, payload: { helperId: string; accepted: boolean }): GameState => {
   const { helperId, accepted } = payload;
   
-  // Обновляем статус запроса с явным указанием типа
-  const updatedHelpers = state.referralHelpers.map(helper => 
-    helper.id === helperId 
-      ? { ...helper, status: accepted ? 'accepted' as const : 'rejected' as const }
-      : helper
-  );
-  
+  // Находим запрос помощника
   const helper = state.referralHelpers.find(h => h.id === helperId);
-  if (!helper) return state;
+  if (!helper) {
+    console.error('Помощник не найден:', helperId);
+    return state;
+  }
+  
+  console.log('Обработка ответа на запрос помощника:', helper, 'accepted:', accepted);
+  
+  // Обновляем статус запроса с явным указанием типа
+  const updatedHelpers = state.referralHelpers.map(h => 
+    h.id === helperId 
+      ? { ...h, status: accepted ? 'accepted' as const : 'rejected' as const }
+      : h
+  );
   
   // Находим имя здания для сообщения
   const building = state.buildings[helper.buildingId];
