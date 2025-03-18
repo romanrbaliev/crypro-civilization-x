@@ -36,18 +36,21 @@ export type Database = {
       referral_data: {
         Row: {
           created_at: string | null
+          is_activated: boolean | null
           referral_code: string
           referred_by: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          is_activated?: boolean | null
           referral_code: string
           referred_by?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          is_activated?: boolean | null
           referral_code?: string
           referred_by?: string | null
           user_id?: string
