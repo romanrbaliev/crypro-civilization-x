@@ -128,9 +128,15 @@ const App = () => {
         
         // Выводим детали инициализации только в консоль
         console.log('✅ Telegram WebApp инициализирован:');
-        console.log('- Платформа:', window.Telegram.WebApp.platform);
-        console.log('- Версия:', window.Telegram.WebApp.version);
-        console.log('- Длина initData:', window.Telegram.WebApp.initData?.length || 0);
+        if (window.Telegram?.WebApp?.platform) {
+          console.log('- Платформа:', window.Telegram.WebApp.platform);
+        }
+        if (window.Telegram?.WebApp?.version) {
+          console.log('- Версия:', window.Telegram.WebApp.version);
+        }
+        if (window.Telegram?.WebApp?.initData) {
+          console.log('- Длина initData:', window.Telegram.WebApp.initData.length || 0);
+        }
         
         // Убираем всплывающее уведомление о режиме Telegram
       } catch (error) {

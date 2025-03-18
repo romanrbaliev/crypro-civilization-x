@@ -23,6 +23,8 @@ interface Window {
       CloudStorage?: any;
       showPopup?: (params: any) => void; // Добавлено для поддержки метода showPopup
       openTelegramLink?: (url: string) => void; // Добавлено для поддержки метода openTelegramLink
+      close?: () => void;
+      share?: (url: string) => void;
     }
   };
   __telegramInitialized?: boolean;

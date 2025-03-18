@@ -476,8 +476,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const sendTelegramInvite = () => {
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
       try {
-        window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`);
-        onAddEvent("Отправка приглашения через Telegram", "info");
+        if (window.Telegram.WebApp.openTelegramLink) {
+          window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`);
+          onAddEvent("Отправка приглашения через Telegram", "info");
+        } else {
+          window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`, '_blank');
+        }
       } catch (error) {
         console.error('Ошибка при открытии ссылки в Telegram:', error);
         window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Crypto Civilization и начни строить свою криптоимперию!')}`, '_blank');
@@ -748,14 +752,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
   
-  // Определяем функцию isHelperAssigned для проверки, назначен ли помощник на здание
   const isHelperAssigned = (referralId: string, buildingId: string) => {
     return state.referralHelpers.some(
       h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
     );
   };
   
-  // Получаем ID здания, к которому прикреплен помощник
   const getAssignedBuildingId = (referralId: string) => {
     const helper = state.referralHelpers.find(
       h => h.helperId === referralId && h.status === 'accepted'
@@ -1123,4 +1125,3 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 };
 
 export default ReferralsTab;
-

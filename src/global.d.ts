@@ -13,9 +13,17 @@ interface Window {
         };
         start_param?: string;
       };
+      // Добавляем недостающие методы и свойства Telegram WebApp
       close?: () => void;
       share?: (url: string) => void;
       ready?: () => void;
+      expand?: () => void;
+      platform?: string;
+      version?: string;
+      initData?: string;
+      CloudStorage?: any;
+      showPopup?: (params: any) => void;
+      openTelegramLink?: (url: string) => void;
     };
   };
 }
