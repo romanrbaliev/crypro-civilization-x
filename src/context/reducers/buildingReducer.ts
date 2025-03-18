@@ -47,10 +47,11 @@ export const processPurchaseBuilding = (
   // Проверка на разблокировку исследований после первой покупки генератора
   let newUpgrades = { ...state.upgrades };
   let newUnlocks = { ...state.unlocks };
+  let updatedResources = { ...newResources };
   
-  // Если это первый генератор, разблокируем исследования
+  // Если это первый генератор, разблокируем исследования и электричество
   if (buildingId === 'generator' && building.count === 0) {
-    console.log("Первый генератор куплен! Разблокировка исследований...");
+    console.log("Первый генератор куплен! Разблокировка исследований и электричества...");
     
     // Разблокируем первое исследование "Основы блокчейна"
     if (state.upgrades["blockchain_basics"] && !state.upgrades["blockchain_basics"].unlocked) {
@@ -69,6 +70,19 @@ export const processPurchaseBuilding = (
       research: true
     };
     
+    // Разблокируем ресурс электричество
+    if (state.resources.electricity) {
+      updatedResources = {
+        ...updatedResources,
+        electricity: {
+          ...state.resources.electricity,
+          unlocked: true,
+          value: 0,
+          perSecond: 0.5 // Генератор производит 0.5 электричества в секунду
+        }
+      };
+    }
+    
     // Также активируем все рефералы, если они есть
     if (state.referrals && state.referrals.length > 0) {
       const activatedReferrals = state.referrals.map(ref => ({
@@ -80,7 +94,7 @@ export const processPurchaseBuilding = (
       
       return {
         ...state,
-        resources: newResources,
+        resources: updatedResources,
         buildings: newBuildings,
         upgrades: newUpgrades,
         unlocks: newUnlocks,
@@ -92,7 +106,7 @@ export const processPurchaseBuilding = (
   // Возвращаем обновленное состояние
   return {
     ...state,
-    resources: newResources,
+    resources: updatedResources,
     buildings: newBuildings,
     upgrades: newUpgrades,
     unlocks: newUnlocks

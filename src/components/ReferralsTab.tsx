@@ -208,7 +208,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         onAddEvent("У вас пока нет рефералов", "info");
       }
     } catch (error) {
-      console.error('Ошибка при загрузке рефералов:', error);
+      console.error('Ошибка при загрузк�� рефералов:', error);
       onAddEvent("Ошибка при загрузке рефералов", "error");
     } finally {
       setIsRefreshingReferrals(false);
@@ -330,15 +330,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     onAddEvent("Обновление списка рефералов...", "info");
   };
   
-  // Получение списка зданий, которые есть и у реферала, и у реферрера
   const getCompatibleBuildings = (referralId: string) => {
     try {
-      // Здания текущего пользователя, которые уже построены (count > 0)
       const userBuildings = Object.entries(state.buildings)
         .filter(([_, building]) => building.count > 0)
         .map(([id]) => id);
         
-      // Загружаем состояние игры реферала из базы данных
       const loadReferralGameState = async () => {
         const { data } = await supabase
           .from(SAVES_TABLE)
@@ -353,28 +350,24 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               .filter(([_, building]: [string, any]) => building.count > 0)
               .map(([id]) => id);
               
-            // Находим пересечение двух списков зданий
             return userBuildings.filter(id => referralBuildings.includes(id));
           }
         }
         
-        return userBuildings; // Если не удалось загрузить, разрешаем все здания пользователя
+        return userBuildings;
       };
       
-      // Т.к. это асинхронная функция, мы используем Promise.all для фиктивного тестирования
       if (referralId === '987654321' || referralId === '123456789') {
-        return userBuildings; // Для тестовых пользователей разрешаем все здания
+        return userBuildings;
       }
       
       return loadReferralGameState();
-      
     } catch (error) {
       console.error('Ошибка при получении совместимых зданий:', error);
       return [];
     }
   };
 
-  // Функция для нахождения ресурсов, производимых зданием
   const getBuildingResources = (buildingId: string) => {
     const building = state.buildings[buildingId];
     if (!building) return [];
@@ -443,7 +436,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   
   const fireHelper = async (referralId: string, buildingId: string) => {
     try {
-      // Находим помощника в списке
       const helper = state.referralHelpers.find(
         h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
       );
@@ -458,7 +450,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         return;
       }
       
-      // Обновляем статус в базе данных
       const { error } = await supabase
         .from('referral_helpers')
         .update({ status: 'rejected' })
@@ -471,7 +462,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         throw error;
       }
       
-      // Обновляем локальное состояние
       const updatedHelpers = state.referralHelpers.map(h => 
         (h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted')
           ? { ...h, status: 'rejected' as const }
@@ -688,41 +678,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             {filteredReferrals.length > 0 ? (
               <div className="space-y-1.5">
                 {filteredReferrals.map(referral => (
-                  <div 
+                  <ReferralItem 
                     key={referral.id} 
-                    className={`relative flex justify-between items-center p-1.5 rounded-lg border ${referral.activated ? 'bg-green-50' : 'bg-white'}`}
-                  >
-                    <div>
-                      <div className="text-[10px] font-medium">{referral.username}</div>
-                      <div className="text-[9px] text-gray-500">
-                        ID: <span className="font-mono">{referral.id}</span>
-                      </div>
-                      <div className="text-[9px] text-gray-500">
-                        Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
-                      </div>
-                      {referral.id === '123456789' && (
-                        <div className="text-[9px] text-blue-600">
-                          Тестовый пользователь romanaliev
-                        </div>
-                      )}
-                      {referral.id === '987654321' && (
-                        <div className="text-[9px] text-blue-600">
-                          Тестовый пользователь lanakores
-                        </div>
-                      )}
-                    </div>
-                    {referral.activated ? (
-                      <div className="absolute top-1 right-1 text-[8px] text-green-600 bg-green-100 px-1 py-0.5 rounded flex items-center">
-                        <Check className="h-2 w-2 mr-0.5" />
-                        Активен
-                      </div>
-                    ) : (
-                      <div className="absolute top-1 right-1 text-[8px] text-orange-600 bg-orange-100 px-1 py-0.5 rounded flex items-center">
-                        <AlertCircle className="h-2 w-2 mr-0.5" />
-                        Не активирован
-                      </div>
-                    )}
-                  </div>
+                    referral={referral}
+                    userBuildings={state.buildings}
+                    helperRequests={helperRequests}
+                    ownedReferral={referral.id === userId}
+                    onHire={hireHelper}
+                    onFire={fireHelper}
+                  />
                 ))}
               </div>
             ) : (
@@ -757,7 +721,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             {filteredReferrals.length > 0 ? (
               <div className="space-y-1.5">
                 {filteredReferrals.map(referral => {
-                  // Проверяем, назначен ли уже этот реферал на какое-то здание
                   const assignedHelper = state.referralHelpers.find(
                     h => h.helperId === referral.id && h.status === 'accepted'
                   );
@@ -883,11 +846,9 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             {helperRequests.length > 0 ? (
               <div className="space-y-1.5">
                 {helperRequests.map(request => {
-                  // Получаем информацию о здании
                   const building = state.buildings[request.building_id];
                   const buildingName = building ? building.name : request.building_id;
                   
-                  // Получаем список ресурсов, которые производит здание
                   const producedResources = getBuildingResources(request.building_id);
                   
                   return (
@@ -954,6 +915,271 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             )}
           </TabsContent>
         </Tabs>
+      </div>
+    </div>
+  );
+};
+
+const ReferralItem = ({ 
+  referral,
+  userBuildings,
+  helperRequests = [],
+  ownedReferral = false,
+  onHire,
+  onFire
+}: {
+  referral: any,
+  userBuildings?: any,
+  helperRequests?: any[],
+  ownedReferral?: boolean,
+  onHire?: (referralId: string, buildingId: string) => void,
+  onFire?: (helperId: string) => void
+}) => {
+  const [openHireDialog, setOpenHireDialog] = useState(false);
+  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
+  const { state } = useGame();
+  
+  const hasAcceptedHelper = helperRequests.some(
+    request => request.helperId === referral.id && request.status === 'accepted'
+  );
+  
+  const acceptedRequest = hasAcceptedHelper 
+    ? helperRequests.find(req => req.helperId === referral.id && req.status === 'accepted')
+    : null;
+  
+  const getCommonBuildings = () => {
+    if (!userBuildings || !referral.game_data) return [];
+    
+    try {
+      const referralData = typeof referral.game_data === 'string' 
+        ? JSON.parse(referral.game_data) 
+        : referral.game_data;
+      
+      const referralBuildings = referralData?.buildings || {};
+      
+      return Object.entries(userBuildings)
+        .filter(([buildingId, building]: [string, any]) => {
+          const referralBuilding = referralBuildings[buildingId];
+          return building.count > 0 && referralBuilding && referralBuilding.count > 0;
+        })
+        .map(([id, building]: [string, any]) => ({
+          id,
+          name: building.name
+        }));
+    } catch (error) {
+      console.error("Ошибка при получении общих зданий:", error);
+      return [];
+    }
+  };
+  
+  const getAffectedResources = (buildingId: string) => {
+    if (!buildingId || !userBuildings) return [];
+    
+    const building = userBuildings[buildingId];
+    if (!building) return [];
+    
+    return Object.entries(building.production)
+      .map(([resourceId, value]: [string, any]) => {
+        const resourceName = state.resources[resourceId]?.name || resourceId;
+        return { resourceId, resourceName, value };
+      });
+  };
+  
+  const commonBuildings = getCommonBuildings();
+  const affectedResources = selectedBuilding ? getAffectedResources(selectedBuilding) : [];
+  
+  const handleHireClick = () => {
+    setOpenHireDialog(true);
+  };
+  
+  const handleBuildingSelect = (buildingId: string) => {
+    setSelectedBuilding(buildingId);
+  };
+  
+  const handleHireConfirm = () => {
+    if (selectedBuilding && onHire) {
+      onHire(referral.id, selectedBuilding);
+      setOpenHireDialog(false);
+      setSelectedBuilding(null);
+    }
+  };
+  
+  const handleFireClick = () => {
+    if (acceptedRequest && onFire) {
+      onFire(acceptedRequest.id);
+    }
+  };
+  
+  return (
+    <div className="border rounded-md p-2 mb-2 bg-white relative overflow-hidden">
+      <div className="flex justify-between items-center">
+        <div>
+          <div className="text-xs font-medium">{referral.username || 'Пользователь'}</div>
+          <div className="text-[10px] text-gray-500">
+            Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-1">
+          {referral.activated && (
+            <div className="px-1 py-0.5 bg-green-100 text-green-800 text-[10px] rounded">
+              Активен
+            </div>
+          )}
+          
+          {referral.activated && ownedReferral && (
+            <div>
+              {hasAcceptedHelper ? (
+                <Button 
+                  size="sm" 
+                  variant="destructive"
+                  className="h-6 text-[10px] px-2 ml-1"
+                  onClick={handleFireClick}
+                >
+                  Уволить
+                </Button>
+              ) : (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 ml-1"
+                  onClick={handleHireClick}
+                  disabled={commonBuildings.length === 0}
+                >
+                  Нанять
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <Dialog open={openHireDialog} onOpenChange={setOpenHireDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Нанять помощника</DialogTitle>
+            <DialogDescription>
+              Выберите здание, к которому хотите назначить {referral.username || 'пользователя'}.
+              Помощник увеличит производительность выбранного здания на 5%.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {commonBuildings.length > 0 ? (
+            <>
+              <div className="space-y-2">
+                <Label>Выберите здание:</Label>
+                <Select onValueChange={handleBuildingSelect} value={selectedBuilding || undefined}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите здание" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {commonBuildings.map(building => (
+                      <SelectItem key={building.id} value={building.id}>
+                        {building.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedBuilding && affectedResources.length > 0 && (
+                  <div className="mt-3 bg-blue-50 p-2 rounded text-xs">
+                    <div className="font-medium mb-1">Повышение производительности:</div>
+                    {affectedResources.map(res => (
+                      <div key={res.resourceId} className="text-[10px]">
+                        • {res.resourceName}: +5% к производству
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="submit" 
+                  onClick={handleHireConfirm}
+                  disabled={!selectedBuilding}
+                >
+                  Отправить запрос
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <div className="text-red-500 text-xs mb-2">
+                У вас и реферала нет общих зданий
+              </div>
+              <p className="text-xs text-gray-500">
+                Для найма помощника необходимо, чтобы у вас и у реферала были одинаковые здания.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+const HelperRequestItem = ({ request, onAccept, onReject }: { 
+  request: any, 
+  onAccept: (id: string) => void, 
+  onReject: (id: string) => void 
+}) => {
+  const { state } = useGame();
+  const [details, setDetails] = useState<any>(null);
+  
+  useEffect(() => {
+    if (state.buildings[request.buildingId]) {
+      const building = state.buildings[request.buildingId];
+      
+      const resourcesInfo = Object.entries(building.production)
+        .map(([resourceId, value]: [string, any]) => {
+          const resourceName = state.resources[resourceId]?.name || resourceId;
+          return { resourceId, resourceName, value };
+        });
+        
+      setDetails({
+        buildingName: building.name,
+        resources: resourcesInfo
+      });
+    }
+  }, [request, state.buildings, state.resources]);
+  
+  return (
+    <div className="border rounded-md p-2 mb-2 bg-white">
+      <div className="text-xs font-medium">Запрос от: {request.employerName || 'Пользователь'}</div>
+      
+      {details && (
+        <div className="mt-1 bg-blue-50 p-2 rounded text-xs">
+          <div className="font-medium mb-1">Здание: {details.buildingName}</div>
+          {details.resources.length > 0 && (
+            <div className="text-[10px] mb-2">
+              <div className="font-medium">Вы получите:</div>
+              {details.resources.map((res: any) => (
+                <div key={res.resourceId}>
+                  • +10% к производству {res.resourceName}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="flex justify-end mt-2 space-x-2">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="h-6 text-[10px] px-2"
+          onClick={() => onReject(request.id)}
+        >
+          Отклонить
+        </Button>
+        <Button 
+          size="sm" 
+          className="h-6 text-[10px] px-2"
+          onClick={() => onAccept(request.id)}
+        >
+          Принять
+        </Button>
       </div>
     </div>
   );

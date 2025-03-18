@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -87,6 +86,39 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
     console.log('Помощник уже назначен на это здание', existingHelper);
     safeDispatchGameEvent("Этот помощник уже назначен на выбранное здание", "warning");
     return state;
+  }
+  
+  // Также проверяем, есть ли уже принятый помощник для этого реферала
+  const existingActiveHelper = state.referralHelpers.find(
+    h => h.helperId === referralId && h.status === 'accepted'
+  );
+  
+  if (existingActiveHelper) {
+    // Если помощник уже работает на каком-то здании, сначала увольняем его
+    const updatedHelpers = state.referralHelpers.filter(h => h.id !== existingActiveHelper.id);
+    
+    // Генерируем уникальный ID для нового помощника
+    const helperId = `helper_${generateId()}`;
+    
+    // Создаем запись помощника
+    const newHelper: ReferralHelper = {
+      id: helperId,
+      buildingId,
+      helperId: referralId,
+      status: 'pending',
+      createdAt: Date.now()
+    };
+    
+    // Добавляем в список помощников
+    const updatedState = {
+      ...state,
+      referralHelpers: [...updatedHelpers, newHelper]
+    };
+    
+    // Отправляем уведомление
+    safeDispatchGameEvent(`Отправлено предложение о работе ${referral.username}`, "info");
+    
+    return updatedState;
   }
   
   // Генерируем уникальный ID для помощника

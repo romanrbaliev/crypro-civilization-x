@@ -30,6 +30,10 @@ export const calculateResourceProduction = (
       // Получаем бонус от помощников для этого здания
       const helperBoost = calculateBuildingBoostFromHelpers(building.id, referralHelpers);
       
+      if (helperBoost > 0) {
+        console.log(`Здание ${building.name} имеет бонус от помощников: +${(helperBoost * 100).toFixed(0)}%`);
+      }
+      
       // Применяем производство от здания с учетом бонусов
       Object.entries(building.production).forEach(([resourceId, productionValue]) => {
         if (newResources[resourceId]) {
@@ -40,10 +44,6 @@ export const calculateResourceProduction = (
             ...newResources[resourceId],
             perSecond: newResources[resourceId].perSecond + totalProduction
           };
-          
-          if (helperBoost > 0) {
-            console.log(`Здание ${building.name} имеет бонус от помощников: +${(helperBoost * 100).toFixed(0)}%`);
-          }
         }
       });
     }
