@@ -163,7 +163,10 @@ const App = () => {
           console.log('  Username:', user.username);
           console.log('  First name:', user.first_name);
           console.log('  Last name:', user.last_name);
-          console.log('  Language code:', user.language_code);
+          // Проверяем наличие language_code перед использованием
+          if (user.language_code) {
+            console.log('  Language code:', user.language_code);
+          }
         } else {
           console.warn('⚠️ Объект пользователя Telegram недоступен');
         }

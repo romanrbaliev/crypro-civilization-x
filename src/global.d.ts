@@ -10,6 +10,7 @@ interface Window {
           first_name?: string;
           last_name?: string;
           username?: string;
+          language_code?: string; // Добавляем поле language_code
         };
         start_param?: string;
       };
