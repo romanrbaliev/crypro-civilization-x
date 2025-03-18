@@ -1,4 +1,3 @@
-
 import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
@@ -8,7 +7,7 @@ import { GameEventSystem } from './GameEventSystem';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from "@/hooks/use-toast";
 import { ensureGameEventBus } from './utils/eventBusUtils';
-import { checkSupabaseConnection } from '@/api/gameDataService';
+import { checkSupabaseConnection, createSavesTableIfNotExists } from '@/api/gameDataService';
 
 export type { Resource, Building, Upgrade };
 
@@ -24,7 +23,7 @@ export const GameContext = createContext<GameContextProps | undefined>(undefined
 // Экспорт хука useGame переехал в отдельный файл
 export { useGame } from './hooks/useGame';
 
-// Интервал автосохранения (увеличиваем до 15 секунд для меньшей нагрузки)
+// Интервал автосохранения (15 секунд)
 const SAVE_INTERVAL = 15 * 1000;
 
 // Максимальное время ожидания загрузки (10 секунд)
@@ -55,6 +54,7 @@ export function GameProvider({ children }: GameProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Загрузка игры...");
   const [hasConnection, setHasConnection] = useState(true);
+  const [gameInitialized, setGameInitialized] = useState(false);
   
   // Предотвращаем повторную инициализацию
   const isMountedRef = React.useRef(false);
@@ -67,7 +67,10 @@ export function GameProvider({ children }: GameProviderProps) {
         const isConnected = await checkSupabaseConnection();
         setHasConnection(isConnected);
         
-        if (!isConnected && !connectionErrorShown) {
+        if (isConnected) {
+          // Проверяем существование таблицы сохранений
+          await createSavesTableIfNotExists();
+        } else if (!connectionErrorShown) {
           connectionErrorShown = true;
           toast({
             title: "Ошибка соединения",
@@ -93,6 +96,9 @@ export function GameProvider({ children }: GameProviderProps) {
               description: "Подключение к серверу восстановлено.",
               variant: "success",
             });
+            
+            // Проверяем существование таблицы сохранений
+            await createSavesTableIfNotExists();
           } else {
             toast({
               title: "Соединение потеряно",
@@ -216,6 +222,9 @@ export function GameProvider({ children }: GameProviderProps) {
   useEffect(() => {
     const loadSavedGame = async () => {
       try {
+        // Предотвращаем повторную загрузку
+        if (gameInitialized) return;
+        
         setLoadingMessage("Инициализация игры...");
         // Убедимся, что шина событий создана перед загрузкой
         ensureGameEventBus();
@@ -225,7 +234,10 @@ export function GameProvider({ children }: GameProviderProps) {
         const isConnected = await checkSupabaseConnection();
         setHasConnection(isConnected);
         
-        if (!isConnected) {
+        if (isConnected) {
+          // Проверяем существование таблицы сохранений
+          await createSavesTableIfNotExists();
+        } else {
           setLoadingMessage("Нет соединения с сервером");
           setIsLoading(false);
           
@@ -275,6 +287,7 @@ export function GameProvider({ children }: GameProviderProps) {
           console.warn('⚠️ Превышено время ожидания загрузки, начинаем новую игру');
           setLoadedState(null);
           setIsLoading(false);
+          setGameInitialized(true);
           
           if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
             loadMessageShown = true;
@@ -298,6 +311,7 @@ export function GameProvider({ children }: GameProviderProps) {
         }
         
         setLoadedState(savedState);
+        setGameInitialized(true);
         
         // Показываем всплывающее уведомление при успешной загрузке
         if (savedState && !loadMessageShown && process.env.NODE_ENV !== 'development') {
@@ -321,6 +335,7 @@ export function GameProvider({ children }: GameProviderProps) {
         }
       } catch (err) {
         console.error('❌ Ошибка при загрузке состояния:', err);
+        setGameInitialized(true);
         
         // Показываем уведомление об ошибке
         if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
@@ -337,7 +352,7 @@ export function GameProvider({ children }: GameProviderProps) {
     };
     
     loadSavedGame();
-  }, []);
+  }, [gameInitialized]);
   
   // Важное исправление: используем два useReducer
   // Один для начального состояния (без загруженных данных)
@@ -354,11 +369,16 @@ export function GameProvider({ children }: GameProviderProps) {
   
   // Применяем загруженное состояние после его получения через dispatch
   useEffect(() => {
-    if (loadedState && !isLoading) {
+    if (loadedState && !isLoading && gameInitialized) {
       console.log('🔄 Применяем загруженное состояние через dispatch...');
       dispatch({ type: 'LOAD_GAME', payload: loadedState });
+      
+      // Сразу сохраняем, чтобы зафиксировать изменения
+      setTimeout(() => {
+        saveGame(state);
+      }, 1000);
     }
-  }, [loadedState, isLoading]);
+  }, [loadedState, isLoading, gameInitialized]);
   
   // Обновление ресурсов каждую секунду
   useEffect(() => {
@@ -373,7 +393,7 @@ export function GameProvider({ children }: GameProviderProps) {
   
   // Автосохранение с защитой от частых сохранений
   useEffect(() => {
-    if (!state.gameStarted || isLoading || !hasConnection) return;
+    if (!state.gameStarted || isLoading || !hasConnection || !gameInitialized) return;
     
     console.log('🔄 Настройка автосохранения игры');
     
@@ -394,7 +414,7 @@ export function GameProvider({ children }: GameProviderProps) {
       console.log('🔄 Сохранение при размонтировании');
       saveGame(state);
     };
-  }, [state, isLoading, hasConnection]);
+  }, [state, isLoading, hasConnection, gameInitialized]);
   
   // Сохранение при закрытии/перезагрузке страницы или переключении вкладок
   useEffect(() => {

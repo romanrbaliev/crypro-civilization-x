@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -187,11 +188,26 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Загрузка сохраненной игры
     case "LOAD_GAME": {
+      console.log('Загрузка сохраненной игры через LOAD_GAME action');
+      
       // Инициализируем синергии, если их нет в загруженном состоянии
       let newState = processLoadGame(state, action.payload);
-      if (!newState.specializationSynergies) {
+      
+      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
+        console.log('Инициализируем отсутствующие синергии в gameReducer');
         newState = initializeSynergies(newState);
       }
+      
+      // Если нет реферального кода, генерируем его
+      if (!newState.referralCode) {
+        const code = generateReferralCode();
+        newState = {
+          ...newState,
+          referralCode: code
+        };
+        console.log(`Сгенерирован реферальный код при загрузке: ${code}`);
+      }
+      
       return newState;
     }
     
@@ -201,7 +217,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       let newState = processStartGame(state);
       
       // Инициализируем синергии, если их нет
-      if (!newState.specializationSynergies) {
+      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
+        console.log('Инициализируем отсутствующие синергии в START_GAME');
         newState = initializeSynergies(newState);
       }
       
@@ -212,12 +229,21 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           ...newState,
           referralCode: code
         };
-        console.log(`Сгенерирован реферальный код: ${code}`);
+        console.log(`Сгенерирован реферальный код при старте: ${code}`);
         
         // Сохраняем реферальный код в Supabase
         saveReferralInfo(code, newState.referredBy).catch(err => 
           console.error("Ошибка при сохранении реферального кода:", err)
         );
+      }
+      
+      // Проверяем другие необходимые поля
+      if (!newState.referrals) {
+        newState.referrals = [];
+      }
+      
+      if (!newState.referralHelpers) {
+        newState.referralHelpers = [];
       }
       
       return newState;

@@ -18,6 +18,68 @@ const CHECK_CONNECTION_INTERVAL = 5000; // 5 секунд между прове�
 let lastCheckTime = 0;
 let cachedConnectionResult = false;
 
+// Создание SQL функции для создания таблицы если она не существует
+export const createSavesTableIfNotExists = async (): Promise<boolean> => {
+  try {
+    console.log('🔄 Проверка существования и создание таблицы сохранений если необходима...');
+    
+    // SQL для создания таблицы game_saves
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS public.${SAVES_TABLE} (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL UNIQUE,
+        game_data JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+      );
+    `;
+    
+    const { error } = await supabase.rpc('exec_sql', { sql: createTableSQL });
+    
+    if (error) {
+      console.error('❌ Ошибка при создании таблицы сохранений:', error);
+      
+      // Пробуем создать функцию exec_sql если её нет
+      const createFunctionSQL = `
+        CREATE OR REPLACE FUNCTION exec_sql(sql text) RETURNS void AS $$
+        BEGIN
+          EXECUTE sql;
+        END;
+        $$ LANGUAGE plpgsql SECURITY DEFINER;
+      `;
+      
+      // Создаем функцию напрямую через SQL
+      const { error: functionError } = await supabase.rpc('exec_sql', { sql: createFunctionSQL }).catch(() => {
+        // Если функции нет, пробуем выполнить SQL напрямую
+        return supabase.from(SAVES_TABLE).select('count').limit(1);
+      });
+      
+      if (!functionError) {
+        // Повторная попытка создать таблицу
+        const { error: retryError } = await supabase.rpc('exec_sql', { sql: createTableSQL });
+        if (!retryError) {
+          console.log('✅ Таблица сохранений успешно создана после создания функции');
+          return true;
+        }
+      }
+      
+      // Еще один запасной вариант - проверить существует ли таблица
+      const { error: checkError } = await supabase.from(SAVES_TABLE).select('count').limit(1);
+      if (!checkError) {
+        console.log('✅ Таблица сохранений уже существует');
+        return true;
+      }
+      
+      return false;
+    }
+    
+    console.log('✅ Таблица сохранений успешно создана или уже существует');
+    return true;
+  } catch (error) {
+    console.error('❌ Критическая ошибка при создании таблицы сохранений:', error);
+    return false;
+  }
+};
+
 // Получение идентификатора пользователя с приоритетом Telegram
 export const getUserIdentifier = async (): Promise<string> => {
   // Проверяем есть ли сохраненный ID в памяти
@@ -229,6 +291,9 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       return false;
     }
     
+    // Создаем таблицу сохранений если она не существует
+    await createSavesTableIfNotExists();
+    
     console.log('🔄 Сохранение в Supabase...');
     
     // Преобразуем GameState в Json
@@ -255,6 +320,31 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     
     if (error) {
       console.error('❌ Ошибка при сохранении в Supabase:', error);
+      
+      // Пробуем создать таблицу и повторить попытку если таблица не существует
+      if (error.code === 'PGRST116') {
+        const tableCreated = await createSavesTableIfNotExists();
+        if (tableCreated) {
+          // Повторяем попытку сохранения
+          const { error: retryError } = await supabase
+            .from(SAVES_TABLE)
+            .upsert(saveData, { onConflict: 'user_id' });
+            
+          if (retryError) {
+            console.error('❌ Ошибка при повторном сохранении в Supabase:', retryError);
+            toast({
+              title: "Ошибка сохранения",
+              description: "Не удалось сохранить прогресс. Попробуйте позже.",
+              variant: "destructive",
+            });
+            return false;
+          }
+          
+          console.log('✅ Игра успешно сохранена после создания таблицы');
+          return true;
+        }
+      }
+      
       toast({
         title: "Ошибка сохранения",
         description: "Не удалось сохранить прогресс. Попробуйте позже.",
@@ -297,6 +387,9 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       return null;
     }
     
+    // Создаем таблицу сохранений если она не существует
+    await createSavesTableIfNotExists();
+    
     console.log('🔄 Загрузка из Supabase...');
     
     const { data, error } = await supabase
@@ -311,14 +404,13 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       if (error.code === 'PGRST116') {
         console.warn('⚠️ Таблица сохранений не существует в Supabase');
         
-        // Пытаемся создать таблицу, если её нет
-        try {
-          // Вызываем функцию создания таблицы
-          await supabase.rpc('create_saves_table');
+        // Создаем таблицу, если её нет
+        const tableCreated = await createSavesTableIfNotExists();
+        
+        if (tableCreated) {
           console.log('✅ Таблица сохранений создана');
           
           // Сразу попытаемся получить данные еще раз (после создания таблицы)
-          // Это скорее всего все равно вернет пустой результат, но стоит попробовать
           const retryResult = await supabase
             .from(SAVES_TABLE)
             .select('game_data, updated_at')
@@ -329,8 +421,6 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
             console.log('✅ Данные успешно загружены после создания таблицы');
             return retryResult.data.game_data as any;
           }
-        } catch (createError) {
-          console.error('❌ Не удалось создать таблицу сохранений:', createError);
         }
       }
       

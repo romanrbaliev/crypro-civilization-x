@@ -35,6 +35,7 @@ export const processLoadGame = (
   if (!payload.resources || !payload.buildings) {
     console.error('❌ Загруженные данные повреждены, используем начальное состояние');
     safeDispatchGameEvent('Загруженные данные повреждены, начинаем новую игру', 'error');
+    
     return {
       ...initialState,
       gameStarted: true,
@@ -62,10 +63,33 @@ export const processLoadGame = (
     }
   }
   
-  // Проверка и добавление новых полей, которых могло не быть в сохранении
+  // Проверка и добавление новых полей, которые могли отсутствовать в сохранении
   if (!loadedState.specializationSynergies) {
     loadedState.specializationSynergies = { ...initialState.specializationSynergies };
     console.log('✅ Добавлены отсутствующие данные о синергиях специализаций в редьюсере');
+  }
+  
+  // Проверка и инициализация реферальных систем
+  if (!loadedState.referrals) {
+    loadedState.referrals = [];
+    console.log('✅ Инициализирован пустой массив рефералов');
+  }
+  
+  if (!loadedState.referralHelpers) {
+    loadedState.referralHelpers = [];
+    console.log('✅ Инициализирован пустой массив помощников');
+  }
+  
+  // Проверка наличия счетчиков
+  if (!loadedState.counters) {
+    loadedState.counters = { ...initialState.counters };
+    console.log('✅ Добавлены отсутствующие счетчики');
+  }
+  
+  // Проверка наличия событий
+  if (!loadedState.eventMessages) {
+    loadedState.eventMessages = { ...initialState.eventMessages };
+    console.log('✅ Добавлены отсутствующие сообщения о событиях');
   }
   
   // Обновляем timestamp для правильной работы логики обновления
