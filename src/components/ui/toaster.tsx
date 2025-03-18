@@ -1,4 +1,5 @@
 
+
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -11,6 +12,7 @@ import {
 import { useEffect } from "react"
 import { getUserIdentifier } from "@/api/userIdentification"
 import { supabase } from "@/integrations/supabase/client"
+import { checkSupabaseConnection } from "@/api/connectionUtils"
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -23,12 +25,12 @@ export function Toaster() {
         console.log('ID пользователя сохранен в глобальной переменной:', userId);
         
         try {
-          // Исправляем запрос для проверки подключения к Supabase - ошибка в count(*)
-          const { data, error } = await supabase.from('referral_data').select('user_id').limit(1);
-          if (!error) {
+          // Используем функцию checkSupabaseConnection для проверки соединения
+          const isConnected = await checkSupabaseConnection();
+          if (isConnected) {
             console.log('✅ Подключение к Supabase подтверждено при загрузке');
           } else {
-            console.error('❌ Ошибка подключения к Supabase:', error);
+            console.error('❌ Ошибка подключения к Supabase при загрузке');
           }
         } catch (e) {
           console.error('❌ Ошибка при проверке подключения к Supabase:', e);
@@ -180,3 +182,4 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+

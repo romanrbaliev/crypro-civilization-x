@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -65,17 +64,14 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
 }) => {
   const isAssigned = Boolean(assignedBuildingId);
   
-  // Проверяем статус активации напрямую из базы данных
   const [directDbStatus, setDirectDbStatus] = useState<boolean | null>(null);
   
-  // Используем directDbStatus если он доступен, иначе берем из props
   const isActivated = directDbStatus !== null 
     ? directDbStatus 
     : (typeof referral.activated === 'boolean' 
         ? referral.activated 
         : String(referral.activated).toLowerCase() === 'true');
   
-  // При монтировании компонента проверяем статус в БД
   useEffect(() => {
     const checkStatusInDb = async () => {
       try {
@@ -343,9 +339,13 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const id = await getUserIdentifier();
       console.log('Принудительное обновление рефералов для пользователя:', id);
       
-      const connectionResult = await supabase.from('referral_data').select('count(*)');
-      if (connectionResult.error) {
-        console.error('❌ Ошибка соединения с Supabase при обновлении рефералов:', connectionResult.error);
+      const { data: connectionResult, error: connectionError } = await supabase
+        .from('referral_data')
+        .select('count(*)')
+        .limit(1);
+      
+      if (connectionError) {
+        console.error('❌ Ошибка соединения с Supabase при обновлении рефералов:', connectionError);
         onAddEvent("Ошибка соединения с базой данных", "error");
         setIsRefreshingReferrals(false);
         return;
@@ -353,11 +353,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       
       console.log('✅ Соединение с Supabase подтверждено при обновлении рефералов');
       
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('referral_data')
         .select('referral_code')
         .eq('user_id', id)
         .single();
+      
+      if (userError) {
+        console.error('❌ Ошибка при получении данных пользователя:', userError);
+        onAddEvent("Ошибка при получении данных пользователя", "error");
+        setIsRefreshingReferrals(false);
+        return;
+      }
       
       if (userData && userData.referral_code) {
         console.log('Найден реферальный код в базе:', userData.referral_code);
@@ -377,13 +384,23 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         console.log('Найдено рефералов в базе данных:', directReferrals?.length || 0);
         console.log('Детальные данные рефералов из базы:', JSON.stringify(directReferrals, null, 2));
         
-        // Явно запрашиваем обновленные данные об активации для каждого реферала
         const updatedReferrals = await Promise.all((directReferrals || []).map(async (ref) => {
-          const { data: activationData } = await supabase
+          const { data: activationData, error: activationError } = await supabase
             .from('referral_data')
             .select('is_activated')
             .eq('user_id', ref.user_id)
             .single();
+            
+          if (activationError) {
+            console.error(`❌ Ошибка при получении статуса активации для ${ref.user_id}:`, activationError);
+            return {
+              id: ref.user_id,
+              username: `ID: ${ref.user_id.substring(0, 6)}`,
+              activated: false,
+              typeOfActivated: 'boolean',
+              joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
+            };
+          }
             
           const activationStatus = activationData?.is_activated === true;
           
@@ -404,7 +421,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         console.log('Обновленные данные рефералов для сохранения:', 
           JSON.stringify(updatedReferrals, null, 2));
         
-        // Обновляем состояние игры с новыми данными о рефералах
         dispatch({ 
           type: "LOAD_GAME", 
           payload: { 
@@ -775,7 +791,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       : String(ref.activated).toLowerCase() === 'true'
   )?.length || 0;
 
-  // Исправляем фильтрацию рефералов на вкладке "Активные"
   const filteredReferrals = currentTab === 'active' 
     ? (state.referrals || []).filter(ref => 
         (typeof ref.activated === 'boolean' && ref.activated === true) ||
