@@ -1,3 +1,4 @@
+
 import { Resource } from "@/context/types";
 
 export const formatNumber = (num: number): string => {
@@ -110,4 +111,17 @@ export const formatTime = (seconds: number): string => {
   if (seconds < 60) return `${Math.floor(seconds)}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
   return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+};
+
+// Добавляем отсутствующую функцию calculateTimeToReach
+export const calculateTimeToReach = (
+  currentValue: number,
+  targetValue: number,
+  perSecond: number
+): string => {
+  if (perSecond <= 0) return '∞';
+  if (currentValue >= targetValue) return 'Готово!';
+  
+  const timeInSeconds = (targetValue - currentValue) / perSecond;
+  return formatTime(timeInSeconds);
 };
