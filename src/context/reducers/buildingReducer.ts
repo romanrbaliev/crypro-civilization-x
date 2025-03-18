@@ -67,16 +67,15 @@ export const processPurchaseBuilding = (
       console.warn("Не найдено исследование blockchain_basics");
     }
     
-    // Открываем вкладку исследований
+    // Открываем вкладку исследований - ИСПРАВЛЕНО: используем явное присваивание true
     newUnlocks = {
       ...newUnlocks,
       research: true
     };
 
-    // Добавляем явную запись в консоль для отладки
-    console.log("Установлено состояние research:", true);
-    console.log("Текущее состояние вкладки research:", state.unlocks.research);
-    console.log("Новое состояние вкладки research:", newUnlocks.research);
+    // Для отладки добавляем больше логов
+    console.log("Установлен флаг research: true");
+    console.log("Текущие разблокированные функции:", Object.entries(newUnlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
     
     // Принудительная диспетчеризация события разблокировки исследований
     safeDispatchGameEvent("Разблокирована вкладка Исследования!", "success");

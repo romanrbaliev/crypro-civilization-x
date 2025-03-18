@@ -46,15 +46,22 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
+  // ИСПРАВЛЕНО: Улучшенная проверка разблокировки зданий
   const hasUnlockedBuildings = Object.values(state.buildings)
     .some(b => b.unlocked && b.id !== "practice");
     
-  const hasUnlockedResearch = Object.values(state.upgrades)
-    .some(u => u.unlocked);
+  // ИСПРАВЛЕНО: Улучшенная проверка разблокировки исследований
+  const hasUnlockedResearch = state.unlocks.research === true;
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
+  
+  // Для отладки логика разблокировки
+  useEffect(() => {
+    console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
+    console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
+  }, [state.unlocks]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
@@ -105,12 +112,20 @@ const GameScreen = () => {
     }
   }, []);
   
+  // Автоматический выбор вкладки при их разблокировке
   useEffect(() => {
     if (hasUnlockedBuildings) {
       setSelectedTab("equipment");
     } else if (hasUnlockedResearch) {
       setSelectedTab("research");
     }
+    
+    // Логи для отладки переключения вкладок
+    console.log("Обновление выбранной вкладки:", {
+      hasUnlockedBuildings,
+      hasUnlockedResearch,
+      selectedTab
+    });
   }, [hasUnlockedBuildings, hasUnlockedResearch]);
   
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
@@ -141,6 +156,20 @@ const GameScreen = () => {
         variant: "destructive",
       });
     }
+  };
+  
+  // Функция для отображения блоков вкладок
+  const renderTabButton = (id: string, label: string, icon: React.ReactNode) => {
+    return (
+      <Button 
+        variant={selectedTab === id ? "default" : "ghost"} 
+        className="justify-start rounded-none section-title h-6 px-3"
+        onClick={() => setSelectedTab(id)}
+      >
+        {icon}
+        {label}
+      </Button>
+    );
   };
   
   return (
@@ -279,34 +308,11 @@ const GameScreen = () => {
           
           <div className="border-t mt-auto">
             <div className="flex flex-col">
-              {hasUnlockedBuildings && (
-                <Button 
-                  variant={selectedTab === "equipment" ? "default" : "ghost"} 
-                  className="justify-start rounded-none section-title h-6 px-3"
-                  onClick={() => setSelectedTab("equipment")}
-                >
-                  <Building className="h-3 w-3 mr-2" />
-                  Оборудование
-                </Button>
-              )}
-              {hasUnlockedResearch && (
-                <Button 
-                  variant={selectedTab === "research" ? "default" : "ghost"} 
-                  className="justify-start rounded-none section-title h-6 px-3"
-                  onClick={() => setSelectedTab("research")}
-                >
-                  <Lightbulb className="h-3 w-3 mr-2" />
-                  Исследования
-                </Button>
-              )}
-              <Button 
-                variant={selectedTab === "referrals" ? "default" : "ghost"} 
-                className="justify-start rounded-none section-title h-6 px-3"
-                onClick={() => setSelectedTab("referrals")}
-              >
-                <Users className="h-3 w-3 mr-2" />
-                Рефералы
-              </Button>
+              {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
+              
+              {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
+              
+              {renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
             </div>
           </div>
         </div>
