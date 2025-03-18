@@ -32,16 +32,18 @@ export const formatEffectName = (name: string): string => {
 
 // Форматирование описания эффекта
 export const formatEffect = (effectId: string, amount: number): string => {
-  if (effectId.includes('Boost')) {
+  if (effectId === 'knowledgeBoost') {
+    return `+${(amount * 100).toFixed(0)}% к скорости накопления Знаний о крипте`;
+  } else if (effectId === 'knowledgeMaxBoost') {
+    return `+${(amount * 100).toFixed(0)}% к максимуму Знаний о крипте`;
+  } else if (effectId === 'usdtMaxBoost') {
+    return `+${(amount * 100).toFixed(0)}% к максимуму USDT`;
+  } else if (effectId.includes('Boost')) {
     const baseName = effectId.replace('Boost', '');
     return `+${(amount * 100).toFixed(0)}% к ${formatEffectName(baseName)}`;
   } else if (effectId.includes('Reduction')) {
     const baseName = effectId.replace('Reduction', '');
     return `-${(amount * 100).toFixed(0)}% к ${formatEffectName(baseName)}`;
-  } else if (effectId === 'knowledgeMaxBoost') {
-    return `+${(amount * 100).toFixed(0)}% к максимуму Знаний о крипте`;
-  } else if (effectId === 'usdtMaxBoost') {
-    return `+${(amount * 100).toFixed(0)}% к максимуму USDT`;
   }
   return `+${amount} к ${formatEffectName(effectId)}`;
 };

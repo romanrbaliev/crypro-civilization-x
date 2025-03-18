@@ -41,8 +41,12 @@ export const processPurchaseUpgrade = (
     }
   };
   
+  console.log(`Куплено исследование ${upgradeId} с эффектами:`, upgrade.effect);
+  
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек
+  // и применяем эффекты увеличения хранилища знаний
   if (upgradeId === 'basicBlockchain') {
+    // Разблокируем криптокошелек
     const newBuildings = {
       ...state.buildings,
       cryptoWallet: {
@@ -60,6 +64,20 @@ export const processPurchaseUpgrade = (
     setTimeout(() => {
       safeDispatchGameEvent("Криптокошелек увеличивает максимальное хранение USDT и знаний", "info");
     }, 200);
+    
+    // Применяем эффекты исследования непосредственно к ресурсам
+    if (upgrade.effect.knowledgeMaxBoost && newResources.knowledge) {
+      const boostFactor = 1 + upgrade.effect.knowledgeMaxBoost;
+      newResources.knowledge = {
+        ...newResources.knowledge,
+        max: newResources.knowledge.max * boostFactor
+      };
+      console.log(`Увеличен максимум знаний на ${upgrade.effect.knowledgeMaxBoost * 100}% до ${newResources.knowledge.max}`);
+    }
+    
+    if (upgrade.effect.knowledgeBoost) {
+      console.log(`Применен буст скорости накопления знаний: +${upgrade.effect.knowledgeBoost * 100}%`);
+    }
     
     const newState = {
       ...state,
@@ -81,9 +99,6 @@ export const processPurchaseUpgrade = (
   
   // Проверяем все улучшения на возможность разблокировки
   const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
-  
-  // Проверяем синергии после покупки исследования
-  // Это отдельный редьюсер, который будет вызван в следующем тике через CHECK_SYNERGIES
   
   // Обновляем максимальные значения ресурсов
   return updateResourceMaxValues(stateWithNewUnlocks);

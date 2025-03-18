@@ -19,7 +19,7 @@ export const calculateResourceProduction = (
     };
   });
   
-  // Получаем бонус от рефералов (ИСПРАВЛЕНО: функция calculateReferralBonus теперь учитывает только активных рефералов)
+  // Получаем бонус от рефералов
   const referralBonus = calculateReferralBonus(referrals);
   
   console.log(`Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%`);
@@ -165,7 +165,23 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
   Object.values(state.upgrades).forEach(upgrade => {
     if (upgrade.purchased) {
       Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
-        if (effectId.includes('MaxStorage')) {
+        // Проверяем эффекты на максимальное хранилище
+        if (effectId === 'knowledgeMaxBoost' && newResources.knowledge) {
+          // Уже применено непосредственно в processPurchaseUpgrade для basicBlockchain
+          if (upgrade.id !== 'basicBlockchain') {
+            console.log(`Применяется эффект ${effectId} от улучшения ${upgrade.id}: +${amount * 100}%`);
+            newResources.knowledge = {
+              ...newResources.knowledge,
+              max: newResources.knowledge.max * (1 + amount)
+            };
+          }
+        } else if (effectId === 'usdtMaxBoost' && newResources.usdt) {
+          console.log(`Применяется эффект ${effectId} от улучшения ${upgrade.id}: +${amount * 100}%`);
+          newResources.usdt = {
+            ...newResources.usdt,
+            max: newResources.usdt.max * (1 + amount)
+          };
+        } else if (effectId.includes('MaxStorage')) {
           const resourceId = effectId.replace('MaxStorage', '');
           if (newResources[resourceId]) {
             newResources[resourceId] = {

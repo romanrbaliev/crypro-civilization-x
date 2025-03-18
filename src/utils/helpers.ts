@@ -1,4 +1,3 @@
-
 /**
  * Проверяет, достаточно ли ресурсов для совершения покупки
  */
@@ -58,26 +57,38 @@ export const calculateHelperBoost = (helpers: any[] = [], buildingId: string): n
  */
 export const calculateBuildingBoostFromHelpers = (
   buildingId: string,
-  helpers: any[] = []
+  referralHelpers: any[] = []
 ): number => {
-  // Используем функцию calculateHelperBoost
-  const boost = calculateHelperBoost(helpers, buildingId);
-  console.log(`Расчет бонуса для здания ${buildingId}: ${helpers.length} помощников, бонус ${boost * 100}%`);
-  return boost;
+  if (!referralHelpers || !Array.isArray(referralHelpers) || referralHelpers.length === 0) {
+    return 0;
+  }
+  
+  // Находим принятых помощников для этого здания
+  const acceptedHelpers = referralHelpers.filter(
+    h => h.buildingId === buildingId && h.status === 'accepted'
+  );
+  
+  console.log(`Расчет бонуса для здания ${buildingId}: ${acceptedHelpers.length} помощников, бонус ${acceptedHelpers.length * 0.1 * 100}%`);
+  
+  // Каждый помощник дает +10% к производительности здания
+  return acceptedHelpers.length * 0.1;
 };
 
 /**
  * Вычисляет общий бонус от рефералов
  * ИСПРАВЛЕНО: Проверяем только активированных рефералов с явной проверкой activated === true
  */
-export const calculateReferralBonus = (referrals: any[] = []): number => {
-  if (!referrals || referrals.length === 0) return 0;
+export const calculateReferralBonus = (referrals: any[]): number => {
+  // Проверяем, что у нас есть массив рефералов
+  if (!referrals || !Array.isArray(referrals)) {
+    return 0;
+  }
   
-  // ВАЖНО: Учитываем только активированных рефералов (тех, кто построил генератор)
+  // Считаем только активированных рефералов
   const activeReferrals = referrals.filter(ref => ref.activated === true);
   console.log(`Расчет бонуса от рефералов: ${activeReferrals.length} активных из ${referrals.length} всего`);
   
-  // Каждый активный реферал дает +5% к производительности
+  // Бонус: +5% за каждого активного реферала
   return activeReferrals.length * 0.05;
 };
 
