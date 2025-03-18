@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
 import { BitcoinIcon, Coins, Trophy, Settings, Info, Play, Trash2 } from "lucide-react";
-import { GAME_STORAGE_KEY } from "@/context/utils/gameStorage";
+import { clearGameState } from "@/context/utils/gameStorage";
 import { 
   Dialog,
   DialogContent,
@@ -31,21 +30,19 @@ const StartScreen = () => {
     navigate("/game");
   };
   
-  const handleResetGame = () => {
-    localStorage.removeItem(GAME_STORAGE_KEY);
+  const handleResetGame = async () => {
+    await clearGameState();
     window.location.reload();
   };
   
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
-      {/* Декоративные элементы */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-purple-100 opacity-50" />
         <div className="absolute top-1/3 -left-20 w-80 h-80 rounded-full bg-green-100 opacity-40" />
         <div className="absolute bottom-20 right-20 w-40 h-40 rounded-full bg-blue-100 opacity-30" />
       </div>
       
-      {/* Верхняя панель */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 p-4 z-10">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-2 text-2xl font-bold">
@@ -61,7 +58,6 @@ const StartScreen = () => {
         </div>
       </header>
       
-      {/* Основное содержимое */}
       <main className="flex-1 container mx-auto p-6 md:p-12 flex flex-col items-center justify-center z-10">
         <div className="max-w-md w-full text-center space-y-8">
           <div className="space-y-4">
@@ -203,7 +199,6 @@ const StartScreen = () => {
         </div>
       </main>
       
-      {/* Нижняя панель */}
       <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-200 p-4 z-10">
         <div className="container mx-auto text-center text-sm text-gray-500">
           <p>© 2023 Crypto Civilization • Инкрементальная игра о крипте</p>
