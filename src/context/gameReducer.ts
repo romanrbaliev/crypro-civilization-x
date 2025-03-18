@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -99,7 +98,7 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
     ref.id === payload.referralId ? { ...ref, activated: true } : ref
   );
   
-  console.log('Обнов��енный список рефералов:', updatedReferrals);
+  console.log('Обнов��енный спи��ок рефералов:', updatedReferrals);
   
   // Отправляем событие активации, чтобы обновить интерфейс
   setTimeout(() => {
@@ -321,8 +320,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Разблокировка фичи
     case "UNLOCK_FEATURE": 
-      // Fix: convert feature to featureId
-      return processUnlockFeature(state, { featureId: action.payload.feature });
+      // Исправляем ошибку: меняем feature на featureId
+      return processUnlockFeature(state, { featureId: action.payload.featureId });
     
     // Разблокировка ресурса
     case "UNLOCK_RESOURCE": 
@@ -334,8 +333,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Инкремент счетчика
     case "INCREMENT_COUNTER": 
-      // Fix: convert counter to counterId
-      return processIncrementCounter(state, { counterId: action.payload.counter, value: action.payload.value });
+      // Исправляем ошибку: меняем counter на counterId
+      return processIncrementCounter(state, { counterId: action.payload.counterId, value: action.payload.value });
     
     // Проверка и обновление синергий
     case "CHECK_SYNERGIES":

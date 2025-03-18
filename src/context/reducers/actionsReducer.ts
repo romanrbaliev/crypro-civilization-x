@@ -29,7 +29,10 @@ export const processMiningPower = (state: GameState): GameState => {
   // Увеличиваем счетчик майнинга
   const newCounters = {
     ...state.counters,
-    mining: state.counters.mining + 1
+    mining: {
+      ...state.counters.mining,
+      value: state.counters.mining.value + 1
+    }
   };
 
   // Проверка условий разблокировки автомайнера
@@ -123,7 +126,10 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   // Увеличиваем счетчик применения знаний
   const newCounters = {
     ...state.counters,
-    applyKnowledge: (state.counters.applyKnowledge || 0) + 1
+    applyKnowledge: {
+      ...state.counters.applyKnowledge,
+      value: (state.counters.applyKnowledge?.value || 0) + 1
+    }
   };
   
   // Проверяем, нужно ли разблокировать практику

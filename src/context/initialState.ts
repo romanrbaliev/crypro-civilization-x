@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counter, MiningParams } from './types';
 import { generateReferralCode } from '@/utils/helpers';
 
@@ -14,7 +13,8 @@ export const initialBuildings: { [key: string]: Building } = {
     count: 0,
     unlocked: false,
     requirements: { usdt: 10 },
-    maxCount: Infinity
+    maxCount: Infinity,
+    productionBoost: 0
   },
   generator: {
     id: "generator",
@@ -25,7 +25,8 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { electricity: 0.5 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 11 }
+    requirements: { usdt: 11 },
+    productionBoost: 0
   },
   homeComputer: {
     id: "homeComputer",
@@ -36,7 +37,8 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { computingPower: 2 },
     count: 0,
     unlocked: false,
-    requirements: { electricity: 10 }
+    requirements: { electricity: 10 },
+    productionBoost: 0
   },
   autoMiner: {
     id: "autoMiner",
@@ -47,7 +49,8 @@ export const initialBuildings: { [key: string]: Building } = {
     production: {},
     count: 0,
     unlocked: false,
-    requirements: { computingPower: 50 }
+    requirements: { computingPower: 50 },
+    productionBoost: 0
   },
   cryptoWallet: {
     id: "cryptoWallet",
@@ -58,7 +61,8 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { usdtMax: 50, knowledgeMax: 25 },
     count: 0,
     unlocked: false,
-    requirements: { basicBlockchain: 1 }
+    requirements: { basicBlockchain: 1 },
+    productionBoost: 0
   },
   internetConnection: {
     id: "internetConnection",
@@ -69,7 +73,8 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { knowledgeBoost: 0.2 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 45 }
+    requirements: { usdt: 45 },
+    productionBoost: 0
   }
 };
 
@@ -108,7 +113,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
   energyEfficiency: {
     id: "energyEfficiency",
     name: "Энергоэффективные компоненты",
-    description: "Снижает потребление электричества при майнинге на 10%",
+    description: "Снижает потребление ��лектричества при майнинге на 10%",
     cost: { knowledge: 120, usdt: 75 },
     effects: { energyEfficiencyBoost: 0.1 },
     unlocked: false,
@@ -132,6 +137,10 @@ export const initialResources: { [key: string]: Resource } = {
   knowledge: {
     id: "knowledge",
     name: "Знания о крипте",
+    description: "Базовые знания о криптовалютах",
+    baseProduction: 0,
+    production: 0,
+    type: "basic",
     icon: "",
     value: 0,
     perSecond: 0,
@@ -141,6 +150,10 @@ export const initialResources: { [key: string]: Resource } = {
   usdt: {
     id: "usdt",
     name: "USDT",
+    description: "Стейблкоин Tether",
+    baseProduction: 0,
+    production: 0,
+    type: "currency",
     icon: "",
     value: 0,
     perSecond: 0,
@@ -150,6 +163,10 @@ export const initialResources: { [key: string]: Resource } = {
   electricity: {
     id: "electricity",
     name: "Электричество",
+    description: "Энергия для питания устройств",
+    baseProduction: 0,
+    production: 0,
+    type: "resource",
     icon: "",
     value: 0,
     perSecond: 0,
@@ -159,6 +176,10 @@ export const initialResources: { [key: string]: Resource } = {
   computingPower: {
     id: "computingPower",
     name: "Вычислительная мощность",
+    description: "Используется для майнинга криптовалюты",
+    baseProduction: 0,
+    production: 0,
+    type: "resource",
     icon: "💻",
     value: 0,
     perSecond: 0,
@@ -168,6 +189,10 @@ export const initialResources: { [key: string]: Resource } = {
   btc: {
     id: "btc",
     name: "Bitcoin",
+    description: "Криптовалюта Bitcoin",
+    baseProduction: 0,
+    production: 0,
+    type: "crypto",
     icon: "₿",
     value: 0,
     perSecond: 0,
@@ -177,6 +202,10 @@ export const initialResources: { [key: string]: Resource } = {
   reputation: {
     id: "reputation",
     name: "Репутация",
+    description: "Ваша репутация в криптосообществе",
+    baseProduction: 0,
+    production: 0,
+    type: "social",
     icon: "",
     value: 0,
     perSecond: 0,
@@ -186,9 +215,17 @@ export const initialResources: { [key: string]: Resource } = {
 };
 
 // Начальные счетчики
-export const initialCounters: Counters = {
-  applyKnowledge: 0,
-  mining: 0
+export const initialCounters: { [key: string]: Counter } = {
+  applyKnowledge: {
+    id: "applyKnowledge",
+    name: "Применение знаний",
+    value: 0
+  },
+  mining: {
+    id: "mining",
+    name: "Майнинг",
+    value: 0
+  }
 };
 
 // Упрощенные параметры майнинга

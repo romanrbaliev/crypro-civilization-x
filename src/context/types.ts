@@ -130,7 +130,7 @@ export interface MiningParams {
   baseConsumption: number;
 }
 
-export type Counters = { [key: string]: Counter | number };
+export type Counters = { [key: string]: Counter };
 
 export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
