@@ -27,7 +27,12 @@ import {
 import { generateReferralCode } from '@/utils/helpers';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
-import { checkSynergies, activateSynergy, initializeSynergies } from './reducers/synergyReducer';
+import { 
+  checkSynergies, 
+  activateSynergy, 
+  initializeSynergies,
+  synergyReducer 
+} from './reducers/synergyReducer';
 
 // Обработка реферальной системы
 const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
@@ -100,12 +105,12 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
     // Генерируем уникальный ID для нового помощника
     const helperId = `helper_${generateId()}`;
     
-    // Создаем запись помощника
+    // Создаем запись помощника с явным указанием типа для status
     const newHelper: ReferralHelper = {
       id: helperId,
       buildingId,
       helperId: referralId,
-      status: 'pending',
+      status: 'pending' as const,
       createdAt: Date.now()
     };
     
@@ -124,12 +129,12 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
   // Генерируем уникальный ID для помощника
   const helperId = `helper_${generateId()}`;
   
-  // Создаем запись помощника с явным указанием типа status
+  // Создаем запись помощника с явным указанием типа для status
   const newHelper: ReferralHelper = {
     id: helperId,
     buildingId,
     helperId: referralId,
-    status: 'pending',
+    status: 'pending' as const,
     createdAt: Date.now()
   };
   
