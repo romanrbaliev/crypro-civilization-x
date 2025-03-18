@@ -45,7 +45,7 @@ export const processPurchaseUpgrade = (
   
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек
   // и применяем эффекты увеличения хранилища знаний
-  if (upgradeId === 'basicBlockchain') {
+  if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     // Разблокируем криптокошелек
     const newBuildings = {
       ...state.buildings,
@@ -65,25 +65,7 @@ export const processPurchaseUpgrade = (
       safeDispatchGameEvent("Криптокошелек увеличивает максимальное хранение USDT и знаний", "info");
     }, 200);
     
-    // Применяем эффекты исследования непосредственно к ресурсам
-    if (upgrade.effect.knowledgeMaxBoost && newResources.knowledge) {
-      const boostFactor = 1 + upgrade.effect.knowledgeMaxBoost;
-      newResources.knowledge = {
-        ...newResources.knowledge,
-        max: Math.floor(newResources.knowledge.max * boostFactor)
-      };
-      console.log(`Увеличен максимум знаний на ${upgrade.effect.knowledgeMaxBoost * 100}% до ${newResources.knowledge.max}`);
-    }
-    
-    if (upgrade.effect.knowledgeBoost) {
-      console.log(`Применен буст скорости накопления знаний: +${upgrade.effect.knowledgeBoost * 100}%`);
-      
-      // Хотя мы не можем напрямую изменить perSecond здесь (это будет рассчитано в resourceUpdateReducer),
-      // сохраним информацию о примененных эффектах
-      safeDispatchGameEvent(`Скорость накопления знаний увеличена на ${upgrade.effect.knowledgeBoost * 100}%`, "success");
-    }
-    
-    const newState = {
+    const stateAfterPurchase = {
       ...state,
       resources: newResources,
       upgrades: newUpgrades,
@@ -91,10 +73,10 @@ export const processPurchaseUpgrade = (
     };
     
     // Обновляем максимальные значения ресурсов
-    return updateResourceMaxValues(newState);
+    return updateResourceMaxValues(stateAfterPurchase);
   }
   
-  // Проверяем, нужно ли разблокировать другие исследования после покупки этого
+  // Для других исследований просто обновляем состояние
   const stateAfterPurchase = {
     ...state,
     resources: newResources,

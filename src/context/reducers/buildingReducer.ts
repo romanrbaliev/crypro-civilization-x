@@ -3,6 +3,7 @@ import { GameState, GameAction } from '../types';
 import { canAffordCost, deductResources } from '@/utils/helpers';
 import { activateReferral } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { updateResourceMaxValues } from '../utils/resourceUtils';
 
 // Экспортируем функцию для использования в gameReducer
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
@@ -77,20 +78,27 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       safeDispatchGameEvent("Вы активировали реферальную связь с пригласившим вас пользователем!", "success");
     }
     
-    return {
+    // Обновляем максимальные значения ресурсов
+    const stateWithNewUpgrades = {
       ...state,
       resources: newResources,
       buildings: newBuildings,
       unlocks: newUnlocks,
       upgrades: newUpgrades,
     };
+    
+    return updateResourceMaxValues(stateWithNewUpgrades);
   }
   
-  return {
+  // Обновляем состояние с новым зданием и затем обновляем максимальные значения ресурсов
+  const newState = {
     ...state,
     resources: newResources,
     buildings: newBuildings,
   };
+  
+  // Применяем изменения к максимальным значениям ресурсов
+  return updateResourceMaxValues(newState);
 };
 
 export const buildingReducer = (state: GameState, action: GameAction): GameState => {

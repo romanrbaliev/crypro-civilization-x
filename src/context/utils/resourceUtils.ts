@@ -1,5 +1,5 @@
 
-import { Resource, Building, ReferralHelper, GameState } from '../types';
+import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 
 export const calculateResourceProduction = (
@@ -57,14 +57,33 @@ export const calculateResourceProduction = (
   return newResources;
 };
 
+// Обновлено: применение всех возможных бустов к хранилищу
 export const applyStorageBoosts = (
   resources: { [key: string]: Resource },
   buildings: { [key: string]: Building }
 ): { [key: string]: Resource } => {
   const newResources = { ...resources };
   
-  // Логика увеличения хранилища от зданий здесь...
-  // (оставляем существующую логику)
+  // Применяем увеличение хранилища от зданий
+  Object.values(buildings).forEach(building => {
+    if (building.count > 0) {
+      Object.entries(building.production).forEach(([resourceId, amount]) => {
+        // Проверяем, является ли эффект увеличением максимального значения ресурса
+        if (resourceId.includes('Max') && !resourceId.includes('Boost')) {
+          const actualResourceId = resourceId.replace('Max', '');
+          if (newResources[actualResourceId]) {
+            const totalIncrease = Number(amount) * building.count;
+            newResources[actualResourceId] = {
+              ...newResources[actualResourceId],
+              max: newResources[actualResourceId].max + totalIncrease
+            };
+            
+            console.log(`Здание ${building.name} увеличивает максимум ${actualResourceId} на ${totalIncrease}`);
+          }
+        }
+      });
+    }
+  });
   
   return newResources;
 };
@@ -135,63 +154,102 @@ export const hasEnoughResources = (
   return canAffordCost(cost, state.resources);
 };
 
-// Обновление максимальных значений ресурсов
+// Обновление максимальных значений ресурсов на основе зданий и исследований
 export const updateResourceMaxValues = (state: GameState): GameState => {
   const newResources = { ...state.resources };
+  const baseResourceValues = {
+    knowledge: 100,
+    usdt: 50,
+    electricity: 1000,
+    computingPower: 100,
+    btc: 10
+  };
   
-  // Обновление максимальных значений ресурсов в зависимости от зданий и улучшений
-  // Пример: Криптокошелёк увеличивает максимальное хранение USDT и знаний
-  const cryptoWalletCount = state.buildings.cryptoWallet?.count || 0;
-  
-  if (cryptoWalletCount > 0) {
-    // Увеличиваем максимальный лимит USDT на 50 за каждый криптокошелек
-    if (newResources.usdt) {
-      newResources.usdt = {
-        ...newResources.usdt,
-        max: 50 + (cryptoWalletCount * 50)  // Базовый лимит 50 + 50 за каждый кошелек
+  // Сначала устанавливаем базовые значения максимумов
+  Object.entries(baseResourceValues).forEach(([resourceId, baseMax]) => {
+    if (newResources[resourceId]) {
+      newResources[resourceId] = {
+        ...newResources[resourceId],
+        max: baseMax
       };
+    }
+  });
+  
+  // Обработка эффектов зданий на максимальные значения
+  Object.values(state.buildings).forEach(building => {
+    if (building.count <= 0) return;
+    
+    // Применяем специфические эффекты зданий
+    if (building.id === 'cryptoWallet') {
+      // Криптокошелек увеличивает максимальный лимит USDT на 50 за каждый
+      if (newResources.usdt) {
+        newResources.usdt = {
+          ...newResources.usdt,
+          max: newResources.usdt.max + (building.count * 50)
+        };
+        console.log(`Криптокошелек (${building.count} шт.) увеличивает максимум USDT до ${newResources.usdt.max}`);
+      }
+      
+      // Криптокошелек увеличивает максимальный лимит знаний на 25% за каждый
+      if (newResources.knowledge) {
+        const boostFactor = 1 + (building.count * 0.25);
+        newResources.knowledge = {
+          ...newResources.knowledge,
+          max: Math.floor(newResources.knowledge.max * boostFactor)
+        };
+        console.log(`Криптокошелек (${building.count} шт.) увеличивает максимум знаний до ${newResources.knowledge.max}`);
+      }
     }
     
-    // Увеличиваем максимальный лимит знаний на 25% за каждый криптокошелек
-    if (newResources.knowledge) {
-      newResources.knowledge = {
-        ...newResources.knowledge,
-        max: 100 * (1 + (cryptoWalletCount * 0.25))  // Базовый лимит 100 + 25% за каждый кошелек
-      };
-    }
-  }
-  
-  // Проверка улучшений для увеличения максимальных значений
-  Object.values(state.upgrades).forEach(upgrade => {
-    if (upgrade.purchased) {
-      Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
-        // Проверяем эффекты на максимальное хранилище
-        if (effectId === 'knowledgeMaxBoost' && newResources.knowledge) {
-          // Уже применено непосредственно в processPurchaseUpgrade для basicBlockchain
-          if (upgrade.id !== 'basicBlockchain') {
-            console.log(`Применяется эффект ${effectId} от улучшения ${upgrade.id}: +${amount * 100}%`);
-            newResources.knowledge = {
-              ...newResources.knowledge,
-              max: newResources.knowledge.max * (1 + amount)
-            };
-          }
-        } else if (effectId === 'usdtMaxBoost' && newResources.usdt) {
-          console.log(`Применяется эффект ${effectId} от улучшения ${upgrade.id}: +${amount * 100}%`);
-          newResources.usdt = {
-            ...newResources.usdt,
-            max: newResources.usdt.max * (1 + amount)
+    // Применяем общие эффекты зданий на максимальные значения ресурсов
+    Object.entries(building.production).forEach(([effectId, amount]) => {
+      if (effectId.includes('Max') && !effectId.includes('Boost')) {
+        const resourceId = effectId.replace('Max', '');
+        if (newResources[resourceId]) {
+          const totalIncrease = Number(amount) * building.count;
+          newResources[resourceId] = {
+            ...newResources[resourceId],
+            max: newResources[resourceId].max + totalIncrease
           };
-        } else if (effectId.includes('MaxStorage')) {
-          const resourceId = effectId.replace('MaxStorage', '');
-          if (newResources[resourceId]) {
-            newResources[resourceId] = {
-              ...newResources[resourceId],
-              max: newResources[resourceId].max * (1 + amount)
-            };
-          }
+          console.log(`Здание ${building.name} (${building.count} шт.) увеличивает максимум ${resourceId} на ${totalIncrease}`);
         }
-      });
-    }
+      }
+    });
+  });
+  
+  // Обработка эффектов исследований на максимальные значения
+  Object.values(state.upgrades).forEach(upgrade => {
+    if (!upgrade.purchased) return;
+    
+    console.log(`Применение эффектов исследования ${upgrade.name}:`, upgrade.effect);
+    
+    Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
+      // Обработка процентных бустов (например, knowledgeMaxBoost)
+      if (effectId.endsWith('MaxBoost')) {
+        const resourceId = effectId.replace('MaxBoost', '');
+        if (newResources[resourceId]) {
+          const boostFactor = 1 + Number(amount);
+          const oldMax = newResources[resourceId].max;
+          newResources[resourceId] = {
+            ...newResources[resourceId],
+            max: Math.floor(newResources[resourceId].max * boostFactor)
+          };
+          console.log(`Исследование ${upgrade.name} увеличивает максимум ${resourceId} на ${(Number(amount) * 100).toFixed(0)}% (с ${oldMax} до ${newResources[resourceId].max})`);
+        }
+      }
+      // Обработка абсолютных значений (например, knowledgeMax)
+      else if (effectId.endsWith('Max')) {
+        const resourceId = effectId.replace('Max', '');
+        if (newResources[resourceId]) {
+          const oldMax = newResources[resourceId].max;
+          newResources[resourceId] = {
+            ...newResources[resourceId],
+            max: newResources[resourceId].max + Number(amount)
+          };
+          console.log(`Исследование ${upgrade.name} увеличивает максимум ${resourceId} на ${amount} (с ${oldMax} до ${newResources[resourceId].max})`);
+        }
+      }
+    });
   });
   
   return {

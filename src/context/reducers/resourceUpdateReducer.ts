@@ -21,6 +21,13 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Этап 3: Обновляем значения ресурсов с учетом времени
   updatedResources = updateResourceValues(updatedResources, deltaTime);
   
+  // Выводим текущую информацию о производстве в консоль
+  Object.entries(updatedResources).forEach(([resourceId, resource]) => {
+    if (resource.unlocked && resource.perSecond !== 0) {
+      console.log(`Ресурс ${resource.name}: ${resource.perSecond.toFixed(2)}/сек, максимум ${resource.max}, текущее ${resource.value.toFixed(1)}`);
+    }
+  });
+  
   return {
     ...state,
     resources: updatedResources,
