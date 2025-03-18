@@ -6,7 +6,7 @@ import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
 import { supabase } from '@/integrations/supabase/client';
 
-// Новая функция для обновления статуса реферала при покупке генератора
+// Функция для обновления статуса реферала при покупке генератора
 const updateReferralActivation = async (userId: string) => {
   try {
     if (!userId) {
@@ -26,6 +26,34 @@ const updateReferralActivation = async (userId: string) => {
       console.error('❌ Ошибка при обновлении статуса реферала:', error);
     } else {
       console.log('✅ Статус реферала успешно обновлен для пользователя:', userId);
+      
+      // Получаем запись реферала, чтобы узнать, кто пригласил текущего пользователя
+      const { data: referralData, error: referralError } = await supabase
+        .from('referral_data')
+        .select('referred_by')
+        .eq('user_id', userId)
+        .single();
+        
+      if (referralError) {
+        console.error('❌ Ошибка при получении данных о реферале:', referralError);
+        return;
+      }
+      
+      if (referralData && referralData.referred_by) {
+        console.log('Найден код пригласившего:', referralData.referred_by);
+        
+        // Активируем реферальную связь через API
+        const activated = await activateReferral(userId);
+        
+        if (activated) {
+          console.log('✅ Реферальная связь успешно активирована через API');
+          safeDispatchGameEvent("Реферальная связь успешно активирована!", "success");
+        } else {
+          console.error('❌ Не удалось активировать реферальную связь через API');
+        }
+      } else {
+        console.log('⚠️ У пользователя нет реферера');
+      }
     }
   } catch (error) {
     console.error('❌ Неожиданная ошибка при обновлении статуса реферала:', error);
