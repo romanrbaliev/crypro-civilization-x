@@ -22,6 +22,7 @@ export const calculateResourceProduction = (
   // Получаем бонус от рефералов
   const referralBonus = calculateReferralBonus(referrals);
   
+  console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => r.activated).length} активных из ${referrals.length} всего`);
   console.log(`Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%`);
   
   // Для каждого здания рассчитываем производство
@@ -247,6 +248,17 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
             max: newResources[resourceId].max + Number(amount)
           };
           console.log(`Исследование ${upgrade.name} увеличивает максимум ${resourceId} на ${amount} (с ${oldMax} до ${newResources[resourceId].max})`);
+        }
+      }
+      // Обработка boost для скорости накопления ресурсов
+      else if (effectId === 'knowledgeBoost') {
+        if (newResources.knowledge) {
+          const basePerSecond = 0.63; // Базовая скорость накопления знаний
+          newResources.knowledge = {
+            ...newResources.knowledge,
+            perSecond: (newResources.knowledge.perSecond || basePerSecond) * (1 + Number(amount))
+          };
+          console.log(`Исследование ${upgrade.name} увеличивает скорость накопления знаний на ${(Number(amount) * 100).toFixed(0)}%, новое значение: ${newResources.knowledge.perSecond.toFixed(2)}/сек`);
         }
       }
     });

@@ -1,3 +1,4 @@
+
 // Утилиты для работы с исследованиями и их эффектами
 
 // Форматирование названия эффекта
@@ -115,13 +116,16 @@ export const getSpecializationName = (spec: string): string => {
 export const hasBlockchainBasics = (upgrades: any): boolean => {
   // Проверяем куплено ли исследование "Основы блокчейна" в любой из вариаций его ID
   if (upgrades.basicBlockchain && upgrades.basicBlockchain.purchased) {
+    console.log('Пользователь имеет купленное исследование "Основы блокчейна" (basicBlockchain)');
     return true;
   }
   
   if (upgrades.blockchain_basics && upgrades.blockchain_basics.purchased) {
+    console.log('Пользователь имеет купленное исследование "Основы блокчейна" (blockchain_basics)');
     return true;
   }
   
+  console.log('Пользователь НЕ имеет купленного исследования "Основы блокчейна"');
   return false;
 };
 

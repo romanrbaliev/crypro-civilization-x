@@ -1,6 +1,7 @@
 
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
+import { hasBlockchainBasics } from '@/utils/researchUtils';
 
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
@@ -8,18 +9,38 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Этап 1: Проверяем все рефералы на правильность статуса активации по наличию исследования
   // "Основы блокчейна" (blockchain_basics или basicBlockchain)
-  const validatedReferrals = state.referrals.map(referral => {
-    // Проверка на активированность основывается на покупке исследования "Основы блокчейна"
-    // Для этого нам нужно загрузить состояние игры этого реферала и проверить
-    // статус исследования "Основы блокчейна"
+  let validatedReferrals = [...state.referrals];
+  let referralsChanged = false;
+  
+  // Проходим по каждому рефералу и проверяем его статус
+  validatedReferrals = state.referrals.map(referral => {
+    // Проверяем статус активации реферала
+    // Реферал считается активированным только если пользователь купил исследование "Основы блокчейна"
     
-    // Но для простоты реализации мы оставляем текущую логику проверки через флаг activated
+    // Если статус активации неверный, исправляем его
+    const userHasBasicBlockchain = hasBlockchainBasics(state.upgrades);
+    
+    if (userHasBasicBlockchain && !referral.activated) {
+      // Если у пользователя куплено исследование, но реферал не активирован - активируем его
+      console.log(`Исправляем статус активации реферала ${referral.id}: был неактивен, но у пользователя есть "Основы блокчейна"`);
+      referralsChanged = true;
+      return { ...referral, activated: true };
+    }
+    
+    if (!userHasBasicBlockchain && referral.activated) {
+      // Если у пользователя не куплено исследование, но реферал активирован - деактивируем его
+      console.log(`Исправляем статус активации реферала ${referral.id}: был активен, но у пользователя нет "Основы блокчейна"`);
+      referralsChanged = true;
+      return { ...referral, activated: false };
+    }
+    
+    // Если статус соответствует текущему состоянию покупки исследования, оставляем как есть
     return referral;
   });
   
   // Если были изменения в рефералах, создаем новый state
   const stateWithValidReferrals = 
-    JSON.stringify(validatedReferrals) !== JSON.stringify(state.referrals) 
+    referralsChanged 
       ? { ...state, referrals: validatedReferrals }
       : state;
   

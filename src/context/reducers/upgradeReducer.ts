@@ -65,7 +65,7 @@ export const processPurchaseUpgrade = (
       safeDispatchGameEvent("Криптокошелек увеличивает максимальное хранение USDT и знаний", "info");
     }, 200);
     
-    // Новый код - Активируем реферала, если пользователь был приглашен
+    // Активируем реферала, если пользователь был приглашен
     if (state.referredBy) {
       console.log('Активируем реферала для пригласившего пользователя через API', state.referredBy);
       // Запоминаем текущий userId для активации как реферала
@@ -81,16 +81,43 @@ export const processPurchaseUpgrade = (
     }
     
     // Обновляем состояние
-    const stateAfterPurchase = {
+    let stateAfterPurchase = {
       ...state,
       resources: newResources,
       upgrades: newUpgrades,
       buildings: newBuildings
     };
     
-    // Обновляем максимальные значения ресурсов и проверяем разблокировки
-    const updatedState = updateResourceMaxValues(stateAfterPurchase);
-    return checkUpgradeUnlocks(updatedState);
+    // Применяем изменения максимальных значений ресурсов
+    stateAfterPurchase = updateResourceMaxValues(stateAfterPurchase);
+    
+    // Применяем эффекты исследования "Основы блокчейна"
+    if (upgrade.effect) {
+      Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
+        // Если эффект влияет на скорость накопления знаний
+        if (effectId === 'knowledgeBoost' && stateAfterPurchase.resources.knowledge) {
+          const currentPerSecond = stateAfterPurchase.resources.knowledge.perSecond || 0;
+          const boost = Number(amount);
+          
+          // Увеличиваем скорость накопления знаний на соответствующий процент
+          stateAfterPurchase = {
+            ...stateAfterPurchase,
+            resources: {
+              ...stateAfterPurchase.resources,
+              knowledge: {
+                ...stateAfterPurchase.resources.knowledge,
+                perSecond: currentPerSecond * (1 + boost)
+              }
+            }
+          };
+          
+          console.log(`Применен эффект ${effectId}: увеличение скорости знаний на ${boost * 100}%, новая скорость: ${stateAfterPurchase.resources.knowledge.perSecond}`);
+        }
+      });
+    }
+    
+    // Проверяем разблокировки после всех изменений
+    return checkUpgradeUnlocks(stateAfterPurchase);
   }
   
   // Для других исследований просто обновляем состояние
