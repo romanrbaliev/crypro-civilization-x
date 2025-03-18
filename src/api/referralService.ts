@@ -1,4 +1,3 @@
-
 // Сервис для работы с реферальной системой
 
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,15 @@ import { getUserIdentifier } from './userIdentification';
 import { checkSupabaseConnection } from './connectionUtils';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { REFERRAL_TABLE, SAVES_TABLE } from './apiTypes';
+
+// Расширяем интерфейс для работы с is_activated
+interface ReferralDataWithActivation {
+  user_id: string;
+  referral_code: string;
+  referred_by: string | null;
+  is_activated: boolean;
+  created_at: string | null;
+}
 
 // Сохранение информации о реферале
 export const saveReferralInfo = async (referralCode: string, referredBy: string | null = null): Promise<boolean> => {
@@ -104,16 +112,14 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
       return true;
     }
     
-    // Создаем новую запись - используя только поля, которые существуют в типе
-    // Обратите внимание, что мы не включаем is_activated напрямую в объект TypeScript
-    const insertData: any = {
+    // Создаем новую запись с is_activated
+    const insertData = {
       user_id: userId,
       referral_code: referralCode,
       referred_by: referredBy,
-      is_activated: false // Добавляем здесь, но тип обходим с помощью any
-    };
+      is_activated: false
+    } as any; // Используем any для обхода проверки типов
     
-    // Используем метод RLS для добавления дополнительных полей, которые может не знать TypeScript
     const { error } = await supabase
       .from(REFERRAL_TABLE)
       .insert(insertData);
@@ -328,7 +334,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       referralId = userId;
     }
     
-    // Выполняем SQL-запрос для проверки, не активирован ли уже реферал
+    // Проверяем, не активирован ли уже реферал
     const { data: activationCheck, error: checkError } = await supabase
       .from(REFERRAL_TABLE)
       .select('*')
@@ -340,13 +346,9 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       return false;
     }
     
-    // Проверяем активацию вручную, используя raw SQL или прямо из данных
-    let isAlreadyActivated = false;
-    if (activationCheck) {
-      // Обходим проблему с типами, проверяя дополнительное поле напрямую
-      isAlreadyActivated = Object.prototype.hasOwnProperty.call(activationCheck, 'is_activated') && 
-        (activationCheck as any).is_activated === true;
-    }
+    // Безопасная проверка is_activated с учетом типов
+    const activationData = activationCheck as unknown as ReferralDataWithActivation;
+    const isAlreadyActivated = activationData && activationData.is_activated === true;
     
     if (isAlreadyActivated) {
       console.log('⚠️ Реферал уже активирован');
@@ -409,13 +411,9 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     }
     
     // Обновляем в базе данных флаг активации реферала
-    // Используем прямой SQL-запрос через функцию ниже
-    const updateSql = `UPDATE ${REFERRAL_TABLE} SET is_activated = TRUE WHERE user_id = '${referralId}'`;
-    
-    // Выполняем SQL-запрос напрямую через запрос к таблице, а не через RPC
     const { error: updateReferralError } = await supabase
       .from(REFERRAL_TABLE)
-      .update({ is_activated: true } as any) // Используем any чтобы обойти ограничения TypeScript
+      .update({ is_activated: true } as any) // Используем any для обхода типов
       .eq('user_id', referralId);
       
     if (updateReferralError) {
@@ -523,4 +521,3 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     return false;
   }
 };
-
