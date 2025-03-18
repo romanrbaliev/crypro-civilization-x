@@ -2,6 +2,7 @@
 // Сервис идентификации пользователей
 
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
+import { supabase } from '@/integrations/supabase/client';
 
 // Получение идентификатора пользователя с приоритетом Telegram
 export const getUserIdentifier = async (): Promise<string> => {
@@ -35,6 +36,9 @@ export const getUserIdentifier = async (): Promise<string> => {
           rawUserId: telegramUserId
         });
         
+        // Проверяем существует ли запись пользователя в таблице referral_data
+        await checkAndCreateReferralRecord(telegramUserId);
+        
         return telegramUserId;
       } else {
         console.warn('⚠️ Telegram WebApp доступен, но данные пользователя отсутствуют');
@@ -59,5 +63,56 @@ export const getUserIdentifier = async (): Promise<string> => {
   }
   
   window.__game_user_id = localUserId;
+  
+  // Проверяем существует ли запись пользователя в таблице referral_data для локального пользователя
+  await checkAndCreateReferralRecord(localUserId);
+  
   return localUserId;
+};
+
+// Функция проверки и создания записи в таблице referral_data
+const checkAndCreateReferralRecord = async (userId: string): Promise<void> => {
+  try {
+    console.log('Проверка наличия пользователя в таблице referral_data:', userId);
+    
+    // Проверяем наличие записи в базе данных
+    const { data, error } = await supabase
+      .from('referral_data')
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      console.error('Ошибка при проверке пользователя в referral_data:', error);
+      return;
+    }
+    
+    if (data) {
+      console.log('✅ Пользователь уже существует в таблице referral_data');
+      return;
+    }
+    
+    // Если записи нет, генерируем реферальный код и создаём запись
+    const newCode = Array.from({ length: 8 }, () => 
+      Math.floor(Math.random() * 16).toString(16).toUpperCase()
+    ).join('');
+    
+    console.log('Генерация новой записи в referral_data с кодом:', newCode);
+    
+    const { error: insertError } = await supabase
+      .from('referral_data')
+      .insert({
+        user_id: userId,
+        referral_code: newCode,
+        is_activated: false
+      });
+      
+    if (insertError) {
+      console.error('❌ Ошибка при создании записи в referral_data:', insertError);
+    } else {
+      console.log('✅ Запись в referral_data успешно создана');
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при проверке/создании записи в referral_data:', error);
+  }
 };

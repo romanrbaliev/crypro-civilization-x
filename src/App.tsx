@@ -1,8 +1,10 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import GameScreen from "./pages/GameScreen";
+import StartScreen from "./pages/StartScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
 import { useEffect, useState } from "react";
@@ -10,6 +12,7 @@ import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { toast } from "@/hooks/use-toast";
 import { checkSupabaseConnection } from "./api/gameDataService";
+import { createSavesTableIfNotExists } from "./api/gameDataService";
 import "./index.css";
 
 // Настраиваем клиент для React Query
@@ -78,19 +81,32 @@ const App = () => {
     window.addEventListener('online', handleOnlineStatusChange);
     window.addEventListener('offline', handleOnlineStatusChange);
     
-    // Начальная проверка подключения к Supabase
-    checkSupabaseConnection().then(connected => {
+    // Начальная проверка подключения к Supabase и создание нужных таблиц
+    const initSupabase = async () => {
+      const connected = await checkSupabaseConnection();
       setIsSupabaseConnected(connected);
-      setIsInitialized(true);
       
-      if (!connected) {
+      if (connected) {
+        // Проверяем наличие нужных таблиц и создаем их если нужно
+        try {
+          await createSavesTableIfNotExists();
+          console.log('✅ Проверка и создание таблиц в Supabase выполнены');
+        } catch (error) {
+          console.error('❌ Ошибка при проверке/создании таблиц:', error);
+        }
+      } else {
+        console.error('❌ Нет соединения с Supabase');
         toast({
           title: "Ошибка подключения к серверу",
           description: "Невозможно подключиться к серверу. Проверьте интернет-соединение.",
           variant: "destructive",
         });
       }
-    });
+      
+      setIsInitialized(true);
+    };
+    
+    initSupabase();
     
     return () => {
       window.removeEventListener('online', handleOnlineStatusChange);
@@ -141,12 +157,26 @@ const App = () => {
         // Логируем объект пользователя, если доступен
         if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
           console.log('- Данные пользователя:', window.Telegram.WebApp.initDataUnsafe.user);
+          console.log('- Детали пользователя:');
+          const user = window.Telegram.WebApp.initDataUnsafe.user;
+          console.log('  ID:', user.id);
+          console.log('  Username:', user.username);
+          console.log('  First name:', user.first_name);
+          console.log('  Last name:', user.last_name);
+          console.log('  Language code:', user.language_code);
+        } else {
+          console.warn('⚠️ Объект пользователя Telegram недоступен');
         }
         
         // Логируем start_param, если доступен
         if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
           console.log('- Start параметр:', window.Telegram.WebApp.initDataUnsafe.start_param);
+        } else {
+          console.log('- Start параметр отсутствует');
         }
+        
+        // Выводим всю структуру initDataUnsafe для отладки
+        console.log('- Полная структура initDataUnsafe:', window.Telegram.WebApp.initDataUnsafe);
       } catch (error) {
         console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
       }
@@ -186,7 +216,8 @@ const App = () => {
           <Toaster />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<GameScreen />} />
+              <Route path="/" element={<StartScreen />} />
+              <Route path="/game" element={<GameScreen />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

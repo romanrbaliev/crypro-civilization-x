@@ -19,6 +19,12 @@ interface ReferralDataWithActivation {
 // Сохранение информации о реферале
 export const saveReferralInfo = async (referralCode: string, referredBy: string | null = null): Promise<boolean> => {
   try {
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.error('❌ Нет соединения с Supabase при сохранении реферальной информации');
+      return false;
+    }
+    
     const userId = await getUserIdentifier();
     console.log('Сохранение реферального кода:', referralCode, 'для пользователя:', userId, 'приглашен:', referredBy);
     
@@ -35,8 +41,12 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
       .eq('user_id', userId)
       .single();
       
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('❌ Ошибка при проверке существующей записи:', checkError);
+    if (checkError) {
+      if (checkError.code === 'PGRST116') {
+        console.log('Запись не найдена, будет создана новая');
+      } else {
+        console.error('❌ Ошибка при проверке существующей записи:', checkError);
+      }
     }
     
     if (existingData) {
@@ -121,6 +131,8 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
       referred_by: referredBy,
       is_activated: false
     } as any;
+    
+    console.log('Пытаемся создать новую запись в referral_data:', insertData);
     
     const { error } = await supabase
       .from(REFERRAL_TABLE)
