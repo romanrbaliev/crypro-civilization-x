@@ -100,17 +100,29 @@ export function Toaster() {
                 
               if (saveData && saveData.game_data) {
                 // Типизируем game_data как потенциальный GameState и проверяем его структуру
+                // Сначала приводим к типу unknown для безопасного последующего приведения
                 const gameData = saveData.game_data as unknown;
                 
                 // Проверяем, что gameData - это объект
                 if (typeof gameData === 'object' && gameData !== null) {
                   // Безопасно проверяем наличие свойства upgrades и исследований
                   const typedGameData = gameData as Partial<GameState>;
+                  
                   const hasBlockchainBasics = typedGameData.upgrades && 
                     (typedGameData.upgrades['blockchain_basics']?.purchased || 
                      typedGameData.upgrades['basicBlockchain']?.purchased);
                 
-                  if (hasBlockchainBasics && (!referral.is_activated || referral.is_activated !== true)) {
+                  // Преобразуем is_activated в булевое значение для сравнения
+                  const isActivated = referral.is_activated === true || referral.is_activated === "true";
+                
+                  console.log(`Реферал ${referral.user_id}:`, {
+                    hasBlockchainBasics,
+                    is_activated: referral.is_activated,
+                    isActivated,
+                    typeOfIs_activated: typeof referral.is_activated
+                  });
+                
+                  if (hasBlockchainBasics && !isActivated) {
                     console.log(`Обнаружено исследование "Основы блокчейна" у реферала ${referral.user_id}, но реферал не активирован`);
                     
                     // Обновляем статус активации в базе данных
@@ -124,7 +136,7 @@ export function Toaster() {
                     } else {
                       console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
                     }
-                  } else if (!hasBlockchainBasics && referral.is_activated === true) {
+                  } else if (!hasBlockchainBasics && isActivated) {
                     console.log(`У реферала ${referral.user_id} нет исследования "Основы блокчейна", но реферал активирован в базе`);
                     
                     // Обновляем статус активации в базе данных
