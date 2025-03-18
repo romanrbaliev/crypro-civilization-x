@@ -20,9 +20,11 @@ export const processResourceUpdate = (state: GameState): GameState => {
     
     // Получаем текущий статус наличия исследования
     const userHasBasicBlockchainUnlocked = isBlockchainBasicsUnlocked(state.upgrades);
-    console.log('Пользователь', userHasBasicBlockchainUnlocked ? 'имеет' : 'НЕ имеет', 'разблокированное исследование "Основы блокчейна"');
     
-    if (userHasBasicBlockchainUnlocked && !referral.activated) {
+    // Явно приводим значение activated к булевому типу для надежности
+    const currentlyActivated = referral.activated === true;
+    
+    if (userHasBasicBlockchainUnlocked && !currentlyActivated) {
       // Если у пользователя разблокировано исследование, но реферал не активирован - активируем его
       console.log(`Исправляем статус активации реферала ${referral.id}: был неактивен, но у пользователя разблокированы "Основы блокчейна"`);
       
@@ -33,10 +35,17 @@ export const processResourceUpdate = (state: GameState): GameState => {
           .then(success => {
             console.log(`Результат асинхронной активации реферала ${referral.id}: ${success ? 'успешно' : 'неудачно'}`);
             
-            // Если активация прошла успешно, отправляем событие обновления рефералов
+            // Если активация прошла успешно, отправляем событие обновления
             if (success) {
-              const refreshEvent = new CustomEvent('refresh-referrals');
-              window.dispatchEvent(refreshEvent);
+              try {
+                const updateEvent = new CustomEvent('referral-activated', {
+                  detail: { referralId: referral.id }
+                });
+                window.dispatchEvent(updateEvent);
+                console.log(`Отправлено событие активации для реферала ${referral.id}`);
+              } catch (error) {
+                console.error(`Ошибка при отправке события активации реферала:`, error);
+              }
             }
           })
           .catch(err => {
@@ -48,12 +57,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
       return { ...referral, activated: true };
     }
     
-    if (!userHasBasicBlockchainUnlocked && referral.activated) {
-      // Если у пользователя не разблокировано исследование, но реферал активирован - деактивируем его
-      console.log(`Исправляем статус активации реферала ${referral.id}: был активен, но у пользователя не разблокированы "Основы блокчейна"`);
-      referralsChanged = true;
-      return { ...referral, activated: false };
-    }
+    // В данном случае мы удаляем логику деактивации, если исследование не разблокировано
+    // Это позволит сохранить статус активации после однократной активации
     
     // Если статус соответствует текущему состоянию разблокировки исследования, оставляем как есть
     return referral;
@@ -64,15 +69,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
     referralsChanged 
       ? { ...state, referrals: validatedReferrals }
       : state;
-  
-  // Добавляем подробное логирование статуса рефералов после валидации
-  console.log('Детальная информация о рефералах:', 
-    validatedReferrals.map(ref => ({
-      id: ref.id,
-      activated: ref.activated,
-      typeOfActivated: typeof ref.activated
-    }))
-  );
   
   // Этап 2: Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
@@ -88,13 +84,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Этап 4: Обновляем значения ресурсов с учетом времени
   updatedResources = updateResourceValues(updatedResources, deltaTime);
-  
-  // Выводим текущую информацию о производстве в консоль (только для разблокированных ресурсов)
-  Object.entries(updatedResources).forEach(([resourceId, resource]) => {
-    if (resource.unlocked && resource.perSecond !== 0) {
-      console.log(`Ресурс ${resource.name}: ${resource.perSecond.toFixed(2)}/сек, максимум ${resource.max}, текущее ${resource.value.toFixed(1)}`);
-    }
-  });
   
   return {
     ...stateWithValidReferrals,

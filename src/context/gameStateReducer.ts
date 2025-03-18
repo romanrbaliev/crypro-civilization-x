@@ -103,10 +103,8 @@ export const processLoadGame = (
     
     // НОВОЕ: Проверяем и синхронизируем активацию с базой данных
     loadedState.referrals.forEach(referral => {
-      // Нормализуем активацию для надежности (должна быть булевым значением)
-      const isActivated = typeof referral.activated === 'boolean' 
-        ? referral.activated 
-        : referral.activated === 'true';
+      // Явно приводим activated к булевому типу
+      const isActivated = referral.activated === true;
         
       if (!isActivated) {
         // Проверяем наличие разблокированного исследования "Основы блокчейна"
@@ -117,7 +115,7 @@ export const processLoadGame = (
         if (hasBlockchainBasics) {
           console.log(`Обнаружено разблокированное исследование "Основы блокчейна", активируем реферала ${referral.id}`);
           
-          // Асинхронно вызываем API для активации реферала
+          // ВАЖНО: Запускаем активацию реферала при загрузке игры, если разблокированы Основы блокчейна
           setTimeout(() => {
             activateReferral(referral.id)
               .then(success => {
@@ -125,10 +123,15 @@ export const processLoadGame = (
                 
                 if (success) {
                   // Отправляем событие для обновления интерфейса
-                  const updateEvent = new CustomEvent('referral-activated', {
-                    detail: { referralId: referral.id }
-                  });
-                  window.dispatchEvent(updateEvent);
+                  try {
+                    const updateEvent = new CustomEvent('referral-activated', {
+                      detail: { referralId: referral.id }
+                    });
+                    window.dispatchEvent(updateEvent);
+                    console.log(`Отправлено событие активации для реферала ${referral.id}`);
+                  } catch (error) {
+                    console.error(`Ошибка при отправке события активации реферала:`, error);
+                  }
                 }
               })
               .catch(err => {
@@ -136,13 +139,16 @@ export const processLoadGame = (
               });
           }, 0);
           
-          // Обновляем статус в локальном состоянии
+          // Обновляем статус в локальном состоянии СРАЗУ
           referral.activated = true;
         }
       }
     });
     
-    console.log('✅ Проверены и скорректированы данные рефералов');
+    // Логируем окончательные статусы рефералов после всех обработок
+    console.log('✅ Окончательные статусы рефералов после обработки:', 
+      loadedState.referrals.map(r => ({ id: r.id, activated: r.activated, type: typeof r.activated }))
+    );
   }
   
   if (!loadedState.referralHelpers) {
