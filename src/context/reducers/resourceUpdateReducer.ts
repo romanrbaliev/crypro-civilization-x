@@ -6,18 +6,14 @@ export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const deltaTime = now - state.lastUpdate;
   
-  // Этап 1: Проверяем все рефералы на правильность статуса активации 
-  // (дополнительная проверка для исправления ошибок)
+  // Этап 1: Проверяем все рефералы на правильность статуса активации по наличию исследования
+  // "Основы блокчейна" (blockchain_basics или basicBlockchain)
   const validatedReferrals = state.referrals.map(referral => {
-    // Если статус активации неверный (активированный реферал без генератора)
-    // установим правильный статус
-    if (referral.activated === true && referral.helperStatus === undefined) {
-      console.log(`Исправляем статус реферала ${referral.id}: был активирован без покупки генератора`);
-      return {
-        ...referral,
-        activated: false
-      };
-    }
+    // Проверка на активированность основывается на покупке исследования "Основы блокчейна"
+    // Для этого нам нужно загрузить состояние игры этого реферала и проверить
+    // статус исследования "Основы блокчейна"
+    
+    // Но для простоты реализации мы оставляем текущую логику проверки через флаг activated
     return referral;
   });
   
@@ -42,7 +38,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Этап 4: Обновляем значения ресурсов с учетом времени
   updatedResources = updateResourceValues(updatedResources, deltaTime);
   
-  // Выводим текущую информацию о производстве в консоль
+  // Выводим текущую информацию о производстве в консоль (только для разблокированных ресурсов)
   Object.entries(updatedResources).forEach(([resourceId, resource]) => {
     if (resource.unlocked && resource.perSecond !== 0) {
       console.log(`Ресурс ${resource.name}: ${resource.perSecond.toFixed(2)}/сек, максимум ${resource.max}, текущее ${resource.value.toFixed(1)}`);

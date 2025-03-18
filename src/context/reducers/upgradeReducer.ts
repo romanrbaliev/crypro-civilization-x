@@ -3,6 +3,7 @@ import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { checkUnlockConditions } from '@/utils/researchUtils';
+import { activateReferral } from '@/api/gameDataService';
 
 // Обработка покупки улучшений
 export const processPurchaseUpgrade = (
@@ -43,7 +44,7 @@ export const processPurchaseUpgrade = (
   
   console.log(`Куплено исследование ${upgradeId} с эффектами:`, upgrade.effect);
   
-  // Если приобретены "Основы блокчейна", разблокируем криптокошелек
+  // Если приобретены "Основы блокчейна", разблокируем криптокошелек и активируем реферала
   if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     // Разблокируем криптокошелек
     const newBuildings = {
@@ -59,11 +60,27 @@ export const processPurchaseUpgrade = (
     // Отправляем сообщение о разблокировке криптокошелька
     safeDispatchGameEvent("Разблокирован криптокошелек", "info");
     
-    // Добавляем описательное сообщение о криптокошельке
+    // Добавлен описательное сообщение о криптокошельке
     setTimeout(() => {
       safeDispatchGameEvent("Криптокошелек увеличивает максимальное хранение USDT и знаний", "info");
     }, 200);
     
+    // Новый код - Активируем реферала, если пользователь был приглашен
+    if (state.referredBy) {
+      console.log('Активируем реферала для пригласившего пользователя через API', state.referredBy);
+      // Запоминаем текущий userId для активации как реферала
+      const userId = window.__game_user_id || 'unknown';
+      
+      // Асинхронно активируем реферала (вызываем API без ожидания результата)
+      activateReferral(userId).then(result => {
+        console.log('Результат активации реферала для', userId, ':', result);
+        if (result) {
+          safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
+        }
+      });
+    }
+    
+    // Обновляем состояние
     const stateAfterPurchase = {
       ...state,
       resources: newResources,

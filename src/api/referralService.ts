@@ -1,4 +1,3 @@
-
 // Сервис для работы с реферальной системой
 
 import { supabase } from '@/integrations/supabase/client';
@@ -66,11 +65,11 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
               // Добавляем нового реферала в список пригласившего
               const gameData = saveData.game_data as any;
               
-              // ИСПРАВЛЕНИЕ: явно устанавливаем activated: false
+              // Всегда устанавливаем activated: false для нового реферала
               const newReferral = {
                 id: userId,
                 username: `Пользователь ${userId.substring(0, 6)}`,
-                activated: false, // ВАЖНО: всегда устанавливаем как неактивный
+                activated: false,
                 joinedAt: Date.now()
               };
               
@@ -143,11 +142,11 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
           // Добавляем нового реферала в список пригласившего
           const gameData = saveData.game_data as any;
           
-          // ИСПРАВЛЕНИЕ: явно устанавливаем activated: false
+          // Всегда устанавливаем activated: false для нового реферала
           const newReferral = {
             id: userId,
             username: `Пользователь ${userId.substring(0, 6)}`,
-            activated: false, // ВАЖНО: устанавливаем явно как неактивный
+            activated: false,
             joinedAt: Date.now()
           };
           
@@ -349,11 +348,11 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       if (!referral) {
         console.warn('⚠️ Реферал с ID', referralId, 'не найден в списке рефералов');
         
-        // ИСПРАВЛЕНИЕ: Добавляем реферала с правильным статусом
+        // Добавляем нового реферала (активированного!)
         const newReferral = {
           id: referralId,
           username: `Пользователь ${referralId.substring(0, 6)}`,
-          activated: true, // Активный, так как генератор куплен
+          activated: true, // Активирован, т.к. куплено исследование
           joinedAt: Date.now()
         };
         
@@ -415,11 +414,11 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     } else {
       console.warn('⚠️ У пользователя нет списка рефералов');
       
-      // ИСПРАВЛЕНИЕ: Создаем массив рефералов если его нет
+      // Создаем массив рефералов если его нет
       gameData.referrals = [{
         id: referralId,
         username: `Пользователь ${referralId.substring(0, 6)}`,
-        activated: true, // Активный, так как генератор куплен
+        activated: true, // Активирован, т.к. куплено исследование
         joinedAt: Date.now()
       }];
       

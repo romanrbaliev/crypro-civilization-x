@@ -1,4 +1,3 @@
-
 // Утилиты для работы с исследованиями и их эффектами
 
 // Форматирование названия эффекта
@@ -110,6 +109,20 @@ export const getSpecializationName = (spec: string): string => {
   };
   
   return specializationMap[spec] || spec;
+};
+
+// Проверка покупки "Основы блокчейна" у пользователя
+export const hasBlockchainBasics = (upgrades: any): boolean => {
+  // Проверяем куплено ли исследование "Основы блокчейна" в любой из вариаций его ID
+  if (upgrades.basicBlockchain && upgrades.basicBlockchain.purchased) {
+    return true;
+  }
+  
+  if (upgrades.blockchain_basics && upgrades.blockchain_basics.purchased) {
+    return true;
+  }
+  
+  return false;
 };
 
 // Проверка активации реферала по его ID
