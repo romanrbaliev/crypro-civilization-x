@@ -1,7 +1,6 @@
-
 import { GameState } from '../types';
 import { initialState } from '../initialState';
-import { saveGameToServer, loadGameFromServer, checkSupabaseConnection } from '@/api/gameDataService';
+import { saveGameToServer, loadGameFromServer, checkSupabaseConnection, clearAllSavedDataForAllUsers } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from './eventBusUtils';
 import { toast } from '@/hooks/use-toast';
 
@@ -83,7 +82,7 @@ export async function loadGameState(): Promise<GameState | null> {
       if (!loadedState.resources || !loadedState.buildings || !loadedState.upgrades) {
         console.warn('⚠️ Загруженные данные повреждены, выполняем восстановление...');
         safeDispatchGameEvent(
-          "Загруженные данные повреждены, выполняем восстановление",
+          "Загруженные данные повреждены, выполняем восстановле��ие",
           "warning"
         );
         
@@ -212,6 +211,49 @@ export async function clearGameState(): Promise<void> {
     console.error('❌ Не удалось удалить сохранение игры:', error);
     safeDispatchGameEvent(
       "Не удалось удалить сохранение игры",
+      "error"
+    );
+  }
+}
+
+// Удаление всех сохранений для всех пользователей
+export async function clearAllSavedDataForAllUsers(): Promise<void> {
+  try {
+    console.log('🔄 Удаление ВСЕХ сохранений игры из облака...');
+    
+    // Проверка подключения к Supabase перед удалением
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.warn('⚠️ Нет соединения с сервером, удаление невозможно');
+      toast({
+        title: "Ошибка соединения",
+        description: "Нет соединения с сервером. Проверьте подключение к интернету.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Очищаем все сохранения через gameDataService
+    await import('@/api/gameDataService').then(module => {
+      if (typeof module.clearAllSavedDataForAllUsers === 'function') {
+        module.clearAllSavedDataForAllUsers();
+      }
+    });
+    console.log('✅ Запрос на удаление ВСЕХ сохранений отправлен');
+    
+    toast({
+      title: "Все сохранения очищены",
+      description: "Все сохранения игры для всех пользователей успешно удалены",
+      variant: "success",
+    });
+    safeDispatchGameEvent(
+      "Все сохранения игры для всех пользователей успешно удалены",
+      "success"
+    );
+  } catch (error) {
+    console.error('❌ Не удалось удалить все сохранения игры:', error);
+    safeDispatchGameEvent(
+      "Не удалось удалить все сохранения игры",
       "error"
     );
   }

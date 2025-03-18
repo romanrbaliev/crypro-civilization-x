@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
-import { BitcoinIcon, Coins, Trophy, Settings, Info, Play, Trash2 } from "lucide-react";
-import { clearGameState } from "@/context/utils/gameStorage";
+import { BitcoinIcon, Coins, Trophy, Settings, Info, Play, Trash2, DatabaseBackup } from "lucide-react";
+import { clearGameState, clearAllSavedDataForAllUsers } from "@/context/utils/gameStorage";
 import { 
   Dialog,
   DialogContent,
@@ -19,11 +20,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const StartScreen = () => {
   const { state, dispatch } = useGame();
   const navigate = useNavigate();
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
   
   const handleStartGame = () => {
     dispatch({ type: "START_GAME" });
@@ -33,6 +36,15 @@ const StartScreen = () => {
   const handleResetGame = async () => {
     await clearGameState();
     window.location.reload();
+  };
+  
+  const handleResetAllGames = async () => {
+    await clearAllSavedDataForAllUsers();
+    window.location.reload();
+  };
+  
+  const toggleAdminMode = () => {
+    setAdminMode(!adminMode);
   };
   
   return (
@@ -52,7 +64,7 @@ const StartScreen = () => {
             </span>
           </div>
           
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={toggleAdminMode}>
             <Settings className="h-5 w-5" />
           </Button>
         </div>
@@ -188,6 +200,36 @@ const StartScreen = () => {
                 </DialogContent>
               </Dialog>
             </div>
+            
+            {adminMode && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full mt-4">
+                    <DatabaseBackup className="mr-2 h-4 w-4" />
+                    Сбросить ВСЕ сохранения (для всех игроков)
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Сбросить ВСЕ данные?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Это действие удалит все сохранения для ВСЕХ игроков. 
+                      Используйте только для тестирования и отладки. 
+                      Это действие нельзя отменить.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleResetAllGames} 
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Удалить ВСЕ данные
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
           
           {state.prestigePoints > 0 && (
