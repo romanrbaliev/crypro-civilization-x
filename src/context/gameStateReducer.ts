@@ -1,4 +1,3 @@
-
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
@@ -94,58 +93,16 @@ export const processLoadGame = (
       
       // Преобразуем строковое значение в булевое, если необходимо
       if (typeof referral.activated === 'string') {
-        console.log(`Преобразуем строковое значение ${referral.activated} в булевое для реферала ${referral.id}`);
-        return { ...referral, activated: referral.activated === 'true' };
+        const isActivated = referral.activated === 'true';
+        console.log(`Преобразуем строковое значение ${referral.activated} в булевое ${isActivated} для реферала ${referral.id}`);
+        return { ...referral, activated: isActivated };
       }
       
       return referral;
     });
     
-    // НОВОЕ: Проверяем и синхронизируем активацию с базой данных
-    loadedState.referrals.forEach(referral => {
-      // Явно приводим activated к булевому типу
-      const isActivated = referral.activated === true;
-        
-      if (!isActivated) {
-        // Проверяем наличие разблокированного исследования "Основы блокчейна"
-        const hasBlockchainBasics = loadedState.upgrades && 
-          (loadedState.upgrades.blockchain_basics?.purchased || 
-           loadedState.upgrades.basicBlockchain?.purchased);
-        
-        if (hasBlockchainBasics) {
-          console.log(`Обнаружено разблокированное исследование "Основы блокчейна", активируем реферала ${referral.id}`);
-          
-          // ВАЖНО: Запускаем активацию реферала при загрузке игры, если разблокированы Основы блокчейна
-          setTimeout(() => {
-            activateReferral(referral.id)
-              .then(success => {
-                console.log(`Результат активации реферала ${referral.id} при загрузке: ${success ? 'успешно' : 'неудачно'}`);
-                
-                if (success) {
-                  // Отправляем событие для обновления интерфейса
-                  try {
-                    const updateEvent = new CustomEvent('referral-activated', {
-                      detail: { referralId: referral.id }
-                    });
-                    window.dispatchEvent(updateEvent);
-                    console.log(`Отправлено событие активации для реферала ${referral.id}`);
-                  } catch (error) {
-                    console.error(`Ошибка при отправке события активации реферала:`, error);
-                  }
-                }
-              })
-              .catch(err => {
-                console.error(`Ошибка при активации реферала ${referral.id} при загрузке:`, err);
-              });
-          }, 0);
-          
-          // Обновляем статус в локальном состоянии СРАЗУ
-          referral.activated = true;
-        }
-      }
-    });
-    
-    // Логируем окончательные статусы рефералов после всех обработок
+    // НОВОЕ: НЕ запускаем автоматическую активацию при загрузке игры.
+    // Теперь статус активации будет строго соответствовать базе данных
     console.log('✅ Окончательные статусы рефералов после обработки:', 
       loadedState.referrals.map(r => ({ id: r.id, activated: r.activated, type: typeof r.activated }))
     );

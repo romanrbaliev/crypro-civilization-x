@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -106,6 +107,43 @@ export const processPurchaseUpgrade = (
       ...stateAfterPurchase,
       buildings: newBuildings
     };
+    
+    // ВАЖНО: Только при ПОКУПКЕ исследования "Основы блокчейна" 
+    // активируем реферала (не при разблокировке, а только при покупке)
+    if (state.referredBy) {
+      console.log('***Активируем реферала при ПОКУПКЕ "Основы блокчейна"***');
+      console.log('Пригласивший пользователь:', state.referredBy);
+      
+      // Запоминаем текущий userId для активации как реферала
+      const userId = window.__game_user_id || 'unknown';
+      console.log('Текущий userId для активации:', userId);
+      
+      // Асинхронно активируем реферала
+      try {
+        // Немедленно отправляем событие о начале активации
+        safeDispatchGameEvent("Уведомляем вашего реферера о прогрессе...", "info");
+        
+        // Устанавливаем небольшую задержку, чтобы пользователь увидел сообщение
+        setTimeout(() => {
+          activateReferral(userId)
+            .then(result => {
+              console.log('Результат активации реферала для', userId, ':', result);
+              if (result) {
+                safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
+              } else {
+                console.warn("Активация реферала не удалась");
+                safeDispatchGameEvent("Не удалось отправить уведомление рефереру", "warning");
+              }
+            })
+            .catch(error => {
+              console.error("Ошибка при активации реферала:", error);
+              safeDispatchGameEvent("Ошибка при отправке уведомления рефереру", "error");
+            });
+        }, 1000);
+      } catch (error) {
+        console.error("Критическая ошибка при активации реферала:", error);
+      }
+    }
   }
   
   // Применяем изменения максимальных значений ресурсов
@@ -113,43 +151,6 @@ export const processPurchaseUpgrade = (
   
   // Проверяем разблокировки после всех изменений
   const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
-  
-  // Проверяем, разблокировано ли исследование "Основы блокчейна" 
-  // и активируем реферала при необходимости
-  if ((upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') && state.referredBy) {
-    console.log('***Активируем реферала при ПОКУПКЕ "Основы блокчейна"***');
-    console.log('Пригласивший пользователь:', state.referredBy);
-    
-    // Запоминаем текущий userId для активации как реферала
-    const userId = window.__game_user_id || 'unknown';
-    console.log('Текущий userId для активации:', userId);
-    
-    // Асинхронно активируем реферала
-    try {
-      // Немедленно отправляем событие о начале активации
-      safeDispatchGameEvent("Уведомляем вашего реферера о прогрессе...", "info");
-      
-      // Устанавливаем небольшую задержку, чтобы пользователь увидел сообщение
-      setTimeout(() => {
-        activateReferral(userId)
-          .then(result => {
-            console.log('Результат активации реферала для', userId, ':', result);
-            if (result) {
-              safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
-            } else {
-              console.warn("Активация реферала не удалась");
-              safeDispatchGameEvent("Не удалось отправить уведомление рефереру", "warning");
-            }
-          })
-          .catch(error => {
-            console.error("Ошибка при активации реферала:", error);
-            safeDispatchGameEvent("Ошибка при отправке уведомления рефереру", "error");
-          });
-      }, 1000);
-    } catch (error) {
-      console.error("Критическая ошибка при активации реферала:", error);
-    }
-  }
   
   return stateWithNewUnlocks;
 };
@@ -183,44 +184,8 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
     }
   });
   
-  // Проверяем, разблокировано ли исследование "Основы блокчейна" после обновления состояния
-  const isBasicBlockchainUnlockedAfter = isBlockchainBasicsUnlocked(newUpgrades);
-  
-  // Если "Основы блокчейна" были разблокированы в этом обновлении И у пользователя есть реферер
-  if (!isBasicBlockchainUnlockedBefore && isBasicBlockchainUnlockedAfter && state.referredBy) {
-    console.log('***Активируем реферала при РАЗБЛОКИРОВКЕ "Основы блокчейна"***');
-    console.log('Пригласивший пользователь:', state.referredBy);
-    
-    // Запоминаем текущий userId для активации как реферала
-    const userId = window.__game_user_id || 'unknown';
-    console.log('Текущий userId для активации:', userId);
-    
-    // Асинхронно активируем реферала
-    try {
-      // Немедленно отправляем событие о начале активации
-      safeDispatchGameEvent("Уведомляем вашего реферера о прогрессе...", "info");
-      
-      // Устанавливаем небольшую задержку, чтобы пользователь увидел сообщение
-      setTimeout(() => {
-        activateReferral(userId)
-          .then(result => {
-            console.log('Результат активации реферала для', userId, ':', result);
-            if (result) {
-              safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
-            } else {
-              console.warn("Активация реферала не удалась");
-              safeDispatchGameEvent("Не удалось отправить уведомление рефереру", "warning");
-            }
-          })
-          .catch(error => {
-            console.error("Ошибка при активации реферала:", error);
-            safeDispatchGameEvent("Ошибка при отправке уведомления рефереру", "error");
-          });
-      }, 1000);
-    } catch (error) {
-      console.error("Критическая ошибка при активации реферала:", error);
-    }
-  }
+  // Мы удаляем логику активации реферала при разблокировке, так как теперь она происходит
+  // только при покупке исследования "Основы блокчейна", чтобы избежать двойной активации
   
   if (hasChanges) {
     return {

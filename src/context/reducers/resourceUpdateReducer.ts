@@ -8,16 +8,13 @@ export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const deltaTime = now - state.lastUpdate;
   
-  // Этап 1: Проверяем все рефералы на правильность статуса активации по наличию разблокированного
-  // исследования "Основы блокчейна" (blockchain_basics или basicBlockchain)
+  // Этап 1: Проверяем статус активации рефералов
   let validatedReferrals = [...state.referrals];
   let referralsChanged = false;
   
   // Проходим по каждому рефералу и проверяем его статус
   validatedReferrals = state.referrals.map(referral => {
     // Проверяем статус активации реферала
-    // Реферал считается активированным только если у пользователя разблокировано исследование "Основы блокчейна"
-    
     // Получаем текущий статус наличия исследования
     const userHasBasicBlockchainUnlocked = isBlockchainBasicsUnlocked(state.upgrades);
     
@@ -29,7 +26,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
       console.log(`Исправляем статус активации реферала ${referral.id}: был неактивен, но у пользователя разблокированы "Основы блокчейна"`);
       
       // Асинхронно вызываем API для активации реферала
-      // Это не будет блокировать основной поток выполнения
       setTimeout(() => {
         activateReferral(referral.id)
           .then(success => {
@@ -57,10 +53,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
       return { ...referral, activated: true };
     }
     
-    // В данном случае мы удаляем логику деактивации, если исследование не разблокировано
-    // Это позволит сохранить статус активации после однократной активации
-    
-    // Если статус соответствует текущему состоянию разблокировки исследования, оставляем как есть
+    // Сохраняем исходное значение activated, не пытаясь автоматически деактивировать
     return referral;
   });
   
