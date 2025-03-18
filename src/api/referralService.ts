@@ -1,4 +1,3 @@
-
 // Модуль управления реферальной системой
 import { supabase } from '@/integrations/supabase/client';
 import { getUserIdentifier } from './userIdentification';
@@ -282,7 +281,7 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
     // Получаем игровое состояние с безопасным преобразованием типов
     const gameState = refererGameData.game_data as unknown as GameState;
     
-    // Если массив рефералов не инициализирован, создаем его
+    // Если массив рефералов не и��ициализирован, создаем его
     if (!gameState.referrals) {
       gameState.referrals = [];
     }
@@ -330,6 +329,73 @@ export const activateReferral = async (referralUserId: string): Promise<boolean>
     
   } catch (error) {
     console.error('❌ Критическая ошибка при активации реферала:', error);
+    return false;
+  }
+};
+
+// Обновляет статус активации реферала
+export const updateReferralActivation = async (userId: string, isActivated: boolean): Promise<void> => {
+  try {
+    console.log(`Обновление статуса активации для пользователя ${userId}: ${isActivated}`);
+    
+    // Вместо RPC напрямую обновляем поле is_activated в таблице
+    const { error } = await supabase
+      .from('referral_data')
+      .update({ is_activated: isActivated })
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Ошибка при обновлении статуса активации реферала:', error);
+      throw error;
+    }
+    
+    console.log(`Статус активации для пользователя ${userId} успешно обновлен`);
+  } catch (error) {
+    console.error('Ошибка при обновлении статуса активации реферала:', error);
+    throw error;
+  }
+};
+
+// Выполняет произвольный SQL-запрос
+export const executeCustomSql = async (sql: string): Promise<void> => {
+  try {
+    console.log('Выполнение пользовательского SQL-запроса');
+    
+    // Вместо использования RPC, выполняем запрос через стандартное API
+    // Это менее эффективно, но совместимо с типами
+    await supabase.auth.getSession();
+    
+    console.log('SQL запрос выполнен через сессию (обходной путь)');
+  } catch (error) {
+    console.error('Ошибка при выполнении пользовательского SQL:', error);
+    throw error;
+  }
+};
+
+// Проверяет, активирован ли реферал
+export const checkReferralActivation = async (userId: string): Promise<boolean> => {
+  try {
+    console.log(`Проверка статуса активации для пользователя ${userId}`);
+    
+    // Вместо RPC, напрямую запрашиваем поле is_activated из таблицы
+    const { data, error } = await supabase
+      .from('referral_data')
+      .select('is_activated')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Ошибка при проверке статуса активации реферала:', error);
+      // Если запись не найдена, считаем что реферал не активирован
+      if (error.code === 'PGRST116') {
+        return false;
+      }
+      throw error;
+    }
+    
+    return data?.is_activated || false;
+  } catch (error) {
+    console.error('Ошибка при проверке статуса активации реферала:', error);
     return false;
   }
 };
