@@ -146,8 +146,11 @@ export function Toaster() {
     window.addEventListener('referral-activated', handleReferralActivated);
     
     // Запрашиваем обновление статусов при первом рендере
-    const refreshEvent = new CustomEvent('refresh-referrals');
-    window.dispatchEvent(refreshEvent);
+    setTimeout(() => {
+      const refreshEvent = new CustomEvent('refresh-referrals');
+      window.dispatchEvent(refreshEvent);
+      console.log('Отправлен запрос на начальное обновление статусов рефералов');
+    }, 1000); // Задержка для уверенности, что все компоненты загружены
     
     return () => {
       window.removeEventListener('refresh-referrals', handleRefresh);
