@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/hooks/useGame';
-import GameIntro from '@/components/GameIntro';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
@@ -122,6 +121,9 @@ const StartScreen = () => {
           
           // Принудительно обновляем информацию в таблице referral_data
           await saveReferralInfo(savedGame.referralCode, state.referredBy || null);
+          
+          // Автоматически перенаправляем на экран игры
+          navigate('/game');
         } else {
           setHasExistingSave(false);
           safeDispatchGameEvent("Новая игра создана", "info");
@@ -131,17 +133,25 @@ const StartScreen = () => {
             await saveReferralInfo(state.referralCode, state.referredBy || null);
             console.log('✅ Сохранена реферальная информация для нового пользователя');
           }
+          
+          // Сразу запускаем новую игру и перенаправляем на экран игры
+          dispatch({ type: "START_GAME" });
+          navigate('/game');
         }
       } catch (error) {
         console.error('Ошибка при проверке сохранений:', error);
         setHasExistingSave(false);
+        
+        // Даже при ошибке запускаем новую игру и переходим на игровой экран
+        dispatch({ type: "START_GAME" });
+        navigate('/game');
       } finally {
         setIsLoading(false);
       }
     };
     
     checkForSavedGame();
-  }, [dispatch, state.referralCode]);
+  }, [dispatch, state.referralCode, navigate, state.referredBy]);
   
   // Извлечение реферального кода из URL-параметра start
   const extractReferralCodeFromUrl = () => {
@@ -160,60 +170,26 @@ const StartScreen = () => {
     
     return startParam;
   };
-  
+
+  // Эта функция теперь не будет вызвана пользователем, 
+  // так как мы автоматически перенаправляем на экран игры
   const handleStartGame = () => {
-    // Если игра уже запущена, просто перенаправляем на экран игры
     if (state.gameStarted || hasExistingSave) {
       navigate('/game');
       return;
     }
     
-    // Иначе запускаем новую игру
     dispatch({ type: "START_GAME" });
     navigate('/game');
   };
 
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-between p-4 bg-gray-50">
-      <div className="w-full max-w-md mx-auto mt-8">
-        <div className="flex justify-center mb-6">
-          <Logo size="lg" />
+    <div className="h-screen w-full flex flex-col items-center justify-center p-4 bg-gray-50">
+      <div className="text-center">
+        <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-blue-600 border-t-transparent" role="status">
+          <span className="visually-hidden">Загрузка...</span>
         </div>
-        
-        <GameIntro />
-        
-        {telegramInfo && (
-          <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-md">
-            <p className="text-sm text-purple-800">{telegramInfo}</p>
-          </div>
-        )}
-        
-        {userId && (
-          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-sm text-green-800">Ваш ID: {userId}</p>
-          </div>
-        )}
-        
-        {referralInfo && (
-          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">{referralInfo}</p>
-          </div>
-        )}
-        
-        <div className="mt-8 space-y-4">
-          <Button 
-            disabled={isLoading}
-            onClick={handleStartGame} 
-            className="w-full"
-            size="lg"
-          >
-            {isLoading ? 'Загрузка...' : hasExistingSave ? 'Продолжить игру' : 'Начать игру'}
-          </Button>
-        </div>
-      </div>
-      
-      <div className="text-xs text-gray-500 mt-auto pt-4">
-        Версия 0.1.4 (Alpha)
+        <p className="mt-4 text-gray-600">Загрузка игры...</p>
       </div>
     </div>
   );

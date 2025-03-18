@@ -4,6 +4,33 @@ import { canAffordCost, deductResources } from '@/utils/helpers';
 import { activateReferral } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
+import { supabase } from '@/integrations/supabase/client';
+
+// Новая функция для обновления статуса реферала при покупке генератора
+const updateReferralActivation = async (userId: string) => {
+  try {
+    if (!userId) {
+      console.error('❌ Не удалось обновить статус реферала: отсутствует userId');
+      return;
+    }
+    
+    console.log('🔄 Обновление статуса реферала для пользователя:', userId);
+    
+    // Обновляем статус реферала в таблице referral_data
+    const { data, error } = await supabase
+      .from('referral_data')
+      .update({ is_activated: true })
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('❌ Ошибка при обновлении статуса реферала:', error);
+    } else {
+      console.log('✅ Статус реферала успешно обновлен для пользователя:', userId);
+    }
+  } catch (error) {
+    console.error('❌ Неожиданная ошибка при обновлении статуса реферала:', error);
+  }
+};
 
 // Экспортируем функцию для использования в gameReducer
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
@@ -69,6 +96,13 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       safeDispatchGameEvent("Реферальная связь готова к активации. После исследования \"Основы блокчейна\" вы активируете бонус для пригласившего вас!", "info");
       
       // НЕ активируем реферала автоматически, это происходит только после покупки исследования
+    }
+    
+    // Обновляем статус активации текущего пользователя в таблице referral_data
+    if (window.__game_user_id) {
+      updateReferralActivation(window.__game_user_id);
+    } else {
+      console.warn('⚠️ Невозможно обновить статус реферала: отсутствует идентификатор пользователя');
     }
     
     // Обновляем максимальные значения ресурсов
