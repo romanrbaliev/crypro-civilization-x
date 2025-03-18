@@ -95,7 +95,7 @@ export const processLoadGame = (
       // Преобразуем строковое значение в булевое, если необходимо
       if (typeof referral.activated === 'string') {
         console.log(`Преобразуем строковое значение ${referral.activated} в булевое для реферала ${referral.id}`);
-        return { ...referral, activated: referral.activated.toLowerCase() === 'true' };
+        return { ...referral, activated: referral.activated === 'true' };
       }
       
       return referral;
@@ -106,7 +106,7 @@ export const processLoadGame = (
       // Нормализуем активацию для надежности (должна быть булевым значением)
       const isActivated = typeof referral.activated === 'boolean' 
         ? referral.activated 
-        : String(referral.activated).toLowerCase() === 'true';
+        : referral.activated === 'true';
         
       if (!isActivated) {
         // Проверяем наличие разблокированного исследования "Основы блокчейна"
