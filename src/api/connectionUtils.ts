@@ -13,23 +13,25 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
       }, 5000); // 5 секунд таймаут
     });
     
-    // Выполняем проверку соединения с помощью RPC вместо запроса к несуществующей таблице
-    const connectionPromise = supabase
-      .rpc('generate_unique_ref_code')
-      .then(() => {
-        console.log('✅ Соединение с Supabase установлено');
-        return true;
-      })
-      .catch(err => {
-        // Даже если функция не существует, но соединение есть, считаем это успехом
-        if (err.code === 'PGRST301' || err.message.includes('function') || err.message.includes('does not exist')) {
-          console.log('✅ Соединение с Supabase установлено (ошибка функции)');
-          return true;
-        }
-        
-        console.error('❌ Ошибка при проверке соединения с Supabase:', err);
-        return false;
-      }) as Promise<boolean>; // Явное приведение типа
+    // Выполняем проверку соединения с помощью RPC
+    const connectionPromise = new Promise<boolean>((resolve) => {
+      supabase
+        .rpc('generate_unique_ref_code')
+        .then(() => {
+          console.log('✅ Соединение с Supabase установлено');
+          resolve(true);
+        })
+        .catch(err => {
+          // Даже если функция не существует, но соединение есть, считаем это успехом
+          if (err.code === 'PGRST301' || err.message.includes('function') || err.message.includes('does not exist')) {
+            console.log('✅ Соединение с Supabase установлено (ошибка функции)');
+            resolve(true);
+          } else {
+            console.error('❌ Ошибка при проверке соединения с Supabase:', err);
+            resolve(false);
+          }
+        });
+    });
     
     // Используем Promise.race для реализации таймаута
     return await Promise.race([connectionPromise, timeoutPromise])
