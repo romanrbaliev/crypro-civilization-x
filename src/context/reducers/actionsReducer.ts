@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -42,8 +43,9 @@ export const processMiningPower = (state: GameState): GameState => {
     counters: newCounters
   };
 
+  // Исправление: доступ к значению счетчика через .value
   // Если счетчик достиг 3, разблокируем автомайнер
-  if (newCounters.mining >= 3 && !state.buildings.autoMiner.unlocked && state.buildings.autoMiner) {
+  if (newCounters.mining.value >= 3 && !state.buildings.autoMiner.unlocked && state.buildings.autoMiner) {
     newState.buildings = {
       ...newState.buildings,
       autoMiner: {
@@ -136,8 +138,9 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   let newUnlocks = { ...state.unlocks };
   let newBuildings = { ...state.buildings };
   
+  // Исправление: доступ к значению счетчика через .value
   // Разблокируем практику после 2-го применения знаний
-  if (newCounters.applyKnowledge >= 2 && !state.unlocks.practice) {
+  if (newCounters.applyKnowledge.value >= 2 && !state.unlocks.practice) {
     console.log("Разблокировка практики после 2-го применения знаний");
     newUnlocks.practice = true;
     
