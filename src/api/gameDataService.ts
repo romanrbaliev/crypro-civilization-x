@@ -72,10 +72,20 @@ export const getUserIdentifier = async (): Promise<string> => {
     }
   }
   
-  // Генерируем уникальный ID сессии
-  const sessionId = `session_${Math.random().toString(36).substring(2)}`;
-  window.__game_user_id = sessionId;
-  return sessionId;
+  // Если нет соединения с Telegram или не смогли получить ID, используем локально сохраненный ID
+  let localUserId = localStorage.getItem('crypto_civ_user_id');
+  
+  // Если локального ID нет, генерируем новый
+  if (!localUserId) {
+    localUserId = `local_${Math.random().toString(36).substring(2)}_${Date.now()}`;
+    localStorage.setItem('crypto_civ_user_id', localUserId);
+    console.log(`✅ Создан новый локальный ID пользователя: ${localUserId}`);
+  } else {
+    console.log(`✅ Использован сохраненный локальный ID: ${localUserId}`);
+  }
+  
+  window.__game_user_id = localUserId;
+  return localUserId;
 };
 
 // Проверка подключения к Supabase
@@ -89,27 +99,22 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('🔄 Проверка соединения с Supabase...');
     
-    // Простая проверка на доступность базы
-    const { error } = await supabase
-      .from(SAVES_TABLE)
-      .select('count')
-      .limit(1);
+    // Простая проверка на доступность API
+    const { data, error } = await supabase.auth.getSession();
     
-    // Подключение работает если нет ошибки или ошибка не связана с отсутствием таблицы
-    const isConnected = !error || (error.code !== 'PGRST116');
+    // Соединение работает, если нет ошибки
+    const isConnected = !error;
     
     lastCheckTime = now;
     cachedConnectionResult = isConnected;
     
     if (isConnected) {
       console.log('✅ Соединение с Supabase установлено');
+      
+      // Проверяем, нужно ли создать таблицы
+      await createSavesTableIfNotExists();
     } else {
       console.warn('⚠️ Не удалось подключиться к Supabase:', error);
-      toast({
-        title: "Ошибка соединения",
-        description: "Не удалось подключиться к серверу. Проверьте соединение с интернетом.",
-        variant: "destructive",
-      });
     }
     
     return isConnected;
@@ -118,12 +123,6 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
     
     lastCheckTime = now;
     cachedConnectionResult = false;
-    
-    toast({
-      title: "Ошибка соединения",
-      description: "Не удалось подключиться к серверу. Проверьте соединение с интернетом.",
-      variant: "destructive",
-    });
     
     return false;
   }
@@ -246,20 +245,12 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     const isConnected = await checkSupabaseConnection();
       
     if (!isConnected) {
-      toast({
-        title: "Ошибка соединения",
-        description: "Не удалось сохранить прогресс. Проверьте соединение с интернетом.",
-        variant: "destructive",
-      });
       safeDispatchGameEvent(
         "Не удалось сохранить прогресс. Проверьте соединение с интернетом.", 
         "error"
       );
       return false;
     }
-    
-    // Создаем таблицу сохранений если она не существует
-    await createSavesTableIfNotExists();
     
     console.log('🔄 Сохранение в Supabase...');
     
@@ -299,11 +290,6 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
             
           if (retryError) {
             console.error('❌ Ошибка при повторном сохранении в Supabase:', retryError);
-            toast({
-              title: "Ошибка сохранения",
-              description: "Не удалось сохранить прогресс. Попробуйте позже.",
-              variant: "destructive",
-            });
             return false;
           }
           
@@ -312,11 +298,6 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
         }
       }
       
-      toast({
-        title: "Ошибка сохранения",
-        description: "Не удалось сохранить прогресс. Попробуйте позже.",
-        variant: "destructive",
-      });
       return false;
     }
     
@@ -325,13 +306,6 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     
   } catch (error) {
     console.error('❌ Критическая ошибка при сохранении игры:', error);
-    
-    toast({
-      title: "Ошибка сохранения",
-      description: "Произошла ошибка при сохранении. Попробуйте еще раз позже.",
-      variant: "destructive",
-    });
-    
     return false;
   }
 };
@@ -346,16 +320,12 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     const isConnected = await checkSupabaseConnection();
       
     if (!isConnected) {
-      toast({
-        title: "Ошибка соединения",
-        description: "Не удалось загрузить прогресс. Проверьте соединение с интернетом.",
-        variant: "destructive",
-      });
+      safeDispatchGameEvent(
+        "Не удалось загрузить прогресс. Проверьте соединение с интернетом.",
+        "error"
+      );
       return null;
     }
-    
-    // Создаем таблицу сохранений если она не существует
-    await createSavesTableIfNotExists();
     
     console.log('🔄 Загрузка из Supabase...');
     
@@ -411,6 +381,9 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           if (!gameState.lastSaved) {
             gameState.lastSaved = Date.now();
           }
+          
+          // Важно: устанавливаем флаг gameStarted
+          gameState.gameStarted = true;
           
           return gameState;
         } else {
@@ -609,6 +582,9 @@ export const clearAllSavedData = async (): Promise<void> => {
         });
       } else {
         console.log('✅ Сохранение в Supabase удалено');
+        
+        // Очищаем также локальное хранилище
+        localStorage.removeItem('crypto_civ_user_id');
         
         toast({
           title: "Сохранения очищены",

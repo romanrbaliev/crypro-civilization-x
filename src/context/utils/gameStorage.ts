@@ -40,11 +40,6 @@ export async function saveGameState(state: GameState): Promise<boolean> {
       return true;
     } else {
       console.warn('⚠️ Возникли проблемы при сохранении игры в облаке');
-      toast({
-        title: "Проблема с сохранением",
-        description: "Не удалось сохранить прогресс в облаке. Проверьте подключение к интернету.",
-        variant: "warning",
-      });
       safeDispatchGameEvent(
         "Не удалось сохранить прогресс в облаке",
         "warning"
@@ -54,11 +49,6 @@ export async function saveGameState(state: GameState): Promise<boolean> {
   } catch (error) {
     console.error('❌ Критическая ошибка при сохранении состояния игры:', error);
     
-    toast({
-      title: "Ошибка сохранения",
-      description: "Произошла ошибка при сохранении. Проверьте подключение к интернету.",
-      variant: "destructive",
-    });
     safeDispatchGameEvent(
       "Произошла ошибка при сохранении. Проверьте подключение к интернету.",
       "error"
@@ -76,11 +66,6 @@ export async function loadGameState(): Promise<GameState | null> {
     const isConnected = await checkSupabaseConnection();
     if (!isConnected) {
       console.warn('⚠️ Нет соединения с сервером, загрузка невозможна');
-      toast({
-        title: "Ошибка соединения",
-        description: "Нет соединения с сервером. Проверьте подключение к интернету.",
-        variant: "destructive",
-      });
       safeDispatchGameEvent(
         "Нет соединения с сервером. Проверьте подключение к интернету.",
         "error"
@@ -110,11 +95,14 @@ export async function loadGameState(): Promise<GameState | null> {
           buildings: { ...initialState.buildings, ...(loadedState.buildings || {}) },
           upgrades: { ...initialState.upgrades, ...(loadedState.upgrades || {}) },
           unlocks: { ...initialState.unlocks, ...(loadedState.unlocks || {}) },
-          specializationSynergies: { ...initialState.specializationSynergies, ...(loadedState.specializationSynergies || {}) }
+          specializationSynergies: { ...initialState.specializationSynergies, ...(loadedState.specializationSynergies || {}) },
+          counters: { ...initialState.counters, ...(loadedState.counters || {}) },
+          eventMessages: { ...initialState.eventMessages, ...(loadedState.eventMessages || {}) }
         };
         
         // Обновляем timestamp последнего обновления
         restoredState.lastUpdate = Date.now();
+        restoredState.lastSaved = Date.now();
         
         return restoredState;
       }
@@ -123,6 +111,29 @@ export async function loadGameState(): Promise<GameState | null> {
       if (!loadedState.specializationSynergies) {
         loadedState.specializationSynergies = { ...initialState.specializationSynergies };
         console.log('✅ Добавлены отсутствующие данные о синергиях специализаций');
+      }
+
+      // Проверка и инициализация реферальных систем
+      if (!loadedState.referrals) {
+        loadedState.referrals = [];
+        console.log('✅ Инициализирован пустой массив рефералов');
+      }
+      
+      if (!loadedState.referralHelpers) {
+        loadedState.referralHelpers = [];
+        console.log('✅ Инициализирован пустой массив помощников');
+      }
+      
+      // Проверка наличия счетчиков
+      if (!loadedState.counters) {
+        loadedState.counters = { ...initialState.counters };
+        console.log('✅ Добавлены отсутствующие счетчики');
+      }
+      
+      // Проверка наличия событий
+      if (!loadedState.eventMessages) {
+        loadedState.eventMessages = { ...initialState.eventMessages };
+        console.log('✅ Добавлены отсутствующие сообщения о событиях');
       }
       
       // Обновляем timestamp последнего обновления

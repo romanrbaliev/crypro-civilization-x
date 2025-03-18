@@ -45,7 +45,10 @@ export const processLoadGame = (
   }
   
   // Проверяем и исправляем несогласованности в загруженных данных
-  const loadedState = { ...payload };
+  let loadedState = { ...payload };
+  
+  // Убеждаемся, что игра отмечена как запущенная
+  loadedState.gameStarted = true;
   
   // КРИТИЧЕСКИЙ ФИХ: синхронизация разблокировки практики
   if (loadedState.unlocks && loadedState.unlocks.practice) {

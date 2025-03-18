@@ -126,50 +126,20 @@ const App = () => {
           console.log('✅ Telegram WebApp развернут на весь экран');
         }
         
-        // Выводим детали инициализации
+        // Выводим детали инициализации только в консоль
         console.log('✅ Telegram WebApp инициализирован:');
         console.log('- Платформа:', window.Telegram.WebApp.platform);
         console.log('- Версия:', window.Telegram.WebApp.version);
         console.log('- Длина initData:', window.Telegram.WebApp.initData?.length || 0);
         
-        // Показываем toast с информацией о режиме Telegram только один раз в продакшене
-        if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
-          window.__telegramNotificationShown = true;
-          setTimeout(() => {
-            toast({
-              title: "Режим Telegram",
-              description: `Приложение запущено в Telegram (${window.Telegram.WebApp.platform}, v${window.Telegram.WebApp.version})`,
-              variant: "default",
-            });
-          }, 1000);
-        }
+        // Убираем всплывающее уведомление о режиме Telegram
       } catch (error) {
         console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
-        
-        // Показываем toast с ошибкой только в продакшене
-        if (process.env.NODE_ENV !== 'development') {
-          toast({
-            title: "Ошибка Telegram интеграции",
-            description: "Произошла ошибка при инициализации Telegram WebApp.",
-            variant: "destructive",
-          });
-        }
       }
     } else {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме браузера');
       
-      // Показываем toast с информацией о стандартном режиме только один раз
-      // и не показываем в режиме разработки, чтобы не мешать разработчикам
-      if (!window.__telegramNotificationShown && process.env.NODE_ENV !== 'development') {
-        window.__telegramNotificationShown = true;
-        setTimeout(() => {
-          toast({
-            title: "Стандартный режим браузера",
-            description: "Приложение запущено в браузере. Для полного функционала рекомендуем использовать Telegram.",
-            variant: "default",
-          });
-        }, 1000);
-      }
+      // Убираем уведомление о стандартном режиме браузера
     }
   }, []);
 
