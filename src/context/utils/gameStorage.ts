@@ -1,6 +1,7 @@
+
 import { GameState } from '../types';
 import { initialState } from '../initialState';
-import { saveGameToServer, loadGameFromServer, checkSupabaseConnection, clearAllSavedDataForAllUsers } from '@/api/gameDataService';
+import { saveGameToServer, loadGameFromServer, checkSupabaseConnection } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from './eventBusUtils';
 import { toast } from '@/hooks/use-toast';
 
@@ -82,7 +83,7 @@ export async function loadGameState(): Promise<GameState | null> {
       if (!loadedState.resources || !loadedState.buildings || !loadedState.upgrades) {
         console.warn('⚠️ Загруженные данные повреждены, выполняем восстановление...');
         safeDispatchGameEvent(
-          "Загруженные данные повреждены, выполняем восстановле��ие",
+          "Загруженные данные повреждены, выполняем восстановление",
           "warning"
         );
         
@@ -217,7 +218,7 @@ export async function clearGameState(): Promise<void> {
 }
 
 // Удаление всех сохранений для всех пользователей
-export async function clearAllSavedDataForAllUsers(): Promise<void> {
+export async function resetAllGameData(): Promise<void> {
   try {
     console.log('🔄 Удаление ВСЕХ сохранений игры из облака...');
     

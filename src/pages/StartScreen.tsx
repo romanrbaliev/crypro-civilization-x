@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
 import { BitcoinIcon, Coins, Trophy, Settings, Info, Play, Trash2, DatabaseBackup } from "lucide-react";
-import { clearGameState, clearAllSavedDataForAllUsers } from "@/context/utils/gameStorage";
+import { clearGameState, resetAllGameData } from "@/context/utils/gameStorage";
 import { 
   Dialog,
   DialogContent,
@@ -39,7 +38,7 @@ const StartScreen = () => {
   };
   
   const handleResetAllGames = async () => {
-    await clearAllSavedDataForAllUsers();
+    await resetAllGameData();
     window.location.reload();
   };
   
