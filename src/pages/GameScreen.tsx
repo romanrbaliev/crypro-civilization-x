@@ -10,7 +10,7 @@ import SynergyTab from '@/components/SynergyTab';
 import ReferralsTab from '@/components/ReferralsTab';
 import ResearchTab from '@/components/ResearchTab';
 import { useGame } from '@/context/hooks/useGame';
-import { dispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 const GameScreen: React.FC = () => {
   const { state } = useGame();
@@ -28,7 +28,7 @@ const GameScreen: React.FC = () => {
     setEvents(prev => [newEvent, ...prev]);
     
     // Также отправляем событие в глобальную систему событий
-    dispatchGameEvent(message, type);
+    safeDispatchGameEvent(message, type);
   };
   
   // Получаем список разблокированных ресурсов
