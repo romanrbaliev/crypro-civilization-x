@@ -1,45 +1,52 @@
 
-import { GameState, GameAction, ReferralHelper } from '../types';
+import { GameState, SpecializationSynergy } from '../types';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
-// Функция для проверки синергий
+// Проверка условий активации синергий
 export const checkSynergies = (state: GameState): GameState => {
-  const { upgrades, specializationSynergies } = state;
-
-  const updatedSynergies = Object.entries(specializationSynergies).reduce((acc, [synergyId, synergy]) => {
-    if (synergy.unlocked || synergy.active) {
-      acc[synergyId] = synergy;
-      return acc;
-    }
-
-    const categoryCounts: { [categoryId: string]: number } = {};
-    for (const categoryId of synergy.requiredCategories) {
-      categoryCounts[categoryId] = 0;
-    }
-
-    Object.values(upgrades).forEach(upgrade => {
+  // Получаем все существующие синергии
+  const synergies = { ...state.specializationSynergies };
+  
+  // Проверяем каждую синергию
+  for (const synergy of Object.values(synergies)) {
+    if (synergy.active) continue; // Пропускаем уже активные синергии
+    
+    // Проверяем требования категорий для этой синергии
+    const requiredCategoriesCount: {[key: string]: number} = {};
+    
+    // Инициализируем счетчики для всех требуемых категорий
+    synergy.requiredCategories.forEach(category => {
+      requiredCategoriesCount[category] = 0;
+    });
+    
+    // Подсчитываем исследования в каждой категории
+    Object.values(state.upgrades).forEach(upgrade => {
+      // Если улучшение приобретено и его категория есть в требуемых, увеличиваем счетчик
       if (upgrade.purchased && upgrade.category && synergy.requiredCategories.includes(upgrade.category)) {
-        categoryCounts[upgrade.category]++;
+        requiredCategoriesCount[upgrade.category] = (requiredCategoriesCount[upgrade.category] || 0) + 1;
       }
     });
-
-    const allCategoriesFulfilled = synergy.requiredCategories.every(categoryId => categoryCounts[categoryId] >= synergy.requiredCount);
-
-    if (allCategoriesFulfilled) {
-      acc[synergyId] = { ...synergy, unlocked: true };
-    } else {
-      acc[synergyId] = synergy;
+    
+    // Проверяем, выполнены ли все требования
+    const allRequirementsMet = Object.entries(requiredCategoriesCount).every(
+      ([_, count]) => count >= synergy.requiredCount
+    );
+    
+    // Обновляем статус разблокировки
+    if (allRequirementsMet && !synergy.unlocked) {
+      console.log(`Разблокирована синергия: ${synergy.name}`);
+      synergy.unlocked = true;
+      safeDispatchGameEvent(`Разблокирована новая синергия: ${synergy.name}`, "info");
     }
-
-    return acc;
-  }, {} as { [key: string]: any });
-
+  }
+  
   return {
     ...state,
-    specializationSynergies: updatedSynergies,
+    specializationSynergies: synergies
   };
 };
 
-// Функция для активации синергии
+// Активация синергии
 export const activateSynergy = (state: GameState, payload: { synergyId: string }): GameState => {
   const { synergyId } = payload;
   const synergy = state.specializationSynergies[synergyId];
@@ -48,130 +55,94 @@ export const activateSynergy = (state: GameState, payload: { synergyId: string }
     return state;
   }
   
+  // Активируем синергию
   const updatedSynergies = {
     ...state.specializationSynergies,
-    [synergyId]: { ...synergy, active: true }
+    [synergyId]: {
+      ...synergy,
+      active: true
+    }
   };
   
-  return {
+  return synergyReducer({
     ...state,
     specializationSynergies: updatedSynergies
-  };
+  });
 };
 
-// Функция для инициализации синергий
+// Начальные синергии
+export const initialSynergies: {[key: string]: SpecializationSynergy} = {
+  blockchain_mining: {
+    id: "blockchain_mining",
+    name: "Эффективный майнинг",
+    description: "Сочетание знаний блокчейна и оптимизации майнинга",
+    requiredCategories: ["blockchain", "mining"],
+    requiredCount: 2,
+    bonus: {
+      miningEfficiency: 0.15,
+      energyEfficiency: 0.10
+    },
+    unlocked: false,
+    active: false
+  },
+  trading_investment: {
+    id: "trading_investment",
+    name: "Финансовая стратегия",
+    description: "Комбинация трейдинга и долгосрочных инвестиций",
+    requiredCategories: ["trading", "investment"],
+    requiredCount: 2,
+    bonus: {
+      tradingEfficiency: 0.15,
+      investmentReturn: 0.10
+    },
+    unlocked: false,
+    active: false
+  },
+  blockchain_defi: {
+    id: "blockchain_defi",
+    name: "Децентрализованные финансы",
+    description: "Применение блокчейна в финансовых инструментах",
+    requiredCategories: ["blockchain", "defi"],
+    requiredCount: 2,
+    bonus: {
+      defiYield: 0.20,
+      networkFee: -0.05
+    },
+    unlocked: false,
+    active: false
+  }
+};
+
+// Инициализация синергий
 export const initializeSynergies = (state: GameState): GameState => {
-  // Проверяем, существуют ли уже синергии
+  // Если синергии уже есть, ничего не делаем
   if (state.specializationSynergies && Object.keys(state.specializationSynergies).length > 0) {
     return state;
   }
-
-  // Базовые синергии для инициализации
-  const defaultSynergies = {
-    blockchain_mining: {
-      id: 'blockchain_mining',
-      name: 'Криптомайнер',
-      description: 'Синергия между блокчейном и майнингом',
-      requiredCategories: ['blockchain', 'mining'],
-      requiredCount: 2,
-      bonus: { miningEfficiency: 0.15, energyEfficiency: 0.10 },
-      unlocked: false,
-      active: false
-    },
-    trading_investment: {
-      id: 'trading_investment',
-      name: 'Инвестор-трейдер',
-      description: 'Синергия между трейдингом и инвестициями',
-      requiredCategories: ['trading', 'investment'],
-      requiredCount: 2,
-      bonus: { tradingEfficiency: 0.15, investmentReturn: 0.10 },
-      unlocked: false,
-      active: false
-    },
-    blockchain_defi: {
-      id: 'blockchain_defi',
-      name: 'DeFi-разработчик',
-      description: 'Синергия между блокчейном и DeFi',
-      requiredCategories: ['blockchain', 'defi'],
-      requiredCount: 2, 
-      bonus: { defiYield: 0.15, smartContractEfficiency: 0.10 },
-      unlocked: false,
-      active: false
-    }
-  };
-
+  
+  console.log('Инициализация начальных синергий');
+  
   return {
     ...state,
-    specializationSynergies: defaultSynergies
+    specializationSynergies: initialSynergies
   };
 };
 
-// Базовый редьюсер синергий
-export const synergyReducer = (state: GameState, action: GameAction): GameState => {
-  if (action.type === "CHECK_SYNERGIES") {
-    return checkSynergies(state);
+// Применение эффектов активных синергий
+export const synergyReducer = (state: GameState): GameState => {
+  // Получаем все активные синергии
+  const activeSynergies = Object.values(state.specializationSynergies).filter(s => s.active);
+  
+  // Если нет активных синергий, возвращаем состояние без изменений
+  if (activeSynergies.length === 0) {
+    return state;
   }
   
-  if (action.type === "ACTIVATE_SYNERGY") {
-    return activateSynergy(state, action.payload);
-  }
+  // Применяем бонусы от активных синергий
+  const newState = { ...state };
   
-  if (action.type === "RESPOND_TO_HELPER_REQUEST") {
-    const { helperId, accepted } = action.payload;
-    
-    // Найдем запрос
-    const helperRequest = state.referralHelpers.find(h => h.id === helperId);
-    
-    if (!helperRequest) {
-      console.warn(`Запрос помощника с ID ${helperId} не найден`);
-      return state;
-    }
-    
-    console.log(`Ответ на запрос помощника ${helperId}: ${accepted ? 'принят' : 'отклонен'}`);
-    
-    // Обновляем статус помощника, явно указывая тип
-    const updatedHelpers = state.referralHelpers.map(h => 
-      h.id === helperId 
-        ? { ...h, status: accepted ? 'accepted' as const : 'rejected' as const } 
-        : h
-    );
-    
-    // Если помощник принят, также обновляем UI обоим игрокам
-    if (accepted) {
-      console.log(`Помощник (${helperRequest.helperId}) принят для здания ${helperRequest.buildingId}`);
-      
-      // Здесь могла бы быть логика уведомления другого игрока,
-      // но это требует асинхронных операций, которые нельзя выполнять в reducer
-    }
-    
-    return {
-      ...state,
-      referralHelpers: updatedHelpers,
-    };
-  }
+  // Здесь реализуем логику применения бонусов синергий
+  // Например, увеличение эффективности майнинга, снижение затрат энергии и т.д.
   
-  if (action.type === "HIRE_REFERRAL_HELPER") {
-    const { referralId, buildingId } = action.payload;
-    
-    console.log(`Запрос на найм помощника: реферал ${referralId}, здание ${buildingId}`);
-    
-    // Создаем новый запрос с явным указанием типа status
-    const newHelper: ReferralHelper = {
-      id: Date.now().toString(),
-      buildingId,
-      helperId: referralId,
-      status: 'pending' as const,
-      createdAt: Date.now()
-    };
-    
-    // Добавляем запрос к существующим
-    const updatedHelpers = [...state.referralHelpers, newHelper];
-    
-    return {
-      ...state,
-      referralHelpers: updatedHelpers,
-    };
-  }
-  
-  return state;
+  return newState;
 };

@@ -1,4 +1,5 @@
-import { Resource, Building, Upgrade, GameState, Counters, MiningParams, Referral } from './types';
+
+import { Resource, Building, Upgrade, GameState, Counter, MiningParams } from './types';
 import { generateReferralCode } from '@/utils/helpers';
 
 // Начальные здания
@@ -79,7 +80,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Основы блокчейна",
     description: "Открывает базовые механики криптовалют и увеличивает хранилище знаний",
     cost: { knowledge: 50 },
-    effect: { knowledgeBoost: 0.1, knowledgeMaxBoost: 0.5 },
+    effects: { knowledgeBoost: 0.1, knowledgeMaxBoost: 0.5 },
     unlocked: false,
     purchased: false,
     requirements: { generatorCount: 1 }
@@ -89,7 +90,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Безопасность криптокошельков",
     description: "Увеличивает максимальное хранение криптовалют",
     cost: { knowledge: 75 },
-    effect: { usdtMaxBoost: 0.25 },
+    effects: { usdtMaxBoost: 0.25 },
     unlocked: false,
     purchased: false,
     requirements: { cryptoWalletCount: 1 }
@@ -99,7 +100,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Оптимизация алгоритмов",
     description: "Увеличивает эффективность майнинга на 15%",
     cost: { knowledge: 100, usdt: 50 },
-    effect: { miningEfficiencyBoost: 0.15 },
+    effects: { miningEfficiencyBoost: 0.15 },
     unlocked: false,
     purchased: false,
     requirements: { autoMinerCount: 1 }
@@ -109,7 +110,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Энергоэффективные компоненты",
     description: "Снижает потребление электричества при майнинге на 10%",
     cost: { knowledge: 120, usdt: 75 },
-    effect: { energyEfficiencyBoost: 0.1 },
+    effects: { energyEfficiencyBoost: 0.1 },
     unlocked: false,
     purchased: false,
     requirements: { autoMinerCount: 1 }
@@ -119,7 +120,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     name: "Система охлаждения",
     description: "Увеличивает вычислительную мощность на 20% без перегрева",
     cost: { knowledge: 150, usdt: 100 },
-    effect: { computingPowerBoost: 0.2 },
+    effects: { computingPowerBoost: 0.2 },
     unlocked: false,
     purchased: false,
     requirements: { algorithmOptimization: 1 }
@@ -209,20 +210,29 @@ export const initialState: GameState = {
   upgrades: initialUpgrades,
   unlocks: {
     applyKnowledge: false,
-    practice: false
+    practice: false,
+    research: false
   },
+  counters: initialCounters,
   lastUpdate: Date.now(),
   lastSaved: Date.now(),
   gameStarted: false,
   prestigePoints: 0,
   phase: 1,
   eventMessages: {},
-  counters: initialCounters,
-  miningParams: initialMiningParams,
   gameTime: 0,
+  miningParams: initialMiningParams,
   referralCode: "",
   referredBy: null,
   referrals: [],
   referralHelpers: [],
-  specializationSynergies: {}
+  specializationSynergies: {},
+  knowledge: 0,
+  btcPrice: 0,
+  miningPower: 0,
+  usdtBalance: 0,
+  btcBalance: 0,
+  version: "1.0.0",
+  featureFlags: {},
+  buildingUnlocked: {}
 };

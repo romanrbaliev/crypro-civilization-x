@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -262,7 +263,7 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
 
 // Функция для генерации уникального ID
 const generateId = (): string => {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
 // Обработка обновления статуса реферала из базы данных
@@ -320,7 +321,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Разблокировка фичи
     case "UNLOCK_FEATURE": 
-      return processUnlockFeature(state, action.payload);
+      // Fix: convert feature to featureId
+      return processUnlockFeature(state, { featureId: action.payload.feature });
     
     // Разблокировка ресурса
     case "UNLOCK_RESOURCE": 
@@ -332,7 +334,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     // Инкремент счетчика
     case "INCREMENT_COUNTER": 
-      return processIncrementCounter(state, action.payload);
+      // Fix: convert counter to counterId
+      return processIncrementCounter(state, { counterId: action.payload.counter, value: action.payload.value });
     
     // Проверка и обновление синергий
     case "CHECK_SYNERGIES":
@@ -347,7 +350,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       console.log('Загрузка сохраненной игры через LOAD_GAME action');
       
       // Инициализируем синергии, если их нет в загруженном состоянии
-      let newState = processLoadGame(state, action.payload);
+      let newState = processLoadGame(state, action.payload as GameState);
       
       if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
         console.log('Инициализируем отсутствующие синергии в gameReducer');

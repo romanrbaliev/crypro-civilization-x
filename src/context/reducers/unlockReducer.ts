@@ -25,11 +25,8 @@ export const processSetBuildingUnlocked = (
   const { buildingId, unlocked } = payload;
   
   if (!state.buildings[buildingId]) {
-    console.warn(`Попытка установить разблокировку для несуществующего здания: ${buildingId}`);
     return state;
   }
-  
-  console.log(`Устанавливаем разблокировку для здания ${buildingId}: ${unlocked}`);
   
   return {
     ...state,
@@ -46,15 +43,37 @@ export const processSetBuildingUnlocked = (
 // Обработка инкремента счетчика
 export const processIncrementCounter = (
   state: GameState,
-  payload: { counterId: string }
+  payload: { counterId: string; value?: number }
 ): GameState => {
-  const { counterId } = payload;
+  const { counterId, value = 1 } = payload;
+  
+  // Если счетчик не существует, создаем его
+  if (!state.counters[counterId]) {
+    return {
+      ...state,
+      counters: {
+        ...state.counters,
+        [counterId]: {
+          id: counterId,
+          name: counterId,
+          value: value
+        }
+      }
+    };
+  }
+  
+  // Обновляем существующий счетчик
+  const counter = state.counters[counterId];
+  const currentValue = typeof counter === 'number' ? counter : counter.value;
   
   return {
     ...state,
     counters: {
       ...state.counters,
-      [counterId]: (state.counters[counterId] || 0) + 1
+      [counterId]: {
+        ...(typeof counter === 'object' ? counter : { id: counterId, name: counterId }),
+        value: currentValue + value
+      }
     }
   };
 };

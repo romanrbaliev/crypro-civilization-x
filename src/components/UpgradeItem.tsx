@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/utils/helpers";
@@ -28,7 +27,8 @@ interface UpgradeItemProps {
 
 const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const { state, dispatch } = useGame();
-  const { id, name, description, cost, effect, purchased } = upgrade;
+  const { id, name, description, cost, effects, purchased } = upgrade;
+  const effectData = effects || upgrade.effect || {};
   const [isOpen, setIsOpen] = useState(!purchased); // По умолчанию открыты только неприобретенные
   
   const handlePurchase = () => {
@@ -60,7 +60,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   };
   
   const renderEffects = () => {
-    return Object.entries(effect).map(([effectId, amount]) => {
+    return Object.entries(effectData).map(([effectId, amount]) => {
       if (effectId === 'knowledgeBoost') {
         const boostPercent = Number(amount) * 100;
         return (
@@ -110,7 +110,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       
       return (
         <div key={effectId} className="text-blue-600 text-[10px] w-full">
-          +{amount} к {effectId}
+          +{String(amount)} к {effectId}
         </div>
       );
     });
