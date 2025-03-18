@@ -37,7 +37,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [isRefreshingReferrals, setIsRefreshingReferrals] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [telegramUserInfo, setTelegramUserInfo] = useState<any>(null);
-  
+
+  const REFERRAL_TABLE = 'referral_data';
+  const REFERRAL_DATA = 'referral_data';
+  const SAVES_TABLE = 'saves';
+
   // Получаем Telegram информацию о пользователе
   useEffect(() => {
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
@@ -56,7 +60,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       console.log('Telegram WebApp недоступен в ReferralsTab');
     }
   }, []);
-  
+
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
@@ -70,7 +74,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     
     loadUserInfo();
   }, []);
-  
+
   useEffect(() => {
     if (state.referralCode) {
       setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
@@ -227,6 +231,79 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
+  const forceRefreshReferrals = async () => {
+    try {
+      setIsRefreshingReferrals(true);
+      const id = await getUserIdentifier();
+      console.log('Принудительное обновление рефералов для пользователя:', id);
+      
+      // Получаем реферальный код пользователя напрямую из базы
+      const { data: userData } = await supabase
+        .from(REFERRAL_TABLE)
+        .select('referral_code')
+        .eq('user_id', id)
+        .single();
+      
+      if (userData && userData.referral_code) {
+        console.log('Найден реферальный код в базе:', userData.referral_code);
+        
+        // Загружаем всех рефералов для данного кода
+        const { data: directReferrals } = await supabase
+          .from(REFERRAL_DATA)
+          .select('user_id, created_at, referred_by')
+          .eq('referred_by', userData.referral_code);
+          
+        console.log('Найдено рефералов в базе данных:', directReferrals?.length || 0, directReferrals);
+        
+        // Загрузим текущее сохранение игры, чтобы проверить, какие рефералы активированы
+        const { data: saveData } = await supabase
+          .from(SAVES_TABLE)
+          .select('game_data')
+          .eq('user_id', id)
+          .single();
+        
+        if (saveData && saveData.game_data) {
+          const gameState = saveData.game_data as any;
+          console.log('Текущие рефералы в сохранении:', gameState.referrals);
+          
+          // Проверяем каждого реферала на активацию
+          if (directReferrals && directReferrals.length > 0) {
+            const formattedReferrals = directReferrals.map(ref => {
+              // Ищем этого реферала в текущем сохранении
+              const existingRef = gameState.referrals?.find((r: any) => r.id === ref.user_id);
+              
+              return {
+                id: ref.user_id,
+                username: `ID: ${ref.user_id}`,
+                // Если реферал найден в сохранении и он активирован, сохраняем этот статус
+                activated: existingRef ? existingRef.activated : false,
+                joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
+              };
+            });
+            
+            console.log('Обновляем список рефералов:', formattedReferrals);
+            
+            // Обновляем состояние игры с новым списком рефералов
+            dispatch({ 
+              type: "LOAD_GAME", 
+              payload: { 
+                ...state, 
+                referrals: formattedReferrals 
+              } 
+            });
+            
+            onAddEvent(`Обновлено ${formattedReferrals.length} рефералов. Активных: ${formattedReferrals.filter(r => r.activated).length}`, "success");
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при обновлении рефералов:', error);
+      onAddEvent("Ошибка при обновлении рефералов", "error");
+    } finally {
+      setIsRefreshingReferrals(false);
+    }
+  };
+
   useEffect(() => {
     console.log('ReferralsTab: Монтирование компонента, загружаем рефералов...');
     loadReferrals();
@@ -274,7 +351,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   };
 
   const handleRefreshReferrals = () => {
-    loadReferrals();
+    forceRefreshReferrals();
     onAddEvent("Обновление списка рефералов...", "info");
   };
 
@@ -533,9 +610,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                       )}
                     </div>
                     <div className="flex items-center space-x-2">
-                      {referral.activated && (
-                        <div className="text-[8px] text-green-600 bg-green-100 px-1 py-0.5 rounded">
+                      {referral.activated ? (
+                        <div className="text-[8px] text-green-600 bg-green-100 px-1 py-0.5 rounded flex items-center">
+                          <Check className="h-2 w-2 mr-0.5" />
                           Активен
+                        </div>
+                      ) : (
+                        <div className="text-[8px] text-orange-600 bg-orange-100 px-1 py-0.5 rounded flex items-center">
+                          <AlertCircle className="h-2 w-2 mr-0.5" />
+                          Не активирован
                         </div>
                       )}
                     </div>

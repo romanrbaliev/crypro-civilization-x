@@ -153,3 +153,15 @@ export const calculateHelperBoost = (
   // Каждая принятая работа дает 10% буст к производительности
   return activeJobs.length * 0.10;
 };
+
+// Рассчитывает бонус от активных рефералов
+export const calculateReferralBonus = (
+  referrals: any[] = []
+): number => {
+  // Учитываем только активированных рефералов
+  const activeReferrals = referrals.filter(ref => ref.activated === true);
+  
+  // Каждый активный реферал дает +5% к производительности
+  return activeReferrals.length * 0.05;
+};
+

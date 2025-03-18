@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { isEnoughResources, calculateCost, deductResources, hasEnoughResources } from '../utils/resourceUtils';
@@ -65,6 +64,7 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       const userId = window.__game_user_id;
       
       if (userId) {
+        console.log(`Покупка первого генератора - активируем реферальный статус для пользователя ${userId}`);
         // Асинхронно активируем реферала (не дожидаемся результата)
         activateReferral(userId).then(success => {
           if (success) {
