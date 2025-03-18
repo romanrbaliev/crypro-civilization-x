@@ -112,7 +112,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
             ID: <span className="font-mono">{referral.id}</span>
           </div>
           <div className="text-[9px] text-gray-500">
-            Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
+            Присо��динился: {new Date(referral.joinedAt).toLocaleDateString()}
           </div>
           <div className="text-[9px] mt-1">
             Статус: {' '}
@@ -672,7 +672,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       
       toast({
         title: "Помощник уволен",
-        description: "Бонус к производительности здания отменен",
+        description: "Бонус к производительности здания отмен��н",
       });
       onAddEvent("Помощник уволен", "info");
       

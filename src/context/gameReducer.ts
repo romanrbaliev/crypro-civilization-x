@@ -98,7 +98,7 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
     ref.id === payload.referralId ? { ...ref, activated: true } : ref
   );
   
-  console.log('Обнов��енный спи��ок рефералов:', updatedReferrals);
+  console.log('Обнов��енный спи���ок рефералов:', updatedReferrals);
   
   // Отправляем событие активации, чтобы обновить интерфейс
   setTimeout(() => {

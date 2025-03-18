@@ -17,7 +17,6 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
     const connectionPromise = new Promise<boolean>(async (resolve) => {
       try {
         // Используем простой запрос к таблице referral_data
-        // ИСПРАВЛЕНО: запрос больше не использует count(*), который вызывал ошибку
         const { data, error } = await supabase
           .from('referral_data')
           .select('user_id')
