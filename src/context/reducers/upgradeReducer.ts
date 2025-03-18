@@ -115,6 +115,13 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       // Отправляем сообщение о разблокировке нового исследования
       const categoryText = upgrade.category ? ` (${upgrade.specialization || upgrade.category})` : '';
       safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
+      
+      // Если разблокировали "Основы блокчейна", также разблокируем вкладку исследований
+      if (upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
+        console.log(`Разблокирована вкладка исследований после разблокировки '${upgrade.name}'`);
+        const newUnlocks = {...state.unlocks, research: true};
+        state = {...state, unlocks: newUnlocks};
+      }
     }
   });
   

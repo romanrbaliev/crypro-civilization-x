@@ -1,7 +1,3 @@
-
-// Полностью заменяем компонент ReferralsTab для корректного отображения кнопок на мобильных устройствах
-// Здесь использовать полную замену, поскольку файл не доступен для редактирования в списке
-
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
@@ -9,7 +5,7 @@ import { Copy, UserPlus, UserCheck, Clock, Award, Briefcase, FolderInput } from 
 import { toast } from '@/hooks/use-toast';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
 import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
-import { useMediaQuery } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -19,7 +15,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { referralCode, referrals, referralHelpers } = state;
   const [activeTab, setActiveTab] = useState("code");
-  const isMobile = useMediaQuery("(max-width: 640px)");
+  const isMobile = useIsMobile();
   
   const copyToClipboard = () => {
     if (!referralCode) return;
@@ -47,7 +43,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     onAddEvent(`Активирован реферал ${referrals.find(r => r.id === referralId)?.username || referralId}`, "success");
   };
   
-  // Функция для проверки статуса помощника
   const getHelperStatus = (referralId: string, buildingId: string) => {
     const helper = referralHelpers.find(
       h => h.helperId === referralId && h.buildingId === buildingId && (h.status === 'pending' || h.status === 'accepted')
@@ -56,7 +51,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     return helper?.status || null;
   };
   
-  // Функция для получения ID запроса помощника
   const getHelperId = (referralId: string) => {
     const helper = referralHelpers.find(
       h => h.helperId === referralId && (h.status === 'pending' || h.status === 'accepted')
@@ -65,10 +59,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     return helper?.id || null;
   };
   
-  // Функция для наёма реферала в качестве помощника
   const hireHelper = (referralId: string) => {
-    // Определяем здание, для которого нанимаем помощника
-    // В этом примере используем "practice" - практика
     const buildingId = "practice";
     
     console.log("Нанимаем помощника для здания:", buildingId);
@@ -82,7 +73,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     });
   };
   
-  // Отвечаем на запрос о помощи
   const respondToHelper = (helperId: string, accepted: boolean) => {
     dispatch({
       type: "RESPOND_TO_HELPER_REQUEST",
@@ -93,18 +83,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     });
   };
   
-  // Получение количества активных рефералов
   const getActiveReferralsCount = () => {
     return referrals.filter(ref => ref.activated).length;
   };
   
-  // Получение общего бонуса от рефералов
   const calculateTotalBonus = () => {
     const activeCount = getActiveReferralsCount();
-    return activeCount * 5; // 5% за каждого активного реферала
+    return activeCount * 5;
   };
   
-  // Получение типа помощника (запрос, принят, отклонен)
   const getHelperTypeMessage = (referralId: string) => {
     const pendingHelper = referralHelpers.find(
       h => h.helperId === referralId && h.status === 'pending'
@@ -125,26 +112,22 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     return null;
   };
   
-  // Получение списка помощников, которые ждут вашего ответа
   const getPendingHelpRequests = () => {
     return referralHelpers.filter(h => 
       referrals.some(r => r.id === h.helperId) && h.status === 'pending'
     );
   };
   
-  // Получение имени здания для помощника
   const getBuildingName = (buildingId: string) => {
     const building = state.buildings[buildingId];
     return building ? building.name : buildingId;
   };
   
-  // Получение имени реферала по ID
   const getReferralName = (helperId: string) => {
     const referral = referrals.find(r => r.id === helperId);
     return referral ? referral.username : helperId;
   };
   
-  // Проверка наличия помощников для реферала
   const hasHelperRequests = getPendingHelpRequests().length > 0;
   
   return (
@@ -166,7 +149,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         <TabsTrigger value="help" className="text-xs relative">
           <Briefcase className="h-3 w-3 mr-1" />
           Помощь
-          {hasHelperRequests && (
+          {getPendingHelpRequests().length > 0 && (
             <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white rounded-full text-[8px] min-w-[14px] h-[14px] flex items-center justify-center">
               {getPendingHelpRequests().length}
             </span>
@@ -252,7 +235,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     </div>
                     
                     <div className="flex space-x-2">
-                      {/* Проверяем, есть ли уже помощник для этого реферала */}
                       {getHelperTypeMessage(referral.id) ? (
                         <div className="text-[10px] px-2 py-1 bg-blue-50 text-blue-600 rounded-full flex items-center">
                           <Briefcase className="h-3 w-3 mr-1" />
@@ -340,3 +322,4 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 };
 
 export default ReferralsTab;
+
