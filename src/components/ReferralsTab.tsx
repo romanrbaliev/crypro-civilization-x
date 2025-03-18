@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
 import { Copy, UserPlus, UserCheck, Clock, Award, Briefcase, FolderInput } from 'lucide-react';
@@ -244,11 +245,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className={`text-[10px] ${isMobile ? 'px-2' : ''}`}
+                          className="text-[10px]"
                           onClick={() => hireHelper(referral.id)}
                         >
                           <Briefcase className="h-3 w-3 mr-1" />
-                          {isMobile ? '' : 'Нанять'}
+                          {!isMobile ? 'Нанять' : 'Нанять'}
                         </Button>
                       )}
                     </div>
@@ -322,4 +323,3 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 };
 
 export default ReferralsTab;
-
