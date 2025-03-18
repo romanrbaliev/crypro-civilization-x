@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -22,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { getUserIdentifier } from '@/api/gameDataService';
 
 interface ReferralsTabProps {
@@ -208,7 +210,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         onAddEvent("У вас пока нет рефералов", "info");
       }
     } catch (error) {
-      console.error('Ошибка при загрузк�� рефералов:', error);
+      console.error('Ошибка при загрузк��� рефералов:', error);
       onAddEvent("Ошибка при загрузке рефералов", "error");
     } finally {
       setIsRefreshingReferrals(false);
@@ -932,8 +934,8 @@ const ReferralItem = ({
   userBuildings?: any,
   helperRequests?: any[],
   ownedReferral?: boolean,
-  onHire?: (referralId: string, buildingId: string) => void,
-  onFire?: (helperId: string) => void
+  onHire?: (referralId: string) => void,
+  onFire?: (referralId: string, buildingId: string) => void
 }) => {
   const [openHireDialog, setOpenHireDialog] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
@@ -998,7 +1000,7 @@ const ReferralItem = ({
   
   const handleHireConfirm = () => {
     if (selectedBuilding && onHire) {
-      onHire(referral.id, selectedBuilding);
+      onHire(referral.id);
       setOpenHireDialog(false);
       setSelectedBuilding(null);
     }
@@ -1006,7 +1008,7 @@ const ReferralItem = ({
   
   const handleFireClick = () => {
     if (acceptedRequest && onFire) {
-      onFire(acceptedRequest.id);
+      onFire(referral.id, acceptedRequest.building_id);
     }
   };
   
@@ -1067,9 +1069,9 @@ const ReferralItem = ({
           {commonBuildings.length > 0 ? (
             <>
               <div className="space-y-2">
-                <Label>Выберите здание:</Label>
+                <Label htmlFor="building-select">Выберите здание:</Label>
                 <Select onValueChange={handleBuildingSelect} value={selectedBuilding || undefined}>
-                  <SelectTrigger>
+                  <SelectTrigger id="building-select">
                     <SelectValue placeholder="Выберите здание" />
                   </SelectTrigger>
                   <SelectContent>
