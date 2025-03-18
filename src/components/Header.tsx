@@ -1,8 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BitcoinIcon, ArrowLeft, Trophy, Settings } from "lucide-react";
+import { BitcoinIcon, ArrowLeft, Trophy, Settings, RefreshCcw } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,18 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { resetAllGameData } from "@/context/utils/gameStorage";
+import { toast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   prestigePoints: number;
@@ -19,6 +31,29 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
   const navigate = useNavigate();
+  const [resetAlertOpen, setResetAlertOpen] = useState(false);
+
+  const handleResetAll = async () => {
+    try {
+      await resetAllGameData();
+      toast({
+        title: "Сброс выполнен",
+        description: "Все сохранения успешно удалены. Страница будет перезагружена.",
+        variant: "success",
+      });
+      
+      // Перезагрузка страницы после небольшой задержки
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Ошибка сброса",
+        description: "Не удалось удалить сохранения игры.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="bg-white border-b shadow-sm p-2 flex-shrink-0">
@@ -76,8 +111,37 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
               </div>
             </SheetContent>
           </Sheet>
+          
+          {/* Кнопка сброса всех сохранений */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setResetAlertOpen(true)}
+            title="Сбросить все сохранения"
+          >
+            <RefreshCcw className="h-5 w-5 text-red-500" />
+          </Button>
         </div>
       </div>
+      
+      {/* Диалог подтверждения сброса */}
+      <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Сбросить все сохранения?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие удалит все сохранения игры для всех пользователей.
+              Данное действие невозможно отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetAll} className="bg-red-500 hover:bg-red-600">
+              Сбросить все сохранения
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 };
