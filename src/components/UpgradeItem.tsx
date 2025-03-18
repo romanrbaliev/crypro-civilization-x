@@ -127,16 +127,11 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
           <h3 className="font-semibold text-[12px] flex items-center">
             {name} <Sparkles className="ml-1 h-3 w-3 text-amber-500" />
           </h3>
-          <div className="flex items-center">
-            <div className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-medium whitespace-nowrap mr-2">
-              Исследовано
-            </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-0 h-6 w-6 min-w-6">
-                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </CollapsibleTrigger>
-          </div>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="p-0 h-6 w-6 min-w-6">
+              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
         </div>
         
         <CollapsibleContent>
