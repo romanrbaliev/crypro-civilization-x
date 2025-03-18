@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -84,16 +85,6 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
           {isAssigned && assignedBuildingId && (
             <div className="text-[9px] text-green-600 mt-0.5">
               {isHelperAssigned(referral.id, assignedBuildingId) ? "Помогает" : "Работает"} в здании
-            </div>
-          )}
-          {referral.id === '123456789' && (
-            <div className="text-[9px] text-blue-600">
-              Тестовый пользователь romanaliev
-            </div>
-          )}
-          {referral.id === '987654321' && (
-            <div className="text-[9px] text-blue-600">
-              Тестовый пользователь lanakores
             </div>
           )}
         </div>
@@ -240,16 +231,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
       console.log(`ReferralsTab: Используем существующий реферальный код: ${state.referralCode}`);
     } else {
-      let newCode;
-      
-      if (userId === '123456789') {
-        newCode = 'TEST_REF_CODE_ROMAN';
-      } else if (userId === '987654321') {
-        newCode = 'TEST_REF_CODE_LANA';
-      } else {
-        newCode = generateReferralCode();
-      }
-      
+      const newCode = generateReferralCode();
       dispatch({ type: "SET_REFERRAL_CODE", payload: { code: newCode } });
       setReferralLink(`https://t.me/Crypto_civilization_bot?start=${newCode}`);
       console.log(`ReferralsTab: Сгенерирован новый реферальный код: ${newCode}`);
@@ -261,69 +243,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       setIsRefreshingReferrals(true);
       const id = await getUserIdentifier();
       console.log('Загрузка рефералов для пользователя:', id);
-      
-      const isRomanaliev = id === '123456789';
-      const isLanakores = id === '987654321';
-      
-      if (isRomanaliev) {
-        console.log('Загрузка тестовых рефералов для romanaliev');
-        
-        const { data: existingReferral } = await supabase
-          .from('referral_data')
-          .select('*')
-          .eq('user_id', '987654321')
-          .eq('referred_by', 'TEST_REF_CODE_ROMAN')
-          .single();
-          
-        if (!existingReferral) {
-          console.log('Создаем тестовую запись реферала lanakores для romanaliev');
-          
-          await supabase
-            .from('referral_data')
-            .upsert({
-              user_id: '987654321',
-              referral_code: 'TEST_REF_CODE_LANA',
-              referred_by: 'TEST_REF_CODE_ROMAN'
-            });
-        }
-        
-        const testReferral = {
-          id: '987654321',
-          username: 'lanakores',
-          activated: true,
-          joinedAt: Date.now()
-        };
-        
-        dispatch({ 
-          type: "LOAD_GAME", 
-          payload: { 
-            ...state, 
-            referrals: [testReferral],
-            referralCode: 'TEST_REF_CODE_ROMAN'
-          } 
-        });
-        
-        onAddEvent(`Загружен тестовый реферал lanakores для romanaliev`, "success");
-        setIsRefreshingReferrals(false);
-        return;
-      }
-      
-      if (isLanakores) {
-        console.log('Обновление реферальной информации для lanakores');
-        
-        dispatch({ 
-          type: "LOAD_GAME", 
-          payload: { 
-            ...state, 
-            referralCode: 'TEST_REF_CODE_LANA',
-            referredBy: 'TEST_REF_CODE_ROMAN'
-          } 
-        });
-        
-        onAddEvent(`Вы (lanakores) б��ли приглашены пользователем romanaliev`, "info");
-        setIsRefreshingReferrals(false);
-        return;
-      }
       
       const { data: userData } = await supabase
         .from(REFERRAL_TABLE)
@@ -508,12 +427,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           count: building.count
         }));
       
-      console.log('Здания пользоват��ля:', userBuildings);
-      
-      if (referralId === '987654321' || referralId === '123456789') {
-        console.log('Тестовый пользователь, возвращаем здания пользователя:', userBuildings);
-        return userBuildings;
-      }
+      console.log('Здания пользователя:', userBuildings);
       
       const { data } = await supabase
         .from(SAVES_TABLE)
@@ -797,9 +711,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const hasHelperRequests = helperRequests.length > 0;
 
   const isTelegramUser = telegramUserInfo !== null;
-  
-  const isRomanAliev = userId === '123456789';
-  const isLanaKores = userId === '987654321';
 
   return (
     <div className="p-2 flex flex-col h-full">
@@ -832,16 +743,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               <div className="mt-1 text-green-600">
                 Telegram: {telegramUserInfo.first_name} {telegramUserInfo.last_name || ''} 
                 (ID: {telegramUserInfo.id})
-              </div>
-            )}
-            {isRomanAliev && (
-              <div className="mt-1 text-green-600">
-                Тестовый аккаунт romanaliev
-              </div>
-            )}
-            {isLanaKores && (
-              <div className="mt-1 text-green-600">
-                Тестовый аккаунт lanakores (приглашен пользователем romanaliev)
               </div>
             )}
           </div>
@@ -970,16 +871,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                           {assignedBuilding && (
                             <div className="text-[9px] text-green-600 mt-1">
                               Работает в здании: {assignedBuilding.name}
-                            </div>
-                          )}
-                          {referral.id === '123456789' && (
-                            <div className="text-[9px] text-blue-600">
-                              Тестовый пользователь romanaliev
-                            </div>
-                          )}
-                          {referral.id === '987654321' && (
-                            <div className="text-[9px] text-blue-600">
-                              Тестовый пользователь lanakores
                             </div>
                           )}
                         </div>

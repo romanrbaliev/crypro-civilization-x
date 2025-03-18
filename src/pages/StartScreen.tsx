@@ -77,76 +77,6 @@ const StartScreen = () => {
           await checkReferralInfo(state.referralCode || '', referrerCode);
         }
         
-        // Проверка для тестовых аккаунтов
-        const isRomanaliev = currentUserId === '123456789';
-        const isLanakores = currentUserId === '987654321';
-        
-        // Прямая проверка рефералов из базы данных
-        console.log('Проверяем рефералов пользователя напрямую из базы...');
-        
-        if (isRomanaliev) {
-          console.log('Обнаружен тестовый пользователь romanaliev');
-          
-          // Для тестового пользователя romanaliev всегда добавляем lanakores как реферала
-          const testReferral = {
-            id: '987654321', // Тестовый ID для lanakores
-            username: 'lanakores',
-            activated: true,
-            joinedAt: Date.now()
-          };
-          
-          // Проверяем существование записи о реферале в базе
-          const { data: existingReferral } = await supabase
-            .from('referral_data')
-            .select('*')
-            .eq('user_id', '987654321')
-            .eq('referred_by', 'TEST_REF_CODE_ROMAN')
-            .single();
-            
-          if (!existingReferral) {
-            console.log('Создаем тестовую запись реферала lanakores для romanaliev');
-            
-            // Создаем запись в базе данных о том, что lanakores был приглашен romanaliev
-            await supabase
-              .from('referral_data')
-              .upsert({
-                user_id: '987654321', // ID lanakores
-                referral_code: 'TEST_REF_CODE_LANA',
-                referred_by: 'TEST_REF_CODE_ROMAN' // Реферальный код romanaliev
-              });
-          }
-          
-          // Обновляем state с тестовым рефералом
-          dispatch({ 
-            type: "LOAD_GAME", 
-            payload: { 
-              ...state,
-              referrals: [testReferral],
-              referralCode: 'TEST_REF_CODE_ROMAN'
-            } 
-          });
-          
-          setReferralInfo(`Добавлен тестовый реферал lanakores для пользователя romanaliev`);
-        }
-        
-        if (isLanakores) {
-          console.log('Обнаружен тестовый пользователь lanakores');
-          
-          // Устанавливаем реферальный код для lanakores, если не задан
-          if (!state.referralCode) {
-            dispatch({ 
-              type: "LOAD_GAME", 
-              payload: { 
-                ...state,
-                referralCode: 'TEST_REF_CODE_LANA',
-                referredBy: 'TEST_REF_CODE_ROMAN'
-              } 
-            });
-          }
-          
-          setReferralInfo(`Тестовый пользователь lanakores приглашен пользователем romanaliev`);
-        }
-        
         // Пытаемся загрузить сохраненную игру
         const savedGame = await loadGameFromServer();
         
@@ -162,17 +92,11 @@ const StartScreen = () => {
           
           // Проверяем реферальный код и устанавливаем, если отсутствует
           if (!savedGame.referralCode) {
-            if (isRomanaliev) {
-              savedGame.referralCode = 'TEST_REF_CODE_ROMAN';
-            } else if (isLanakores) {
-              savedGame.referralCode = 'TEST_REF_CODE_LANA';
-            } else {
-              const newCode = Array.from({ length: 8 }, () => 
-                Math.floor(Math.random() * 16).toString(16).toUpperCase()
-              ).join('');
-              
-              savedGame.referralCode = newCode;
-            }
+            const newCode = Array.from({ length: 8 }, () => 
+              Math.floor(Math.random() * 16).toString(16).toUpperCase()
+            ).join('');
+            
+            savedGame.referralCode = newCode;
             console.log('Установлен реферальный код:', savedGame.referralCode);
           }
           
@@ -219,28 +143,6 @@ const StartScreen = () => {
       return;
     }
     
-    // Проверка для тестовых аккаунтов
-    if (userId === '123456789') { // romanaliev
-      // Устанавливаем тестовый реферальный код для romanaliev
-      dispatch({ 
-        type: "LOAD_GAME", 
-        payload: { 
-          ...state,
-          referralCode: 'TEST_REF_CODE_ROMAN'
-        } 
-      });
-    } else if (userId === '987654321') { // lanakores
-      // Устанавливаем тестовый реферальный код для lanakores
-      dispatch({ 
-        type: "LOAD_GAME", 
-        payload: { 
-          ...state,
-          referralCode: 'TEST_REF_CODE_LANA',
-          referredBy: 'TEST_REF_CODE_ROMAN'
-        } 
-      });
-    }
-    
     // Иначе запускаем новую игру
     dispatch({ type: "START_GAME" });
     navigate('/game');
@@ -264,12 +166,6 @@ const StartScreen = () => {
         {userId && (
           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
             <p className="text-sm text-green-800">Ваш ID: {userId}</p>
-            {userId === '123456789' && (
-              <p className="text-xs text-green-600 mt-1">Тестовый аккаунт romanaliev</p>
-            )}
-            {userId === '987654321' && (
-              <p className="text-xs text-green-600 mt-1">Тестовый аккаунт lanakores</p>
-            )}
           </div>
         )}
         

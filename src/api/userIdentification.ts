@@ -43,26 +43,6 @@ export const getUserIdentifier = async (): Promise<string> => {
     console.log('Telegram WebApp не доступен, используем локальный ID');
   }
   
-  // Для тестовых аккаунтов возвращаем хардкодированные идентификаторы
-  // Проверка на специальные тестовые аккаунты по имени хоста или другим параметрам
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const urlParams = new URLSearchParams(window.location.search);
-  const testUser = urlParams.get('test_user');
-  
-  if (testUser === 'romanaliev' || (isLocalhost && localStorage.getItem('test_user') === 'romanaliev')) {
-    const testId = '123456789'; // Фиксированный ID для romanaliev
-    window.__game_user_id = testId;
-    console.log(`✅ Использую тестовый ID для romanaliev: ${testId}`);
-    return testId;
-  }
-  
-  if (testUser === 'lanakores' || (isLocalhost && localStorage.getItem('test_user') === 'lanakores')) {
-    const testId = '987654321'; // Фиксированный ID для lanakores
-    window.__game_user_id = testId;
-    console.log(`✅ Использую тестовый ID для lanakores: ${testId}`);
-    return testId;
-  }
-  
   // Если нет соединения с Telegram или не смогли получить ID, используем локально сохраненный ID
   let localUserId = localStorage.getItem('crypto_civ_user_id');
   
