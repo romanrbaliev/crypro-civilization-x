@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -308,7 +307,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           description: "Не удалось скопировать ссылку",
           variant: "destructive"
         });
-        onAddEvent("Ошибка при копировании реферальной ссылки", "error");
+        onAddEvent("Ошибка при копирован��и реферальной ссылки", "error");
       });
   };
 
@@ -348,12 +347,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           .single();
           
         if (data && data.game_data) {
-          const referralBuildings = Object.entries(data.game_data.buildings || {})
-            .filter(([_, building]: [string, any]) => building.count > 0)
-            .map(([id]) => id);
-            
-          // Находим пересечение двух списков зданий
-          return userBuildings.filter(id => referralBuildings.includes(id));
+          const gameData = data.game_data as any;
+          if (gameData && typeof gameData === 'object' && gameData.buildings) {
+            const referralBuildings = Object.entries(gameData.buildings)
+              .filter(([_, building]: [string, any]) => building.count > 0)
+              .map(([id]) => id);
+              
+            // Находим пересечение двух списков зданий
+            return userBuildings.filter(id => referralBuildings.includes(id));
+          }
         }
         
         return userBuildings; // Если не удалось загрузить, разрешаем все здания пользователя

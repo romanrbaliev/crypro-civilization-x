@@ -1,5 +1,6 @@
-import { Resource, Building, ReferralHelper } from '../types';
-import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus } from '../../utils/helpers';
+
+import { Resource, Building, ReferralHelper, GameState } from '../types';
+import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 
 export const calculateResourceProduction = (
   resources: { [key: string]: Resource },
@@ -86,4 +87,96 @@ export const updateResourceValues = (
   });
   
   return newResources;
+};
+
+// Добавляем недостающие функции:
+
+// Проверка условий для разблокировки зданий и улучшений
+export const checkUnlocks = (state: GameState): GameState => {
+  let newState = { ...state };
+  
+  // Проверка для разблокировки генератора (при 11+ USDT)
+  if (state.resources.usdt.value >= 11 && !state.buildings.generator.unlocked) {
+    newState.buildings = {
+      ...newState.buildings,
+      generator: {
+        ...newState.buildings.generator,
+        unlocked: true
+      }
+    };
+    
+    console.log("Разблокирован генератор!");
+  }
+  
+  // Проверка для разблокировки домашнего компьютера (при 10+ электричества)
+  if (state.resources.electricity && state.resources.electricity.value >= 10 && !state.buildings.homeComputer.unlocked) {
+    newState.buildings = {
+      ...newState.buildings,
+      homeComputer: {
+        ...newState.buildings.homeComputer,
+        unlocked: true
+      }
+    };
+    
+    console.log("Разблокирован домашний компьютер!");
+  }
+  
+  return newState;
+};
+
+// Проверка наличия достаточного количества ресурсов
+export const hasEnoughResources = (
+  state: GameState,
+  cost: { [resourceId: string]: number }
+): boolean => {
+  return canAffordCost(cost, state.resources);
+};
+
+// Обновление максимальных значений ресурсов
+export const updateResourceMaxValues = (state: GameState): GameState => {
+  const newResources = { ...state.resources };
+  
+  // Обновление максимальных значений ресурсов в зависимости от зданий и улучшений
+  // Пример: Криптокошелёк увеличивает максимальное хранение USDT и знаний
+  const cryptoWalletCount = state.buildings.cryptoWallet?.count || 0;
+  
+  if (cryptoWalletCount > 0) {
+    // Увеличиваем максимальный лимит USDT на 50 за каждый криптокошелек
+    if (newResources.usdt) {
+      newResources.usdt = {
+        ...newResources.usdt,
+        max: 50 + (cryptoWalletCount * 50)  // Базовый лимит 50 + 50 за каждый кошелек
+      };
+    }
+    
+    // Увеличиваем максимальный лимит знаний на 25% за каждый криптокошелек
+    if (newResources.knowledge) {
+      newResources.knowledge = {
+        ...newResources.knowledge,
+        max: 100 * (1 + (cryptoWalletCount * 0.25))  // Базовый лимит 100 + 25% за каждый кошелек
+      };
+    }
+  }
+  
+  // Проверка улучшений для увеличения максимальных значений
+  Object.values(state.upgrades).forEach(upgrade => {
+    if (upgrade.purchased) {
+      Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
+        if (effectId.includes('MaxStorage')) {
+          const resourceId = effectId.replace('MaxStorage', '');
+          if (newResources[resourceId]) {
+            newResources[resourceId] = {
+              ...newResources[resourceId],
+              max: newResources[resourceId].max * (1 + amount)
+            };
+          }
+        }
+      });
+    }
+  });
+  
+  return {
+    ...state,
+    resources: newResources
+  };
 };
