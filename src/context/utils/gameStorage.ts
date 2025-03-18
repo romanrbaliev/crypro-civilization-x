@@ -1,7 +1,7 @@
 
 import { GameState } from '../types';
 import { initialState } from '../initialState';
-import { saveGameToServer, loadGameFromServer } from '@/api/gameDataService';
+import { saveGameToServer, loadGameFromServer, checkSupabaseConnection } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from './eventBusUtils';
 import { toast } from '@/hooks/use-toast';
 
@@ -9,6 +9,22 @@ import { toast } from '@/hooks/use-toast';
 export async function saveGameState(state: GameState): Promise<boolean> {
   try {
     console.log('🔄 Сохранение игры в облачное хранилище...');
+    
+    // Проверка подключения к Supabase перед сохранением
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.warn('⚠️ Нет соединения с сервером, сохранение невозможно');
+      toast({
+        title: "Ошибка соединения",
+        description: "Нет соединения с сервером. Проверьте подключение к интернету.",
+        variant: "destructive",
+      });
+      safeDispatchGameEvent(
+        "Нет соединения с сервером. Проверьте подключение к интернету.",
+        "error"
+      );
+      return false;
+    }
     
     // Обновляем timestamp перед сохранением
     const stateToSave = {
@@ -55,6 +71,22 @@ export async function saveGameState(state: GameState): Promise<boolean> {
 export async function loadGameState(): Promise<GameState | null> {
   try {
     console.log('🔄 Начинаем загрузку сохраненной игры из облака...');
+    
+    // Проверка подключения к Supabase перед загрузкой
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.warn('⚠️ Нет соединения с сервером, загрузка невозможна');
+      toast({
+        title: "Ошибка соединения",
+        description: "Нет соединения с сервером. Проверьте подключение к интернету.",
+        variant: "destructive",
+      });
+      safeDispatchGameEvent(
+        "Нет соединения с сервером. Проверьте подключение к интернету.",
+        "error"
+      );
+      return null;
+    }
     
     // Загружаем через gameDataService
     const loadedState = await loadGameFromServer();
@@ -114,6 +146,18 @@ export async function loadGameState(): Promise<GameState | null> {
 export async function clearGameState(): Promise<void> {
   try {
     console.log('🔄 Удаление сохранения игры из облака...');
+    
+    // Проверка подключения к Supabase перед удалением
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.warn('⚠️ Нет соединения с сервером, удаление невозможно');
+      toast({
+        title: "Ошибка соединения",
+        description: "Нет соединения с сервером. Проверьте подключение к интернету.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Очищаем через gameDataService
     try {

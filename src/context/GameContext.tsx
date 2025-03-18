@@ -8,6 +8,7 @@ import { GameEventSystem } from './GameEventSystem';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from "@/hooks/use-toast";
 import { ensureGameEventBus } from './utils/eventBusUtils';
+import { checkSupabaseConnection } from '@/api/gameDataService';
 
 export type { Resource, Building, Upgrade };
 
@@ -32,6 +33,7 @@ const LOAD_TIMEOUT = 10000;
 // Предотвращение повторных уведомлений
 let loadMessageShown = false;
 let saveMessageShown = false;
+let connectionErrorShown = false;
 
 // Время последнего сохранения (для предотвращения частых сохранений)
 let lastSaveTime = 0;
@@ -52,9 +54,58 @@ export function GameProvider({ children }: GameProviderProps) {
   const [loadedState, setLoadedState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Загрузка игры...");
+  const [hasConnection, setHasConnection] = useState(true);
   
   // Предотвращаем повторную инициализацию
   const isMountedRef = React.useRef(false);
+  
+  // Проверка соединения с Supabase
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      const checkConnection = async () => {
+        setLoadingMessage("Проверка соединения с сервером...");
+        const isConnected = await checkSupabaseConnection();
+        setHasConnection(isConnected);
+        
+        if (!isConnected && !connectionErrorShown) {
+          connectionErrorShown = true;
+          toast({
+            title: "Ошибка соединения",
+            description: "Нет соединения с сервером. Игра работает только при наличии подключения к интернету.",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      checkConnection();
+      
+      // Периодически проверяем соединение
+      const intervalId = setInterval(async () => {
+        const isConnected = await checkSupabaseConnection();
+        
+        // Если состояние соединения изменилось
+        if (isConnected !== hasConnection) {
+          setHasConnection(isConnected);
+          
+          if (isConnected) {
+            toast({
+              title: "Соединение восстановлено",
+              description: "Подключение к серверу восстановлено.",
+              variant: "success",
+            });
+          } else {
+            toast({
+              title: "Соединение потеряно",
+              description: "Соединение с сервером потеряно. Проверьте подключение к интернету.",
+              variant: "destructive",
+            });
+          }
+        }
+      }, 30000); // Проверка каждые 30 секунд
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [hasConnection]);
   
   // Инициализация Telegram WebApp
   useEffect(() => {
@@ -97,8 +148,35 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   }, []);
   
+  // Показываем экран ошибки при отсутствии соединения
+  if (!hasConnection && !isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-red-50 to-white text-center p-6">
+        <div className="w-16 h-16 text-red-500 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Нет соединения с сервером</h1>
+        <p className="mb-6 text-gray-600">Для работы игры требуется подключение к интернету. Пожалуйста, проверьте ваше соединение и обновите страницу.</p>
+        <button 
+          className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          onClick={() => window.location.reload()}
+        >
+          Обновить страницу
+        </button>
+      </div>
+    );
+  }
+  
   // Функция сохранения с защитой от конкурентных вызовов
   const saveGame = async (gameState: GameState) => {
+    // Если нет соединения с сервером, не пытаемся сохранить
+    if (!hasConnection) {
+      console.log('⚠️ Нет соединения с сервером, сохранение пропущено');
+      return;
+    }
+    
     // Проверяем, не идет ли уже процесс сохранения
     if (isSavingInProgress) {
       console.log('⏳ Сохранение уже выполняется, пропускаем...');
@@ -141,6 +219,27 @@ export function GameProvider({ children }: GameProviderProps) {
         setLoadingMessage("Инициализация игры...");
         // Убедимся, что шина событий создана перед загрузкой
         ensureGameEventBus();
+        
+        // Проверяем соединение с сервером
+        setLoadingMessage("Проверка соединения с сервером...");
+        const isConnected = await checkSupabaseConnection();
+        setHasConnection(isConnected);
+        
+        if (!isConnected) {
+          setLoadingMessage("Нет соединения с сервером");
+          setIsLoading(false);
+          
+          if (!connectionErrorShown) {
+            connectionErrorShown = true;
+            toast({
+              title: "Ошибка соединения",
+              description: "Нет соединения с сервером. Игра работает только при наличии подключения к интернету.",
+              variant: "destructive",
+            });
+          }
+          
+          return;
+        }
         
         setLoadingMessage("Проверка наличия сохранения...");
         console.log('🔄 Начинаем загрузку сохраненной игры...');
@@ -268,7 +367,7 @@ export function GameProvider({ children }: GameProviderProps) {
   
   // Автосохранение с защитой от частых сохранений
   useEffect(() => {
-    if (!state.gameStarted || isLoading) return;
+    if (!state.gameStarted || isLoading || !hasConnection) return;
     
     console.log('🔄 Настройка автосохранения игры');
     
@@ -289,11 +388,11 @@ export function GameProvider({ children }: GameProviderProps) {
       console.log('🔄 Сохранение при размонтировании');
       saveGame(state);
     };
-  }, [state, isLoading]);
+  }, [state, isLoading, hasConnection]);
   
   // Сохранение при закрытии/перезагрузке страницы или переключении вкладок
   useEffect(() => {
-    if (!state.gameStarted || isLoading) return;
+    if (!state.gameStarted || isLoading || !hasConnection) return;
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
@@ -316,6 +415,7 @@ export function GameProvider({ children }: GameProviderProps) {
     // Обработчик возвращения онлайн (для сохранения локальных изменений)
     const handleOnline = () => {
       console.log('🔄 Подключение к сети восстановлено, сохранение...');
+      setHasConnection(true);
       saveGame(state);
       
       if (!saveMessageShown && process.env.NODE_ENV !== 'development') {
@@ -323,7 +423,7 @@ export function GameProvider({ children }: GameProviderProps) {
         toast({
           title: "Подключение восстановлено",
           description: "Соединение с сервером восстановлено. Прогресс будет синхронизирован.",
-          variant: "default",
+          variant: "success",
         });
       }
     };
@@ -331,13 +431,14 @@ export function GameProvider({ children }: GameProviderProps) {
     // Обработчик перехода в офлайн
     const handleOffline = () => {
       console.log('⚠️ Соединение с сетью потеряно');
+      setHasConnection(false);
       
       if (!saveMessageShown && process.env.NODE_ENV !== 'development') {
         saveMessageShown = true;
         toast({
-          title: "Автономный режим",
-          description: "Соединение с сервером потеряно. Игра продолжится в автономном режиме.",
-          variant: "warning",
+          title: "Соединение потеряно",
+          description: "Соединение с сервером потеряно. Игра может работать некорректно.",
+          variant: "destructive",
         });
       }
     };
@@ -355,7 +456,7 @@ export function GameProvider({ children }: GameProviderProps) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [state, isLoading]);
+  }, [state, isLoading, hasConnection]);
   
   // Отображение экрана загрузки
   if (isLoading) {
