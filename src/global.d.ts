@@ -26,4 +26,9 @@ interface Window {
       openTelegramLink?: (url: string) => void;
     };
   };
+  gameEventBus?: EventTarget;
+  __telegramInitialized?: boolean;
+  __telegramNotificationShown?: boolean;
+  __supabaseInitialized?: boolean;
+  __FORCE_TELEGRAM_MODE?: boolean;
 }

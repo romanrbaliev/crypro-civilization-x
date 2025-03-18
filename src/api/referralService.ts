@@ -293,7 +293,7 @@ export const checkReferralInfo = async (referralCode: string, referredBy: string
   }
 };
 
-// Активация реферала (когда реферал покупает исследование "Основы блокчейна")
+// Активация реферала (когда реферал разблокирует исследование "Основы блокчейна")
 export const activateReferral = async (referralId: string): Promise<boolean> => {
   try {
     console.log('🔄 Активация реферала с ID:', referralId);
@@ -309,11 +309,25 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     const userId = await getUserIdentifier();
     console.log('Активация выполняется пользователем:', userId);
     
+    // НОВАЯ ЛОГИКА: Проверяем, что указанный referralId существует в таблице referral_data
+    const { data: referralExists, error: referralExistsError } = await supabase
+      .from(REFERRAL_TABLE)
+      .select('user_id')
+      .eq('user_id', referralId)
+      .single();
+      
+    if (referralExistsError || !referralExists) {
+      console.error('❌ Не найден реферал с ID:', referralId);
+      console.log('Попробуем использовать текущий ID пользователя для активации');
+      // Используем текущий ID пользователя, если указанный referralId не найден
+      referralId = userId;
+    }
+    
     // Получаем информацию о том, кто пригласил текущего пользователя
     const { data: userData, error: userError } = await supabase
       .from(REFERRAL_TABLE)
       .select('referred_by')
-      .eq('user_id', userId)
+      .eq('user_id', referralId)
       .single();
       
     if (userError) {
@@ -367,7 +381,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     // Обновляем список рефералов, активируя нужного
     const gameData = saveData.game_data as any;
     
-    console.log('Текущие рефералы у пригласившего:', gameData.referrals);
+    console.log('Текущие рефералы у пригласившего:', JSON.stringify(gameData.referrals, null, 2));
     
     if (!gameData.referrals) {
       // Создаем массив рефералов если его нет
@@ -392,6 +406,10 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       }
       
       console.log('✅ Создан список рефералов и активирован реферал');
+      
+      // Отправляем событие об успешной активации
+      safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
+      
       return true;
     } else {
       // Ищем реферала в списке
@@ -447,6 +465,10 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       }
       
       console.log('✅ Реферал успешно активирован');
+      
+      // Отправляем событие об успешной активации
+      safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
+      
       return true;
     }
   } catch (error) {

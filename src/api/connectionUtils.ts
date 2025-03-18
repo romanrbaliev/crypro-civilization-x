@@ -1,50 +1,46 @@
 
-// Утилиты для работы с соединением
-
 import { supabase } from '@/integrations/supabase/client';
-import { createSavesTableIfNotExists } from './tableManagement';
-import { CHECK_CONNECTION_INTERVAL } from './apiTypes';
-
-// Кэш для проверки соединения
-let lastCheckTime = 0;
-let cachedConnectionResult = false;
 
 // Проверка подключения к Supabase
 export const checkSupabaseConnection = async (): Promise<boolean> => {
-  // Дебаунс: если прошло менее 5 секунд с последней проверки, возвращаем кешированный результат
-  const now = Date.now();
-  if (now - lastCheckTime < CHECK_CONNECTION_INTERVAL) {
-    return cachedConnectionResult;
-  }
-  
   try {
     console.log('🔄 Проверка соединения с Supabase...');
     
-    // Простая проверка на доступность API
-    const { data, error } = await supabase.auth.getSession();
+    // Устанавливаем таймаут для запроса
+    const timeoutPromise = new Promise<false>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Timeout waiting for Supabase connection'));
+      }, 5000); // 5 секунд таймаут
+    });
     
-    // Соединение работает, если нет ошибки
-    const isConnected = !error;
+    // Выполняем простой запрос для проверки соединения
+    const connectionPromise = supabase
+      .from('_unused_table_for_connection_check')
+      .select('count')
+      .limit(1)
+      .then(() => {
+        console.log('✅ Соединение с Supabase установлено');
+        return true;
+      })
+      .catch(err => {
+        // Проверяем, связана ли ошибка с отсутствием таблицы (что нормально)
+        if (err.code === 'PGRST116' || err.message.includes('relation') || err.message.includes('does not exist')) {
+          console.log('✅ Соединение с Supabase установлено (ошибка о несуществующей таблице)');
+          return true;
+        }
+        
+        console.error('❌ Ошибка при проверке соединения с Supabase:', err);
+        return false;
+      });
     
-    lastCheckTime = now;
-    cachedConnectionResult = isConnected;
-    
-    if (isConnected) {
-      console.log('✅ Соединение с Supabase установлено');
-      
-      // Проверяем, нужно ли создать таблицы
-      await createSavesTableIfNotExists();
-    } else {
-      console.warn('⚠️ Не удалось подключиться к Supabase:', error);
-    }
-    
-    return isConnected;
+    // Используем Promise.race для реализации таймаута
+    return await Promise.race([connectionPromise, timeoutPromise])
+      .catch(err => {
+        console.error('❌ Превышено время ожидания соединения с Supabase:', err);
+        return false;
+      });
   } catch (error) {
-    console.error('❌ Ошибка при проверке подключения к Supabase:', error);
-    
-    lastCheckTime = now;
-    cachedConnectionResult = false;
-    
+    console.error('❌ Критическая ошибка при проверке соединения с Supabase:', error);
     return false;
   }
 };
