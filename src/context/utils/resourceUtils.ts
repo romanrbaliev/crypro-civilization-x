@@ -1,4 +1,3 @@
-
 import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 
@@ -218,7 +217,16 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
     });
   });
   
-  // Обработка эффектов исследований на максимальные значения
+  // Инициализация базовой скорости накопления знаний, если ее нет
+  if (newResources.knowledge && typeof newResources.knowledge.perSecond === 'undefined') {
+    newResources.knowledge = {
+      ...newResources.knowledge,
+      perSecond: 0.63 // Базовая скорость накопления знаний
+    };
+    console.log(`Установлена базовая скорость накопления знаний: ${newResources.knowledge.perSecond}`);
+  }
+  
+  // Обработка эффектов исследований на максимальные значения и скорость накопления
   Object.values(state.upgrades).forEach(upgrade => {
     if (!upgrade.purchased) return;
     
@@ -253,12 +261,13 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       // Обработка boost для скорости накопления ресурсов
       else if (effectId === 'knowledgeBoost') {
         if (newResources.knowledge) {
-          const basePerSecond = 0.63; // Базовая скорость накопления знаний
+          const basePerSecond = newResources.knowledge.perSecond || 0.63; // Используем текущую скорость или базовую
+          const boostedPerSecond = basePerSecond * (1 + Number(amount));
           newResources.knowledge = {
             ...newResources.knowledge,
-            perSecond: (newResources.knowledge.perSecond || basePerSecond) * (1 + Number(amount))
+            perSecond: boostedPerSecond
           };
-          console.log(`Исследование ${upgrade.name} увеличивает скорость накопления знаний на ${(Number(amount) * 100).toFixed(0)}%, новое значение: ${newResources.knowledge.perSecond.toFixed(2)}/сек`);
+          console.log(`Исследование ${upgrade.name} увеличивает скорость накопления знаний на ${(Number(amount) * 100).toFixed(0)}%, новое значение: ${boostedPerSecond.toFixed(2)}/сек`);
         }
       }
     });

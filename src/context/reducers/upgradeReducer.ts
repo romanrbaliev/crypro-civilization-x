@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -44,10 +43,44 @@ export const processPurchaseUpgrade = (
   
   console.log(`Куплено исследование ${upgradeId} с эффектами:`, upgrade.effect);
   
+  // Создаем новое состояние после покупки улучшения
+  let stateAfterPurchase = {
+    ...state,
+    resources: newResources,
+    upgrades: newUpgrades,
+  };
+  
+  // Сразу применяем эффекты улучшения, если они существуют
+  if (upgrade.effect) {
+    console.log(`Применяем эффекты исследования ${upgradeId}:`, upgrade.effect);
+    
+    // Обрабатываем эффекты на скорость накопления ресурсов
+    Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
+      // Если эффект влияет на скорость накопления знаний
+      if (effectId === 'knowledgeBoost' && stateAfterPurchase.resources.knowledge) {
+        const currentPerSecond = stateAfterPurchase.resources.knowledge.perSecond || 0;
+        const boost = Number(amount);
+        
+        // Увеличиваем скорость накопления знаний на соответствующий процент
+        newResources.knowledge = {
+          ...newResources.knowledge,
+          perSecond: currentPerSecond * (1 + boost)
+        };
+        
+        console.log(`Применен эффект ${effectId}: увеличение скорости знаний на ${boost * 100}%, новая скорость: ${newResources.knowledge.perSecond}`);
+      }
+    });
+    
+    stateAfterPurchase = {
+      ...stateAfterPurchase,
+      resources: newResources
+    };
+  }
+  
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек
   if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     // Разблокируем криптокошелек (используем безопасное обновление)
-    const newBuildings = { ...state.buildings };
+    const newBuildings = { ...stateAfterPurchase.buildings };
     
     // Проверяем существование криптокошелька перед обновлением
     if (newBuildings.cryptoWallet) {
@@ -69,55 +102,56 @@ export const processPurchaseUpgrade = (
     }
     
     // Обновляем состояние
-    let stateAfterPurchase = {
-      ...state,
-      resources: newResources,
-      upgrades: newUpgrades,
+    stateAfterPurchase = {
+      ...stateAfterPurchase,
       buildings: newBuildings
     };
-    
-    // Применяем изменения максимальных значений ресурсов
-    stateAfterPurchase = updateResourceMaxValues(stateAfterPurchase);
-    
-    // Применяем эффекты исследования "Основы блокчейна"
-    if (upgrade.effect) {
-      Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
-        // Если эффект влияет на скорость накопления знаний
-        if (effectId === 'knowledgeBoost' && stateAfterPurchase.resources.knowledge) {
-          const currentPerSecond = stateAfterPurchase.resources.knowledge.perSecond || 0;
-          const boost = Number(amount);
-          
-          // Увеличиваем скорость накопления знаний на соответствующий процент
-          stateAfterPurchase = {
-            ...stateAfterPurchase,
-            resources: {
-              ...stateAfterPurchase.resources,
-              knowledge: {
-                ...stateAfterPurchase.resources.knowledge,
-                perSecond: currentPerSecond * (1 + boost)
-              }
-            }
-          };
-          
-          console.log(`Применен эффект ${effectId}: увеличение скорости знаний на ${boost * 100}%, новая скорость: ${stateAfterPurchase.resources.knowledge.perSecond}`);
-        }
-      });
-    }
-    
-    // Проверяем разблокировки после всех изменений
-    return checkUpgradeUnlocks(stateAfterPurchase);
   }
   
-  // Для других исследований просто обновляем состояние
-  const stateAfterPurchase = {
-    ...state,
-    resources: newResources,
-    upgrades: newUpgrades
-  };
+  // Применяем изменения максимальных значений ресурсов
+  stateAfterPurchase = updateResourceMaxValues(stateAfterPurchase);
   
-  // Проверяем разблокировки и обновляем максимальные значения ресурсов
+  // Проверяем разблокировки после всех изменений
   const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
-  return updateResourceMaxValues(stateWithNewUnlocks);
+  
+  // Проверяем, разблокировано ли исследование "Основы блокчейна" 
+  // и активируем реферала при необходимости
+  if ((upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') && state.referredBy) {
+    console.log('***Активируем реферала при ПОКУПКЕ "Основы блокчейна"***');
+    console.log('Пригласивший пользователь:', state.referredBy);
+    
+    // Запоминаем текущий userId для активации как реферала
+    const userId = window.__game_user_id || 'unknown';
+    console.log('Текущий userId для активации:', userId);
+    
+    // Асинхронно активируем реферала
+    try {
+      // Немедленно отправляем событие о начале активации
+      safeDispatchGameEvent("Уведомляем вашего реферера о прогрессе...", "info");
+      
+      // Устанавливаем небольшую задержку, чтобы пользователь увидел сообщение
+      setTimeout(() => {
+        activateReferral(userId)
+          .then(result => {
+            console.log('Результат активации реферала для', userId, ':', result);
+            if (result) {
+              safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
+            } else {
+              console.warn("Активация реферала не удалась");
+              safeDispatchGameEvent("Не удалось отправить уведомление рефереру", "warning");
+            }
+          })
+          .catch(error => {
+            console.error("Ошибка при активации реферала:", error);
+            safeDispatchGameEvent("Ошибка при отправке уведомления рефереру", "error");
+          });
+      }, 1000);
+    } catch (error) {
+      console.error("Критическая ошибка при активации реферала:", error);
+    }
+  }
+  
+  return stateWithNewUnlocks;
 };
 
 // Проверка разблокировки улучшений на основе зависимостей

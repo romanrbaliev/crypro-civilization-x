@@ -331,7 +331,7 @@ export const techTreeUpgrades = {
     category: "blockchain",
     tier: 1,
     cost: { knowledge: 50 },
-    effect: { knowledgeMaxBoost: 0.5 },
+    effect: { knowledgeMaxBoost: 0.5, knowledgeBoost: 0.1 },
     requiredUpgrades: [],
     unlockCondition: { buildings: { generator: 1 } },
     specialization: null
