@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -232,11 +233,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "UPDATE_RESOURCES": 
       return processResourceUpdate(state);
     
-    // Покупка здан��я
+    // Покупка здания
     case "PURCHASE_BUILDING": 
       return processPurchaseBuilding(state, action.payload);
     
-    // Покупка ��рактики (специальный обработчик)
+    // Покупка практики (специальный обработчик)
     case "PRACTICE_PURCHASE": 
       return processPracticePurchase(state);
     
