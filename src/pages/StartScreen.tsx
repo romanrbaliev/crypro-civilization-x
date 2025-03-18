@@ -95,7 +95,7 @@ const StartScreen = () => {
     <div className="h-screen w-full flex flex-col items-center justify-between p-4 bg-gray-50">
       <div className="w-full max-w-md mx-auto mt-8">
         <div className="flex justify-center mb-6">
-          <Logo size="large" />
+          <Logo size="lg" />
         </div>
         
         <GameIntro />

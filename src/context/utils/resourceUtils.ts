@@ -1,4 +1,3 @@
-
 import { Resource, Building, ReferralHelper, GameState } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost } from '@/utils/helpers';
 
@@ -147,9 +146,21 @@ export const updateResourceValues = (
 
 /**
  * Проверяет наличие достаточного количества ресурсов для приобретения
- * @param state Текущее состояние игры
+ * @param resources Текущие ресурсы
  * @param cost Стоимость в виде объекта {ресурс: количество}
  * @returns Булево значение, указывающее на достаточность ресурсов
+ */
+export const isEnoughResources = (
+  resources: { [key: string]: Resource },
+  cost: { [resourceId: string]: number }
+): boolean => {
+  return Object.entries(cost).every(([resourceId, amount]) => {
+    return resources[resourceId] && resources[resourceId].value >= amount;
+  });
+};
+
+/**
+ * Проверяет наличие достаточного количества ресурсов для приобретения (alias для isEnoughResources)
  */
 export const hasEnoughResources = (
   state: GameState,
@@ -269,4 +280,49 @@ export const checkUnlocks = (state: GameState): GameState => {
   
   // Возвращаем обновленное состояние только если были изменения
   return hasChanges ? newState : state;
+};
+
+/**
+ * Рассчитывает стоимость с учетом множителя
+ * @param baseCost Базовая стоимость
+ * @param count Текущее количество
+ * @param multiplier Множитель стоимости
+ * @returns Объект с обновленными значениями стоимости
+ */
+export const calculateCost = (
+  baseCost: { [resourceId: string]: number },
+  count: number,
+  multiplier: number
+): { [resourceId: string]: number } => {
+  const finalCost: { [resourceId: string]: number } = {};
+  
+  Object.entries(baseCost).forEach(([resourceId, baseAmount]) => {
+    finalCost[resourceId] = Math.floor(baseAmount * Math.pow(multiplier, count));
+  });
+  
+  return finalCost;
+};
+
+/**
+ * Списывает ресурсы в соответствии с указанной стоимостью
+ * @param resources Текущие ресурсы
+ * @param cost Стоимость для списания
+ * @returns Обновленные ресурсы после списания
+ */
+export const deductResources = (
+  resources: { [key: string]: Resource },
+  cost: { [resourceId: string]: number }
+): { [key: string]: Resource } => {
+  const newResources = { ...resources };
+  
+  Object.entries(cost).forEach(([resourceId, amount]) => {
+    if (newResources[resourceId]) {
+      newResources[resourceId] = {
+        ...newResources[resourceId],
+        value: newResources[resourceId].value - amount
+      };
+    }
+  });
+  
+  return newResources;
 };

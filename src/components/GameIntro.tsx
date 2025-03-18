@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BitcoinIcon } from "lucide-react";
 
 interface GameIntroProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const GameIntro: React.FC<GameIntroProps> = ({ onClose }) => {
@@ -28,9 +28,11 @@ const GameIntro: React.FC<GameIntroProps> = ({ onClose }) => {
           </ol>
         </div>
         
-        <Button size="lg" onClick={onClose}>
-          Начать свой путь
-        </Button>
+        {onClose && (
+          <Button size="lg" onClick={onClose}>
+            Начать свой путь
+          </Button>
+        )}
       </div>
     </div>
   );

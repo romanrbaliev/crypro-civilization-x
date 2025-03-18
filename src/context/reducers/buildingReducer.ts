@@ -1,7 +1,7 @@
 
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { isEnoughResources, calculateCost, deductResources } from '../utils/resourceUtils';
+import { isEnoughResources, calculateCost, deductResources, hasEnoughResources } from '../utils/resourceUtils';
 import { activateReferral } from '@/api/gameDataService';
 
 // Процесс покупки здания
@@ -131,9 +131,7 @@ const checkBuildingUnlocks = (state: GameState, buildingId: string): GameState =
           }
         };
         
-        safeDispatchGameEvent(`Разблокировано новое здание: ${checkBuilding.name}`, "info", { 
-          detail: checkBuilding.description 
-        });
+        safeDispatchGameEvent(`Разблокировано новое здание: ${checkBuilding.name}`, "info");
       }
     }
   }
@@ -168,9 +166,7 @@ const checkBuildingUnlocks = (state: GameState, buildingId: string): GameState =
           }
         };
         
-        safeDispatchGameEvent(`Разблокировано новое улучшение: ${upgrade.name}`, "info", { 
-          detail: upgrade.description 
-        });
+        safeDispatchGameEvent(`Разблокировано новое улучшение: ${upgrade.name}`, "info");
       }
     }
   }
