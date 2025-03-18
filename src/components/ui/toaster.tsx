@@ -24,7 +24,7 @@ export function Toaster() {
         window.__game_user_id = userId;
         console.log('ID пользователя сохранен в глобальной переменной:', userId);
         
-        // НОВОЕ: Проверка статуса соединения с Supabase при каждой загрузке
+        // Проверка статуса соединения с Supabase при каждой загрузке
         try {
           const { data, error } = await supabase.from('referral_data').select('count(*)');
           if (!error) {
@@ -42,39 +42,109 @@ export function Toaster() {
     
     storeUserId();
     
-    // Также добавляем листенер для события обновления из страницы с рефералами
-    const handleRefresh = async (event: CustomEvent) => {
+    // Улучшаем обработчик для события обновления из страницы с рефералами
+    const handleRefresh = async (event) => {
       console.log('Получено событие обновления рефералов');
       try {
-        // Обработка обновления, например, очистка кэша или запрос новых данных
-        console.log('Выполняем обновление данных о рефералах...');
-        
         const userId = window.__game_user_id;
         if (userId) {
-          // Здесь можно добавить логику обновления данных через суперрбазу
           console.log('Запрос обновления для пользователя:', userId);
           
-          // Проверяем соединение после нажатия кнопки обновления
-          const { data, error } = await supabase
+          // Выполняем явную проверку подключения к Supabase
+          const { data: connectionCheck, error: connectionError } = await supabase
             .from('referral_data')
-            .select('*')
-            .eq('user_id', userId);
+            .select('count(*)');
+            
+          if (connectionError) {
+            console.error('❌ Ошибка подключения к Supabase при обработке обновления:', connectionError);
+            return;
+          }
           
-          if (!error) {
-            console.log('✅ Данные о рефералах успешно обновлены:', data);
-          } else {
-            console.error('❌ Ошибка при обновлении данных о рефералах:', error);
+          console.log('✅ Подключение к Supabase подтверждено при обновлении');
+          
+          // Получаем актуальные данные о рефералах
+          const { data: referralCodeData } = await supabase
+            .from('referral_data')
+            .select('referral_code')
+            .eq('user_id', userId)
+            .single();
+            
+          if (referralCodeData && referralCodeData.referral_code) {
+            const referralCode = referralCodeData.referral_code;
+            console.log('Получен реферальный код пользователя:', referralCode);
+            
+            // Запрашиваем список рефералов по реферальному коду
+            const { data: referrals, error: referralsError } = await supabase
+              .from('referral_data')
+              .select('user_id, created_at, is_activated')
+              .eq('referred_by', referralCode);
+              
+            if (referralsError) {
+              console.error('❌ Ошибка при получении списка рефералов:', referralsError);
+              return;
+            }
+            
+            console.log('Получены рефералы из базы данных:', referrals);
+            
+            // Проверяем каждого реферала на наличие исследования "Основы блокчейна"
+            for (const referral of (referrals || [])) {
+              console.log(`Проверка статуса активации для реферала ${referral.user_id}`);
+              
+              // Получаем сохранение игры реферала
+              const { data: saveData } = await supabase
+                .from('game_saves')
+                .select('game_data')
+                .eq('user_id', referral.user_id)
+                .single();
+                
+              if (saveData && saveData.game_data) {
+                const gameData = saveData.game_data;
+                const hasBlockchainBasics = gameData.upgrades && 
+                  (gameData.upgrades.blockchain_basics?.purchased || 
+                   gameData.upgrades.basicBlockchain?.purchased);
+                
+                if (hasBlockchainBasics && (!referral.is_activated || referral.is_activated !== true)) {
+                  console.log(`Обнаружено исследование "Основы блокчейна" у реферала ${referral.user_id}, но реферал не активирован`);
+                  
+                  // Обновляем статус активации в базе данных
+                  const { error: updateError } = await supabase
+                    .from('referral_data')
+                    .update({ is_activated: true })
+                    .eq('user_id', referral.user_id);
+                    
+                  if (updateError) {
+                    console.error(`❌ Ошибка при обновлении статуса активации реферала ${referral.user_id}:`, updateError);
+                  } else {
+                    console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
+                  }
+                } else if (!hasBlockchainBasics && referral.is_activated === true) {
+                  console.log(`У реферала ${referral.user_id} нет исследования "Основы блокчейна", но реферал активирован в базе`);
+                  
+                  // Обновляем статус активации в базе данных
+                  const { error: updateError } = await supabase
+                    .from('referral_data')
+                    .update({ is_activated: false })
+                    .eq('user_id', referral.user_id);
+                    
+                  if (updateError) {
+                    console.error(`❌ Ошибка при обновлении статуса активации реферала ${referral.user_id}:`, updateError);
+                  } else {
+                    console.log(`✅ Успешно обновлен статус активации реферала ${referral.user_id}`);
+                  }
+                }
+              }
+            }
           }
         }
       } catch (error) {
-        console.error('Ошибка при обработке обновления:', error);
+        console.error('❌ Ошибка при обработке обновления рефералов:', error);
       }
     };
     
-    window.addEventListener('refresh-referrals' as any, handleRefresh);
+    window.addEventListener('refresh-referrals', handleRefresh);
     
     return () => {
-      window.removeEventListener('refresh-referrals' as any, handleRefresh);
+      window.removeEventListener('refresh-referrals', handleRefresh);
     };
   }, []);
 

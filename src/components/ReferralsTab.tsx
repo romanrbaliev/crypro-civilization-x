@@ -302,6 +302,17 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const id = await getUserIdentifier();
       console.log('Принудительное обновление рефералов для пользователя:', id);
       
+      // Проверяем соединение с Supabase
+      const connectionResult = await supabase.from('referral_data').select('count(*)');
+      if (connectionResult.error) {
+        console.error('❌ Ошибка соединения с Supabase при обновлении рефералов:', connectionResult.error);
+        onAddEvent("Ошибка соединения с базой данных", "error");
+        setIsRefreshingReferrals(false);
+        return;
+      }
+      
+      console.log('✅ Соединение с Supabase подтверждено при обновлении рефералов');
+      
       const { data: userData } = await supabase
         .from(REFERRAL_TABLE)
         .select('referral_code')
@@ -311,35 +322,71 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       if (userData && userData.referral_code) {
         console.log('Найден реферальный код в базе:', userData.referral_code);
         
-        const { data: directReferrals } = await supabase
+        // Получаем данные всех рефералов
+        const { data: directReferrals, error: referralError } = await supabase
           .from(REFERRAL_TABLE)
-          .select('user_id, created_at, referred_by')
+          .select('user_id, created_at, referred_by, is_activated')
           .eq('referred_by', userData.referral_code);
           
-        console.log('Найдено рефералов в базе данных:', directReferrals?.length || 0, directReferrals);
+        if (referralError) {
+          console.error('❌ Ошибка при получении рефералов:', referralError);
+          onAddEvent("Ошибка при получении данных рефералов", "error");
+          setIsRefreshingReferrals(false);
+          return;
+        }
         
-        const { data: saveData } = await supabase
+        console.log('Найдено рефералов в базе данных:', directReferrals?.length || 0);
+        console.log('Детальные данные рефералов из базы:', JSON.stringify(directReferrals, null, 2));
+        
+        // Получаем текущее сохранение игры для согласования данных
+        const { data: saveData, error: saveError } = await supabase
           .from(SAVES_TABLE)
           .select('game_data')
           .eq('user_id', id)
           .single();
         
+        if (saveError) {
+          console.error('❌ Ошибка при получении данных сохранения:', saveError);
+          onAddEvent("Ошибка при обновлении данных", "error");
+          setIsRefreshingReferrals(false);
+          return;
+        }
+        
         if (saveData && saveData.game_data) {
           const gameState = saveData.game_data as any;
-          console.log('Текущие рефералы в сохранении:', gameState.referrals);
+          console.log('Текущие рефералы в сохранении:', JSON.stringify(gameState.referrals || [], null, 2));
           
           if (directReferrals && directReferrals.length > 0) {
+            // Преобразуем данные рефералов, сохраняя статус активации
             const formattedReferrals = directReferrals.map(ref => {
+              // Ищем существующие данные реферала в сохранении
               const existingRef = gameState.referrals?.find((r: any) => r.id === ref.user_id);
+              
+              // Явно проверяем статус активации из БД
+              let activationStatus = false;
+              
+              // Приоритет: используем значение is_activated из базы, если оно есть
+              if (ref.is_activated !== null && ref.is_activated !== undefined) {
+                activationStatus = ref.is_activated === true;
+                console.log(`Реферал ${ref.user_id} имеет статус активации из БД:`, activationStatus);
+              } else if (existingRef && existingRef.activated !== undefined) {
+                // Как запасной вариант используем существующие данные
+                activationStatus = existingRef.activated === true;
+                console.log(`Реферал ${ref.user_id} использует существующий статус активации:`, activationStatus);
+              }
               
               return {
                 id: ref.user_id,
-                username: `ID: ${ref.user_id}`,
-                activated: existingRef ? existingRef.activated : false,
+                username: `ID: ${ref.user_id.substring(0, 6)}`,
+                activated: activationStatus,
                 joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
               };
             });
             
+            console.log('Обновленные данные рефералов для сохранения:', 
+              JSON.stringify(formattedReferrals, null, 2));
+            
+            // Диспатчим обновленный массив рефералов
             dispatch({ 
               type: "LOAD_GAME", 
               payload: { 
@@ -348,12 +395,24 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               } 
             });
             
-            onAddEvent(`Обновлено ${formattedReferrals.length} рефералов. Активных: ${formattedReferrals.filter(r => r.activated).length}`, "success");
+            // Отправляем событие с актуальной информацией
+            const activeCount = formattedReferrals.filter(r => r.activated).length;
+            onAddEvent(`Обновлено ${formattedReferrals.length} рефералов. Активных: ${activeCount}`, "success");
+            
+            // Отправляем событие, чтобы другие компоненты могли обновиться
+            const refreshEvent = new CustomEvent('refresh-referrals');
+            window.dispatchEvent(refreshEvent);
+          } else {
+            console.log('⚠️ Рефералы в базе не найдены для пользователя', id);
+            onAddEvent("Рефералы не найдены", "info");
           }
         }
+      } else {
+        console.warn('⚠️ Реферальный код не найден для пользователя', id);
+        onAddEvent("Реферальный код не найден", "warning");
       }
     } catch (error) {
-      console.error('Ошибка при обновлении рефералов:', error);
+      console.error('❌ Ошибка при обновлении рефералов:', error);
       onAddEvent("Ошибка при обновлении рефералов", "error");
     } finally {
       setIsRefreshingReferrals(false);

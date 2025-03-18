@@ -26,12 +26,18 @@ export const processResourceUpdate = (state: GameState): GameState => {
       // Если у пользователя разблокировано исследование, но реферал не активирован - активируем его
       console.log(`Исправляем статус активации реферала ${referral.id}: был неактивен, но у пользователя разблокированы "Основы блокчейна"`);
       
-      // Важное изменение: асинхронно вызываем API для активации реферала
+      // Асинхронно вызываем API для активации реферала
       // Это не будет блокировать основной поток выполнения
       setTimeout(() => {
         activateReferral(referral.id)
           .then(success => {
             console.log(`Результат асинхронной активации реферала ${referral.id}: ${success ? 'успешно' : 'неудачно'}`);
+            
+            // Если активация прошла успешно, отправляем событие обновления рефералов
+            if (success) {
+              const refreshEvent = new CustomEvent('refresh-referrals');
+              window.dispatchEvent(refreshEvent);
+            }
           })
           .catch(err => {
             console.error(`Ошибка при асинхронной активации реферала ${referral.id}:`, err);
@@ -58,6 +64,15 @@ export const processResourceUpdate = (state: GameState): GameState => {
     referralsChanged 
       ? { ...state, referrals: validatedReferrals }
       : state;
+  
+  // Добавляем подробное логирование статуса рефералов после валидации
+  console.log('Детальная информация о рефералах:', 
+    validatedReferrals.map(ref => ({
+      id: ref.id,
+      activated: ref.activated,
+      typeOfActivated: typeof ref.activated
+    }))
+  );
   
   // Этап 2: Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
