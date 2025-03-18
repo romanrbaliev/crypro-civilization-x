@@ -82,6 +82,9 @@ export const processPurchaseUpgrade = (
   // Проверяем все улучшения на возможность разблокировки
   const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
   
+  // Проверяем синергии после покупки исследования
+  // Это отдельный редьюсер, который будет вызван в следующем тике через CHECK_SYNERGIES
+  
   // Обновляем максимальные значения ресурсов
   return updateResourceMaxValues(stateWithNewUnlocks);
 };

@@ -234,6 +234,94 @@ export const researchCategories = {
   }
 };
 
+// Механики синергии специализаций
+export const specializationSynergies = {
+  minerTrader: {
+    id: "minerTrader",
+    name: "Трейдер-майнер",
+    description: "Синергия между майнингом и трейдингом: оптимальное использование добытых ресурсов на рынке",
+    requiredCategories: ["mining", "trading"],
+    requiredCount: 2,
+    bonus: {
+      miningEfficiencyBoost: 0.05,
+      tradingProfitBoost: 0.05,
+      computingPowerBoost: 0.03
+    }
+  },
+  minerInvestor: {
+    id: "minerInvestor",
+    name: "Инвестор-майнер",
+    description: "Синергия между майнингом и инвестициями: долгосрочные вложения в майнинг-инфраструктуру",
+    requiredCategories: ["mining", "investment"],
+    requiredCount: 2,
+    bonus: {
+      hashrateBoost: 0.05,
+      stakingRewardBoost: 0.05,
+      electricityEfficiencyBoost: 0.03
+    }
+  },
+  traderInvestor: {
+    id: "traderInvestor",
+    name: "Трейдер-инвестор",
+    description: "Синергия между трейдингом и инвестициями: эффективное сочетание краткосрочных и долгосрочных стратегий",
+    requiredCategories: ["trading", "investment"],
+    requiredCount: 2,
+    bonus: {
+      tradingProfitBoost: 0.05,
+      portfolioGrowthBoost: 0.05,
+      volatilityPredictionBoost: 0.03
+    }
+  },
+  socialMiner: {
+    id: "socialMiner",
+    name: "Социальный майнер",
+    description: "Синергия между социальным влиянием и майнингом: привлечение последователей к майнингу",
+    requiredCategories: ["social", "mining"],
+    requiredCount: 2,
+    bonus: {
+      subscriberGrowthBoost: 0.05,
+      miningEfficiencyBoost: 0.05,
+      reputationBoost: 0.03
+    }
+  },
+  socialTrader: {
+    id: "socialTrader",
+    name: "Социальный трейдер",
+    description: "Синергия между социальным влиянием и трейдингом: использование социального капитала для трейдинга",
+    requiredCategories: ["social", "trading"],
+    requiredCount: 2,
+    bonus: {
+      marketSentimentBoost: 0.08,
+      tradingProfitBoost: 0.05,
+      subscriberGrowthBoost: 0.03
+    }
+  },
+  blockchainMaster: {
+    id: "blockchainMaster",
+    name: "Мастер блокчейна",
+    description: "Глубокое понимание блокчейн-технологий, дающее преимущества во всех сферах",
+    requiredCategories: ["blockchain"],
+    requiredCount: 4,
+    bonus: {
+      knowledgeMaxBoost: 0.1,
+      securityBoost: 0.1,
+      reputationBoost: 0.05
+    }
+  },
+  defiExpert: {
+    id: "defiExpert",
+    name: "DeFi-эксперт",
+    description: "Глубокое понимание децентрализованных финансов и их применения",
+    requiredCategories: ["defi", "blockchain"],
+    requiredCount: 2,
+    bonus: {
+      defiYieldBoost: 0.1,
+      passiveIncomeBoost: 0.08,
+      liquidityMiningBoost: 0.05
+    }
+  }
+};
+
 // Расширенные исследования по категориям
 export const techTreeUpgrades = {
   basicBlockchain: {

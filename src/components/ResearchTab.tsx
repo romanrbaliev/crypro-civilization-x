@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from "react";
-import { Lightbulb, Dna } from "lucide-react";
+import { Lightbulb, Dna, Puzzle } from "lucide-react";
 import UpgradeItem from "@/components/UpgradeItem";
 import { useGame } from "@/context/hooks/useGame";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import TechTree from "@/components/TechTree";
+import SynergyTab from "@/components/SynergyTab";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -41,6 +42,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   const unlockedCounts = getUnlockedCountByCategory();
   
+  // Получаем количество разблокированных, но не активированных синергий
+  const availableSynergies = Object.values(state.specializationSynergies || {})
+    .filter(s => s.unlocked && !s.active).length;
+  
   // Эффект для автоматического переключения на дерево технологий, если там есть новые исследования
   useEffect(() => {
     if (unlockedCategoryUpgrades.length > 0 && unlockedUpgrades.length === 0) {
@@ -50,7 +55,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
 
   return (
     <Tabs defaultValue="tree" value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
-      <TabsList className="grid grid-cols-2 mb-2">
+      <TabsList className="grid grid-cols-3 mb-2">
         <TabsTrigger value="tree" className="text-xs h-7 relative">
           <Dna className="h-3 w-3 mr-1" />
           Древо технологий
@@ -66,6 +71,15 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
           {unlockedUpgrades.length > 0 && (
             <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white rounded-full text-[8px] min-w-[14px] h-[14px] flex items-center justify-center">
               {unlockedUpgrades.length}
+            </span>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="synergy" className="text-xs h-7 relative">
+          <Puzzle className="h-3 w-3 mr-1" />
+          Синергия
+          {availableSynergies > 0 && (
+            <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white rounded-full text-[8px] min-w-[14px] h-[14px] flex items-center justify-center">
+              {availableSynergies}
             </span>
           )}
         </TabsTrigger>
@@ -115,6 +129,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
             </div>
           )}
         </div>
+      </TabsContent>
+      
+      <TabsContent value="synergy" className="flex-1 overflow-auto mt-0">
+        <SynergyTab onAddEvent={onAddEvent} />
       </TabsContent>
     </Tabs>
   );

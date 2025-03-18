@@ -1,4 +1,3 @@
-
 export interface Resource {
   id: string;
   name: string;
@@ -39,6 +38,18 @@ export interface Upgrade {
     resources?: { [resourceId: string]: number };
   };
   specialization?: string | null;
+  synergy?: { [specializationId: string]: number };
+}
+
+export interface SpecializationSynergy {
+  id: string;
+  name: string;
+  description: string;
+  requiredCategories: string[];
+  requiredCount: number;
+  bonus: { [effectId: string]: number };
+  unlocked: boolean;
+  active: boolean;
 }
 
 export interface Referral {
@@ -98,6 +109,7 @@ export interface GameState {
   referredBy: string | null;
   referrals: Referral[];
   referralHelpers: ReferralHelper[];
+  specializationSynergies: { [key: string]: SpecializationSynergy };
 }
 
 export type GameAction =
@@ -122,4 +134,6 @@ export type GameAction =
   | { type: "ADD_REFERRAL"; payload: { referral: Referral } }
   | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
-  | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } };
+  | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
+  | { type: "CHECK_SYNERGIES" }
+  | { type: "ACTIVATE_SYNERGY"; payload: { synergyId: string } };

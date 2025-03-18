@@ -1,11 +1,10 @@
-
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
 import { processPurchaseBuilding } from './reducers/buildingReducer';
-import { processPurchaseUpgrade } from './reducers/upgradeReducer';
+import { processPurchaseUpgrade, checkUpgradeUnlocks } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { 
   processApplyKnowledge, 
@@ -28,6 +27,7 @@ import {
 import { generateReferralCode } from '@/utils/helpers';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
+import { checkSynergies, activateSynergy, initializeSynergies } from './reducers/synergyReducer';
 
 // Обработка реферальной системы
 const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
@@ -177,10 +177,33 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "INCREMENT_COUNTER": 
       return processIncrementCounter(state, action.payload);
     
+    // Проверка и обновление синергий
+    case "CHECK_SYNERGIES":
+      return checkSynergies(state);
+    
+    // Активация синергии
+    case "ACTIVATE_SYNERGY":
+      return activateSynergy(state, action.payload);
+    
+    // Загрузка сохраненной игры
+    case "LOAD_GAME": {
+      // Инициализируем синергии, если их нет в загруженном состоянии
+      let newState = processLoadGame(state, action.payload);
+      if (!newState.specializationSynergies) {
+        newState = initializeSynergies(newState);
+      }
+      return newState;
+    }
+    
     // Запуск игры с генерацией реферального кода
     case "START_GAME": {
       // Сначала обработаем базовую логику START_GAME
       let newState = processStartGame(state);
+      
+      // Инициализируем синергии, если их нет
+      if (!newState.specializationSynergies) {
+        newState = initializeSynergies(newState);
+      }
       
       // Если реферальный код еще не установлен, генерируем его
       if (!newState.referralCode) {
@@ -199,10 +222,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       return newState;
     }
-    
-    // Загрузка сохраненной игры
-    case "LOAD_GAME": 
-      return processLoadGame(state, action.payload);
     
     // Престиж (перезапуск с бонусами)
     case "PRESTIGE": 

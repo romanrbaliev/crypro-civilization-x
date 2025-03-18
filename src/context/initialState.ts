@@ -223,5 +223,6 @@ export const initialState: GameState = {
   referralCode: "",
   referredBy: null,
   referrals: [],
-  referralHelpers: []
+  referralHelpers: [],
+  specializationSynergies: {}
 };
