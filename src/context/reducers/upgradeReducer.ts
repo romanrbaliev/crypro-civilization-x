@@ -46,14 +46,18 @@ export const processPurchaseUpgrade = (
   
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек и активируем реферала
   if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-    // Разблокируем криптокошелек
-    const newBuildings = {
-      ...state.buildings,
-      cryptoWallet: {
-        ...state.buildings.cryptoWallet,
+    // Разблокируем криптокошелек (используем безопасное обновление)
+    const newBuildings = { ...state.buildings };
+    
+    // Проверяем существование криптокошелька перед обновлением
+    if (newBuildings.cryptoWallet) {
+      newBuildings.cryptoWallet = {
+        ...newBuildings.cryptoWallet,
         unlocked: true
-      }
-    };
+      };
+    } else {
+      console.warn("Внимание: cryptoWallet не найден в зданиях при обновлении после покупки исследования");
+    }
 
     console.log("Разблокирован криптокошелек из-за исследования 'Основы блокчейна'");
     
