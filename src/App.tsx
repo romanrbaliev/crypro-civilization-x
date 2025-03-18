@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -40,6 +39,7 @@ if (typeof window !== 'undefined') {
   window.__telegramNotificationShown = window.__telegramNotificationShown || false;
   window.__supabaseInitialized = window.__supabaseInitialized || false;
   window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || true;
+  window.__game_user_id = window.__game_user_id || null;
   
   // Создаем шину событий при инициализации приложения
   ensureGameEventBus();
@@ -126,7 +126,7 @@ const App = () => {
           console.log('✅ Telegram WebApp развернут на весь экран');
         }
         
-        // Выводим детали инициализации только в консоль
+        // Детальное логирование данных Telegram
         console.log('✅ Telegram WebApp инициализирован:');
         if (window.Telegram?.WebApp?.platform) {
           console.log('- Платформа:', window.Telegram.WebApp.platform);
@@ -138,14 +138,20 @@ const App = () => {
           console.log('- Длина initData:', window.Telegram.WebApp.initData.length || 0);
         }
         
-        // Убираем всплывающее уведомление о режиме Telegram
+        // Логируем объект пользователя, если доступен
+        if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+          console.log('- Данные пользователя:', window.Telegram.WebApp.initDataUnsafe.user);
+        }
+        
+        // Логируем start_param, если доступен
+        if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+          console.log('- Start параметр:', window.Telegram.WebApp.initDataUnsafe.start_param);
+        }
       } catch (error) {
         console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
       }
     } else {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме браузера');
-      
-      // Убираем уведомление о стандартном режиме браузера
     }
   }, []);
 
@@ -197,6 +203,7 @@ declare global {
     __telegramNotificationShown?: boolean;
     __supabaseInitialized?: boolean;
     __FORCE_TELEGRAM_MODE?: boolean;
+    __game_user_id?: string | null;
   }
 }
 

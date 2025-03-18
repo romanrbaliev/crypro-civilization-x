@@ -17,7 +17,9 @@ export const getUserIdentifier = async (): Promise<string> => {
     try {
       const tg = window.Telegram.WebApp;
       if (tg.initDataUnsafe?.user?.id) {
-        const telegramUserId = String(tg.initDataUnsafe.user.id); // Преобразуем в строку для обеспечения типа
+        // Преобразуем в строку для обеспечения типа
+        // Добавляем префикс tg_ для явного обозначения пользователей Telegram
+        const telegramUserId = `tg_${String(tg.initDataUnsafe.user.id)}`; 
         
         // Сохраняем ID в памяти
         window.__game_user_id = telegramUserId;
@@ -29,7 +31,8 @@ export const getUserIdentifier = async (): Promise<string> => {
           id: telegramUser.id,
           username: telegramUser.username,
           firstName: telegramUser.first_name,
-          lastName: telegramUser.last_name
+          lastName: telegramUser.last_name,
+          rawUserId: telegramUserId
         });
         
         return telegramUserId;

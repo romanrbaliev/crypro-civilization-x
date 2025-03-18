@@ -8,6 +8,7 @@ import Logo from '@/components/Logo';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { loadGameFromServer, getUserIdentifier, checkReferralInfo, getUserReferrals } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { saveReferralInfo } from '@/api/referralService';
 import { supabase } from '@/integrations/supabase/client';
 
 const StartScreen = () => {
@@ -55,6 +56,20 @@ const StartScreen = () => {
         const currentUserId = await getUserIdentifier();
         console.log('Проверка сохранений для пользователя ID:', currentUserId);
         
+        // Генерируем реферальный код, если его нет
+        if (!state.referralCode) {
+          const newCode = Array.from({ length: 8 }, () => 
+              Math.floor(Math.random() * 16).toString(16).toUpperCase()
+          ).join('');
+          
+          dispatch({ 
+            type: "LOAD_GAME", 
+            payload: { ...state, referralCode: newCode } 
+          });
+          
+          console.log('✅ Сгенерирован новый реферальный код:', newCode);
+        }
+
         // Проверяем наличие реферального кода в URL (если игра запущена из Telegram)
         const referrerCode = extractReferralCodeFromUrl();
         console.log('Обнаружен реферальный код:', referrerCode);
@@ -104,9 +119,18 @@ const StartScreen = () => {
           setHasExistingSave(true);
           dispatch({ type: "LOAD_GAME", payload: savedGame });
           safeDispatchGameEvent("Игра успешно загружена из облака", "success");
+          
+          // Принудительно обновляем информацию в таблице referral_data
+          await saveReferralInfo(savedGame.referralCode, state.referredBy || null);
         } else {
           setHasExistingSave(false);
           safeDispatchGameEvent("Новая игра создана", "info");
+          
+          // Сразу сохраняем реферальную информацию для нового пользователя
+          if (state.referralCode) {
+            await saveReferralInfo(state.referralCode, state.referredBy || null);
+            console.log('✅ Сохранена реферальная информация для нового пользователя');
+          }
         }
       } catch (error) {
         console.error('Ошибка при проверке сохранений:', error);
@@ -125,6 +149,7 @@ const StartScreen = () => {
       const tg = window.Telegram.WebApp;
       // В Telegram стартовые параметры доступны через initDataUnsafe.start_param
       if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+        console.log('Обнаружен start_param в Telegram:', tg.initDataUnsafe.start_param);
         return tg.initDataUnsafe.start_param;
       }
     }
