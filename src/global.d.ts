@@ -10,9 +10,10 @@ interface Window {
           first_name?: string;
           last_name?: string;
           username?: string;
-          language_code?: string; // Добавляем поле language_code
+          language_code?: string;
         };
         start_param?: string;
+        startapp?: string; // Добавляем поле startapp для параметра запуска мини-приложения
       };
       // Добавляем все необходимые методы и свойства Telegram WebApp
       close?: () => void;

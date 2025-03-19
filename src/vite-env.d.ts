@@ -17,13 +17,14 @@ interface Window {
           first_name?: string;
           last_name?: string;
           username?: string;
-          language_code?: string; // Добавляем поле language_code
+          language_code?: string;
         };
-        start_param?: string; // Добавлено для поддержки параметра запуска
+        start_param?: string;
+        startapp?: string; // Добавляем поле startapp для параметра запуска мини-приложения
       };
       CloudStorage?: any;
-      showPopup?: (params: any) => void; // Добавлено для поддержки метода showPopup
-      openTelegramLink?: (url: string) => void; // Добавлено для поддержки метода openTelegramLink
+      showPopup?: (params: any) => void;
+      openTelegramLink?: (url: string) => void;
       close?: () => void;
       share?: (url: string) => void;
     }
