@@ -20,6 +20,44 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Применяем увеличение хранилища от зданий
   updatedResources = applyStorageBoosts(updatedResources, state.buildings);
   
+  // Применяем эффекты от исследований
+  Object.values(state.upgrades).forEach(upgrade => {
+    if (upgrade.purchased) {
+      // Получаем эффекты исследования (поддерживаем оба поля effects и effect)
+      const effects = upgrade.effects || upgrade.effect || {};
+      
+      // Применяем эффекты к скорости накопления ресурсов
+      Object.entries(effects).forEach(([effectId, amount]) => {
+        if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
+          const boost = Number(amount);
+          const baseProduction = updatedResources.knowledge.perSecond;
+          const boostAmount = baseProduction * boost;
+          
+          // Увеличиваем скорость накопления знаний
+          updatedResources.knowledge.perSecond += boostAmount;
+          updatedResources.knowledge.production += boostAmount;
+          
+          console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления знаний: +${boostAmount.toFixed(2)}/сек`);
+        }
+        else if (effectId.includes('Boost') && !effectId.includes('Max')) {
+          // Обрабатываем другие бонусы к скорости
+          const resourceId = effectId.replace('Boost', '');
+          if (updatedResources[resourceId]) {
+            const boost = Number(amount);
+            const baseProduction = updatedResources[resourceId].perSecond;
+            const boostAmount = baseProduction * boost;
+            
+            // Увеличиваем скорость накопления ресурса
+            updatedResources[resourceId].perSecond += boostAmount;
+            updatedResources[resourceId].production += boostAmount;
+            
+            console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления ${resourceId}: +${boostAmount.toFixed(2)}/сек`);
+          }
+        }
+      });
+    }
+  });
+  
   // Обновляем значения ресурсов с учетом времени
   updatedResources = updateResourceValues(updatedResources, deltaTime);
   

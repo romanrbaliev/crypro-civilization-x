@@ -26,6 +26,7 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     
     let buildingProduction = 0;
     let hasPracticeBuilding = false;
+    let buildingProductionDetails = [];
     
     Object.values(state.buildings).forEach(building => {
       const { id, name, count, production = {} } = building;
@@ -34,6 +35,14 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
       if (count > 0 && production.knowledge) {
         const baseAmount = Number(production.knowledge) * count;
         buildingProduction += baseAmount;
+        
+        buildingProductionDetails.push({
+          id,
+          name,
+          count,
+          baseProduction: Number(production.knowledge),
+          totalProduction: baseAmount
+        });
         
         steps.push(`- ${name} (${count} шт.): базовое производство ${Number(production.knowledge)}/сек * ${count} = ${baseAmount}/сек`);
         
@@ -75,32 +84,46 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     // Шаг 4: Бонусы от помощников
     steps.push(`Шаг 4: Расчет бонуса от помощников:`);
     
-    const knowledgeBuildingIds = Object.values(state.buildings)
-      .filter(b => b.count > 0 && b.production && b.production.knowledge)
-      .map(b => b.id);
-    
     let helperBonusTotal = 0;
     
-    knowledgeBuildingIds.forEach(buildingId => {
+    // Проходим по каждому зданию, производящему знания
+    buildingProductionDetails.forEach(building => {
+      // Находим помощников для этого здания
       const helpers = state.referralHelpers.filter(h => 
-        h.buildingId === buildingId && h.status === 'accepted'
+        h.buildingId === building.id && h.status === 'accepted'
       );
       
       if (helpers.length > 0) {
-        const buildingName = state.buildings[buildingId]?.name || buildingId;
         const helperBonus = helpers.length * 0.1; // 10% за каждого
-        const buildingBaseProduction = (state.buildings[buildingId].production?.knowledge || 0) * state.buildings[buildingId].count;
-        const helperEffect = buildingBaseProduction * helperBonus;
+        const helperEffect = building.totalProduction * helperBonus;
         
         helperBonusTotal += helperEffect;
         
-        steps.push(`- Здание "${buildingName}": ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству здания`);
-        steps.push(`  Эффект: ${buildingBaseProduction}/сек * ${(helperBonus * 100).toFixed(0)}% = +${helperEffect.toFixed(2)}/сек`);
+        steps.push(`- Здание "${building.name}": ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству`);
+        steps.push(`  Эффект: ${building.totalProduction}/сек * ${(helperBonus * 100).toFixed(0)}% = +${helperEffect.toFixed(2)}/сек`);
       }
     });
     
+    // Если нет помощников - показываем это явно
     if (helperBonusTotal === 0) {
+      // Более подробно показываем отсутствие помощников
       steps.push(`- Нет активных помощников на зданиях, производящих знания`);
+      
+      // Перечисляем все здания с их ID для диагностики
+      steps.push(`- Список зданий, производящих знания:`);
+      buildingProductionDetails.forEach(b => {
+        steps.push(`  ${b.name} (ID: ${b.id})`);
+      });
+      
+      // Показываем всех доступных помощников
+      steps.push(`- Доступные помощники в системе (${state.referralHelpers.length}):`);
+      if (state.referralHelpers.length === 0) {
+        steps.push(`  Нет доступных помощников`);
+      } else {
+        state.referralHelpers.forEach(helper => {
+          steps.push(`  Помощник ID: ${helper.helperId}, для здания: ${helper.buildingId}, статус: ${helper.status}`);
+        });
+      }
     } else {
       steps.push(`- Общий бонус от помощников: +${helperBonusTotal.toFixed(2)}/сек`);
       totalProduction += helperBonusTotal;
@@ -132,6 +155,18 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     
     if (!upgradesFound) {
       steps.push(`- Нет исследований, влияющих на производство знаний`);
+      
+      // Показать список всех купленных исследований для диагностики
+      const purchasedUpgrades = Object.values(state.upgrades).filter(u => u.purchased);
+      steps.push(`- Купленные исследования (${purchasedUpgrades.length}):`);
+      if (purchasedUpgrades.length > 0) {
+        purchasedUpgrades.forEach(u => {
+          const effects = u.effects || u.effect || {};
+          steps.push(`  "${u.name}" (ID: ${u.id}) с эффектами: ${JSON.stringify(effects)}`);
+        });
+      } else {
+        steps.push(`  Нет купленных исследований`);
+      }
     } else {
       const upgradeEffect = buildingProduction * knowledgeUpgradeMultiplier;
       steps.push(`- Общий бонус от исследований: +${(knowledgeUpgradeMultiplier * 100).toFixed(0)}%`);

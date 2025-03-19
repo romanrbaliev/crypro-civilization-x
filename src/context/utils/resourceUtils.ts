@@ -224,53 +224,98 @@ export const calculateResourceProduction = (
       newResources[resourceId].perSecond = 0;
     });
     
-    // Считаем активных рефералов для бонусов
-    const activeReferralsCount = referrals.filter(ref => 
+    // Считаем активных рефералов для бонусов - принимаем разные форматы статуса
+    const activeReferrals = referrals.filter(ref => 
       ref.status === 'active' || ref.activated === true || ref.activated === 'true'
-    ).length;
+    );
+    const activeReferralsCount = activeReferrals.length;
     
     const referralBonus = activeReferralsCount * 0.05; // 5% за каждого активного реферала
     
     console.log(`Активных рефералов: ${activeReferralsCount}, бонус: +${referralBonus * 100}%`);
     
-    // Расчет базового производства от зданий
+    // Базовое производство ресурсов от зданий
+    const baseProduction: { [key: string]: number } = {};
+    
+    // Сначала рассчитаем базовое производство от всех зданий
     Object.values(buildings).forEach((building: Building) => {
       const { count, production = {}, id: buildingId } = building;
       
       if (count > 0) {
-        // Проверяем, есть ли помощники для этого здания
-        const helpers = referralHelpers.filter(h => 
-          h.buildingId === buildingId && h.status === 'accepted'
-        );
-        
-        // Расчет бонуса от помощников (10% за каждого)
-        const helperBonus = helpers.length * 0.1;
-        
         // Для каждого ресурса, который производит здание
         Object.entries(production).forEach(([productionType, amount]) => {
-          // Пропускаем эффекты влияющие на максимум, они учтены в другой функции
+          // Пропускаем эффекты влияющие на максимум
           if (productionType.includes('Max')) return;
           
           const resourceId = productionType;
           if (newResources[resourceId]) {
-            // Базовое производство от здания с учетом количества
-            const baseProduction = Number(amount) * count;
+            // Устанавливаем или увеличиваем базовое производство ресурса
+            baseProduction[resourceId] = (baseProduction[resourceId] || 0) + (Number(amount) * count);
             
-            // Применяем бонус от помощников и рефералов
-            const totalBonus = 1 + helperBonus + referralBonus;
-            const boostedProduction = baseProduction * totalBonus;
-            
-            newResources[resourceId].production += boostedProduction;
-            newResources[resourceId].perSecond += boostedProduction;
-            
-            if (helpers.length > 0 || activeReferralsCount > 0) {
-              console.log(`${building.name} производит ${resourceId}: ${baseProduction} * ${totalBonus} = ${boostedProduction}/сек`);
+            // Сохраняем базовое производство каждого здания для конкретного ресурса
+            // для дальнейшего применения бонусов помощников
+            if (!building.resourceProduction) {
+              building.resourceProduction = {};
             }
+            building.resourceProduction[resourceId] = Number(amount) * count;
           }
         });
       }
     });
     
+    // Логируем базовое производство
+    console.log('Базовое производство ресурсов:', baseProduction);
+    
+    // Бонусы от помощников для каждого здания
+    let helperBonuses: { [key: string]: number } = {};
+    
+    // Рассчитываем бонусы от помощников для каждого здания
+    Object.values(buildings).forEach((building: Building) => {
+      const { id: buildingId, resourceProduction = {} } = building;
+      
+      // Проверяем, есть ли помощники для этого здания
+      const buildingHelpers = referralHelpers.filter(h => 
+        h.buildingId === buildingId && h.status === 'accepted'
+      );
+      
+      if (buildingHelpers.length > 0) {
+        // Расчет бонуса от помощников (10% за каждого)
+        const helperBonus = buildingHelpers.length * 0.1;
+        
+        // Для каждого ресурса, производимого зданием
+        Object.entries(resourceProduction).forEach(([resourceId, baseAmount]) => {
+          // Добавляем бонус от помощников
+          helperBonuses[resourceId] = (helperBonuses[resourceId] || 0) + (Number(baseAmount) * helperBonus);
+          
+          console.log(`Здание "${building.name}" с ${buildingHelpers.length} помощниками: бонус +${helperBonus * 100}% к производству ${resourceId}`);
+        });
+      }
+    });
+    
+    // Применяем базовое производство и бонусы
+    Object.entries(baseProduction).forEach(([resourceId, baseAmount]) => {
+      // Базовое производство
+      newResources[resourceId].production += baseAmount;
+      newResources[resourceId].perSecond += baseAmount;
+      
+      // Бонус от рефералов
+      const referralEffect = baseAmount * referralBonus;
+      if (referralBonus > 0) {
+        newResources[resourceId].production += referralEffect;
+        newResources[resourceId].perSecond += referralEffect;
+        console.log(`Бонус от рефералов для ${resourceId}: ${baseAmount} * ${referralBonus * 100}% = +${referralEffect.toFixed(2)}/сек`);
+      }
+      
+      // Бонус от помощников
+      const helperEffect = helperBonuses[resourceId] || 0;
+      if (helperEffect > 0) {
+        newResources[resourceId].production += helperEffect;
+        newResources[resourceId].perSecond += helperEffect;
+        console.log(`Бонус от помощников для ${resourceId}: +${helperEffect.toFixed(2)}/сек`);
+      }
+    });
+    
+    // Возвращаем обновленные ресурсы для дальнейшей обработки
     return newResources;
   } catch (error) {
     console.error("Ошибка при расчете производства ресурсов:", error);

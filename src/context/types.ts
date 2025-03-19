@@ -1,4 +1,3 @@
-
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -58,6 +57,7 @@ export interface Building {
   costMultiplier: number;
   requirements?: { [key: string]: number };
   maxCount?: number;
+  resourceProduction?: { [key: string]: number };
 }
 
 export interface Upgrade {
@@ -66,7 +66,7 @@ export interface Upgrade {
   description: string;
   cost: { [key: string]: number };
   effects: { [key: string]: any };
-  effect?: { [key: string]: any }; // For backwards compatibility
+  effect?: { [key: string]: any };
   purchased: boolean;
   unlocked: boolean;
   unlockedBy?: string;
