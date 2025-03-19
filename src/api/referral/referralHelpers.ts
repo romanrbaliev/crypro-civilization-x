@@ -29,12 +29,12 @@ export const updateHelperRequestStatus = async (
       return false;
     }
     
-    // Обновляем запись в таблице helper_requests
+    // Обновляем запись в таблице referral_helpers
     const { data, error } = await supabase
-      .from('helper_requests')
+      .from('referral_helpers')
       .update({ 
         status: status,
-        updated_at: new Date().toISOString()
+        created_at: new Date().toISOString() // используем created_at как updated_at, т.к. отдельного поля нет
       })
       .eq('helper_id', helperId)
       .select();
@@ -56,22 +56,23 @@ export const updateHelperRequestStatus = async (
       const { error: referralError } = await supabase
         .from('referral_data')
         .update({ 
-          hired: true,
-          assigned_building_id: buildingId 
+          is_activated: true,  // Реферал теперь активирован
+          // Нет поля hired и assigned_building_id, поэтому не добавляем их
+          // Эта информация будет храниться в состоянии приложения
         })
         .eq('user_id', helperId);
         
       if (referralError) {
-        console.error('❌ Ошибка при обновлении статуса занятости реферала:', referralError);
+        console.error('❌ Ошибка при обновлении статуса активации реферала:', referralError);
         toast({
           title: "Внимание",
-          description: "Статус помощника обновлен, но не удалось обновить статус занятости",
+          description: "Статус помощника обновлен, но не удалось обновить статус активации",
           variant: "warning"
         });
         return true; // Возвращаем true, т.к. основная операция выполнена успешно
       }
       
-      console.log(`✅ Статус занятости реферала успешно обновлен в БД для ${helperId}`);
+      console.log(`✅ Статус активации реферала успешно обновлен в БД для ${helperId}`);
       toast({
         title: "Статус обновлен",
         description: "Информация о помощнике успешно обновлена в базе данных",
@@ -108,7 +109,7 @@ export const getHelperRequests = async (userId: string) => {
     
     // Получаем список запросов, где пользователь является помощником
     const { data, error } = await supabase
-      .from('helper_requests')
+      .from('referral_helpers')
       .select('*')
       .eq('helper_id', userId);
       
