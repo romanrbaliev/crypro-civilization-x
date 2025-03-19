@@ -1,3 +1,4 @@
+
 // Главный файл экспорта функций API игры
 
 // Экспорт функций из модулей
@@ -10,7 +11,7 @@ export {
   getUserReferralCode, 
   checkReferralInfo, 
   activateReferral 
-} from './referralService';
+} from './referral';
 export { 
   saveGameToServer, 
   loadGameFromServer 
