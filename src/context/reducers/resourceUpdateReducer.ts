@@ -1,10 +1,8 @@
-
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
-import { hasActiveHelpers, syncHelperStatusWithDB, helperStatusCache } from '@/utils/referralHelperUtils';
+import { helperStatusCache } from '@/utils/referralHelpers/helperCache';
 import { getUserIdentifier } from '@/api/userIdentification';
-import { supabase } from '@/integrations/supabase/client';
-import { REFERRAL_HELPERS_TABLE } from '@/api/apiTypes';
+import { syncHelperStatusWithDB } from '@/utils/referralHelpers/helperStatus';
 
 // Асинхронная функция для прямой проверки статуса помощника в базе данных
 async function checkHelperStatusInDB(userId: string): Promise<number> {
