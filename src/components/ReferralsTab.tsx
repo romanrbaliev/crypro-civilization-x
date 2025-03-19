@@ -395,17 +395,23 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         return;
       }
       
-      // Создаем копию текущих рефералов для отслеживания изменений
-      const currentReferrals = [...(state.referrals || [])];
-      const updatedReferrals = [];
-      
-      // Обрабатываем каждого реферала
-      for (const ref of directReferrals) {
-        const { data: activationData } = await supabase
+      const updatedReferrals = await Promise.all((directReferrals || []).map(async (ref) => {
+        const { data: activationData, error: activationError } = await supabase
           .from('referral_data')
           .select('is_activated')
           .eq('user_id', ref.user_id)
           .single();
+          
+        if (activationError) {
+          console.error(`❌ Ошибка при получении статуса активации для ${ref.user_id}:`, activationError);
+          return {
+            id: ref.user_id,
+            username: `ID: ${ref.user_id.substring(0, 6)}`,
+            activated: false,
+            typeOfActivated: 'boolean',
+            joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
+          };
+        }
           
         const isActivated = activationData?.is_activated === true;
         
@@ -414,15 +420,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           isActivated
         });
         
-        // Проверяем, изменился ли статус
-        const existingReferral = currentReferrals.find(r => r.id === ref.user_id);
-        const statusChanged = existingReferral && existingReferral.activated !== isActivated;
-        
-        if (statusChanged) {
-          console.log(`Статус реферала ${ref.user_id} изменился с ${existingReferral.activated} на ${isActivated}`);
-        }
-        
-        // Обновляем статус в Redux
         dispatch({
           type: "UPDATE_REFERRAL_STATUS",
           payload: {
@@ -431,19 +428,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           }
         });
           
-        updatedReferrals.push({
+        return {
           id: ref.user_id,
           username: `ID: ${ref.user_id.substring(0, 6)}`,
           activated: isActivated,
-          typeOfActivated: 'boolean',
+          typeOfActivated: typeof isActivated,
           joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
-        });
-      }
+        };
+      }));
       
       console.log('Обновленные данные рефералов для сохранения:', 
         JSON.stringify(updatedReferrals, null, 2));
       
-      // Обновляем состояние с новыми рефералами
       dispatch({ 
         type: "LOAD_GAME", 
         payload: { 
@@ -455,15 +451,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       const activeCount = updatedReferrals.filter(r => r.activated === true).length;
       onAddEvent(`Обновлено ${updatedReferrals.length} рефералов. Активных: ${activeCount}`, "success");
       
-      // Принудительно обновляем UI
       const refreshEvent = new CustomEvent('refresh-referrals');
       window.dispatchEvent(refreshEvent);
-      
-      // Обновляем текущую вкладку для принудительной перерисовки
-      setCurrentTab(prev => {
-        setTimeout(() => setCurrentTab(prev), 10);
-        return "temp";
-      });
       
     } catch (error) {
       console.error('❌ Ошибка при обновлении рефералов:', error);
@@ -820,9 +809,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   const filteredReferrals = currentTab === 'active' 
     ? (state.referrals || []).filter(ref => 
-        typeof ref.activated === 'boolean' 
-          ? ref.activated === true
-          : String(ref.activated).toLowerCase() === 'true'
+        (typeof ref.activated === 'boolean' && ref.activated === true) ||
+        (typeof ref.activated === 'string' && ref.activated.toLowerCase() === 'true')
       )
     : (state.referrals || []);
 
@@ -881,99 +869,55 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               </Button>
             </div>
           </div>
-          
-          <div className="text-[9px] font-mono bg-gray-100 p-1.5 rounded border select-all">
+          <div className="text-[9px] bg-white border rounded p-1 truncate">
             {referralLink}
           </div>
+          {state.referralCode && (
+            <div className="text-[9px] mt-1 text-gray-500">
+              Ваш реферальный код: <span className="font-mono">{state.referralCode}</span>
+            </div>
+          )}
         </div>
-        
-        <div className="bg-gray-50 p-2 rounded-lg border mb-2">
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-[10px] font-medium">Статистика:</div>
-            <div className="text-[9px] text-gray-600">
-              {activeReferrals} / {totalReferrals} активны
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white p-1.5 rounded border">
-              <div className="text-[9px] text-gray-600">Всего рефералов</div>
-              <div className="text-sm font-medium">{totalReferrals}</div>
-            </div>
-            <div className="bg-white p-1.5 rounded border">
-              <div className="text-[9px] text-gray-600">Активных</div>
-              <div className="text-sm font-medium text-green-600">{activeReferrals}</div>
-            </div>
-          </div>
+
+        <div className="text-[10px] text-gray-500">
+          Приглашено: {totalReferrals} | Активировано: {activeReferrals}
         </div>
-        
-        {hasHelperRequests && (
-          <div className="bg-yellow-50 p-2 rounded-lg border border-yellow-200 mb-2">
-            <div className="flex items-center text-[11px] font-medium text-yellow-700 mb-1.5">
-              <MessageSquare className="h-3 w-3 mr-1" />
-              Предложения о работе ({helperRequests.length})
-            </div>
-            
-            <div className="space-y-2">
-              {helperRequests.map(request => (
-                <div key={request.id} className="bg-white p-1.5 rounded border text-[9px]">
-                  <div className="flex justify-between items-start mb-1">
-                    <div>
-                      <div>От: <span className="font-medium">{request.employer_id.substring(0, 6)}</span></div>
-                      <div>Здание: <span className="font-medium">{
-                        state.buildings[request.building_id]?.name || request.building_id
-                      }</span></div>
-                    </div>
-                    <div className="flex space-x-1">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-5 w-5 p-0 border-green-500 text-green-600 hover:bg-green-50"
-                        onClick={() => respondToHelperRequest(request.id, true)}
-                      >
-                        <Check className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-5 w-5 p-0 border-red-500 text-red-600 hover:bg-red-50"
-                        onClick={() => respondToHelperRequest(request.id, false)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="text-gray-500">
-                    Бонус: +10% к производительности этого здания
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
-      
-      <div className="flex-grow overflow-hidden">
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full h-full">
-          <TabsList className="w-full h-6 bg-gray-100">
-            <TabsTrigger value="all" className="h-5 text-[10px]">
-              Все ({totalReferrals})
+
+      <Separator className="my-2" />
+
+      <div className="flex-1 overflow-auto">
+        <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab}>
+          <TabsList className="grid grid-cols-3">
+            <TabsTrigger value="all" className="text-[10px] h-6">
+              <Users className="h-3 w-3 mr-1" />
+              Все
             </TabsTrigger>
-            <TabsTrigger value="active" className="h-5 text-[10px]">
-              Активные ({activeReferrals})
+            <TabsTrigger value="active" className="text-[10px] h-6">
+              <Users className="h-3 w-3 mr-1" />
+              Активные
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="text-[10px] h-6">
+              <MessageSquare className="h-3 w-3 mr-1" />
+              Запросы
+              {hasHelperRequests && (
+                <span className="bg-red-500 text-white rounded-full h-4 w-4 text-[8px] flex items-center justify-center ml-1">
+                  {helperRequests.length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="all" className="mt-2 h-[calc(100%-2rem)] overflow-auto">
-            {filteredReferrals.length > 0 ? (
-              <div className="grid grid-cols-1 gap-2">
-                {filteredReferrals.map(referral => (
+
+          <TabsContent value="all">
+            <div className="space-y-1">
+              {(state.referrals && state.referrals.length > 0) ? (
+                state.referrals.map(referral => (
                   <ReferralItem
                     key={referral.id}
                     referral={referral}
                     userBuildings={getUserBuildings()}
                     helperRequests={helperRequests}
-                    ownedReferral={referral.id === userId}
+                    ownedReferral={false}
                     onHire={hireHelper}
                     onFire={fireHelper}
                     onLoadAvailableBuildings={loadAvailableBuildingsForReferral}
@@ -984,29 +928,25 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     isHelperAssigned={isHelperAssigned}
                     assignedBuildingId={getAssignedBuildingId(referral.id)}
                   />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                <Users className="h-6 w-6 text-gray-400 mb-2" />
-                <p className="text-[11px] text-gray-600">У вас пока нет рефералов</p>
-                <p className="text-[9px] text-gray-500 mt-1">
-                  Пригласите друзей, используя вашу реферальную ссылку
-                </p>
-              </div>
-            )}
+                ))
+              ) : (
+                <div className="text-center p-2 text-[11px] text-gray-500">
+                  У вас пока нет рефералов. Поделитесь реферальной ссылкой!
+                </div>
+              )}
+            </div>
           </TabsContent>
-          
-          <TabsContent value="active" className="mt-2 h-[calc(100%-2rem)] overflow-auto">
-            {filteredReferrals.length > 0 ? (
-              <div className="grid grid-cols-1 gap-2">
-                {filteredReferrals.map(referral => (
+
+          <TabsContent value="active">
+            <div className="space-y-1">
+              {filteredReferrals.length > 0 ? (
+                filteredReferrals.map(referral => (
                   <ReferralItem
                     key={referral.id}
                     referral={referral}
                     userBuildings={getUserBuildings()}
                     helperRequests={helperRequests}
-                    ownedReferral={referral.id === userId}
+                    ownedReferral={false}
                     onHire={hireHelper}
                     onFire={fireHelper}
                     onLoadAvailableBuildings={loadAvailableBuildingsForReferral}
@@ -1017,20 +957,60 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                     isHelperAssigned={isHelperAssigned}
                     assignedBuildingId={getAssignedBuildingId(referral.id)}
                   />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                <Building className="h-6 w-6 text-gray-400 mb-2" />
-                <p className="text-[11px] text-gray-600">У вас пока нет активных рефералов</p>
-                <p className="text-[9px] text-gray-500 mt-1">
-                  Активные рефералы дают +5% к производительности
-                </p>
-              </div>
-            )}
+                ))
+              ) : (
+                <div className="text-center p-2 text-[11px] text-gray-500">
+                  У вас пока нет активных рефералов
+                </div>
+              )}
+            </div>
           </TabsContent>
-          
-          <TabsContent value="temp" className="hidden" />
+
+          <TabsContent value="requests">
+            <div className="space-y-2">
+              {helperRequests.length > 0 ? (
+                helperRequests.map(request => (
+                  <div key={request.id} className="p-2 border rounded-lg bg-white">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-[10px] font-medium">
+                          Запрос о сотрудничестве
+                        </div>
+                        <div className="text-[9px] text-gray-500">
+                          Здание: {state.buildings[request.building_id]?.name || "Неизвестное здание"}
+                        </div>
+                        <div className="text-[9px] text-gray-500">
+                          От: {request.employer_id.substring(0, 8)}
+                        </div>
+                      </div>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => respondToHelperRequest(request.id, true)}
+                        >
+                          <Check className="h-3 w-3 text-green-500" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => respondToHelperRequest(request.id, false)}
+                        >
+                          <X className="h-3 w-3 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center p-4 text-[11px] text-gray-500">
+                  У вас нет запросов о сотрудничестве
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </div>

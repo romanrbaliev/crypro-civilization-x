@@ -9,7 +9,6 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
     // Устанавливаем таймаут для запроса
     const timeoutPromise = new Promise<boolean>((_, reject) => {
       setTimeout(() => {
-        console.log('⏱️ Превышено время ожидания соединения с Supabase');
         reject(new Error('Timeout waiting for Supabase connection'));
       }, 5000); // 5 секунд таймаут
     });
