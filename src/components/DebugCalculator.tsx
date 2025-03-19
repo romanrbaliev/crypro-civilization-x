@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
@@ -49,7 +50,11 @@ const DebugCalculator = () => {
     };
   }, [state]);
   
-  if (__DEV__ !== true) return null;
+  // Проверяем, находимся ли мы в режиме разработки
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Если не в режиме разработки, не отображаем компонент
+  if (!isDevelopment) return null;
   
   return (
     <div className="mt-4 hidden sm:block debug-calculator">

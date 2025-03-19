@@ -1,24 +1,13 @@
-
-// Добавляем типы для глобальных переменных окружения
-/// <reference types="vite/client" />
-
-interface Window {
-  gameEventBus: EventTarget;
-  TelegramWebviewProxy: any;
-  Telegram: {
-    WebApp: any;
-  };
-  __uv: string; // user version
-  __av: string; // app version
-  __game_user_id?: string; // кэшированный ID пользователя
+// Добавляем дополнительные глобальные типы
+declare global {
+  interface Window {
+    __telegramInitialized?: boolean;
+    __telegramNotificationShown?: boolean;
+    __supabaseInitialized?: boolean;
+    __FORCE_TELEGRAM_MODE?: boolean;
+    __game_user_id?: string | null;
+    __cloudflareRetryCount?: number;
+  }
+  
+  var __DEV__: boolean;
 }
-
-// Глобальные типы для использования в приложении
-declare type ProductionType = "click" | "auto";
-declare type ResourceType = "knowledge" | "usdt" | "computingPower" | "electricity" | "reputation" | "btc";
-declare type BuildingType = "practice" | "generator" | "computer" | "wallet" | "miner" | "internetConnection" | "storageServer" | "tradingBot" | "analyticCenter" | "dataCenter" | "marketplace";
-declare type UpgradeCategory = "basic" | "intermediate" | "advanced" | "specialized" | "prestige";
-declare type SpecializationType = "investor" | "trader" | "miner" | "influencer" | "analyst" | "founder" | "arbitrageur";
-
-// Глобальные утилиты
-declare const __DEV__: boolean;
