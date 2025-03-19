@@ -141,5 +141,63 @@ export const getAcceptedHelperRequests = (
 export const hasActiveHelpers = (
   referralHelpers: ReferralHelper[]
 ): boolean => {
-  return referralHelpers.some(helper => helper.status === 'accepted');
+  const activeCount = referralHelpers.filter(helper => helper.status === 'accepted').length;
+  console.log(`Проверка наличия активных помощников: ${activeCount} из ${referralHelpers.length}`);
+  
+  // Добавляем детальное логирование для отладки
+  if (referralHelpers.length > 0) {
+    console.log(`Обзор всех помощников в системе:`);
+    referralHelpers.forEach((helper, index) => {
+      console.log(`Помощник #${index + 1}: ID=${helper.helperId}, здание=${helper.buildingId}, статус=${helper.status}`);
+    });
+  }
+  
+  return activeCount > 0;
+};
+
+/**
+ * Получает список активных помощников для конкретного здания
+ * @param buildingId ID здания
+ * @param referralHelpers Список всех помощников
+ * @returns Список активных помощников для данного здания
+ */
+export const getActiveBuildingHelpers = (
+  buildingId: string,
+  referralHelpers: ReferralHelper[]
+): ReferralHelper[] => {
+  const helpers = referralHelpers.filter(
+    helper => helper.buildingId === buildingId && helper.status === 'accepted'
+  );
+  
+  console.log(`Получено ${helpers.length} активных помощников для здания ${buildingId}`);
+  return helpers;
+};
+
+/**
+ * Получает подробную информацию о состоянии помощников
+ * @param referralHelpers Список всех помощников
+ * @returns Объект с подробной информацией по статусам
+ */
+export const getHelperStatusSummary = (
+  referralHelpers: ReferralHelper[]
+): { accepted: number, pending: number, rejected: number, total: number, buildings: {[key: string]: number} } => {
+  const accepted = referralHelpers.filter(h => h.status === 'accepted').length;
+  const pending = referralHelpers.filter(h => h.status === 'pending').length;
+  const rejected = referralHelpers.filter(h => h.status === 'rejected').length;
+  
+  // Подсчитываем количество помощников по зданиям
+  const buildings: {[key: string]: number} = {};
+  referralHelpers
+    .filter(h => h.status === 'accepted')
+    .forEach(h => {
+      buildings[h.buildingId] = (buildings[h.buildingId] || 0) + 1;
+    });
+  
+  return {
+    accepted,
+    pending,
+    rejected,
+    total: referralHelpers.length,
+    buildings
+  };
 };

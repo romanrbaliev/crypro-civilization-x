@@ -1,6 +1,7 @@
 
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
+import { hasActiveHelpers } from '@/utils/referralHelperUtils';
 
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
@@ -63,8 +64,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Добавляем логирование для отладки состояния помощников 
   // (но без авто-обновления и только если есть активные помощники)
-  const activeHelpers = state.referralHelpers.filter(h => h.status === 'accepted');
-  if (activeHelpers.length > 0) {
+  // Используем унифицированную функцию для проверки активных помощников
+  if (hasActiveHelpers(state.referralHelpers)) {
+    const activeHelpers = state.referralHelpers.filter(h => h.status === 'accepted');
     console.log(`Активные помощники (${activeHelpers.length}):`);
     activeHelpers.forEach(helper => {
       const buildingName = state.buildings[helper.buildingId]?.name || helper.buildingId;

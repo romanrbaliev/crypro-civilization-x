@@ -1,6 +1,7 @@
 
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
 import { formatNumber } from './helpers';
+import { getActiveBuildingHelpers, getHelperStatusSummary } from './referralHelperUtils';
 
 /**
  * Детальный расчет производства знаний с пошаговой информацией
@@ -66,6 +67,10 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     // Шаг 3: Бонусы от рефералов
     steps.push(`Шаг 3: Расчет бонуса от рефералов:`);
     
+    // Получаем общую сводку по статусам помощников
+    const helperSummary = getHelperStatusSummary(state.referralHelpers);
+    steps.push(`- Общая сводка по помощникам: ${helperSummary.accepted} активных, ${helperSummary.pending} ожидающих, ${helperSummary.rejected} отклоненных из ${helperSummary.total}`);
+    
     const activeReferrals = state.referrals.filter(ref => 
       (ref.status === 'active' || ref.activated === true || ref.activated === 'true'));
     
@@ -88,10 +93,10 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     
     // Проходим по каждому зданию, производящему знания
     buildingProductionDetails.forEach(building => {
-      // Находим помощников для этого здания
-      const helpers = state.referralHelpers.filter(h => 
-        h.buildingId === building.id && h.status === 'accepted'
-      );
+      // Находим помощников для этого здания с помощью унифицированной функции
+      const helpers = getActiveBuildingHelpers(building.id, state.referralHelpers);
+      
+      steps.push(`- Проверка здания "${building.name}" (ID: ${building.id}):`);
       
       if (helpers.length > 0) {
         const helperBonus = helpers.length * 0.1; // 10% за каждого
@@ -99,8 +104,15 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
         
         helperBonusTotal += helperEffect;
         
-        steps.push(`- Здание "${building.name}": ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству`);
-        steps.push(`  Эффект: ${building.totalProduction}/сек * ${(helperBonus * 100).toFixed(0)}% = +${helperEffect.toFixed(2)}/сек`);
+        steps.push(`  ✅ Найдено ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству`);
+        steps.push(`  ✅ Эффект: ${building.totalProduction}/сек * ${(helperBonus * 100).toFixed(0)}% = +${helperEffect.toFixed(2)}/сек`);
+        
+        // Выводим подробно о каждом помощнике
+        helpers.forEach((helper, index) => {
+          steps.push(`    - Помощник #${index + 1}: ID=${helper.helperId}, статус=${helper.status}`);
+        });
+      } else {
+        steps.push(`  ❌ Помощников для этого здания не найдено`);
       }
     });
     
