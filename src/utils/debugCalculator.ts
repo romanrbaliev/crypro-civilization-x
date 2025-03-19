@@ -1,0 +1,173 @@
+
+import { GameState, Resource, Building, Upgrade } from '@/context/types';
+import { formatNumber } from './helpers';
+
+/**
+ * Детальный расчет производства знаний с пошаговой информацией
+ */
+export const debugKnowledgeProduction = (state: GameState): { steps: string[], total: number } => {
+  const steps: string[] = [];
+  let totalProduction = 0;
+  
+  try {
+    steps.push(`Анализ скорости накопления знаний`);
+    
+    // Шаг 1: Проверяем существование ресурса "Знания"
+    const knowledgeResource = state.resources['knowledge'];
+    if (!knowledgeResource) {
+      steps.push(`Ошибка: Ресурс 'knowledge' не найден в состоянии игры`);
+      return { steps, total: 0 };
+    }
+    
+    steps.push(`Шаг 1: Ресурс "Знания" существует. Текущее значение: ${formatNumber(knowledgeResource.value)}/${knowledgeResource.max !== Infinity ? formatNumber(knowledgeResource.max) : '∞'}`);
+    
+    // Шаг 2: Базовое производство от зданий
+    steps.push(`Шаг 2: Расчет базового производства от зданий:`);
+    
+    let buildingProduction = 0;
+    let hasPracticeBuilding = false;
+    
+    Object.values(state.buildings).forEach(building => {
+      const { id, name, count, production = {} } = building;
+      
+      // Проверяем, производит ли здание знания
+      if (count > 0 && production.knowledge) {
+        const baseAmount = Number(production.knowledge) * count;
+        buildingProduction += baseAmount;
+        
+        steps.push(`- ${name} (${count} шт.): базовое производство ${Number(production.knowledge)}/сек * ${count} = ${baseAmount}/сек`);
+        
+        if (id === 'practice') {
+          hasPracticeBuilding = true;
+        }
+      }
+    });
+    
+    if (buildingProduction === 0) {
+      steps.push(`- Нет зданий, производящих знания`);
+    }
+    
+    if (!hasPracticeBuilding) {
+      steps.push(`- Внимание: здание "Практика" не обнаружено или не производит знания`);
+    }
+    
+    steps.push(`Итого базовое производство от зданий: ${buildingProduction}/сек`);
+    totalProduction = buildingProduction;
+    
+    // Шаг 3: Бонусы от рефералов
+    steps.push(`Шаг 3: Расчет бонуса от рефералов:`);
+    
+    const activeReferrals = state.referrals.filter(ref => 
+      (ref.status === 'active' || ref.activated === true || ref.activated === 'true'));
+    
+    const referralBonus = activeReferrals.length * 0.05; // 5% за каждого
+    
+    steps.push(`- Всего рефералов: ${state.referrals.length}`);
+    steps.push(`- Активных рефералов: ${activeReferrals.length}`);
+    steps.push(`- Бонус от рефералов: ${activeReferrals.length} * 5% = +${(referralBonus * 100).toFixed(0)}%`);
+    
+    if (activeReferrals.length > 0) {
+      const referralEffect = buildingProduction * referralBonus;
+      steps.push(`- Эффект бонуса: ${buildingProduction} * ${(referralBonus * 100).toFixed(0)}% = +${referralEffect.toFixed(2)}/сек`);
+      totalProduction += referralEffect;
+    }
+    
+    // Шаг 4: Бонусы от помощников
+    steps.push(`Шаг 4: Расчет бонуса от помощников:`);
+    
+    const knowledgeBuildingIds = Object.values(state.buildings)
+      .filter(b => b.count > 0 && b.production && b.production.knowledge)
+      .map(b => b.id);
+    
+    let helperBonusTotal = 0;
+    
+    knowledgeBuildingIds.forEach(buildingId => {
+      const helpers = state.referralHelpers.filter(h => 
+        h.buildingId === buildingId && h.status === 'accepted'
+      );
+      
+      if (helpers.length > 0) {
+        const buildingName = state.buildings[buildingId]?.name || buildingId;
+        const helperBonus = helpers.length * 0.1; // 10% за каждого
+        const buildingBaseProduction = (state.buildings[buildingId].production?.knowledge || 0) * state.buildings[buildingId].count;
+        const helperEffect = buildingBaseProduction * helperBonus;
+        
+        helperBonusTotal += helperEffect;
+        
+        steps.push(`- Здание "${buildingName}": ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству здания`);
+        steps.push(`  Эффект: ${buildingBaseProduction}/сек * ${(helperBonus * 100).toFixed(0)}% = +${helperEffect.toFixed(2)}/сек`);
+      }
+    });
+    
+    if (helperBonusTotal === 0) {
+      steps.push(`- Нет активных помощников на зданиях, производящих знания`);
+    } else {
+      steps.push(`- Общий бонус от помощников: +${helperBonusTotal.toFixed(2)}/сек`);
+      totalProduction += helperBonusTotal;
+    }
+    
+    // Шаг 5: Бонусы от исследований
+    steps.push(`Шаг 5: Расчет бонусов от исследований:`);
+    
+    let upgradeBonus = 0;
+    let upgradesFound = false;
+    let knowledgeUpgradeMultiplier = 0;
+    
+    Object.values(state.upgrades).forEach(upgrade => {
+      if (!upgrade.purchased) return;
+      
+      const effects = upgrade.effects || upgrade.effect || {};
+      
+      for (const [effectId, value] of Object.entries(effects)) {
+        // Проверяем эффекты, влияющие на скорость накопления знаний
+        if (effectId === 'knowledgeBoost' || effectId === 'knowledgeProduction') {
+          upgradesFound = true;
+          const boostValue = Number(value);
+          knowledgeUpgradeMultiplier += boostValue;
+          
+          steps.push(`- Исследование "${upgrade.name}": эффект "${effectId}" = +${(boostValue * 100).toFixed(0)}%`);
+        }
+      }
+    });
+    
+    if (!upgradesFound) {
+      steps.push(`- Нет исследований, влияющих на производство знаний`);
+    } else {
+      const upgradeEffect = buildingProduction * knowledgeUpgradeMultiplier;
+      steps.push(`- Общий бонус от исследований: +${(knowledgeUpgradeMultiplier * 100).toFixed(0)}%`);
+      steps.push(`- Эффект исследований: ${buildingProduction}/сек * ${(knowledgeUpgradeMultiplier * 100).toFixed(0)}% = +${upgradeEffect.toFixed(2)}/сек`);
+      totalProduction += upgradeEffect;
+    }
+    
+    // Итоговый расчет
+    steps.push(`Шаг 6: Итоговый расчет:`);
+    steps.push(`- Базовое производство от зданий: ${buildingProduction.toFixed(2)}/сек`);
+    
+    if (referralBonus > 0) {
+      const referralEffect = buildingProduction * referralBonus;
+      steps.push(`- Бонус от рефералов: +${referralEffect.toFixed(2)}/сек`);
+    }
+    
+    if (helperBonusTotal > 0) {
+      steps.push(`- Бонус от помощников: +${helperBonusTotal.toFixed(2)}/сек`);
+    }
+    
+    if (knowledgeUpgradeMultiplier > 0) {
+      const upgradeEffect = buildingProduction * knowledgeUpgradeMultiplier;
+      steps.push(`- Бонус от исследований: +${upgradeEffect.toFixed(2)}/сек`);
+    }
+    
+    steps.push(`Итоговая скорость накопления знаний: ${totalProduction.toFixed(2)}/сек`);
+    steps.push(`Показатель в интерфейсе: ${knowledgeResource.perSecond ? knowledgeResource.perSecond.toFixed(2) : '0'}/сек`);
+    
+    if (Math.abs(totalProduction - (knowledgeResource.perSecond || 0)) > 0.01) {
+      steps.push(`Обнаружено расхождение между расчетным значением и значением в интерфейсе!`);
+    }
+    
+  } catch (error) {
+    console.error('Ошибка при расчете скорости накопления знаний:', error);
+    steps.push(`Произошла ошибка при расчете: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  
+  return { steps, total: totalProduction };
+};
