@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { calculateKnowledgeProduction } from '@/utils/debugCalculator';
+import { calculateKnowledgeProduction, KnowledgeProductionResult, HelperBonusDetail, UpgradeEffect } from '@/utils/debugCalculator';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { formatNumber } from '@/utils/helpers';
 
 const DebugCalculator = () => {
   const { state } = useGame();
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<KnowledgeProductionResult | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [expanded, setExpanded] = useState({
     buildings: false,
@@ -21,7 +21,7 @@ const DebugCalculator = () => {
     upgrades: false
   });
 
-  const toggleSection = (section) => {
+  const toggleSection = (section: keyof typeof expanded) => {
     setExpanded((prev) => ({
       ...prev,
       [section]: !prev[section]
@@ -42,7 +42,7 @@ const DebugCalculator = () => {
   }, [isOpen]);
 
   // Форматирование числа с плюсом для положительных значений
-  const formatWithSign = (num) => {
+  const formatWithSign = (num: number) => {
     const formatted = formatNumber(Math.abs(num));
     return num >= 0 ? `+${formatted}` : `-${formatted}`;
   };
@@ -102,7 +102,7 @@ const DebugCalculator = () => {
                 <CollapsibleTrigger className="flex justify-between items-center w-full">
                   <div>Шаг 1: Базовое производство от зданий:</div>
                   <div className="flex items-center">
-                    {formatNumber(result.baseProduction)}/сек
+                    {result.baseProduction !== undefined ? formatNumber(result.baseProduction) : '0'}/сек
                     {expanded.buildings ? 
                       <ChevronUp className="w-3 h-3 ml-1" /> : 
                       <ChevronDown className="w-3 h-3 ml-1" />
@@ -110,7 +110,7 @@ const DebugCalculator = () => {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 pt-1">
-                  {Object.entries(result.buildingProduction).map(([buildingId, amount]) => (
+                  {result.buildingProduction && Object.entries(result.buildingProduction).map(([buildingId, amount]) => (
                     <div key={buildingId} className="flex justify-between">
                       <div>{state.buildings[buildingId]?.name || buildingId}:</div>
                       <div>{formatNumber(amount)}/сек</div>
@@ -126,9 +126,9 @@ const DebugCalculator = () => {
                 className="mb-2"
               >
                 <CollapsibleTrigger className="flex justify-between items-center w-full">
-                  <div>Шаг 2: Бонус от активных рефералов ({result.referralBonus.activeReferrals} × 5%):</div>
+                  <div>Шаг 2: Бонус от активных рефералов ({result.referralBonus?.activeReferrals || 0} × 5%):</div>
                   <div className="flex items-center">
-                    {formatWithSign(result.referralBonus.bonusAmount)}/сек
+                    {formatWithSign(result.referralBonus?.bonusAmount || 0)}/сек
                     {expanded.referrals ? 
                       <ChevronUp className="w-3 h-3 ml-1" /> : 
                       <ChevronDown className="w-3 h-3 ml-1" />
@@ -138,15 +138,15 @@ const DebugCalculator = () => {
                 <CollapsibleContent className="pl-4 pt-1">
                   <div className="flex justify-between">
                     <div>Активные рефералы:</div>
-                    <div>{result.referralBonus.activeReferrals}</div>
+                    <div>{result.referralBonus?.activeReferrals || 0}</div>
                   </div>
                   <div className="flex justify-between">
                     <div>Бонусный процент:</div>
-                    <div>+{result.referralBonus.bonusPercent.toFixed(0)}%</div>
+                    <div>+{result.referralBonus?.bonusPercent.toFixed(0) || '0'}%</div>
                   </div>
                   <div className="flex justify-between">
                     <div>Бонус к производству:</div>
-                    <div>{formatNumber(result.referralBonus.bonusAmount)}/сек</div>
+                    <div>{formatNumber(result.referralBonus?.bonusAmount || 0)}/сек</div>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -160,7 +160,7 @@ const DebugCalculator = () => {
                 <CollapsibleTrigger className="flex justify-between items-center w-full">
                   <div>Шаг 3: Бонус от помощников для реферрера (5% за помощника):</div>
                   <div className="flex items-center">
-                    {formatWithSign(result.helperBonus.totalBonus)}/сек
+                    {formatWithSign(result.helperBonus?.totalBonus || 0)}/сек
                     {expanded.helpers ? 
                       <ChevronUp className="w-3 h-3 ml-1" /> : 
                       <ChevronDown className="w-3 h-3 ml-1" />
@@ -168,7 +168,7 @@ const DebugCalculator = () => {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 pt-1">
-                  {Object.entries(result.helperBonus.details).length > 0 ? (
+                  {result.helperBonus?.details && Object.entries(result.helperBonus.details).length > 0 ? (
                     Object.entries(result.helperBonus.details).map(([buildingId, data]) => (
                       <div key={buildingId} className="mb-1">
                         <div className="flex justify-between">
@@ -196,7 +196,7 @@ const DebugCalculator = () => {
                 <CollapsibleTrigger className="flex justify-between items-center w-full">
                   <div>Шаг 5: Расчет бонуса для реферала-помощника (10% за каждое здание):</div>
                   <div className="flex items-center">
-                    {formatWithSign(result.helperProductionBonus.bonusAmount)}/сек
+                    {formatWithSign(result.helperProductionBonus?.bonusAmount || 0)}/сек
                     {expanded.helperProduction ? 
                       <ChevronUp className="w-3 h-3 ml-1" /> : 
                       <ChevronDown className="w-3 h-3 ml-1" />
@@ -204,19 +204,19 @@ const DebugCalculator = () => {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 pt-1">
-                  {result.helperProductionBonus.buildingsAsHelper > 0 ? (
+                  {(result.helperProductionBonus?.buildingsAsHelper || 0) > 0 ? (
                     <>
                       <div className="flex justify-between">
                         <div>Текущий пользователь ({state.referralCode?.substring(0, 6) || 'unknown'}):</div>
-                        <div>помогает на {result.helperProductionBonus.buildingsAsHelper} зданиях</div>
+                        <div>помогает на {result.helperProductionBonus?.buildingsAsHelper || 0} зданиях</div>
                       </div>
                       <div className="flex justify-between">
                         <div>Бонусный процент:</div>
-                        <div>+{result.helperProductionBonus.bonusPercent.toFixed(0)}%</div>
+                        <div>+{result.helperProductionBonus?.bonusPercent.toFixed(0) || '0'}%</div>
                       </div>
                       <div className="flex justify-between">
                         <div>Бонус к производству:</div>
-                        <div>{formatNumber(result.helperProductionBonus.bonusAmount)}/сек</div>
+                        <div>{formatNumber(result.helperProductionBonus?.bonusAmount || 0)}/сек</div>
                       </div>
                     </>
                   ) : (
@@ -236,7 +236,7 @@ const DebugCalculator = () => {
                 <CollapsibleTrigger className="flex justify-between items-center w-full">
                   <div>Шаг 6: Бонусы от исследований:</div>
                   <div className="flex items-center">
-                    {formatWithSign(result.upgradeBonus.totalBonus)}/сек
+                    {formatWithSign(result.upgradeBonus?.totalBonus || 0)}/сек
                     {expanded.upgrades ? 
                       <ChevronUp className="w-3 h-3 ml-1" /> : 
                       <ChevronDown className="w-3 h-3 ml-1" />
@@ -244,7 +244,7 @@ const DebugCalculator = () => {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 pt-1">
-                  {Object.keys(result.upgradeBonus.effects).length > 0 ? (
+                  {result.upgradeBonus?.effects && Object.keys(result.upgradeBonus.effects).length > 0 ? (
                     Object.values(result.upgradeBonus.effects).map((effect, index) => (
                       <div key={index} className="flex justify-between">
                         <div>{effect.name}:</div>
@@ -264,32 +264,32 @@ const DebugCalculator = () => {
               <div className="pl-4">
                 <div className="flex justify-between">
                   <div>Базовое производство:</div>
-                  <div>{formatNumber(result.baseProduction)}/сек</div>
+                  <div>{formatNumber(result.baseProduction || 0)}/сек</div>
                 </div>
                 <div className="flex justify-between">
                   <div>+ Бонус от рефералов:</div>
-                  <div>{formatNumber(result.referralBonus.bonusAmount)}/сек</div>
+                  <div>{formatNumber(result.referralBonus?.bonusAmount || 0)}/сек</div>
                 </div>
                 <div className="flex justify-between">
                   <div>+ Бонус от помощников:</div>
-                  <div>{formatNumber(result.helperBonus.totalBonus)}/сек</div>
+                  <div>{formatNumber(result.helperBonus?.totalBonus || 0)}/сек</div>
                 </div>
                 <div className="flex justify-between">
                   <div>+ Бонус реферала-помощника:</div>
-                  <div>{formatNumber(result.helperProductionBonus.bonusAmount)}/сек</div>
+                  <div>{formatNumber(result.helperProductionBonus?.bonusAmount || 0)}/сек</div>
                 </div>
                 <div className="flex justify-between">
                   <div>+ Бонус от исследований:</div>
-                  <div>{formatNumber(result.upgradeBonus.totalBonus)}/сек</div>
+                  <div>{formatNumber(result.upgradeBonus?.totalBonus || 0)}/сек</div>
                 </div>
                 <Separator className="my-1" />
                 <div className="flex justify-between font-semibold">
                   <div>Расчетное производство:</div>
-                  <div>{formatNumber(result.calculatedProduction)}/сек</div>
+                  <div>{formatNumber(result.calculatedProduction || 0)}/сек</div>
                 </div>
                 <div className="flex justify-between font-semibold">
                   <div>Текущее производство в игре:</div>
-                  <div>{formatNumber(result.displayedProduction)}/сек</div>
+                  <div>{formatNumber(result.displayedProduction || 0)}/сек</div>
                 </div>
               </div>
               
@@ -299,7 +299,7 @@ const DebugCalculator = () => {
                   <AlertTriangle className="w-4 h-4 text-yellow-500 mr-1 flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="font-semibold">Обнаружено расхождение!</div>
-                    <div>Разница между расчетным и реальным значением: {formatNumber(result.discrepancy)}/сек</div>
+                    <div>Разница между расчетным и реальным значением: {formatNumber(result.discrepancy || 0)}/сек</div>
                   </div>
                 </div>
               ) : (

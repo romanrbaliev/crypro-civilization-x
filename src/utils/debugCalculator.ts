@@ -2,12 +2,55 @@
 import { GameState, Resource, Building } from "@/context/types";
 import { calculateBuildingBoostFromHelpers, getHelperProductionBoost } from "@/utils/referralHelperUtils";
 
+// Типы для результатов расчетов
+export interface UpgradeEffect {
+  name: string;
+  boost: number;
+  bonusAmount: number;
+}
+
+export interface HelperBonusDetail {
+  baseProduction: number;
+  boost: number;
+  bonusAmount: number;
+}
+
+export interface KnowledgeProductionResult {
+  success: boolean;
+  message?: string;
+  baseProduction?: number;
+  buildingProduction?: Record<string, number>;
+  referralBonus?: {
+    activeReferrals: number;
+    bonusPercent: number;
+    bonusAmount: number;
+  };
+  helperBonus?: {
+    details: Record<string, HelperBonusDetail>;
+    totalBonus: number;
+  };
+  helperProductionBonus?: {
+    buildingsAsHelper: number;
+    bonusPercent: number;
+    bonusAmount: number;
+  };
+  upgradeBonus?: {
+    effects: Record<string, UpgradeEffect>;
+    totalBonus: number;
+  };
+  calculatedProduction?: number;
+  displayedProduction?: number;
+  discrepancy?: number;
+  hasDiscrepancy?: boolean;
+  details?: any;
+}
+
 /**
  * Расчет скорости производства знаний с учетом всех бонусов
  * @param state Текущее состояние игры
  * @returns Объект с подробной информацией о расчете
  */
-export const calculateKnowledgeProduction = (state: GameState) => {
+export const calculateKnowledgeProduction = (state: GameState): KnowledgeProductionResult => {
   try {
     // Извлекаем ресурс знаний из состояния
     const knowledge = state.resources.knowledge;
@@ -26,7 +69,7 @@ export const calculateKnowledgeProduction = (state: GameState) => {
     }
 
     // Шаг 1: Определяем базовое производство от зданий
-    const buildingProduction = {};
+    const buildingProduction: Record<string, number> = {};
     let totalBaseProduction = 0;
 
     Object.values(state.buildings).forEach(building => {
@@ -45,7 +88,7 @@ export const calculateKnowledgeProduction = (state: GameState) => {
     const referralBonusAmount = totalBaseProduction * referralBonus;
 
     // Шаг 3: Определяем бонусы от помощников
-    const helperBonuses = {};
+    const helperBonuses: Record<string, HelperBonusDetail> = {};
     let totalHelperBonus = 0;
 
     Object.values(state.buildings).forEach(building => {
@@ -69,7 +112,7 @@ export const calculateKnowledgeProduction = (state: GameState) => {
     const helperProductionBonusAmount = totalBaseProduction * helperProductionBoost;
 
     // Шаг 5: Определяем бонусы от исследований
-    const upgradeEffects = {};
+    const upgradeEffects: Record<string, UpgradeEffect> = {};
     let totalUpgradeBonus = 0;
 
     Object.values(state.upgrades).forEach(upgrade => {
