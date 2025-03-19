@@ -1,5 +1,7 @@
 
 import { ReferralHelper } from "@/context/types";
+import { supabase } from "@/integrations/supabase/client";
+import { getUserIdentifier } from "@/api/userIdentification";
 
 /**
  * Проверяет, нанят ли реферал на определенное здание
@@ -200,4 +202,75 @@ export const getHelperStatusSummary = (
     total: referralHelpers.length,
     buildings
   };
+};
+
+/**
+ * Синхронизирует статусы помощников с базой данных Supabase
+ * @param referralHelpers Текущий список помощников в локальном состоянии
+ * @returns Промис с обновленным списком помощников или null в случае ошибки
+ */
+export const syncHelperStatusWithDB = async (
+  referralHelpers: ReferralHelper[]
+): Promise<ReferralHelper[] | null> => {
+  try {
+    // Получаем ID текущего пользователя
+    const userId = await getUserIdentifier();
+    if (!userId) {
+      console.error('Не удалось получить ID пользователя для синхронизации помощников');
+      return null;
+    }
+    
+    console.log('Синхронизация помощников с базой данных для пользователя:', userId);
+    
+    // Получаем данные о помощниках из базы данных
+    const { data, error } = await supabase
+      .from('referral_helpers')
+      .select('id, helper_id, building_id, status')
+      .eq('employer_id', userId);
+    
+    if (error) {
+      console.error('Ошибка при получении данных о помощниках из базы данных:', error);
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('В базе данных нет информации о помощниках');
+      return null;
+    }
+    
+    console.log('Получены данные о помощниках из БД:', data);
+    
+    // Создаем карту соответствия ID помощников и зданий для быстрого поиска
+    const dbHelpersMap = new Map();
+    data.forEach(helper => {
+      const key = `${helper.helper_id}_${helper.building_id}`;
+      dbHelpersMap.set(key, {
+        id: helper.id.toString(),
+        helperId: helper.helper_id,
+        buildingId: helper.building_id,
+        status: helper.status
+      });
+    });
+    
+    // Обновляем локальные данные на основе данных из БД
+    const updatedHelpers = referralHelpers.map(helper => {
+      const key = `${helper.helperId}_${helper.buildingId}`;
+      const dbHelper = dbHelpersMap.get(key);
+      
+      if (dbHelper && dbHelper.status !== helper.status) {
+        console.log(`Обновление статуса помощника ${helper.helperId} для здания ${helper.buildingId}: ${helper.status} -> ${dbHelper.status}`);
+        return { ...helper, status: dbHelper.status as 'pending' | 'accepted' | 'rejected' };
+      }
+      
+      return helper;
+    });
+    
+    // Логируем обновленные данные для отладки
+    console.log('Результат синхронизации помощников:', updatedHelpers);
+    
+    return updatedHelpers;
+  } catch (error) {
+    console.error('Ошибка при синхронизации помощников с базой данных:', error);
+    return null;
+  }
 };

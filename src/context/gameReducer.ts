@@ -148,6 +148,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       console.log("Принудительное обновление ресурсов и бонусов");
       return processResourceUpdate(state);
       
+    case "UPDATE_HELPERS": 
+      // Обработчик события обновления помощников
+      console.log("Обновление списка помощников из базы данных");
+      return {
+        ...state,
+        referralHelpers: action.payload.updatedHelpers || state.referralHelpers
+      };
+    
     default:
       return state;
   }

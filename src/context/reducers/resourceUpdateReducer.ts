@@ -1,13 +1,30 @@
 
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
-import { hasActiveHelpers } from '@/utils/referralHelperUtils';
+import { hasActiveHelpers, syncHelperStatusWithDB } from '@/utils/referralHelperUtils';
 
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const deltaTime = now - state.lastUpdate;
   
-  // Полностью удаляем логику активации рефералов отсюда!
+  // Синхронизируем статусы помощников с базой данных
+  // Это поможет исправить несоответствие между локальным состоянием и БД
+  let updatedState = { ...state };
+  if (state.referralHelpers.length > 0) {
+    syncHelperStatusWithDB(state.referralHelpers)
+      .then(updatedHelpers => {
+        if (updatedHelpers && updatedHelpers.length > 0) {
+          // Отправляем событие для обновления состояния игры
+          const updateEvent = new CustomEvent('helpers-updated', {
+            detail: { updatedHelpers }
+          });
+          window.dispatchEvent(updateEvent);
+          
+          console.log('Помощники синхронизированы с базой данных:', updatedHelpers);
+        }
+      })
+      .catch(err => console.error('Ошибка при синхронизации помощников:', err));
+  }
   
   // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
