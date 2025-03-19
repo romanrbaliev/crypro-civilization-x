@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
 import { helperStatusCache } from '@/utils/referralHelpers/helperCache';
@@ -109,53 +110,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
     referralHelperBonus 
   );
   
-  // Применяем увеличение хранилища от зданий
-  updatedResources = applyStorageBoosts(updatedResources, state.buildings);
-  
-  // Создаем копию для применения эффектов от исследований
-  // Это предотвращает кумулятивное накопление бонусов при каждом расчете
-  const resourcesWithBaseValues = JSON.parse(JSON.stringify(updatedResources));
-  
-  // Применяем эффекты от исследований поверх базовых значений
-  Object.values(state.upgrades).forEach(upgrade => {
-    if (upgrade.purchased) {
-      // Получаем эффекты исследования (поддерживаем оба поля effects и effect)
-      const effects = upgrade.effects || upgrade.effect || {};
-      
-      // Применяем эффекты к скорости накопления ресурсов
-      Object.entries(effects).forEach(([effectId, amount]) => {
-        if (effectId === 'knowledgeBoost' && resourcesWithBaseValues.knowledge) {
-          const boost = Number(amount);
-          // Используем baseProduction для предотвращения двойного учета
-          const baseProduction = resourcesWithBaseValues.knowledge.baseProduction || 0;
-          const boostAmount = baseProduction * boost;
-          
-          // Увеличиваем скорость накопления знаний
-          resourcesWithBaseValues.knowledge.perSecond += boostAmount;
-          
-          console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления знаний: +${boostAmount.toFixed(2)}/сек`);
-        }
-        else if (effectId.includes('Boost') && !effectId.includes('Max')) {
-          // Обрабатываем другие бонусы к скорости
-          const resourceId = effectId.replace('Boost', '');
-          if (resourcesWithBaseValues[resourceId]) {
-            const boost = Number(amount);
-            // Используем baseProduction для предотвращения двойного учета
-            const baseProduction = resourcesWithBaseValues[resourceId].baseProduction || 0;
-            const boostAmount = baseProduction * boost;
-            
-            // Увеличиваем скорость накопления ресурса
-            resourcesWithBaseValues[resourceId].perSecond += boostAmount;
-            
-            console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления ${resourceId}: +${boostAmount.toFixed(2)}/сек`);
-          }
-        }
-      });
-    }
-  });
-  
   // Обновляем значения ресурсов с учетом времени
-  const finalResources = updateResourceValues(resourcesWithBaseValues, deltaTime);
+  const finalResources = updateResourceValues(updatedResources, deltaTime);
   
   return {
     ...state,

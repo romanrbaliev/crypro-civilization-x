@@ -43,6 +43,9 @@ import {
   initializeReferralSystem
 } from './reducers/referralReducer';
 
+// Импортируем утилиты для работы с ресурсами
+import { updateResourceMaxValues } from './utils/resourceUtils';
+
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
@@ -52,17 +55,29 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "INCREMENT_RESOURCE": 
       return processIncrementResource(state, action.payload);
     
-    case "UPDATE_RESOURCES": 
-      return processResourceUpdate(state);
+    case "UPDATE_RESOURCES": {
+      // Обновляем ресурсы
+      const updatedState = processResourceUpdate(state);
+      // Пересчитываем максимальные значения ресурсов после каждого обновления
+      return updateResourceMaxValues(updatedState);
+    }
     
-    case "PURCHASE_BUILDING": 
-      return processPurchaseBuilding(state, action.payload);
+    case "PURCHASE_BUILDING": {
+      // Покупаем здание
+      newState = processPurchaseBuilding(state, action.payload);
+      // Явно пересчитываем максимумы ресурсов после покупки зданий
+      return updateResourceMaxValues(newState);
+    }
     
     case "PRACTICE_PURCHASE": 
       return processPracticePurchase(state);
     
-    case "PURCHASE_UPGRADE": 
-      return processPurchaseUpgrade(state, action.payload);
+    case "PURCHASE_UPGRADE": {
+      // Покупаем улучшение
+      newState = processPurchaseUpgrade(state, action.payload);
+      // Явно пересчитываем максимумы ресурсов после покупки улучшений
+      return updateResourceMaxValues(newState);
+    }
     
     case "UNLOCK_FEATURE": 
       return processUnlockFeature(state, { featureId: action.payload.featureId });
@@ -95,7 +110,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       newState = initializeReferralSystem(newState);
       
       // Принудительно пересчитываем максимальные значения ресурсов
-      newState = { ...newState };
+      newState = updateResourceMaxValues(newState);
       return newState;
     }
     
@@ -109,6 +124,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       newState = initializeReferralSystem(newState);
       
+      // Принудительно пересчитываем максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
       return newState;
     }
     
@@ -124,10 +141,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "MINE_COMPUTING_POWER": 
       return processMiningPower(state);
     
-    case "APPLY_KNOWLEDGE": 
+    case "APPLY_KNOWLEDGE": {
       // После применения знаний принудительно пересчитываем максимумы ресурсов
       newState = processApplyKnowledge(state);
-      return newState;
+      return updateResourceMaxValues(newState);
+    }
       
     case "EXCHANGE_BTC": 
       return processExchangeBtc(state);
@@ -150,11 +168,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "UPDATE_REFERRAL_STATUS":
       return processUpdateReferralStatus(state, action.payload);
       
-    case "FORCE_RESOURCE_UPDATE":
+    case "FORCE_RESOURCE_UPDATE": {
       console.log("Принудительное обновление ресурсов и бонусов");
-      return processResourceUpdate(state);
+      // Сначала обновляем производство ресурсов
+      const updatedState = processResourceUpdate(state);
+      // Затем пересчитываем максимальные значения ресурсов
+      return updateResourceMaxValues(updatedState);
+    }
       
-    case "UPDATE_HELPERS": 
+    case "UPDATE_HELPERS": {
       // Обработчик события обновления помощников
       console.log("Обновление списка помощников из базы данных");
       const updatedState = {
@@ -162,8 +184,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         referralHelpers: action.payload.updatedHelpers || state.referralHelpers
       };
       
-      // После обновления помощников сразу пересчитываем ресурсы
-      return processResourceUpdate(updatedState);
+      // После обновления помощников пересчитываем ресурсы и их максимумы
+      const resourcesUpdated = processResourceUpdate(updatedState);
+      return updateResourceMaxValues(resourcesUpdated);
+    }
     
     default:
       return state;

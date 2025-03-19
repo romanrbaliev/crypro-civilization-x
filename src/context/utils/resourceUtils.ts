@@ -1,4 +1,3 @@
-
 import { GameState, Resource, Building } from '../types';
 
 // Функция для проверки, достаточно ли ресурсов для совершения действия
@@ -13,10 +12,12 @@ export const hasEnoughResources = (state: GameState, cost: { [key: string]: numb
 
 // Функция для обновления максимальных значений ресурсов на основе эффектов зданий и улучшений
 export const updateResourceMaxValues = (state: GameState): GameState => {
-  let newResources = JSON.parse(JSON.stringify(state.resources));
+  // Создаем глубокую копию ресурсов для предотвращения мутаций
+  const newResources = JSON.parse(JSON.stringify(state.resources));
   
   try {
     // Устанавливаем базовые значения максимумов для каждого ресурса
+    // ВАЖНО: Сначала сбрасываем максимумы к базовым значениям, чтобы избежать накопления
     Object.keys(newResources).forEach(resourceId => {
       const resource = newResources[resourceId];
       
@@ -43,7 +44,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       }
     });
     
-    // Переменные для отслеживания бонусов от зданий (кэширование)
+    // Вычисляем одноразовые бонусы от зданий
     const buildingBoosts = {
       knowledgeMax: 0,
       usdtMax: 0,
@@ -51,22 +52,20 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       computingPowerMax: 0
     };
     
-    // Считаем бонусы от зданий ТОЛЬКО ОДИН РАЗ
+    // Проходим по всем зданиям только один раз и считаем все бонусы
     Object.entries(state.buildings).forEach(([buildingId, building]) => {
-      // Учитываем только построенные здания
       if (building.count > 0) {
-        // Безопасно получаем production с проверкой на null/undefined
+        // Получаем production с проверкой на null/undefined
         const production = building.production || {};
         
         // Для каждого эффекта здания
         Object.entries(production).forEach(([effectType, amount]) => {
-          // Если эффект влияет на максимум хранилища
           if (effectType.includes('Max')) {
             const resourceId = effectType.replace('Max', '');
             // Важно! Умножаем на количество зданий
             const totalBonus = Number(amount) * building.count;
             
-            // Учитываем бонусы в кэше, для каждого ресурса отдельно
+            // Суммируем бонусы по типам ресурсов
             if (resourceId === 'knowledge') {
               buildingBoosts.knowledgeMax += totalBonus;
               console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. знаний на ${totalBonus}`);
@@ -80,7 +79,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
               buildingBoosts.computingPowerMax += totalBonus;
               console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. вычислительной мощности на ${totalBonus}`);
             } else {
-              // Для других ресурсов отслеживаем в динамическом поле
+              // Для других ресурсов создаем динамические поля
               if (!buildingBoosts[resourceId + 'Max']) {
                 buildingBoosts[resourceId + 'Max'] = 0;
               }
@@ -92,7 +91,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       }
     });
     
-    // Переменные для отслеживания бонусов от улучшений
+    // Вычисляем одноразовые бонусы от улучшений
     const upgradeBoosts = {
       knowledgeMax: 0,
       knowledgeMaxPercent: 0,
@@ -100,7 +99,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       usdtMaxPercent: 0
     };
     
-    // Применяем эффекты от улучшений ТОЛЬКО ОДИН РАЗ
+    // Проходим по всем исследованиям только один раз
     Object.values(state.upgrades).forEach(upgrade => {
       if (upgrade.purchased) {
         // Безопасно получаем effects/effect с проверкой на null/undefined
@@ -111,7 +110,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
             const resourceId = effectType.replace('Max', '');
             const addedAmount = Number(amount);
             
-            // Учитываем абсолютные бонусы в кэше
+            // Учитываем абсолютные бонусы
             if (resourceId === 'knowledge') {
               upgradeBoosts.knowledgeMax += addedAmount;
               console.log(`Исследование ${upgrade.name} увеличивает макс. знаний на ${addedAmount}`);
@@ -119,7 +118,6 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
               upgradeBoosts.usdtMax += addedAmount;
               console.log(`Исследование ${upgrade.name} увеличивает макс. USDT на ${addedAmount}`);
             }
-            // Для других ресурсов - прямое применение
           } 
           else if (effectType === 'knowledgeMaxBoost') {
             const boost = Number(amount);
@@ -129,13 +127,13 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
           else if (effectType === 'usdtMaxBoost') {
             const boost = Number(amount);
             upgradeBoosts.usdtMaxPercent += boost;
-            console.log(`Исследование ${upgrade.name} увеличивает макс. USDT на ${boost * 100}%`);
+            console.log(`Исследование ${upgrade.name} увел��чивает макс. USDT на ${boost * 100}%`);
           }
         });
       }
     });
     
-    // Применяем все рассчитанные бонусы к ресурсам
+    // Применяем рассчитанные бонусы к ресурсам
     if (newResources.knowledge) {
       const baseKnowledgeMax = 100; // Базовое значение
       const absoluteBonus = buildingBoosts.knowledgeMax + upgradeBoosts.knowledgeMax; // Абсолютный бонус
@@ -424,7 +422,7 @@ export const calculateResourceProduction = (
         console.log(`Бонус от помощников для реферрера (${resourceId}): +${helperEffect.toFixed(2)}/сек`);
       }
       
-      // Бонус для реферала-помо��ника (если текущий пользователь является помощником в других зданиях)
+      // Бонус для реферала-помощника (если текущий пользователь является помощником в других зданиях)
       if (referralHelperBonus > 0) {
         const referralHelperEffect = baseAmount * referralHelperBonus;
         newResources[resourceId].production += referralHelperEffect;
@@ -504,3 +502,4 @@ export const updateResourceValues = (
     return resources;
   }
 };
+
