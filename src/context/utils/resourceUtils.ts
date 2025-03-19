@@ -1,4 +1,3 @@
-
 import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 
@@ -38,7 +37,7 @@ export const calculateResourceProduction = (
       // Применяем производство от здания с учетом бонусов
       Object.entries(building.production).forEach(([resourceId, productionValue]) => {
         if (newResources[resourceId]) {
-          // Важное исправление: применяем все бонусы правильно - от количества зданий, от помощников и от рефералов
+          // Полный расчет с учетом количества зданий, бонуса от помощников и бонуса от рефералов
           const totalProduction = productionValue * building.count * (1 + helperBoost) * (1 + referralBonus);
           
           newResources[resourceId] = {
@@ -46,14 +45,32 @@ export const calculateResourceProduction = (
             perSecond: (newResources[resourceId].perSecond || 0) + totalProduction
           };
           
-          // Добавляем отладочную информацию
-          if (helperBoost > 0 || referralBonus > 0) {
-            console.log(`Ресурс ${resourceId}: базовое производство ${productionValue * building.count}, с бонусами ${totalProduction}`);
-          }
+          // Добавляем детальную отладочную информацию
+          console.log(`Ресурс ${resourceId}: базовое производство ${productionValue * building.count}/сек, с бонусами: ${totalProduction}/сек (хелперы: +${(helperBoost * 100).toFixed(0)}%, рефералы: +${(referralBonus * 100).toFixed(0)}%)`);
         }
       });
     }
   });
+  
+  // Отдельная логика для базовой скорости накопления знаний (если есть специальные здания)
+  if (newResources.knowledge && buildings.practice && buildings.practice.count > 0) {
+    // Сбрасываем скорость, если она была установлена ранее
+    const baseRate = 0.63; // Базовая скорость накопления знаний
+    
+    // Получаем бонус от помощников для здания "Практика"
+    const practiceHelperBoost = calculateBuildingBoostFromHelpers('practice', referralHelpers);
+    
+    // Применяем все бонусы к базовой скорости
+    const knowledgeRate = baseRate * (1 + practiceHelperBoost) * (1 + referralBonus);
+    
+    console.log(`Здание Практика: базовая скорость ${baseRate}/сек, с бонусами: ${knowledgeRate}/сек (хелперы: +${(practiceHelperBoost * 100).toFixed(0)}%, рефералы: +${(referralBonus * 100).toFixed(0)}%)`);
+    
+    // Обновляем скорость накопления знаний с учетом всех бонусов
+    newResources.knowledge = {
+      ...newResources.knowledge,
+      perSecond: knowledgeRate
+    };
+  }
   
   return newResources;
 };
@@ -73,7 +90,7 @@ export const applyStorageBoosts = (
         if (resourceId.includes('Max') && !resourceId.includes('Boost')) {
           const actualResourceId = resourceId.replace('Max', '');
           if (newResources[actualResourceId]) {
-            // Важное изменение: НЕ увеличиваем максимум ресурса каждый раз
+            // Важное изменение: НЕ увеличиваем максимум ресурса каждый ��аз
             // Это уже реализовано в функции updateResourceMaxValues
             // Здесь мы просто логируем возможности зданий
             console.log(`Здание ${building.name} может увеличивать максимум ${actualResourceId}`);
@@ -268,7 +285,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       // Обработка boost для скорости накопления ресурсов
       else if (effectId === 'knowledgeBoost') {
         if (newResources.knowledge) {
-          const basePerSecond = newResources.knowledge.perSecond || 0.63; // ��спользуем текущую скорость или базовую
+          const basePerSecond = newResources.knowledge.perSecond || 0.63; // Используем текущую скорость или базовую
           const boostedPerSecond = basePerSecond * (1 + Number(amount));
           newResources.knowledge = {
             ...newResources.knowledge,

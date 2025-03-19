@@ -73,7 +73,7 @@ export const calculateBuildingBoostFromHelpers = (
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   );
   
-  console.log(`Расчет бонуса для здания ${buildingId}: ${activeHelpers.length} помощников, бонус ${activeHelpers.length * 0.1}%`);
+  console.log(`Расчет бонуса для здания ${buildingId}: ${activeHelpers.length} помощников, бонус ${activeHelpers.length * 0.1}`);
   
   // Каждый помощник дает бонус +10% (0.1) к производительности здания
   return activeHelpers.length * 0.1;
