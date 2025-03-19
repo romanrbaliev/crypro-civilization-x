@@ -2,11 +2,49 @@
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
 import { formatNumber } from './helpers';
 import { getActiveBuildingHelpers, getHelperStatusSummary, getReferralAssignedBuildingId } from './referralHelperUtils';
+import { supabase } from '@/integrations/supabase/client';
+
+// Функция для прямого получения статуса помощника из базы данных
+async function getHelperStatusFromDB(userId: string): Promise<{ buildingId: string, status: string }[]> {
+  if (!userId) return [];
+  
+  try {
+    console.log(`DebugCalculator: проверка статуса помощника в БД для ${userId}...`);
+    
+    // Запрашиваем данные о помощниках напрямую из таблицы
+    const { data, error } = await supabase
+      .from('referral_helpers')
+      .select('building_id, status')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted');
+    
+    if (error) {
+      console.error('DebugCalculator: ошибка при проверке статуса помощника в БД:', error);
+      return [];
+    }
+    
+    if (data && data.length > 0) {
+      console.log(`DebugCalculator: в БД найдено ${data.length} записей, где ${userId} является активным помощником:`, data);
+      
+      // Преобразуем формат данных для совместимости
+      return data.map(item => ({
+        buildingId: item.building_id,
+        status: item.status
+      }));
+    } else {
+      console.log(`DebugCalculator: в БД не найдено записей, где ${userId} является активным помощником`);
+      return [];
+    }
+  } catch (error) {
+    console.error('DebugCalculator: неожиданная ошибка при проверке статуса помощника в БД:', error);
+    return [];
+  }
+}
 
 /**
  * Детальный расчет производства знаний с пошаговой информацией
  */
-export const debugKnowledgeProduction = (state: GameState): { steps: string[], total: number } => {
+export const debugKnowledgeProduction = async (state: GameState): Promise<{ steps: string[], total: number }> => {
   const steps: string[] = [];
   let totalProduction = 0;
   
@@ -146,31 +184,29 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     steps.push(`Шаг 5: Расчет бонуса для реферала-помощника (10% за каждое здание):`);
     
     // Получаем ID текущего пользователя
-    // ИЗМЕНЕНО: теперь используем локальное хранилище или кэш для user_id вместо referralCode
     const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
     
     // Выводим ID пользователя для отладки
     steps.push(`- Текущий пользователь ID: ${currentUserId || 'не определен'}`);
     
     if (currentUserId) {
-      // Проверяем, является ли текущий пользователь помощником для кого-то
-      const buildingsAsHelper = state.referralHelpers.filter(h => 
+      // ИЗМЕНЕНО: Сначала проверяем статус помощника в локальном состоянии
+      const localBuildingsAsHelper = state.referralHelpers.filter(h => 
         h.helperId === currentUserId && h.status === 'accepted'
       );
       
-      // Выводим все записи о помощниках для полной диагностики
-      steps.push(`- Все записи о помощниках (${state.referralHelpers.length}):`);
-      state.referralHelpers.forEach((h, idx) => {
-        steps.push(`  Запись #${idx+1}: helperId=${h.helperId}, buildingId=${h.buildingId}, status=${h.status}`);
-      });
+      steps.push(`- В локальном состоянии пользователь ${currentUserId} является помощником для ${localBuildingsAsHelper.length} зданий`);
       
-      if (buildingsAsHelper.length > 0) {
-        steps.push(`- Текущий пользователь (${currentUserId}) является помощником для ${buildingsAsHelper.length} зданий:`);
+      // ВАЖНОЕ ИЗМЕНЕНИЕ: Проверяем статус помощника напрямую в базе данных
+      const dbHelperStatus = await getHelperStatusFromDB(currentUserId);
+      
+      if (dbHelperStatus.length > 0) {
+        steps.push(`- ПО ДАННЫМ ИЗ БАЗЫ пользователь (${currentUserId}) является помощником для ${dbHelperStatus.length} зданий:`);
         
         let helperBonusForReferral = 0;
         
-        buildingsAsHelper.forEach((helperRecord, index) => {
-          steps.push(`  Здание #${index + 1}: ID=${helperRecord.buildingId}`);
+        dbHelperStatus.forEach((helperRecord, index) => {
+          steps.push(`  Здание #${index + 1}: ID=${helperRecord.buildingId}, статус=${helperRecord.status}`);
           
           // НОВАЯ ЛОГИКА: Реферал получает 10% бонус за каждое здание, на котором он помогает
           const perBuildingBonus = 0.1; // 10% за здание
@@ -183,12 +219,12 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
         steps.push(`- Общий бонус для реферала-помощника: +${helperBonusForReferral.toFixed(2)}/сек (10% за каждое здание)`);
         totalProduction += helperBonusForReferral;
       } else {
-        steps.push(`- Текущий пользователь (${currentUserId}) не является помощником ни для каких зданий`);
+        steps.push(`- ПО ДАННЫМ ИЗ БАЗЫ пользователь (${currentUserId}) не является помощником ни для каких зданий`);
         
         // Добавляем явное логирование для поиска пользователя среди помощников
         const helpersWithThisId = state.referralHelpers.filter(h => h.helperId === currentUserId);
         if (helpersWithThisId.length > 0) {
-          steps.push(`  Найдены записи для этого пользователя, но они не в статусе 'accepted':`);
+          steps.push(`  Найдены записи для этого пользователя в локальном состоянии, но они не в статусе 'accepted':`);
           helpersWithThisId.forEach((h, idx) => {
             steps.push(`  - Запись #${idx+1}: helperId=${h.helperId}, buildingId=${h.buildingId}, status=${h.status}`);
           });
@@ -256,15 +292,16 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
       steps.push(`- Бонус от помощников для реферрера (5% за каждого): +${helperBonusTotal.toFixed(2)}/сек`);
     }
     
-    // Обновлено: используем user_id вместо referralCode
+    // Бонус для реферала-помощника
     const currentUserIdForSummary = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
-    const buildingsAsHelper = currentUserIdForSummary ? state.referralHelpers.filter(h => 
-      h.helperId === currentUserIdForSummary && h.status === 'accepted'
-    ) : [];
-    
-    if (buildingsAsHelper.length > 0) {
-      const helperBonusForReferral = buildingProduction * buildingsAsHelper.length * 0.1;
-      steps.push(`- Бонус для реферала-помощника (10% за каждое здание, ${buildingsAsHelper.length} зданий): +${helperBonusForReferral.toFixed(2)}/сек`);
+    if (currentUserIdForSummary) {
+      // Получаем данные напрямую из базы данных
+      const dbHelperStatus = await getHelperStatusFromDB(currentUserIdForSummary);
+      
+      if (dbHelperStatus.length > 0) {
+        const helperBonusForReferral = buildingProduction * dbHelperStatus.length * 0.1;
+        steps.push(`- Бонус для реферала-помощника (10% за каждое здание, ${dbHelperStatus.length} зданий): +${helperBonusForReferral.toFixed(2)}/сек`);
+      }
     }
     
     if (knowledgeUpgradeMultiplier > 0) {

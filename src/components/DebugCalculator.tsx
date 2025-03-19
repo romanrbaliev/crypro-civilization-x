@@ -1,264 +1,136 @@
 
+// Обновляем компонент DebugCalculator для поддержки асинхронного расчета
 import React, { useState, useEffect } from 'react';
-import { Calculator } from 'lucide-react';
-import { Button } from './ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from './ui/dialog';
 import { useGame } from '@/context/hooks/useGame';
 import { debugKnowledgeProduction } from '@/utils/debugCalculator';
-import { formatNumber } from '@/utils/helpers';
-import { supabase } from '@/integrations/supabase/client';
-import { getUserIdentifier } from '@/api/userIdentification';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Info } from 'lucide-react';
 
 const DebugCalculator = () => {
-  const { state, updateHelpers } = useGame();
-  const [calculationResult, setCalculationResult] = useState<{ steps: string[]; total: number } | null>(null);
+  const { state } = useGame();
   const [isOpen, setIsOpen] = useState(false);
-  const [isDebugActive, setIsDebugActive] = useState(false);
+  const [debugSteps, setDebugSteps] = useState<string[]>([]);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [totalProduction, setTotalProduction] = useState(0);
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
 
-  // Эффект для проверки статусов помощников в базе данных
   useEffect(() => {
-    if (isOpen && !isDebugActive) {
-      setIsDebugActive(true);
-      checkHelpersInDatabase();
-    }
-    
-    if (!isOpen) {
-      setIsDebugActive(false);
-    }
-    
-    // Слушатель события обновления помощников
-    const handleHelpersUpdated = (event: CustomEvent) => {
-      console.log('Получено событие обновления помощников:', event.detail);
-      if (event.detail?.updatedHelpers) {
-        updateHelpers(event.detail.updatedHelpers);
-        // Обновляем расчеты
-        if (isOpen) {
-          handleCalculate();
-        }
-      }
-    };
-    
-    // Слушатель события для принудительного обновления ресурсов
     const handleForceUpdate = () => {
-      if (isOpen) {
-        handleCalculate();
-      }
+      if (!isOpen) return; // Только если калькулятор открыт
+      
+      console.log('Получено событие принудительного обновления, пересчитываем...');
+      runCalculation();
     };
-    
-    window.addEventListener('helpers-updated', handleHelpersUpdated as EventListener);
-    window.addEventListener('force-resource-update', handleForceUpdate as EventListener);
+
+    window.addEventListener('force-resource-update', handleForceUpdate);
+    window.addEventListener('helpers-updated', handleForceUpdate);
+    window.addEventListener('refresh-referrals', handleForceUpdate);
     
     return () => {
-      window.removeEventListener('helpers-updated', handleHelpersUpdated as EventListener);
-      window.removeEventListener('force-resource-update', handleForceUpdate as EventListener);
+      window.removeEventListener('force-resource-update', handleForceUpdate);
+      window.removeEventListener('helpers-updated', handleForceUpdate);
+      window.removeEventListener('refresh-referrals', handleForceUpdate);
     };
-  }, [isOpen, isDebugActive]);
+  }, [isOpen, state]);
 
-  // Функция для проверки статусов помощников в базе данных
-  const checkHelpersInDatabase = async () => {
+  useEffect(() => {
+    // Автоматический пересчет при открытии и при значительных изменениях состояния
+    if (isOpen) {
+      runCalculation();
+    }
+  }, [isOpen, state.referralHelpers.length]);
+
+  // Запускаем расчет с обработкой асинхронности
+  const runCalculation = async () => {
+    setIsCalculating(true);
+    
     try {
-      const userId = await getUserIdentifier();
-      
-      if (!userId) {
-        console.error('Не удалось получить ID пользователя');
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from('referral_helpers')
-        .select('*')
-        .eq('employer_id', userId);
-      
-      if (error) {
-        console.error('Ошибка при получении данных о помощниках:', error);
-        return;
-      }
-      
-      if (!data || data.length === 0) {
-        console.log('В БД не найдено записей о помощниках');
-        return;
-      }
-      
-      console.log('Данные о помощниках из базы данных:', data);
-      
-      // Сохраняем ID пользователя в локальное хранилище для быстрого доступа
-      localStorage.setItem('crypto_civ_user_id', userId);
-      // Сохраняем ID пользователя в глобальную переменную для более быстрого доступа
-      window.__game_user_id = userId;
-      
-      // Сравниваем с локальным состоянием
-      const localHelpers = state.referralHelpers;
-      
-      let needsUpdate = false;
-      const updatedHelpers = [...localHelpers];
-      
-      data.forEach(dbHelper => {
-        const localHelperIndex = localHelpers.findIndex(
-          h => h.helperId === dbHelper.helper_id && h.buildingId === dbHelper.building_id
-        );
-        
-        if (localHelperIndex >= 0) {
-          const localHelper = localHelpers[localHelperIndex];
-          if (localHelper.status !== dbHelper.status) {
-            console.log(`Несоответствие статуса помощника ${dbHelper.helper_id}: в БД - ${dbHelper.status}, локально - ${localHelper.status}`);
-            updatedHelpers[localHelperIndex] = {
-              ...localHelper,
-              status: dbHelper.status as 'pending' | 'accepted' | 'rejected'
-            };
-            needsUpdate = true;
-          }
-        }
-      });
-      
-      if (needsUpdate) {
-        console.log('Обновление помощников из базы данных:', updatedHelpers);
-        updateHelpers(updatedHelpers);
-      }
-      
-      // Также проверяем записи, где текущий пользователь выступает помощником
-      const { data: helperData, error: helperError } = await supabase
-        .from('referral_helpers')
-        .select('*')
-        .eq('helper_id', userId);
-        
-      if (helperError) {
-        console.error('Ошибка при получении данных о помощниках текущего пользователя:', helperError);
-        return;
-      }
-      
-      if (helperData && helperData.length > 0) {
-        console.log(`Найдены записи, где пользователь ${userId} выступает помощником:`, helperData);
-        
-        // Проверяем, все ли эти записи есть в локальном состоянии
-        let needsHelperUpdate = false;
-        const updatedHelpersList = [...updatedHelpers];
-        
-        helperData.forEach(dbRecord => {
-          const localRecordIndex = updatedHelpersList.findIndex(
-            h => h.helperId === dbRecord.helper_id && h.buildingId === dbRecord.building_id
-          );
-          
-          if (localRecordIndex < 0) {
-            // Запись есть в БД, но нет в локальном состоянии - добавляем
-            console.log(`Добавляем отсутствующую в локальном состоянии запись о помощнике:`, dbRecord);
-            updatedHelpersList.push({
-              id: dbRecord.id.toString(),
-              helperId: dbRecord.helper_id,
-              buildingId: dbRecord.building_id,
-              status: dbRecord.status as 'pending' | 'accepted' | 'rejected',
-              createdAt: Date.now()
-            });
-            needsHelperUpdate = true;
-          } else if (updatedHelpersList[localRecordIndex].status !== dbRecord.status) {
-            // Статус в БД отличается от локального - обновляем
-            console.log(`Обновляем статус записи о помощнике:`, {
-              old: updatedHelpersList[localRecordIndex].status,
-              new: dbRecord.status
-            });
-            updatedHelpersList[localRecordIndex] = {
-              ...updatedHelpersList[localRecordIndex],
-              status: dbRecord.status as 'pending' | 'accepted' | 'rejected'
-            };
-            needsHelperUpdate = true;
-          }
-        });
-        
-        if (needsHelperUpdate) {
-          console.log('Обновление списка помощников после проверки записей самого пользователя:', updatedHelpersList);
-          updateHelpers(updatedHelpersList);
-        }
-      }
+      const result = await debugKnowledgeProduction(state);
+      setDebugSteps(result.steps);
+      setTotalProduction(result.total);
+      setLastUpdateTime(Date.now());
     } catch (error) {
-      console.error('Ошибка при проверке помощников в базе данных:', error);
+      console.error('Ошибка при запуске калькулятора:', error);
+      setDebugSteps([`Произошла ошибка: ${error instanceof Error ? error.message : String(error)}`]);
+    } finally {
+      setIsCalculating(false);
     }
   };
-
-  const handleCalculate = () => {
-    const result = debugKnowledgeProduction(state);
-    setCalculationResult(result);
+  
+  // Функция для добавления временной отметки к строкам
+  const formatDebugStep = (step: string, index: number) => {
+    // Добавляем отступы для визуальной иерархии
+    if (step.startsWith('-')) {
+      return <div key={index} className="pl-4 text-sm">{step}</div>;
+    }
+    if (step.startsWith('  ')) {
+      return <div key={index} className="pl-8 text-sm">{step}</div>;
+    }
+    if (step.startsWith('    ')) {
+      return <div key={index} className="pl-12 text-sm">{step}</div>;
+    }
+    
+    // Заголовки шагов делаем более заметными
+    if (step.startsWith('Шаг')) {
+      return <div key={index} className="font-medium text-sm mt-2">{step}</div>;
+    }
+    
+    // Начальный и итоговый шаги выделяем сильнее
+    if (step.startsWith('Анализ') || step.startsWith('Итоговая')) {
+      return <div key={index} className="font-bold text-sm">{step}</div>;
+    }
+    
+    return <div key={index} className="text-sm">{step}</div>;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-2 w-full flex items-center justify-center gap-2 text-xs"
-          onClick={handleCalculate}
-        >
-          <Calculator className="h-3.5 w-3.5" />
-          Анализ накопления знаний
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle className="text-center">Детальный расчет накопления знаний</DialogTitle>
-          <DialogDescription className="text-center">
-            Пошаговый анализ скорости накопления знаний с учетом обновленной логики бонусов 
-            (5% для реферрера за каждого помощника, 10% для реферала за каждое здание)
-          </DialogDescription>
-        </DialogHeader>
-
-        {calculationResult && (
-          <div className="space-y-4">
-            <div className="border p-3 rounded-md bg-blue-50">
-              <p className="font-semibold">Итоговая скорость накопления: {formatNumber(calculationResult.total)}/сек</p>
-              <p className="text-xs text-gray-600">
-                Значение в интерфейсе: {state.resources.knowledge?.perSecond ? formatNumber(state.resources.knowledge.perSecond) : '0'}/сек
-              </p>
-              {Math.abs(calculationResult.total - (state.resources.knowledge?.perSecond || 0)) > 0.01 && (
-                <p className="text-xs text-red-600 font-semibold mt-1">
-                  Обнаружено расхождение! Разница: {Math.abs(calculationResult.total - (state.resources.knowledge?.perSecond || 0)).toFixed(2)}/сек
-                </p>
-              )}
-            </div>
-            
+    <div className="mt-4">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border rounded-md">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="flex w-full justify-between px-4 py-2">
+            <span className="flex items-center">
+              <Info className="h-4 w-4 mr-2" />
+              Калькулятор производства
+            </span>
+            <span>{isOpen ? '▲' : '▼'}</span>
+          </Button>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent className="px-4 pb-2">
+          <div className="mb-2 flex justify-between items-center">
+            <span className="text-xs text-gray-500">
+              Последнее обновление: {new Date(lastUpdateTime).toLocaleTimeString()}
+            </span>
             <Button 
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={checkHelpersInDatabase}
+              variant="outline" 
+              size="sm" 
+              onClick={runCalculation} 
+              disabled={isCalculating}
+              className="text-xs"
             >
-              Проверить помощников в базе данных
+              {isCalculating ? 'Расчет...' : 'Пересчитать'}
             </Button>
-            
-            <div className="space-y-2">
-              {calculationResult.steps.map((step, index) => (
-                <div 
-                  key={index} 
-                  className={`p-2 text-sm ${
-                    step.includes('Шаг') 
-                      ? 'font-semibold border-b pb-1' 
-                      : step.includes('Итого') || step.includes('Итоговая')
-                        ? 'font-semibold text-blue-600' 
-                        : step.includes('расхождение') || step.includes('Ошибка')
-                          ? 'text-red-600 font-semibold'
-                          : 'pl-4'
-                  }`}
-                >
-                  {step}
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t pt-4 mt-4">
-              <DialogClose asChild>
-                <Button className="w-full">Закрыть</Button>
-              </DialogClose>
-            </div>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          
+          <div className="max-h-60 overflow-y-auto border p-2 rounded-md bg-slate-50 space-y-1">
+            {debugSteps.map(formatDebugStep)}
+            
+            {isCalculating && (
+              <div className="text-center py-2 text-sm text-gray-500">
+                Выполняется расчет...
+              </div>
+            )}
+            
+            {!isCalculating && debugSteps.length === 0 && (
+              <div className="text-center py-2 text-sm text-gray-500">
+                Нажмите "Пересчитать" для анализа производства
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 };
 
