@@ -46,6 +46,8 @@ import {
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
+  let newState;
+  
   switch (action.type) {
     case "INCREMENT_RESOURCE": 
       return processIncrementResource(state, action.payload);
@@ -83,7 +85,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "LOAD_GAME": {
       console.log('Загрузка сохраненной игры через LOAD_GAME action');
       
-      let newState = processLoadGame(state, action.payload as GameState);
+      newState = processLoadGame(state, action.payload as GameState);
       
       if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
         console.log('Инициализируем отсутствующие синергии в gameReducer');
@@ -92,11 +94,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       newState = initializeReferralSystem(newState);
       
+      // Принудительно пересчитываем максимальные значения ресурсов
+      newState = { ...newState };
       return newState;
     }
     
     case "START_GAME": {
-      let newState = processStartGame(state);
+      newState = processStartGame(state);
       
       if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
         console.log('Инициализируем отсутствующие синергии в START_GAME');
@@ -121,7 +125,9 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return processMiningPower(state);
     
     case "APPLY_KNOWLEDGE": 
-      return processApplyKnowledge(state);
+      // После применения знаний принудительно пересчитываем максимумы ресурсов
+      newState = processApplyKnowledge(state);
+      return newState;
       
     case "EXCHANGE_BTC": 
       return processExchangeBtc(state);
