@@ -876,4 +876,165 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={copyReferralLink}>
                 <Copy className="h-3 w-3" />
               </Button>
-              <Button variant="outline" size="sm" className="h-
+              <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={sendTelegramInvite}>
+                <Send className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="text-[9px] font-mono bg-gray-100 p-1.5 rounded border select-all">
+            {referralLink}
+          </div>
+        </div>
+        
+        <div className="bg-gray-50 p-2 rounded-lg border mb-2">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[10px] font-medium">Статистика:</div>
+            <div className="text-[9px] text-gray-600">
+              {activeReferrals} / {totalReferrals} активны
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white p-1.5 rounded border">
+              <div className="text-[9px] text-gray-600">Всего рефералов</div>
+              <div className="text-sm font-medium">{totalReferrals}</div>
+            </div>
+            <div className="bg-white p-1.5 rounded border">
+              <div className="text-[9px] text-gray-600">Активных</div>
+              <div className="text-sm font-medium text-green-600">{activeReferrals}</div>
+            </div>
+          </div>
+        </div>
+        
+        {hasHelperRequests && (
+          <div className="bg-yellow-50 p-2 rounded-lg border border-yellow-200 mb-2">
+            <div className="flex items-center text-[11px] font-medium text-yellow-700 mb-1.5">
+              <MessageSquare className="h-3 w-3 mr-1" />
+              Предложения о работе ({helperRequests.length})
+            </div>
+            
+            <div className="space-y-2">
+              {helperRequests.map(request => (
+                <div key={request.id} className="bg-white p-1.5 rounded border text-[9px]">
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <div>От: <span className="font-medium">{request.employer_id.substring(0, 6)}</span></div>
+                      <div>Здание: <span className="font-medium">{
+                        state.buildings[request.building_id]?.name || request.building_id
+                      }</span></div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-5 w-5 p-0 border-green-500 text-green-600 hover:bg-green-50"
+                        onClick={() => respondToHelperRequest(request.id, true)}
+                      >
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-5 w-5 p-0 border-red-500 text-red-600 hover:bg-red-50"
+                        onClick={() => respondToHelperRequest(request.id, false)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-gray-500">
+                    Бонус: +10% к производительности этого здания
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex-grow overflow-hidden">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full h-full">
+          <TabsList className="w-full h-6 bg-gray-100">
+            <TabsTrigger value="all" className="h-5 text-[10px]">
+              Все ({totalReferrals})
+            </TabsTrigger>
+            <TabsTrigger value="active" className="h-5 text-[10px]">
+              Активные ({activeReferrals})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all" className="mt-2 h-[calc(100%-2rem)] overflow-auto">
+            {filteredReferrals.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2">
+                {filteredReferrals.map(referral => (
+                  <ReferralItem
+                    key={referral.id}
+                    referral={referral}
+                    userBuildings={getUserBuildings()}
+                    helperRequests={helperRequests}
+                    ownedReferral={referral.id === userId}
+                    onHire={hireHelper}
+                    onFire={fireHelper}
+                    onLoadAvailableBuildings={loadAvailableBuildingsForReferral}
+                    availableBuildings={availableBuildings}
+                    isMobile={isMobile}
+                    selectedBuildingId={selectedBuildingId}
+                    setSelectedBuildingId={setSelectedBuildingId}
+                    isHelperAssigned={isHelperAssigned}
+                    assignedBuildingId={getAssignedBuildingId(referral.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                <Users className="h-6 w-6 text-gray-400 mb-2" />
+                <p className="text-[11px] text-gray-600">У вас пока нет рефералов</p>
+                <p className="text-[9px] text-gray-500 mt-1">
+                  Пригласите друзей, используя вашу реферальную ссылку
+                </p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="active" className="mt-2 h-[calc(100%-2rem)] overflow-auto">
+            {filteredReferrals.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2">
+                {filteredReferrals.map(referral => (
+                  <ReferralItem
+                    key={referral.id}
+                    referral={referral}
+                    userBuildings={getUserBuildings()}
+                    helperRequests={helperRequests}
+                    ownedReferral={referral.id === userId}
+                    onHire={hireHelper}
+                    onFire={fireHelper}
+                    onLoadAvailableBuildings={loadAvailableBuildingsForReferral}
+                    availableBuildings={availableBuildings}
+                    isMobile={isMobile}
+                    selectedBuildingId={selectedBuildingId}
+                    setSelectedBuildingId={setSelectedBuildingId}
+                    isHelperAssigned={isHelperAssigned}
+                    assignedBuildingId={getAssignedBuildingId(referral.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                <Building className="h-6 w-6 text-gray-400 mb-2" />
+                <p className="text-[11px] text-gray-600">У вас пока нет активных рефералов</p>
+                <p className="text-[9px] text-gray-500 mt-1">
+                  Активные рефералы дают +5% к производительности
+                </p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="temp" className="hidden" />
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default ReferralsTab;
