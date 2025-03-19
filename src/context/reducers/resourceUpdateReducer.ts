@@ -114,15 +114,11 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Применяем увеличение хранилища от зданий
   updatedResources = applyStorageBoosts(updatedResources, state.buildings);
   
-  // Сброс baseProduction для исследований - нам нужны чистые значения
-  Object.keys(updatedResources).forEach(resourceId => {
-    // Сохраняем исходное значение base для применения эффектов
-    if (updatedResources[resourceId]) {
-      updatedResources[resourceId].baseProduction = updatedResources[resourceId].perSecond;
-    }
-  });
+  // Создаем копию для применения эффектов от исследований
+  // Это предотвращает кумулятивное накопление бонусов при каждом расчете
+  const resourcesWithBaseValues = JSON.parse(JSON.stringify(updatedResources));
   
-  // Применяем эффекты от исследований
+  // Применяем эффекты от исследований поверх базовых значений
   Object.values(state.upgrades).forEach(upgrade => {
     if (upgrade.purchased) {
       // Получаем эффекты исследования (поддерживаем оба поля effects и effect)
@@ -130,28 +126,28 @@ export const processResourceUpdate = (state: GameState): GameState => {
       
       // Применяем эффекты к скорости накопления ресурсов
       Object.entries(effects).forEach(([effectId, amount]) => {
-        if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
+        if (effectId === 'knowledgeBoost' && resourcesWithBaseValues.knowledge) {
           const boost = Number(amount);
-          // Используем baseProduction вместо perSecond для предотвращения двойного учета
-          const baseProduction = updatedResources.knowledge.baseProduction || 0;
+          // Используем baseProduction для предотвращения двойного учета
+          const baseProduction = resourcesWithBaseValues.knowledge.baseProduction || 0;
           const boostAmount = baseProduction * boost;
           
           // Увеличиваем скорость накопления знаний
-          updatedResources.knowledge.perSecond += boostAmount;
+          resourcesWithBaseValues.knowledge.perSecond += boostAmount;
           
           console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления знаний: +${boostAmount.toFixed(2)}/сек`);
         }
         else if (effectId.includes('Boost') && !effectId.includes('Max')) {
           // Обрабатываем другие бонусы к скорости
           const resourceId = effectId.replace('Boost', '');
-          if (updatedResources[resourceId]) {
+          if (resourcesWithBaseValues[resourceId]) {
             const boost = Number(amount);
-            // Используем baseProduction вместо perSecond для предотвращения двойного учета
-            const baseProduction = updatedResources[resourceId].baseProduction || 0;
+            // Используем baseProduction для предотвращения двойного учета
+            const baseProduction = resourcesWithBaseValues[resourceId].baseProduction || 0;
             const boostAmount = baseProduction * boost;
             
             // Увеличиваем скорость накопления ресурса
-            updatedResources[resourceId].perSecond += boostAmount;
+            resourcesWithBaseValues[resourceId].perSecond += boostAmount;
             
             console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления ${resourceId}: +${boostAmount.toFixed(2)}/сек`);
           }
@@ -161,11 +157,11 @@ export const processResourceUpdate = (state: GameState): GameState => {
   });
   
   // Обновляем значения ресурсов с учетом времени
-  updatedResources = updateResourceValues(updatedResources, deltaTime);
+  const finalResources = updateResourceValues(resourcesWithBaseValues, deltaTime);
   
   return {
     ...state,
-    resources: updatedResources,
+    resources: finalResources,
     lastUpdate: now,
     gameTime: state.gameTime + deltaTime
   };

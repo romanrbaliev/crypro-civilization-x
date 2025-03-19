@@ -20,15 +20,23 @@ const KnowledgeProductionPopup = () => {
     try {
       setLoading(true);
       
-      // Сначала форсируем обновление состояния игры
+      // Сначала форсируем обновление состояния игры и ждем короткое время
       forceUpdate();
       
       // Небольшая задержка, чтобы обновление успело применится
       setTimeout(async () => {
-        const { steps, finalValue } = await debugKnowledgeProduction(state);
-        setCalculationSteps(steps);
-        setFinalValue(finalValue);
-        setLoading(false);
+        try {
+          // Получаем расчеты
+          const { steps, finalValue } = await debugKnowledgeProduction(state);
+          setCalculationSteps(steps);
+          setFinalValue(finalValue);
+        } catch (error) {
+          console.error('Ошибка в debugKnowledgeProduction:', error);
+          setCalculationSteps(['Произошла ошибка при расчете: ' + error]);
+          setFinalValue(0);
+        } finally {
+          setLoading(false);
+        }
       }, 100);
     } catch (error) {
       console.error('Ошибка при обновлении расчета:', error);

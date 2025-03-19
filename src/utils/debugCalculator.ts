@@ -60,9 +60,14 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
       }
     });
     
-    steps.push(`Всего от исследований: +${totalUpgradeBoost.toFixed(2)}/сек`);
+    if (totalUpgradeBoost > 0) {
+      steps.push(`Всего от исследований: +${totalUpgradeBoost.toFixed(2)}/сек`);
+    } else {
+      steps.push('- Нет активных исследований с бонусами к знаниям (0% бонуса)');
+    }
     
-    // Шаг 3: Бонусы от рефералов
+    // Шаг 3: Бонусы от рефералов (только для реферрера)
+    const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
     const referrals = state.referrals || [];
     const activeReferrals = referrals.filter((ref: any) => 
       ref.status === 'active' || ref.activated === true || ref.activated === 'true'
@@ -70,9 +75,10 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     
     steps.push('\n3. Бонусы от рефералов:');
     
+    let referralBoostAmount = 0;
     if (activeReferrals.length > 0) {
       const referralBonus = activeReferrals.length * 0.05; // 5% за каждого активного реферала
-      const referralBoostAmount = baseValue * referralBonus;
+      referralBoostAmount = baseValue * referralBonus;
       
       steps.push(`- Активных рефералов: ${activeReferrals.length}, бонус: +${(referralBonus * 100).toFixed(0)}%`);
       steps.push(`- Увеличение производства: +${referralBoostAmount.toFixed(2)}/сек`);
@@ -83,12 +89,10 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     }
     
     // Шаг 4: Бонусы от помощников, где текущий пользователь является РАБОТОДАТЕЛЕМ
-    steps.push('\n4. Бонусы от помощников для реферрера:');
+    steps.push('\n4. Бонусы от помощников для работодателя:');
     
     const referralHelpers = state.referralHelpers || [];
-    
-    // Проверяем, что пользователь является работодателем (employerId), а не помощником (helperId)
-    const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+    let totalHelperBonus = 0;
     
     // Фильтруем только тех помощников, где текущий пользователь - работодатель
     const myHelpers = referralHelpers.filter((helper: any) => 
@@ -97,7 +101,6 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     
     if (myHelpers.length > 0) {
       const helperIds = new Set();
-      let totalHelperBonus = 0;
       
       // Группируем помощников по зданиям
       const helpersByBuilding: Record<string, any[]> = {};
@@ -115,7 +118,7 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
         const building = buildings[buildingId];
         
         if (building && building.production && building.production.knowledge) {
-          const buildingProduction = building.production.knowledge;
+          const buildingProduction = building.production.knowledge * building.count;
           const helperBonus = helpers.length * 0.05; // 5% за каждого помощника
           const helperBoostAmount = buildingProduction * helperBonus;
           
@@ -156,9 +159,10 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
       // Используем максимальное значение из локального состояния и БД для надежности
       helperBuildingsCount = Math.max(helperBuildingsCount, helperBuildingsFromCache);
       
+      let helperBoostAmount = 0;
       if (helperBuildingsCount > 0) {
         const helperBonus = helperBuildingsCount * 0.1; // 10% за каждое здание
-        const helperBoostAmount = baseValue * helperBonus;
+        helperBoostAmount = baseValue * helperBonus;
         
         steps.push(`- Пользователь ${currentUserId.substring(0, 10)}... помогает на ${helperBuildingsCount} зданиях`);
         steps.push(`- Статус помощника даёт бонус: +${(helperBonus * 100).toFixed(0)}% к базовому производству = +${helperBoostAmount.toFixed(2)}/сек`);
@@ -175,7 +179,7 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     const finalValue = baseValue + totalUpgradeBoost;
     steps.push('\n6. Итоговое производство знаний:');
     steps.push(`- Базовое производство: ${baseValue.toFixed(2)}/сек`);
-    steps.push(`- Бонусы от исследований и рефералов: +${totalUpgradeBoost.toFixed(2)}/сек`);
+    steps.push(`- Бонусы от исследований, рефералов и помощников: +${totalUpgradeBoost.toFixed(2)}/сек`);
     steps.push(`- Итого: ${finalValue.toFixed(2)}/сек`);
     
     return { 
