@@ -2,6 +2,7 @@
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { checkUpgradeUnlocks } from './upgradeReducer';
 
 // Обработка покупки зданий
 export const processPurchaseBuilding = (
@@ -84,6 +85,50 @@ export const processPurchaseBuilding = (
   
   // Обновляем максимальные значения ресурсов
   newState = updateResourceMaxValues(newState);
+  
+  // НОВЫЙ КОД: Разблокировка вкладки исследований при покупке первого генератора
+  if (buildingId === "generator" && building.count === 0) {
+    console.log("Разблокируем вкладку исследований после покупки первого генератора");
+    
+    // Разблокируем саму вкладку исследований
+    newState = {
+      ...newState,
+      unlocks: {
+        ...newState.unlocks,
+        research: true
+      }
+    };
+    
+    // Разблокируем "Основы блокчейна" в обоих возможных ID
+    const upgrades = { ...newState.upgrades };
+    
+    if (upgrades.basicBlockchain) {
+      upgrades.basicBlockchain = {
+        ...upgrades.basicBlockchain,
+        unlocked: true
+      };
+      console.log("Разблокировано исследование 'Основы блокчейна' (basicBlockchain)");
+    }
+    
+    if (upgrades.blockchain_basics) {
+      upgrades.blockchain_basics = {
+        ...upgrades.blockchain_basics,
+        unlocked: true
+      };
+      console.log("Разблокировано исследование 'Основы блокчейна' (blockchain_basics)");
+    }
+    
+    newState = {
+      ...newState,
+      upgrades: upgrades
+    };
+    
+    safeDispatchGameEvent("Разблокирована вкладка исследований", "success");
+    safeDispatchGameEvent("Доступно новое исследование: Основы блокчейна", "info");
+  }
+  
+  // Проверяем разблокировку улучшений
+  newState = checkUpgradeUnlocks(newState);
   
   return newState;
 };

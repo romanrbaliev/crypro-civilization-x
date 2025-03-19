@@ -26,6 +26,15 @@ export const checkUnlockConditions = (state: GameState, upgrade: Upgrade): boole
   // Проверка требований по ресурсам (устаревший формат)
   if (upgrade.requirements) {
     for (const [resourceId, amount] of Object.entries(upgrade.requirements)) {
+      // Специальная обработка для требований по зданиям
+      if (resourceId.includes('Count')) {
+        const buildingId = resourceId.replace('Count', '');
+        if (!state.buildings[buildingId] || state.buildings[buildingId].count < amount) {
+          return false;
+        }
+        continue;
+      }
+      
       const resource = state.resources[resourceId];
       if (!resource || resource.value < amount) {
         return false;
