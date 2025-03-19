@@ -64,7 +64,8 @@ const KnowledgeProductionPopup = () => {
               calculationSteps.map((step, index) => (
                 <div key={index} className={
                   step.includes('Статус помощника даёт бонус') ? 'bg-blue-50 p-1 rounded my-1' : 
-                  step.includes('Итого:') ? 'font-bold mt-2' : ''
+                  step.includes('Итого:') ? 'font-bold mt-2' : 
+                  step.includes('Общий бонус от помощников') ? 'font-semibold' : ''
                 }>
                   {step}
                 </div>

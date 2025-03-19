@@ -1,4 +1,3 @@
-
 import { helperStatusCache } from './referralHelperUtils';
 
 export function formatNumber(num: number, digits: number = 2): string {
@@ -82,64 +81,77 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
       steps.push('- Нет активных рефералов (0% бонуса)');
     }
     
-    // Шаг 4: Бонусы от помощников для реферрера
+    // Шаг 4: Бонусы от помощников, где текущий пользователь является РАБОТОДАТЕЛЕМ
     steps.push('\n4. Бонусы от помощников для реферрера:');
     
     const referralHelpers = state.referralHelpers || [];
-    const helperIds = new Set();
-    let totalHelperBonus = 0;
     
-    // Группируем помощников по зданиям
-    const helpersByBuilding: Record<string, any[]> = {};
+    // ИСПРАВЛЕНИЕ: Проверяем, что пользователь является работодателем (employerId), а не помощником (helperId)
+    const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
     
-    referralHelpers.forEach((helper: any) => {
-      if (helper.status === 'accepted') {
+    // Фильтруем только тех помощников, где текущий пользователь - работодатель
+    const myHelpers = referralHelpers.filter((helper: any) => 
+      helper.employerId === currentUserId && helper.status === 'accepted'
+    );
+    
+    if (myHelpers.length > 0) {
+      const helperIds = new Set();
+      let totalHelperBonus = 0;
+      
+      // Группируем помощников по зданиям
+      const helpersByBuilding: Record<string, any[]> = {};
+      
+      myHelpers.forEach((helper: any) => {
         if (!helpersByBuilding[helper.buildingId]) {
           helpersByBuilding[helper.buildingId] = [];
         }
         helpersByBuilding[helper.buildingId].push(helper);
         helperIds.add(helper.helperId);
-      }
-    });
-    
-    // Для каждого здания с помощниками
-    Object.entries(helpersByBuilding).forEach(([buildingId, helpers]) => {
-      const building = buildings[buildingId];
+      });
       
-      if (building && building.production && building.production.knowledge) {
-        const buildingProduction = building.production.knowledge;
-        const helperBonus = helpers.length * 0.05; // 5% за каждого помощника
-        const helperBoostAmount = buildingProduction * helperBonus;
+      // Для каждого здания с помощниками
+      Object.entries(helpersByBuilding).forEach(([buildingId, helpers]) => {
+        const building = buildings[buildingId];
         
-        totalHelperBonus += helperBoostAmount;
-        steps.push(`- Здание "${building.name}" с ${helpers.length} помощниками: +${(helperBonus * 100).toFixed(0)}% к производству ${buildingProduction.toFixed(2)}/сек = +${helperBoostAmount.toFixed(2)}/сек`);
-      }
-    });
-    
-    if (Object.keys(helpersByBuilding).length === 0) {
-      steps.push('- Нет зданий с активными помощниками (0% бонуса)');
-    } else {
+        if (building && building.production && building.production.knowledge) {
+          const buildingProduction = building.production.knowledge;
+          const helperBonus = helpers.length * 0.05; // 5% за каждого помощника
+          const helperBoostAmount = buildingProduction * helperBonus;
+          
+          totalHelperBonus += helperBoostAmount;
+          steps.push(`- Здание "${building.name}" с ${helpers.length} помощниками: +${(helperBonus * 100).toFixed(0)}% к производству ${buildingProduction.toFixed(2)}/сек = +${helperBoostAmount.toFixed(2)}/сек`);
+        }
+      });
+      
       steps.push(`- Всего уникальных помощников: ${helperIds.size}`);
       steps.push(`- Общий бонус от помощников: +${totalHelperBonus.toFixed(2)}/сек`);
+    } else {
+      steps.push('- Нет зданий с активными помощниками (0% бонуса)');
     }
     
-    // Шаг 5: Бонус для реферала-помощника (10% за каждое здание)
+    // Шаг 5: Бонус для реферала-помощника (10% за каждое здание, если текущий пользователь является ПОМОЩНИКОМ)
     steps.push('\n5. Бонус для реферала-помощника:');
     
-    const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
     let helperBuildingsCount = 0;
+    let hasHelperRole = false;
     
     if (currentUserId) {
-      // Получаем актуальное количество зданий из кеша или БД
-      helperBuildingsCount = await helperStatusCache.get(currentUserId);
-      
-      // Проверяем локальное состояние тоже для диагностики
-      const localHelperBuildings = referralHelpers.filter((h: any) => 
+      // ИСПРАВЛЕНИЕ: Проверяем, где текущий пользователь выступает в роли помощника
+      const whereIAmHelper = referralHelpers.filter((h: any) => 
         h.helperId === currentUserId && h.status === 'accepted'
       );
       
-      steps.push(`- Данные о помощнике из БД: ${helperBuildingsCount} зданий`);
-      steps.push(`- Данные о помощнике из локального состояния: ${localHelperBuildings.length} зданий`);
+      helperBuildingsCount = whereIAmHelper.length;
+      hasHelperRole = helperBuildingsCount > 0;
+      
+      // Дополнительно проверяем в кеше/БД для подтверждения
+      const helperBuildingsFromCache = await helperStatusCache.get(currentUserId);
+      
+      steps.push(`- Данные о помощнике из БД: ${helperBuildingsFromCache} зданий`);
+      steps.push(`- Данные о помощнике из локального состояния: ${helperBuildingsCount} зданий`);
+      
+      // Используем максимальное значение из локального состояния и БД для надежности
+      helperBuildingsCount = Math.max(helperBuildingsCount, helperBuildingsFromCache);
       
       if (helperBuildingsCount > 0) {
         const helperBonus = helperBuildingsCount * 0.1; // 10% за каждое здание
@@ -150,18 +162,17 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
         
         totalUpgradeBoost += helperBoostAmount;
       } else {
-        steps.push(`- Текущий пользователь (${currentUserId.substring(0, 10)}...) не является помощником ни для каких зданий по данным кеша`);
+        steps.push(`- Текущий пользователь (${currentUserId.substring(0, 10)}...) не является помощником ни для каких зданий`);
       }
     } else {
       steps.push('- Не удалось определить ID пользователя');
     }
     
     // Шаг 6: Расчёт итогового значения
-    const finalValue = baseValue + totalUpgradeBoost + totalHelperBonus;
+    const finalValue = baseValue + totalUpgradeBoost;
     steps.push('\n6. Итоговое производство знаний:');
     steps.push(`- Базовое производство: ${baseValue.toFixed(2)}/сек`);
     steps.push(`- Бонусы от исследований и рефералов: +${totalUpgradeBoost.toFixed(2)}/сек`);
-    steps.push(`- Бонусы от помощников для реферрера: +${totalHelperBonus.toFixed(2)}/сек`);
     steps.push(`- Итого: ${finalValue.toFixed(2)}/сек`);
     
     return { 
@@ -177,4 +188,3 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     };
   }
 }
-
