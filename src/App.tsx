@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,33 +10,30 @@ import { useEffect, useState } from "react";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { toast } from "@/hooks/use-toast";
-import { checkSupabaseConnection } from "./api/gameDataService";
+import { checkSupabaseConnection, getUserIdentifier } from "./api/gameDataService";
 import { createSavesTableIfNotExists } from "./api/gameDataService";
+import { syncHelperDataWithGameState } from "./api/referral/referralHelpers";
 import "./index.css";
 
-// Настраиваем клиент для React Query с повышенным количеством повторных попыток
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 3, // Увеличиваем количество повторных попыток
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Экспоненциальное увеличение задержки
+      retry: 3,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
   },
 });
 
-// Установка заголовка и иконки для Telegram Mini App
 const setTelegramMeta = () => {
   document.title = "Crypto Civilization";
   
-  // Для корректной работы в Telegram
   const viewport = document.querySelector('meta[name="viewport"]');
   if (viewport) {
     viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
   }
 };
 
-// Инициализация глобальных переменных, если они ещё не определены
 if (typeof window !== 'undefined') {
   window.__telegramInitialized = window.__telegramInitialized || false;
   window.__telegramNotificationShown = window.__telegramNotificationShown || false;
@@ -46,7 +42,6 @@ if (typeof window !== 'undefined') {
   window.__game_user_id = window.__game_user_id || null;
   window.__cloudflareRetryCount = window.__cloudflareRetryCount || 0;
   
-  // Создаем шину событий при инициализации приложения
   ensureGameEventBus();
 }
 
@@ -56,7 +51,6 @@ const App = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [cloudflareError, setCloudflareError] = useState(false);
   
-  // Обработчик статуса соединения
   useEffect(() => {
     const handleOnlineStatusChange = () => {
       setIsOnline(navigator.onLine);
@@ -67,12 +61,10 @@ const App = () => {
           variant: "destructive",
         });
       } else {
-        // Повторно проверяем подключение к Supabase при восстановлении интернета
         tryConnectToSupabase();
       }
     };
     
-    // Функция для проверки соединения с Supabase с обработкой ошибок Cloudflare
     const tryConnectToSupabase = async () => {
       try {
         const connected = await checkSupabaseConnection();
@@ -86,7 +78,6 @@ const App = () => {
             variant: "success",
           });
           
-          // Проверяем наличие нужных таблиц и создаем их если нужно
           try {
             await createSavesTableIfNotExists();
             console.log('✅ Проверка и создание таблиц в Supabase выполнены');
@@ -119,7 +110,6 @@ const App = () => {
     window.addEventListener('online', handleOnlineStatusChange);
     window.addEventListener('offline', handleOnlineStatusChange);
     
-    // Начальная проверка подключения к Supabase и создание нужных таблиц
     tryConnectToSupabase();
     
     return () => {
@@ -128,23 +118,19 @@ const App = () => {
     };
   }, []);
   
-  // Устанавливаем мета-данные при загрузке приложения
   useEffect(() => {
     setTelegramMeta();
     
-    // Предотвращаем повторную инициализацию
     if (window.__telegramInitialized) {
       return;
     }
     
     window.__telegramInitialized = true;
     
-    // Инициализация Telegram WebApp при загрузке приложения
     if (isTelegramWebAppAvailable()) {
       console.log('🔄 Инициализация Telegram WebApp в App.tsx');
       
       try {
-        // Отправляем сигнал готовности приложения с дополнительной обработкой ошибок
         if (window.Telegram?.WebApp?.ready) {
           try {
             window.Telegram.WebApp.ready();
@@ -154,7 +140,6 @@ const App = () => {
           }
         }
         
-        // Расширяем приложение на весь экран с обработкой ошибок
         if (window.Telegram?.WebApp?.expand) {
           try {
             window.Telegram.WebApp.expand();
@@ -164,7 +149,6 @@ const App = () => {
           }
         }
         
-        // Детальное логирование данных Telegram
         console.log('✅ Telegram WebApp инициализирован:');
         if (window.Telegram?.WebApp?.platform) {
           console.log('- Платформа:', window.Telegram.WebApp.platform);
@@ -176,7 +160,6 @@ const App = () => {
           console.log('- Длина initData:', window.Telegram.WebApp.initData.length || 0);
         }
         
-        // Логируем объект пользователя, если доступен
         if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
           console.log('- Данные пользователя:', window.Telegram.WebApp.initDataUnsafe.user);
           console.log('- Детали пользователя:');
@@ -185,7 +168,6 @@ const App = () => {
           console.log('  Username:', user.username);
           console.log('  First name:', user.first_name);
           console.log('  Last name:', user.last_name);
-          // Проверяем наличие language_code перед использованием
           if (user.language_code) {
             console.log('  Language code:', user.language_code);
           }
@@ -193,14 +175,12 @@ const App = () => {
           console.warn('⚠️ Объект пользователя Telegram недоступен');
         }
         
-        // Логируем start_param, если доступен
         if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
           console.log('- Start параметр:', window.Telegram.WebApp.initDataUnsafe.start_param);
         } else {
           console.log('- Start параметр отсутствует');
         }
         
-        // Выводим всю структуру initDataUnsafe для отладки
         console.log('- Полная структура initDataUnsafe:', window.Telegram.WebApp.initDataUnsafe);
       } catch (error) {
         console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
@@ -209,8 +189,28 @@ const App = () => {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме браузера');
     }
   }, []);
-
-  // Для отображения ошибки Cloudflare
+  
+  useEffect(() => {
+    const syncHelperData = async () => {
+      try {
+        const userId = await getUserIdentifier();
+        if (userId && window.__game_user_id) {
+          console.log('🔄 Синхронизация данных помощников при запуске приложения...');
+          
+          setTimeout(() => {
+            const event = new CustomEvent('refresh-referrals');
+            window.dispatchEvent(event);
+            console.log('✅ Отправлен запрос на обновление данных помощников');
+          }, 1500);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка при синхронизации данных помощников при запуске:', error);
+      }
+    };
+    
+    setTimeout(syncHelperData, 2000);
+  }, []);
+  
   if (isInitialized && cloudflareError) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-orange-50 to-white p-4">
@@ -238,7 +238,6 @@ const App = () => {
                 setCloudflareError(false);
                 window.__cloudflareRetryCount = 0;
                 setIsInitialized(false);
-                // Перезапускаем процесс инициализации
                 setTimeout(() => {
                   window.location.reload();
                 }, 500);
@@ -253,7 +252,6 @@ const App = () => {
     );
   }
 
-  // Для оффлайн-режима или отсутствия соединения с Supabase показываем заглушку
   if (isInitialized && (!isOnline || !isSupabaseConnected)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
@@ -295,7 +293,6 @@ const App = () => {
   );
 };
 
-// Добавляем дополнительные глобальные типы
 declare global {
   interface Window {
     __telegramInitialized?: boolean;

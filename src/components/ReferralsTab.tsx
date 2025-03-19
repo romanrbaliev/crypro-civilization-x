@@ -33,6 +33,7 @@ import {
   getReferralAssignedBuildingId
 } from '@/utils/referralHelperUtils';
 import { triggerReferralUIUpdate } from '@/api/referralService';
+import { syncHelperDataWithGameState } from '@/api/referral/referralHelpers';
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
@@ -283,6 +284,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         const id = await getUserIdentifier();
         setUserId(id);
         console.log(`ReferralsTab: Текущий пользователь ID: ${id}`);
+        
+        // Синхронизируем данные о помощниках при инициализации компонента
+        if (id) {
+          syncHelperData(id);
+        }
       } catch (error) {
         console.error('Ошибка при получении ID пользователя:', error);
       }
@@ -448,7 +454,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       console.log('Детальные данные рефералов из базы:', JSON.stringify(directReferrals, null, 2));
       
       if (!directReferrals || directReferrals.length === 0) {
-        console.log('⚠️ Не найдено рефералов для этого пользователя');
+        console.log('⚠️ Не найдено рефералов для этого ��ользователя');
         onAddEvent("Рефералы не найдены в базе данных", "info");
         setIsRefreshingReferrals(false);
         return;
@@ -865,7 +871,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         .eq('id', helperId);
 
       if (error) {
-        console.error("Ошибка при обновлении статуса:", error);
+        console.error("Ошибка при обновлении стат��са:", error);
         throw error;
       }
 

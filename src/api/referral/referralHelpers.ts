@@ -141,10 +141,11 @@ export const updateHelperRequestStatus = async (
 };
 
 /**
- * Получает список запросов помощников для пользователя
+ * Получает список запросов помощников для пользователя и обновляет состояние игры
  * @param userId ID пользователя
+ * @param updateGameState Функция для обновления состояния игры (опционально)
  */
-export const getHelperRequests = async (userId: string) => {
+export const getHelperRequests = async (userId: string, updateGameState?: Function) => {
   try {
     console.log(`Запрос списка помощников для пользователя: ${userId}`);
     
@@ -167,6 +168,24 @@ export const getHelperRequests = async (userId: string) => {
     }
     
     console.log(`✅ Получен список запросов помощников:`, data);
+    
+    // Если передана функция обновления состояния, обновляем локальное состояние игры
+    if (updateGameState && typeof updateGameState === 'function') {
+      try {
+        // Преобразуем данные из БД в формат, подходящий для состояния игры
+        const helperRequests = (data || []).map(helper => ({
+          helperId: helper.helper_id,
+          employerId: helper.employer_id,
+          buildingId: helper.building_id,
+          status: helper.status as 'pending' | 'accepted' | 'rejected'
+        }));
+        
+        updateGameState(helperRequests);
+        console.log(`✅ Локальное состояние помощников обновлено:`, helperRequests);
+      } catch (updateError) {
+        console.error('❌ Ошибка при обновлении локального состояния:', updateError);
+      }
+    }
     
     // Отображаем уведомление о статусе помощника, если есть принятые запросы
     const acceptedRequests = data?.filter(req => req.status === 'accepted') || [];
@@ -211,10 +230,11 @@ export const getHelperRequests = async (userId: string) => {
 };
 
 /**
- * Получает список зданий, в которых работают помощники
+ * Получает список зданий, в которых работают помощники и обновляет состояние игры
  * @param userId ID пользователя-работодателя
+ * @param updateGameState Функция для обновления состояния игры (опционально)
  */
-export const getEmployerHelperBuildings = async (userId: string) => {
+export const getEmployerHelperBuildings = async (userId: string, updateGameState?: Function) => {
   try {
     console.log(`Запрос списка зданий с помощниками для работодателя: ${userId}`);
     
@@ -238,6 +258,24 @@ export const getEmployerHelperBuildings = async (userId: string) => {
     }
     
     console.log(`✅ Получен список зданий с помощниками:`, data);
+    
+    // Если передана функция обновления состояния, обновляем локальное состояние игры
+    if (updateGameState && typeof updateGameState === 'function') {
+      try {
+        // Преобразуем данные из БД в формат, подходящий для состояния игры
+        const helperRequests = (data || []).map(helper => ({
+          helperId: helper.helper_id,
+          employerId: helper.employer_id,
+          buildingId: helper.building_id,
+          status: helper.status as 'pending' | 'accepted' | 'rejected'
+        }));
+        
+        updateGameState(helperRequests);
+        console.log(`✅ Локальное состояние помощников работодателя обновлено:`, helperRequests);
+      } catch (updateError) {
+        console.error('❌ Ошибка при обновлении локального состояния работодателя:', updateError);
+      }
+    }
     
     // Группируем здания по ID для подсчета количества помощников в каждом здании
     const buildingHelpers = (data || []).reduce((acc, helper) => {
@@ -287,6 +325,52 @@ export const getEmployerHelperBuildings = async (userId: string) => {
   } catch (error) {
     console.error('❌ Неожиданная ошибка при получении списка зданий с помощниками:', error);
     return { success: false, helperBuildings: [] };
+  }
+};
+
+/**
+ * Синхронизирует данные помощников с локальным состоянием игры
+ * @param userId ID пользователя
+ * @param updateGameState Функция для обновления состояния игры
+ */
+export const syncHelperDataWithGameState = async (userId: string, updateGameState: Function) => {
+  try {
+    console.log(`Синхронизация данных помощников для пользователя: ${userId}`);
+    
+    // Проверяем соединение с Supabase
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.error('❌ Нет соединения с Supabase при синхронизации данных помощников');
+      return false;
+    }
+    
+    // Получаем все запросы, связанные с пользователем (как помощником, так и работодателем)
+    const { data: helperData, error: helperError } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('*')
+      .or(`helper_id.eq.${userId},employer_id.eq.${userId}`);
+      
+    if (helperError) {
+      console.error('❌ Ошибка при получении данных помощников:', helperError);
+      return false;
+    }
+    
+    // Преобразуем данные из БД в формат, подходящий для состояния игры
+    const helperRequests = (helperData || []).map(helper => ({
+      helperId: helper.helper_id,
+      employerId: helper.employer_id,
+      buildingId: helper.building_id,
+      status: helper.status as 'pending' | 'accepted' | 'rejected'
+    }));
+    
+    // Обновляем локальное состояние игры
+    updateGameState(helperRequests);
+    console.log(`✅ Данные помощников синхронизированы с локальным состоянием:`, helperRequests);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Неожиданная ошибка при синхронизации данных помощников:', error);
+    return false;
   }
 };
 

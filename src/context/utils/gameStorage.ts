@@ -1,8 +1,11 @@
+
 import { GameState } from '../types';
 import { initialState } from '../initialState';
 import { saveGameToServer, loadGameFromServer, checkSupabaseConnection } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from './eventBusUtils';
 import { toast } from '@/hooks/use-toast';
+import { syncHelperDataWithGameState } from '@/api/referral/referralHelpers';
+import { getUserIdentifier } from '@/api/gameDataService';
 
 // Сохранение состояния игры только в серверном хранилище
 export async function saveGameState(state: GameState): Promise<boolean> {
@@ -78,6 +81,26 @@ export async function loadGameState(): Promise<GameState | null> {
     
     if (loadedState) {
       console.log(`✅ Игра успешно загружена из облака (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
+      
+      // После загрузки состояния игры, синхронизируем данные о помощниках с базой данных
+      try {
+        const userId = await getUserIdentifier();
+        if (userId) {
+          // Создаем функцию обновления состояния специально для помощников
+          const updateReferralHelpers = (helperRequests: any[]) => {
+            if (loadedState && Array.isArray(helperRequests) && helperRequests.length > 0) {
+              loadedState.referralHelpers = helperRequests;
+              console.log(`✅ Данные помощников обновлены при загрузке игры:`, helperRequests);
+            }
+          };
+          
+          // Синхронизируем данные о помощниках
+          await syncHelperDataWithGameState(userId, updateReferralHelpers);
+        }
+      } catch (syncError) {
+        console.error('❌ Ошибка при синхронизации данных помощников при загрузке игры:', syncError);
+      }
+      
       return loadedState;
     }
     
