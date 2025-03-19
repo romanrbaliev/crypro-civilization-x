@@ -10,6 +10,7 @@ import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";
 import ResourceList from "@/components/ResourceList";
 import DebugCalculator from "@/components/DebugCalculator";
+import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import {
@@ -169,8 +170,10 @@ const GameScreen = () => {
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
         <div className="flex justify-between items-center h-full">
-          <div className="flex-1"></div>
-          <div className="flex items-center justify-between w-full px-2">
+          <div className="flex-1 flex items-center pl-2">
+            <KnowledgeProductionPopup />
+          </div>
+          <div className="flex items-center justify-between px-2">
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
