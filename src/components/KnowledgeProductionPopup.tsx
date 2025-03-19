@@ -48,7 +48,7 @@ const KnowledgeProductionPopup = () => {
           Расчет знаний
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0">
+      <PopoverContent className="w-96 p-0">
         <div className="p-4 bg-white rounded-md">
           <h3 className="text-sm font-bold text-gray-700 mb-2">Детализация расчета знаний</h3>
           
@@ -57,12 +57,17 @@ const KnowledgeProductionPopup = () => {
             <span className="font-semibold text-sm">{loading ? '...' : `${finalValue.toFixed(2)}/сек`}</span>
           </div>
           
-          <div className="mt-2 p-2 bg-gray-50 rounded border text-xs text-gray-600 max-h-60 overflow-y-auto whitespace-pre-line">
+          <div className="mt-2 p-2 bg-gray-50 rounded border text-xs text-gray-600 max-h-80 overflow-y-auto whitespace-pre-line">
             {loading ? (
               <div className="text-center py-2">Загрузка данных...</div>
             ) : (
               calculationSteps.map((step, index) => (
-                <div key={index}>{step}</div>
+                <div key={index} className={
+                  step.includes('Статус помощника даёт бонус') ? 'bg-blue-50 p-1 rounded my-1' : 
+                  step.includes('Итого:') ? 'font-bold mt-2' : ''
+                }>
+                  {step}
+                </div>
               ))
             )}
           </div>

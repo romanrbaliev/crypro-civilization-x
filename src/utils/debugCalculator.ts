@@ -1,3 +1,4 @@
+
 import { helperStatusCache } from './referralHelperUtils';
 
 export function formatNumber(num: number, digits: number = 2): string {
@@ -105,13 +106,13 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     Object.entries(helpersByBuilding).forEach(([buildingId, helpers]) => {
       const building = buildings[buildingId];
       
-      if (building && building.resourceProduction && building.resourceProduction.knowledge) {
-        const buildingProduction = building.resourceProduction.knowledge;
+      if (building && building.production && building.production.knowledge) {
+        const buildingProduction = building.production.knowledge;
         const helperBonus = helpers.length * 0.05; // 5% за каждого помощника
         const helperBoostAmount = buildingProduction * helperBonus;
         
         totalHelperBonus += helperBoostAmount;
-        steps.push(`- Здание "${building.name}" с ${helpers.length} помощниками: +${(helperBonus * 100).toFixed(0)}% к базовому производству ${buildingProduction.toFixed(2)}/сек = +${helperBoostAmount.toFixed(2)}/сек`);
+        steps.push(`- Здание "${building.name}" с ${helpers.length} помощниками: +${(helperBonus * 100).toFixed(0)}% к производству ${buildingProduction.toFixed(2)}/сек = +${helperBoostAmount.toFixed(2)}/сек`);
       }
     });
     
@@ -144,12 +145,12 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
         const helperBonus = helperBuildingsCount * 0.1; // 10% за каждое здание
         const helperBoostAmount = baseValue * helperBonus;
         
-        steps.push(`- Пользователь ${currentUserId} помогает на ${helperBuildingsCount} зданиях`);
-        steps.push(`- Бонус: +${(helperBonus * 100).toFixed(0)}% к базовому производству = +${helperBoostAmount.toFixed(2)}/сек`);
+        steps.push(`- Пользователь ${currentUserId.substring(0, 10)}... помогает на ${helperBuildingsCount} зданиях`);
+        steps.push(`- Статус помощника даёт бонус: +${(helperBonus * 100).toFixed(0)}% к базовому производству = +${helperBoostAmount.toFixed(2)}/сек`);
         
         totalUpgradeBoost += helperBoostAmount;
       } else {
-        steps.push(`- Текущий пользователь (${currentUserId}) не является помощником ни для каких зданий`);
+        steps.push(`- Текущий пользователь (${currentUserId.substring(0, 10)}...) не является помощником ни для каких зданий по данным кеша`);
       }
     } else {
       steps.push('- Не удалось определить ID пользователя');
@@ -176,3 +177,4 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     };
   }
 }
+
