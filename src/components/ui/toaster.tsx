@@ -207,12 +207,13 @@ export function Toaster() {
     
     window.addEventListener('employer-buildings-helpers', handleEmployerBuildingsHelpers);
     
-    // Запрашиваем обновление статусов при первом рендере с увеличенной задержкой
-    setTimeout(() => {
-      const refreshEvent = new CustomEvent('refresh-referrals');
-      window.dispatchEvent(refreshEvent);
-      console.log('Отправлен запрос на начальное обновление статусов рефералов');
-    }, 2000); // Увеличенная задержка для уверенности, что все компоненты загружены
+    // УБРАНО АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ: не запрашиваем обновление статусов при первом рендере
+    // Этот код был причиной постоянного обновления
+    // setTimeout(() => {
+    //   const refreshEvent = new CustomEvent('refresh-referrals');
+    //   window.dispatchEvent(refreshEvent);
+    //   console.log('Отправлен запрос на начальное обновление статусов рефералов');
+    // }, 2000);
     
     return () => {
       window.removeEventListener('refresh-referrals', handleRefresh);

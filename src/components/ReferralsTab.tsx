@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -253,6 +252,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [telegramUserInfo, setTelegramUserInfo] = useState<any>(null);
   const [availableBuildings, setAvailableBuildings] = useState<any[]>([]);
   const isMobile = useIsMobile();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const REFERRAL_TABLE = 'referral_data';
   const SAVES_TABLE = 'game_saves';
@@ -306,6 +306,11 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   // Загрузка рефералов из базы данных
   const loadReferrals = useCallback(async () => {
+    if (isRefreshingReferrals) {
+      console.log('Пропуск обновления рефералов, так как уже идет обновление');
+      return;
+    }
+    
     try {
       setIsRefreshingReferrals(true);
       const id = await getUserIdentifier();
@@ -380,10 +385,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     } finally {
       setIsRefreshingReferrals(false);
     }
-  }, [state, dispatch, onAddEvent]);
+  }, [state, dispatch, onAddEvent, isRefreshingReferrals]);
 
   // Принудительное обновление рефералов из базы данных
   const forceRefreshReferrals = async () => {
+    if (isRefreshingReferrals) {
+      console.log('Пропуск принудительного обновления, так как уже идет обновление');
+      return;
+    }
+    
     try {
       setIsRefreshingReferrals(true);
       const id = await getUserIdentifier();
@@ -516,10 +526,21 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   // Начальная загрузка рефералов
   useEffect(() => {
     console.log('ReferralsTab: Монтирование компонента, загружаем рефералов...');
-    loadReferrals();
-    const intervalId = setInterval(loadReferrals, 60000);
+    
+    if (!initialLoadComplete) {
+      loadReferrals().then(() => {
+        setInitialLoadComplete(true);
+        console.log('Начальная загрузка рефералов завершена');
+      });
+    }
+    
+    const intervalId = setInterval(() => {
+      console.log('Плановое обновление рефералов по таймеру (каждые 5 минут)');
+      loadReferrals();
+    }, 300000);
+    
     return () => clearInterval(intervalId);
-  }, [loadReferrals]);
+  }, [loadReferrals, initialLoadComplete]);
 
   // Копирование реферальной ссылки
   const copyReferralLink = () => {
@@ -541,7 +562,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       });
   };
 
-  // Отправка приглашения через Telegram
+  // Отправка приглашения чере�� Telegram
   const sendTelegramInvite = () => {
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
       try {
@@ -625,7 +646,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       
       return commonBuildings;
     } catch (error) {
-      console.error('Ошибка при получении совместимых зданий:', error);
+      console.error('Ошибка при получ��нии совместимых зданий:', error);
       return [];
     }
   };

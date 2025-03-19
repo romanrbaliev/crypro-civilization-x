@@ -34,9 +34,23 @@ export {
   getEmployerHelperBuildings
 };
 
-// Дополнительная функция для обновления UI
+// Флаг для отслеживания недавних обновлений, чтобы предотвратить слишком частые обновления UI
+let lastUpdateTime = 0;
+const MIN_UPDATE_INTERVAL = 2000; // Минимальный интервал между обновлениями в миллисекундах
+
+// Дополнительная функция для обновления UI с защитой от слишком частых обновлений
 export const triggerReferralUIUpdate = (referralId: string, hired: boolean, buildingId?: string) => {
-  console.log(`Запуск обновления UI для реферала ${referralId}:`, { hired, buildingId });
+  console.log(`Запрос на обновление UI для реферала ${referralId}:`, { hired, buildingId });
+  
+  // Проверяем, не было ли недавнего обновления
+  const now = Date.now();
+  if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+    console.log(`Пропуск обновления UI для реферала ${referralId} - слишком частое обновление`);
+    return false;
+  }
+  
+  // Обновляем время последнего обновления
+  lastUpdateTime = now;
   
   try {
     // Создаем событие для обновления статуса реферала в UI
