@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -24,7 +23,7 @@ import {
   processPrestige,
   processResetGame,
   processRestartComputers
-} from './gameStateReducer'; // Исправлен путь импорта
+} from './gameStateReducer';
 import { generateReferralCode } from '@/utils/helpers';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
@@ -146,7 +145,7 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
   );
   
   if (existingActiveHelper) {
-    // Если помощник уже работает на каком-то здании, сначала увольняем ег��
+    // Если помощник уже работает на каком-то здании, сначала увольняем его
     const updatedHelpers = state.referralHelpers.filter(h => h.id !== existingActiveHelper.id);
     
     // Генерируем уникальный ID для нового помощника
@@ -230,45 +229,42 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     };
   }
   
-  // Если помощник принят, нужно проверить, есть ли другие принятые помощники на это здание
-  const existingHelpersForBuilding = state.referralHelpers.filter(
-    h => h.helperId !== helper.helperId && h.buildingId === helper.buildingId && h.status === 'accepted'
-  );
+  // Если помощник принят, обновляем все связанные данные
   
-  // Удаляем существующих помощников на это здание (от других рефералов)
-  let updatedHelpers = state.referralHelpers.filter(h => 
-    !(existingHelpersForBuilding.some(eh => eh.id === h.id))
-  );
-  
-  // Теперь обновляем статус текущего помощника
-  updatedHelpers = updatedHelpers.map(h => 
+  // 1. Обновляем статус помощника в массиве referralHelpers
+  let updatedHelpers = state.referralHelpers.map(h => 
     h.id === helperId ? { ...h, status: 'accepted' as const } : h
   );
   
-  // Находим имя здания для сообщения
-  const building = state.buildings[helper.buildingId];
-  const buildingName = building ? building.name : helper.buildingId;
-  
-  // Отправляем уведомление
-  safeDispatchGameEvent(`Вы приняли предложение о работе для здания "${buildingName}"`, "success");
-  
-  // Проверяем логи после обновления
-  console.log('Помощники после обновления:', updatedHelpers);
-  
-  // Также обновляем статус реферала как "нанятый"
+  // 2. Обновляем статус реферала в массиве referrals
   const updatedReferrals = state.referrals.map(ref => 
     ref.id === helper.helperId 
-      ? { ...ref, hired: true, assignedBuildingId: helper.buildingId } 
+      ? { 
+          ...ref, 
+          hired: true, 
+          assignedBuildingId: helper.buildingId 
+        } 
       : ref
   );
   
   console.log(`Реферал ${helper.helperId} теперь нанят на здание ${helper.buildingId}`);
   
-  // Отправляем событие обновления статуса реферала
+  // 3. Находим имя здания для сообщения
+  const building = state.buildings[helper.buildingId];
+  const buildingName = building ? building.name : helper.buildingId;
+  
+  // 4. Отправляем уведомление
+  safeDispatchGameEvent(`Вы приняли предложение о работе для здания "${buildingName}"`, "success");
+  
+  // 5. Отправляем событие обновления статуса реферала
   setTimeout(() => {
     try {
       const updateEvent = new CustomEvent('referral-status-updated', {
-        detail: { referralId: helper.helperId, hired: true, buildingId: helper.buildingId }
+        detail: { 
+          referralId: helper.helperId, 
+          hired: true, 
+          buildingId: helper.buildingId 
+        }
       });
       window.dispatchEvent(updateEvent);
       console.log(`Отправлено событие обновления статуса реферала ${helper.helperId}`);
@@ -277,7 +273,7 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     }
   }, 100);
   
-  // Обновляем статус реферала в базе данных
+  // 6. Обновляем статус реферала в базе данных
   try {
     const { updateReferralHiredStatus } = require('@/api/referralService');
     if (typeof updateReferralHiredStatus === 'function') {
@@ -455,7 +451,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "RESTART_COMPUTERS": 
       return processRestartComputers(state);
     
-    // Майнинг вычислительной мощност��
+    // Майнинг вычислительной мощности
     case "MINE_COMPUTING_POWER": 
       return processMiningPower(state);
     

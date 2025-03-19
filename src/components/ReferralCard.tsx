@@ -54,6 +54,15 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
   const isActivated = directDbStatus || 
     (typeof referral.activated === 'string' && referral.activated.toLowerCase() === 'true');
   
+  // Логирование для отладки
+  console.log(`Отображение карточки реферала ${referral.id}:`, {
+    activated: referral.activated,
+    directDbStatus,
+    isActivated,
+    typeOfActivated: typeof referral.activated,
+    assignedBuildingId: assignedBuilding || { _type: "undefined", value: "undefined" }
+  });
+  
   useEffect(() => {
     // Проверяем, есть ли для этого реферала активный запрос помощника
     const checkIfHelperActive = () => {
@@ -65,6 +74,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
       );
       
       if (activeHelper) {
+        console.log(`Найден активный помощник для реферала ${referral.id}:`, activeHelper);
         setIsHired(true);
         setAssignedBuilding(activeHelper.buildingId);
         return true;
@@ -123,7 +133,12 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
       if (onFire) onFire(referral.id);
       
       // Обновляем статус в БД
-      await updateReferralHiredStatus(referral.id, false);
+      try {
+        await updateReferralHiredStatus(referral.id, false);
+        console.log(`Реферал ${referral.id} уволен, статус обновлен в БД`);
+      } catch (error) {
+        console.error(`Ошибка при обновлении статуса реферала ${referral.id}:`, error);
+      }
       
       // Если реферал нанят на выбранное в данный момент здание, отменяем это назначение
       if (selectedBuilding && assignedBuilding === selectedBuilding) {
@@ -133,6 +148,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
             type: "RESPOND_TO_HELPER_REQUEST",
             payload: { helperId: requestId, accepted: false }
           });
+          console.log(`Отменено назначение помощника ${referral.id} на здание ${selectedBuilding}`);
         }
       }
       
@@ -141,6 +157,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
     } else if (canHire && selectedBuilding && onHire) {
       // Если реферал может быть нанят и выбрано здание, нанимаем его
       onHire(referral.id, selectedBuilding);
+      console.log(`Реферал ${referral.id} назначен помощником на здание ${selectedBuilding}`);
     }
   };
   

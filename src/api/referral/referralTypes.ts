@@ -1,19 +1,30 @@
 
-// Типы данных для реферальной системы
+/**
+ * Типы для реферальной системы
+ */
 
-// Расширяем интерфейс для работы с is_activated
-export interface ReferralDataWithActivation {
-  user_id: string;
-  referral_code: string;
-  referred_by: string | null;
-  is_activated: boolean;
-  created_at: string | null;
-}
-
-// Интерфейс для реферала в Redux state
-export interface Referral {
+export interface ReferralData {
   id: string;
   username: string;
   activated: boolean;
+  hired?: boolean;
   joinedAt: number;
+  assignedBuildingId?: string;
+}
+
+export interface ReferralDataWithActivation extends ReferralData {
+  is_activated?: boolean;
+}
+
+export interface ReferralHelperRequest {
+  id: string;
+  buildingId: string;
+  helperId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: number;
+}
+
+export interface ReferralHelpersResponse {
+  helpers: ReferralHelperRequest[];
+  success: boolean;
 }

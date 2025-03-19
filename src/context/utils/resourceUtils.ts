@@ -22,7 +22,10 @@ export const calculateResourceProduction = (
   // Получаем бонус от рефералов
   const referralBonus = calculateReferralBonus(referrals);
   
-  console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => r.activated).length} активных из ${referrals.length} всего`);
+  console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => {
+    if (typeof r.activated === 'boolean') return r.activated;
+    return String(r.activated).toLowerCase() === 'true';
+  }).length} активных из ${referrals.length} всего`);
   console.log(`Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%`);
   
   // Для каждого здания рассчитываем производство
@@ -53,7 +56,7 @@ export const calculateResourceProduction = (
     }
   });
   
-  // Отдельная логика для базовой скорости накопления знаний (если есть специальные здания)
+  // Отдельная логика для базовой скорости накопления знаний через здание "Практика"
   if (newResources.knowledge && buildings.practice && buildings.practice.count > 0) {
     // Базовая скорость накопления знаний
     const baseRate = 0.63;
