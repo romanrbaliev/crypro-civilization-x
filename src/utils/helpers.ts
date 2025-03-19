@@ -1,3 +1,4 @@
+
 import { Building, Resource } from '@/context/types';
 
 export const generateId = (): string => {
@@ -94,4 +95,70 @@ export const calculateHelperBoost = (
   
   // Каждый активный запрос дает бонус +10% (0.1)
   return activeHelperRequests.length * 0.1;
+};
+
+/**
+ * Проверка доступности Telegram WebApp
+ */
+export const isTelegramWebAppAvailable = (): boolean => {
+  if (typeof window !== 'undefined' && window.__FORCE_TELEGRAM_MODE) {
+    return true;
+  }
+  return typeof window !== 'undefined' && 
+         typeof window.Telegram !== 'undefined' && 
+         typeof window.Telegram.WebApp !== 'undefined';
+};
+
+/**
+ * Получение строки-описания времени до достижения целевого значения
+ */
+export const calculateTimeToReach = (
+  currentValue: number,
+  targetValue: number,
+  perSecond: number
+): string => {
+  if (perSecond <= 0) return "∞";
+  if (currentValue >= targetValue) return "Готово!";
+  
+  const secondsToReach = (targetValue - currentValue) / perSecond;
+  
+  if (secondsToReach < 60) {
+    return `${Math.ceil(secondsToReach)}с`;
+  } else if (secondsToReach < 3600) {
+    return `${Math.ceil(secondsToReach / 60)}м`;
+  } else if (secondsToReach < 86400) {
+    return `${Math.ceil(secondsToReach / 3600)}ч`;
+  } else {
+    return `${Math.ceil(secondsToReach / 86400)}д`;
+  }
+};
+
+/**
+ * Генерация реферального кода
+ */
+export const generateReferralCode = (): string => {
+  return Array.from({ length: 8 }, () => 
+    Math.floor(Math.random() * 16).toString(16).toUpperCase()
+  ).join('');
+};
+
+/**
+ * Вычитание ресурсов из текущего запаса
+ */
+export const deductResources = (
+  cost: { [resourceId: string]: number },
+  resources: { [resourceId: string]: Resource }
+): { [resourceId: string]: Resource } => {
+  const newResources = { ...resources };
+  
+  for (const resourceId in cost) {
+    if (newResources[resourceId]) {
+      newResources[resourceId] = {
+        ...newResources[resourceId],
+        value: Math.max(0, newResources[resourceId].value - cost[resourceId])
+      };
+    }
+  }
+  
+  return newResources;
 };
