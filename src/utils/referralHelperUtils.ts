@@ -78,8 +78,8 @@ export const calculateBuildingBoostFromHelpers = (
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   ).length;
   
-  // Каждый помощник дает бонус в 10%
-  const boost = acceptedHelpersCount * 0.1;
+  // НОВАЯ ЛОГИКА: Теперь каждый помощник дает бонус в 5% реферреру
+  const boost = acceptedHelpersCount * 0.05;
   console.log(`Бонус от помощников для здания ${buildingId}: ${boost * 100}% (${acceptedHelpersCount} помощников)`);
   return boost;
 };
@@ -114,10 +114,31 @@ export const getTotalHelperBoost = (
     helper => helper.status === 'accepted'
   ).length;
   
-  // Каждый помощник дает бонус в 10% к определенному зданию
-  const totalBoost = acceptedHelpersCount * 0.1;
+  // НОВАЯ ЛОГИКА: Каждый помощник дает бонус в 5% к реферреру
+  const totalBoost = acceptedHelpersCount * 0.05;
   console.log(`Общий бонус от помощников: ${totalBoost * 100}% (${acceptedHelpersCount} принятых запросов)`);
   return totalBoost;
+};
+
+/**
+ * Получает бонус производства для реферала-помощника
+ * @param helperId ID помощника
+ * @param referralHelpers Список помощников
+ * @returns Процентный бонус от 0 до 1
+ */
+export const getHelperProductionBoost = (
+  helperId: string,
+  referralHelpers: ReferralHelper[]
+): number => {
+  // Считаем количество зданий, где пользователь помогает
+  const acceptedBuildingsCount = referralHelpers.filter(
+    helper => helper.helperId === helperId && helper.status === 'accepted'
+  ).length;
+  
+  // НОВАЯ ЛОГИКА: Каждое здание, где реферал является помощником, дает ему бонус 10%
+  const boost = acceptedBuildingsCount * 0.1;
+  console.log(`Бонус для помощника ${helperId}: ${boost * 100}% (помогает в ${acceptedBuildingsCount} зданиях)`);
+  return boost;
 };
 
 /**

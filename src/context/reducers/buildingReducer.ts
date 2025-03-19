@@ -50,6 +50,7 @@ export const processPurchaseBuilding = (
   console.log(`Куплено здание ${building.name}`);
   
   // Разблокируем ресурсы, производимые этим зданием
+  // ИСПРАВЛЕНО: Проверяем именно по ID здания, а не по наличию полей
   if (buildingId === "generator" && !newResources.electricity.unlocked) {
     console.log("Разблокируем ресурс электричества после покупки генератора");
     newResources.electricity = {

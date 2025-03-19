@@ -229,11 +229,12 @@ export const calculateResourceProduction = (
     
     // Сбрасываем текущее производство для всех ресурсов, но сохраняем базовое производство
     Object.keys(newResources).forEach(resourceId => {
-      // Сохраняем базовое производство отдельно
-      if (newResources[resourceId].production > 0 && !newResources[resourceId].baseProduction) {
+      // Сохраняем исходное базовое производство, если его еще нет
+      if (!newResources[resourceId].baseProduction && newResources[resourceId].production > 0) {
         newResources[resourceId].baseProduction = newResources[resourceId].production;
       }
       
+      // Важно: полностью сбрасываем текущее производство и perSecond, чтобы избежать кумулятивных эффектов
       newResources[resourceId].production = 0;
       newResources[resourceId].perSecond = 0;
     });
@@ -283,10 +284,11 @@ export const calculateResourceProduction = (
     // Логируем базовое производство
     console.log('Базовое производство ресурсов:', baseProduction);
     
-    // Бонусы от помощников для каждого здания
+    // Бонусы от помощников для каждого здания - ИЗМЕНЕНО по новым правилам
     let helperBonuses: { [key: string]: number } = {};
     
-    // Рассчитываем бонусы от помощников для каждого здания
+    // Рассчитываем бонусы от помощников для каждого здания - НОВАЯ ЛОГИКА
+    // Теперь реферрер получает 5% за каждого помощника
     Object.values(buildings).forEach((building: Building) => {
       const { id: buildingId, resourceProduction = {} } = building;
       
@@ -296,15 +298,15 @@ export const calculateResourceProduction = (
       );
       
       if (buildingHelpers.length > 0) {
-        // Расчет бонуса от помощников (10% за каждого)
-        const helperBonus = buildingHelpers.length * 0.1;
+        // Изменение: Расчет бонуса от помощников (5% за каждого) для реферрера
+        const helperBonus = buildingHelpers.length * 0.05;
         
         // Для каждого ресурса, производимого зданием
         Object.entries(resourceProduction).forEach(([resourceId, baseAmount]) => {
           // Добавляем бонус от помощников
           helperBonuses[resourceId] = (helperBonuses[resourceId] || 0) + (Number(baseAmount) * helperBonus);
           
-          console.log(`Здание "${building.name}" с ${buildingHelpers.length} помощниками: бонус +${helperBonus * 100}% к производству ${resourceId}`);
+          console.log(`Здание "${building.name}" с ${buildingHelpers.length} помощниками: бонус для реферрера +${helperBonus * 100}% к производству ${resourceId}`);
         });
       }
     });

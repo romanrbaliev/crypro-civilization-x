@@ -38,7 +38,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Применяем увеличение хранилища от зданий
   updatedResources = applyStorageBoosts(updatedResources, state.buildings);
   
-  // Применяем эффекты от исследований
+  // Применяем эффекты от исследований - только к perSecond, не кумулятивно!
   Object.values(state.upgrades).forEach(upgrade => {
     if (upgrade.purchased) {
       // Получаем эффекты исследования (поддерживаем оба поля effects и effect)
