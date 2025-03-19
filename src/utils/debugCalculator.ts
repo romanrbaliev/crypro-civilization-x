@@ -1,6 +1,7 @@
-import { formatNumber } from './helpers';
+
 import { helperStatusCache } from './referralHelpers';
 
+// Функция форматирования чисел (выделена из кода для избежания дублирования)
 export function formatNumber(num: number, digits: number = 2): string {
   const lookup = [
     { value: 1, symbol: "" },
