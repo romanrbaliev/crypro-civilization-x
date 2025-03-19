@@ -1,3 +1,4 @@
+
 import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 
@@ -54,8 +55,8 @@ export const calculateResourceProduction = (
   
   // Отдельная логика для базовой скорости накопления знаний (если есть специальные здания)
   if (newResources.knowledge && buildings.practice && buildings.practice.count > 0) {
-    // Сбрасываем скорость, если она была установлена ранее
-    const baseRate = 0.63; // Базовая скорость накопления знаний
+    // Базовая скорость накопления знаний
+    const baseRate = 0.63;
     
     // Получаем бонус от помощников для здания "Практика"
     const practiceHelperBoost = calculateBuildingBoostFromHelpers('practice', referralHelpers);

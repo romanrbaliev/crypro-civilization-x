@@ -7,7 +7,8 @@ import {
   getUserReferrals, 
   getUserReferralCode,
   checkReferralInfo,
-  activateReferral 
+  activateReferral,
+  updateReferralHiredStatus
 } from './referral';
 
 export { 
@@ -15,5 +16,6 @@ export {
   getUserReferrals, 
   getUserReferralCode,
   checkReferralInfo,
-  activateReferral 
+  activateReferral,
+  updateReferralHiredStatus
 };

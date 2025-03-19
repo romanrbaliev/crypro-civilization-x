@@ -162,3 +162,33 @@ export const deductResources = (
   
   return newResources;
 };
+
+/**
+ * Проверяет, является ли реферал помощником на указанном здании
+ */
+export const isReferralHelperForBuilding = (
+  referralId: string,
+  buildingId: string,
+  helpers: { buildingId: string; helperId: string; status: string }[] = []
+): boolean => {
+  return helpers.some(
+    helper => helper.helperId === referralId && 
+              helper.buildingId === buildingId && 
+              helper.status === 'accepted'
+  );
+};
+
+/**
+ * Получает идентификатор запроса помощника для реферала и здания
+ */
+export const getHelperRequestId = (
+  referralId: string,
+  buildingId: string,
+  helpers: { id: string; buildingId: string; helperId: string; status: string }[] = []
+): string | null => {
+  const helperRequest = helpers.find(
+    helper => helper.helperId === referralId && helper.buildingId === buildingId
+  );
+  
+  return helperRequest ? helperRequest.id : null;
+};

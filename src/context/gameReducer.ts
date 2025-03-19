@@ -98,7 +98,7 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
     ref.id === payload.referralId ? { ...ref, activated: true } : ref
   );
   
-  console.log('Обнов��енный спи�����ок рефералов:', updatedReferrals);
+  console.log('Обновленный список рефералов:', updatedReferrals);
   
   // Отправляем событие активации, чтобы обновить интерфейс
   setTimeout(() => {
@@ -254,9 +254,32 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
   // Проверяем логи после обновления
   console.log('Помощники после обновления:', updatedHelpers);
   
+  // Также обновляем статус реферала как "нанятый"
+  const updatedReferrals = state.referrals.map(ref => 
+    ref.id === helper.helperId 
+      ? { ...ref, hired: true, assignedBuildingId: helper.buildingId } 
+      : ref
+  );
+  
+  console.log(`Реферал ${helper.helperId} теперь нанят на здание ${helper.buildingId}`);
+  
+  // Отправляем событие обновления статуса реферала
+  setTimeout(() => {
+    try {
+      const updateEvent = new CustomEvent('referral-status-updated', {
+        detail: { referralId: helper.helperId, hired: true, buildingId: helper.buildingId }
+      });
+      window.dispatchEvent(updateEvent);
+      console.log(`Отправлено событие обновления статуса реферала ${helper.helperId}`);
+    } catch (error) {
+      console.error('Ошибка при отправке события обновления статуса реферала:', error);
+    }
+  }, 100);
+  
   return {
     ...state,
-    referralHelpers: updatedHelpers
+    referralHelpers: updatedHelpers,
+    referrals: updatedReferrals
   };
 };
 
