@@ -1,4 +1,3 @@
-
 import { GameState, ReferralHelper } from '../types';
 import { ReferralStatusUpdate } from '../../api/referral/referralTypes';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
@@ -255,7 +254,10 @@ export const processRespondToHelperRequest = (state: GameState, payload: { helpe
   setTimeout(() => {
     try {
       // Отправляем событие обновления статуса реферала
-      triggerReferralUIUpdate(helper.helperId, true, helper.buildingId);
+      const { triggerReferralUIUpdate } = require('@/api/referralService');
+      if (typeof triggerReferralUIUpdate === 'function') {
+        triggerReferralUIUpdate(helper.helperId, true, helper.buildingId);
+      }
       
       // Отправляем отладочное событие
       const debugEvent = new CustomEvent('debug-helper-step', {

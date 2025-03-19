@@ -8,7 +8,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Полностью удаляем логику активации рефералов отсюда!
   
-  // Этап 2: Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
+  // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
     state.resources, 
     state.buildings, 
@@ -17,25 +17,21 @@ export const processResourceUpdate = (state: GameState): GameState => {
     state.referralCode
   );
   
-  // Этап 3: Применяем увеличение хранилища от зданий
+  // Применяем увеличение хранилища от зданий
   updatedResources = applyStorageBoosts(updatedResources, state.buildings);
   
-  // Этап 4: Обновляем значения ресурсов с учетом времени
+  // Обновляем значения ресурсов с учетом времени
   updatedResources = updateResourceValues(updatedResources, deltaTime);
   
-  // Логирование для отладки состояния помощников
-  if (state.referralHelpers && state.referralHelpers.length > 0) {
-    const activeHelpers = state.referralHelpers.filter(h => h.status === 'accepted');
-    if (activeHelpers.length > 0) {
-      console.log(`Активные помощники (всего ${activeHelpers.length}):`, 
-        activeHelpers.map(h => ({
-          id: h.id,
-          helperId: h.helperId,
-          buildingId: h.buildingId,
-          buildingName: state.buildings[h.buildingId]?.name || h.buildingId
-        }))
-      );
-    }
+  // Добавляем логирование для отладки состояния помощников 
+  // (но без авто-обновления и только если есть активные помощники)
+  const activeHelpers = state.referralHelpers.filter(h => h.status === 'accepted');
+  if (activeHelpers.length > 0) {
+    console.log(`Активные помощники (${activeHelpers.length}):`);
+    activeHelpers.forEach(helper => {
+      const buildingName = state.buildings[helper.buildingId]?.name || helper.buildingId;
+      console.log(`- ${helper.helperId} помогает со зданием "${buildingName}"`);
+    });
   }
   
   return {

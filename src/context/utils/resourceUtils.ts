@@ -1,4 +1,3 @@
-
 import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
 import { 
   calculateBuildingBoostFromHelpers, 
@@ -25,45 +24,28 @@ export const calculateResourceProduction = (
     };
   });
   
-  // Получаем бонус от рефералов
+  // Получаем бонус от рефералов - здесь исправляем расчет
   const referralBonus = calculateReferralBonus(referrals);
   
   // Получаем полную информацию о бонусах от помощников для всех зданий
   const helperBoosts = getActiveHelperBoosts(buildings, referralHelpers);
   
-  // Более подробное логирование активных рефералов для отладки
-  const activatedReferrals = referrals.filter(r => {
+  // Добавляем более точное логирование активированных рефералов
+  console.log(`Активированные рефералы (${referrals.length} всего):`);
+  
+  referrals.forEach(ref => {
+    console.log(`Реферал ${ref.id}: активирован = ${ref.activated}, тип = ${typeof ref.activated}, hired = ${ref.hired || false}`);
+  });
+  
+  // Подробное логирование активных рефералов
+  const activeReferrals = referrals.filter(r => {
     if (typeof r.activated === 'boolean') return r.activated;
     return String(r.activated).toLowerCase() === 'true';
-  }).map(r => r.id);
+  });
   
-  console.log(`Активированные рефералы: ${JSON.stringify(activatedReferrals)}`);
+  console.log(`Активные рефералы: ${activeReferrals.length} из ${referrals.length}`);
   
-  // Подробная информация о каждом активированном реферале
-  console.log(`Детали активированных рефералов: ${JSON.stringify(
-    referrals.filter(r => {
-      if (typeof r.activated === 'boolean') return r.activated;
-      return String(r.activated).toLowerCase() === 'true';
-    }).map(r => ({
-      id: r.id,
-      activated: r.activated,
-      hired: r.hired ? r.hired : {_type: "undefined", value: "undefined"},
-      assignedBuildingId: r.assignedBuildingId ? r.assignedBuildingId : {_type: "undefined", value: "undefined"}
-    }))
-  )}`);
-  
-  console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => {
-    if (typeof r.activated === 'boolean') return r.activated;
-    return String(r.activated).toLowerCase() === 'true';
-  }).length} активных из ${referrals.length} всего, бонус = ${referralBonus}`);
-  
-  console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => {
-    if (typeof r.activated === 'boolean') return r.activated;
-    return String(r.activated).toLowerCase() === 'true';
-  }).length} активных из ${referrals.length} всего`);
-  console.log(`Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%`);
-  
-  // Отправляем событие с данными о текущих бонусах для отображения пользователю
+  // Отправля��м событие с данными о текущих бонусах для отображения пользователю
   setTimeout(() => {
     try {
       const boostSummaryEvent = new CustomEvent('debug-boosts-summary', {
@@ -148,7 +130,6 @@ export const calculateResourceProduction = (
   return newResources;
 };
 
-// Обновлено: применение всех возможных бустов к хранилищу
 export const applyStorageBoosts = (
   resources: { [key: string]: Resource },
   buildings: { [key: string]: Building }
@@ -201,7 +182,6 @@ export const updateResourceValues = (
   return newResources;
 };
 
-// Проверка условий для разблокировки зданий и улучшений
 export const checkUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
@@ -234,7 +214,6 @@ export const checkUnlocks = (state: GameState): GameState => {
   return newState;
 };
 
-// Проверка наличия достаточного количества ресурсов
 export const hasEnoughResources = (
   state: GameState,
   cost: { [resourceId: string]: number }
@@ -242,7 +221,6 @@ export const hasEnoughResources = (
   return canAffordCost(cost, state.resources);
 };
 
-// Обновление максимальных значений ресурсов на основе зданий и исследований
 export const updateResourceMaxValues = (state: GameState): GameState => {
   const newResources = { ...state.resources };
   const baseResourceValues = {

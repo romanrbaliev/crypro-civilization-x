@@ -1,4 +1,3 @@
-
 import { Building, Resource } from '@/context/types';
 
 export const generateId = (): string => {
@@ -48,9 +47,9 @@ export const calculateReferralBonus = (referrals: any[] = []): number => {
   
   // Фильтруем только активных рефералов и считаем общий бонус (5% за каждого)
   const activeReferrals = referrals.filter(referral => {
-    // Проверяем разные форматы поля activated
+    // Строгая проверка на активацию: должен быть boolean true или строка "true"
     if (typeof referral.activated === 'boolean') {
-      return referral.activated;
+      return referral.activated === true;
     } else if (typeof referral.activated === 'string') {
       return referral.activated.toLowerCase() === 'true';
     }
@@ -58,19 +57,13 @@ export const calculateReferralBonus = (referrals: any[] = []): number => {
   });
   
   // Подробное логирование для отладки
-  if (activeReferrals.length > 0) {
-    console.log("Активированные рефералы:", activeReferrals.map(r => r.id));
-    console.log("Детали активированных рефералов:", activeReferrals.map(r => ({
-      id: r.id, 
-      activated: r.activated,
-      hired: r.hired,
-      assignedBuildingId: r.assignedBuildingId
-    })));
-  }
+  console.log(`[calculateReferralBonus] Проверка на активированные рефералы:`);
+  console.log(`- Всего рефералов: ${referrals.length}`);
+  console.log(`- Активировано: ${activeReferrals.length}`);
   
   // Возвращаем бонус: 5% (0.05) за каждого активного реферала
   const bonus = activeReferrals.length * 0.05;
-  console.log(`Расчет бонуса от рефералов: ${activeReferrals.length} активных из ${referrals.length} всего, бонус = ${bonus}`);
+  console.log(`[calculateReferralBonus] Итоговый бонус: +${(bonus * 100).toFixed(0)}%`);
   return bonus; 
 };
 
@@ -88,13 +81,17 @@ export const calculateBuildingBoostFromHelpers = (
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   );
   
-  // Подробное логирование для отладки
+  // Более подробное логирование для отладки
+  console.log(`[calculateBuildingBoostFromHelpers] Здание ${buildingId}:`);
+  console.log(`- Всего помощников: ${helpers.length}`);
+  console.log(`- Активных для этого здания: ${activeHelpers.length}`);
+  
   if (activeHelpers.length > 0) {
-    console.log(`Найдены активные помощники для здания ${buildingId}:`, 
-      activeHelpers.map(h => ({id: h.id, helperId: h.helperId, status: h.status}))
+    console.log(`- Список помощников для здания ${buildingId}:`, 
+      activeHelpers.map(h => ({id: h.id, helperId: h.helperId}))
     );
     
-    // Оповещение для пользователя
+    // Оповещение для пользователя о бонусе
     try {
       const helperIds = activeHelpers.map(h => h.helperId);
       const boostPercentage = activeHelpers.length * 10;
@@ -105,7 +102,7 @@ export const calculateBuildingBoostFromHelpers = (
             buildingId,
             helperIds,
             boostPercentage,
-            message: `Здание получает бонус +${boostPercentage}% от ${activeHelpers.length} помощников`
+            message: `Здание ${buildingId} получает бонус +${boostPercentage}% от ${activeHelpers.length} помощников`
           }
         });
         window.dispatchEvent(boostEvent);
@@ -113,12 +110,12 @@ export const calculateBuildingBoostFromHelpers = (
     } catch (error) {
       console.error('Ошибка при отправке события о бонусе здания:', error);
     }
-    
-    console.log(`Расчет бонуса для здания ${buildingId}: ${activeHelpers.length} помощников, бонус +${activeHelpers.length * 10}%`);
   }
   
   // Каждый помощник дает бонус +10% (0.1) к производительности здания
-  return activeHelpers.length * 0.1;
+  const boost = activeHelpers.length * 0.1;
+  console.log(`[calculateBuildingBoostFromHelpers] Итоговый бонус для здания ${buildingId}: +${(boost * 100).toFixed(0)}%`);
+  return boost;
 };
 
 /**
@@ -137,7 +134,7 @@ export const calculateHelperBoost = (
   
   // Подробное логирование для отладки
   if (activeHelperRequests.length > 0) {
-    console.log(`Реферал ${referralId} является помощником для ${activeHelperRequests.length} зданий:`,
+    console.log(`Реферал ${referralId} ЯВЛЯЕТСЯ помощником для ${activeHelperRequests.length} зданий:`,
       activeHelperRequests.map(h => h.buildingId)
     );
     
@@ -238,7 +235,7 @@ export const deductResources = (
 export const isReferralHelperForBuilding = (
   referralId: string,
   buildingId: string,
-  helpers: { buildingId: string; helperId: string; status: string }[] = []
+  helpers: { id: string; buildingId: string; helperId: string; status: string }[] = []
 ): boolean => {
   const isHelper = helpers.some(
     helper => helper.helperId === referralId && 
