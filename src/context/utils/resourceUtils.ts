@@ -225,7 +225,10 @@ export const calculateResourceProduction = (
     });
     
     // Считаем активных рефералов для бонусов
-    const activeReferralsCount = referrals.filter(ref => ref.status === 'active').length;
+    const activeReferralsCount = referrals.filter(ref => 
+      ref.status === 'active' || ref.activated === true || ref.activated === 'true'
+    ).length;
+    
     const referralBonus = activeReferralsCount * 0.05; // 5% за каждого активного реферала
     
     console.log(`Активных рефералов: ${activeReferralsCount}, бонус: +${referralBonus * 100}%`);
