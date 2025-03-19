@@ -28,7 +28,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Проверяем, является ли текущий пользователь помощником для других игроков
   // и учитываем бонус в 10% за каждое здание, на котором он помогает
-  const currentUserId = state.referralCode;
+  // ИСПРАВЛЕНИЕ: Используем userId вместо referralCode для идентификации пользователя
+  const currentUserId = localStorage.getItem('userId') || state.referralCode;
   let referralHelperBonus = 0;
   
   if (currentUserId) {

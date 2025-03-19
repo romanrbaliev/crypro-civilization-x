@@ -1,196 +1,328 @@
 
-import React, { useState, useEffect } from 'react';
-import { Calculator } from 'lucide-react';
-import { Button } from './ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from './ui/dialog';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { debugKnowledgeProduction } from '@/utils/debugCalculator';
+import { calculateKnowledgeProduction } from '@/utils/debugCalculator';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp, Bug, RefreshCw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { formatNumber } from '@/utils/helpers';
-import { supabase } from '@/integrations/supabase/client';
-import { getUserIdentifier } from '@/api/userIdentification';
 
 const DebugCalculator = () => {
-  const { state, updateHelpers } = useGame();
-  const [calculationResult, setCalculationResult] = useState<{ steps: string[]; total: number } | null>(null);
+  const { state } = useGame();
+  const [result, setResult] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [isDebugActive, setIsDebugActive] = useState(false);
+  const [expanded, setExpanded] = useState({
+    buildings: false,
+    referrals: false,
+    helpers: false,
+    helperProduction: false,
+    upgrades: false
+  });
 
-  // Эффект для проверки статусов помощников в базе данных
+  const toggleSection = (section) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const calculateProduction = () => {
+    const calculationResult = calculateKnowledgeProduction(state);
+    setResult(calculationResult);
+    console.log('Результаты расчета производства знаний:', calculationResult);
+  };
+
+  // Автоматический расчет при открытии компонента
   useEffect(() => {
-    if (isOpen && !isDebugActive) {
-      setIsDebugActive(true);
-      checkHelpersInDatabase();
+    if (isOpen) {
+      calculateProduction();
     }
-    
-    if (!isOpen) {
-      setIsDebugActive(false);
-    }
-    
-    // Слушатель события обновления помощников
-    const handleHelpersUpdated = (event: CustomEvent) => {
-      console.log('Получено событие обновления помощников:', event.detail);
-      if (event.detail?.updatedHelpers) {
-        updateHelpers(event.detail.updatedHelpers);
-        // Обновляем расчеты
-        if (isOpen) {
-          handleCalculate();
-        }
-      }
-    };
-    
-    window.addEventListener('helpers-updated', handleHelpersUpdated as EventListener);
-    
-    return () => {
-      window.removeEventListener('helpers-updated', handleHelpersUpdated as EventListener);
-    };
-  }, [isOpen, isDebugActive]);
+  }, [isOpen]);
 
-  // Функция для проверки статусов помощников в базе данных
-  const checkHelpersInDatabase = async () => {
-    try {
-      const userId = await getUserIdentifier();
-      
-      if (!userId) {
-        console.error('Не удалось получить ID пользователя');
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from('referral_helpers')
-        .select('*')
-        .eq('employer_id', userId);
-      
-      if (error) {
-        console.error('Ошибка при получении данных о помощниках:', error);
-        return;
-      }
-      
-      if (!data || data.length === 0) {
-        console.log('В БД не найдено записей о помощниках');
-        return;
-      }
-      
-      console.log('Данные о помощниках из базы данных:', data);
-      
-      // Сравниваем с локальным состоянием
-      const localHelpers = state.referralHelpers;
-      
-      let needsUpdate = false;
-      const updatedHelpers = [...localHelpers];
-      
-      data.forEach(dbHelper => {
-        const localHelperIndex = localHelpers.findIndex(
-          h => h.helperId === dbHelper.helper_id && h.buildingId === dbHelper.building_id
-        );
-        
-        if (localHelperIndex >= 0) {
-          const localHelper = localHelpers[localHelperIndex];
-          if (localHelper.status !== dbHelper.status) {
-            console.log(`Несоответствие статуса помощника ${dbHelper.helper_id}: в БД - ${dbHelper.status}, локально - ${localHelper.status}`);
-            updatedHelpers[localHelperIndex] = {
-              ...localHelper,
-              status: dbHelper.status as 'pending' | 'accepted' | 'rejected'
-            };
-            needsUpdate = true;
-          }
-        }
-      });
-      
-      if (needsUpdate) {
-        console.log('Обновление помощников из базы данных:', updatedHelpers);
-        updateHelpers(updatedHelpers);
-      }
-    } catch (error) {
-      console.error('Ошибка при проверке помощников в базе данных:', error);
-    }
+  // Форматирование числа с плюсом для положительных значений
+  const formatWithSign = (num) => {
+    const formatted = formatNumber(Math.abs(num));
+    return num >= 0 ? `+${formatted}` : `-${formatted}`;
   };
 
-  const handleCalculate = () => {
-    const result = debugKnowledgeProduction(state);
-    setCalculationResult(result);
-  };
+  if (!state.resources.knowledge) {
+    return null;
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-2 w-full flex items-center justify-center gap-2 text-xs"
-          onClick={handleCalculate}
-        >
-          <Calculator className="h-3.5 w-3.5" />
-          Анализ накопления знаний
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle className="text-center">Детальный расчет накопления знаний</DialogTitle>
-          <DialogDescription className="text-center">
-            Пошаговый анализ скорости накопления знаний с учетом обновленной логики бонусов 
-            (5% для реферрера за каждого помощника, 10% для реферала за каждое здание)
-          </DialogDescription>
-        </DialogHeader>
+    <Card className="w-full mb-4 bg-white/90">
+      <CardHeader className="py-2">
+        <div className="flex justify-between items-center w-full">
+          <CardTitle className="text-sm font-medium flex items-center">
+            <Bug className="w-4 h-4 mr-1" /> Отладочный калькулятор
+          </CardTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardHeader>
 
-        {calculationResult && (
-          <div className="space-y-4">
-            <div className="border p-3 rounded-md bg-blue-50">
-              <p className="font-semibold">Итоговая скорость накопления: {formatNumber(calculationResult.total)}/сек</p>
-              <p className="text-xs text-gray-600">
-                Значение в интерфейсе: {state.resources.knowledge?.perSecond ? formatNumber(state.resources.knowledge.perSecond) : '0'}/сек
-              </p>
-              {Math.abs(calculationResult.total - (state.resources.knowledge?.perSecond || 0)) > 0.01 && (
-                <p className="text-xs text-red-600 font-semibold mt-1">
-                  Обнаружено расхождение! Разница: {Math.abs(calculationResult.total - (state.resources.knowledge?.perSecond || 0)).toFixed(2)}/сек
-                </p>
-              )}
-            </div>
-            
-            <Button 
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={checkHelpersInDatabase}
-            >
-              Проверить помощников в базе данных
-            </Button>
-            
-            <div className="space-y-2">
-              {calculationResult.steps.map((step, index) => (
-                <div 
-                  key={index} 
-                  className={`p-2 text-sm ${
-                    step.includes('Шаг') 
-                      ? 'font-semibold border-b pb-1' 
-                      : step.includes('Итого') || step.includes('Итоговая')
-                        ? 'font-semibold text-blue-600' 
-                        : step.includes('расхождение') || step.includes('Ошибка')
-                          ? 'text-red-600 font-semibold'
-                          : 'pl-4'
-                  }`}
-                >
-                  {step}
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t pt-4 mt-4">
-              <DialogClose asChild>
-                <Button className="w-full">Закрыть</Button>
-              </DialogClose>
+      {isOpen && (
+        <CardContent className="pt-0 pb-3 text-xs">
+          <div className="flex justify-between mb-2">
+            <div>Текущее производство знаний:</div>
+            <div className="font-semibold">
+              {formatNumber(state.resources.knowledge.perSecond || 0)}/сек
             </div>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs w-full mb-2 h-7"
+            onClick={calculateProduction}
+          >
+            <RefreshCw className="w-3 h-3 mr-1" /> Пересчитать
+          </Button>
+
+          {result && result.success && (
+            <>
+              <Separator className="my-2" />
+              
+              <div className="text-center font-semibold mb-2">Результаты расчета</div>
+              
+              {/* Шаг 1: Базовое производство от зданий */}
+              <Collapsible 
+                open={expanded.buildings} 
+                onOpenChange={() => toggleSection('buildings')}
+                className="mb-2"
+              >
+                <CollapsibleTrigger className="flex justify-between items-center w-full">
+                  <div>Шаг 1: Базовое производство от зданий:</div>
+                  <div className="flex items-center">
+                    {formatNumber(result.baseProduction)}/сек
+                    {expanded.buildings ? 
+                      <ChevronUp className="w-3 h-3 ml-1" /> : 
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    }
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 pt-1">
+                  {Object.entries(result.buildingProduction).map(([buildingId, amount]) => (
+                    <div key={buildingId} className="flex justify-between">
+                      <div>{state.buildings[buildingId]?.name || buildingId}:</div>
+                      <div>{formatNumber(amount)}/сек</div>
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Шаг 2: Бонус от активных рефералов */}
+              <Collapsible 
+                open={expanded.referrals} 
+                onOpenChange={() => toggleSection('referrals')}
+                className="mb-2"
+              >
+                <CollapsibleTrigger className="flex justify-between items-center w-full">
+                  <div>Шаг 2: Бонус от активных рефералов ({result.referralBonus.activeReferrals} × 5%):</div>
+                  <div className="flex items-center">
+                    {formatWithSign(result.referralBonus.bonusAmount)}/сек
+                    {expanded.referrals ? 
+                      <ChevronUp className="w-3 h-3 ml-1" /> : 
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    }
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 pt-1">
+                  <div className="flex justify-between">
+                    <div>Активные рефералы:</div>
+                    <div>{result.referralBonus.activeReferrals}</div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div>Бонусный процент:</div>
+                    <div>+{result.referralBonus.bonusPercent.toFixed(0)}%</div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div>Бонус к производству:</div>
+                    <div>{formatNumber(result.referralBonus.bonusAmount)}/сек</div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Шаг 3: Бонус от помощников */}
+              <Collapsible 
+                open={expanded.helpers} 
+                onOpenChange={() => toggleSection('helpers')}
+                className="mb-2"
+              >
+                <CollapsibleTrigger className="flex justify-between items-center w-full">
+                  <div>Шаг 3: Бонус от помощников для реферрера (5% за помощника):</div>
+                  <div className="flex items-center">
+                    {formatWithSign(result.helperBonus.totalBonus)}/сек
+                    {expanded.helpers ? 
+                      <ChevronUp className="w-3 h-3 ml-1" /> : 
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    }
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 pt-1">
+                  {Object.entries(result.helperBonus.details).length > 0 ? (
+                    Object.entries(result.helperBonus.details).map(([buildingId, data]) => (
+                      <div key={buildingId} className="mb-1">
+                        <div className="flex justify-between">
+                          <div>
+                            {state.buildings[buildingId]?.name || buildingId}:
+                          </div>
+                          <div>
+                            +{(data.boost * 100).toFixed(0)}% = {formatNumber(data.bonusAmount)}/сек
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500">Нет активных помощников</div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Шаг 4: Бонус для реферала-помощника */}
+              <Collapsible 
+                open={expanded.helperProduction} 
+                onOpenChange={() => toggleSection('helperProduction')}
+                className="mb-2"
+              >
+                <CollapsibleTrigger className="flex justify-between items-center w-full">
+                  <div>Шаг 5: Расчет бонуса для реферала-помощника (10% за каждое здание):</div>
+                  <div className="flex items-center">
+                    {formatWithSign(result.helperProductionBonus.bonusAmount)}/сек
+                    {expanded.helperProduction ? 
+                      <ChevronUp className="w-3 h-3 ml-1" /> : 
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    }
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 pt-1">
+                  {result.helperProductionBonus.buildingsAsHelper > 0 ? (
+                    <>
+                      <div className="flex justify-between">
+                        <div>Текущий пользователь ({state.referralCode?.substring(0, 6) || 'unknown'}):</div>
+                        <div>помогает на {result.helperProductionBonus.buildingsAsHelper} зданиях</div>
+                      </div>
+                      <div className="flex justify-between">
+                        <div>Бонусный процент:</div>
+                        <div>+{result.helperProductionBonus.bonusPercent.toFixed(0)}%</div>
+                      </div>
+                      <div className="flex justify-between">
+                        <div>Бонус к производству:</div>
+                        <div>{formatNumber(result.helperProductionBonus.bonusAmount)}/сек</div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-gray-500">
+                      Текущий пользователь ({localStorage.getItem('userId')?.substring(0, 10) || state.referralCode?.substring(0, 6) || 'unknown'}) не является помощником ни для каких зданий
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Шаг 5: Бонусы от исследований */}
+              <Collapsible 
+                open={expanded.upgrades} 
+                onOpenChange={() => toggleSection('upgrades')}
+                className="mb-2"
+              >
+                <CollapsibleTrigger className="flex justify-between items-center w-full">
+                  <div>Шаг 6: Бонусы от исследований:</div>
+                  <div className="flex items-center">
+                    {formatWithSign(result.upgradeBonus.totalBonus)}/сек
+                    {expanded.upgrades ? 
+                      <ChevronUp className="w-3 h-3 ml-1" /> : 
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    }
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 pt-1">
+                  {Object.keys(result.upgradeBonus.effects).length > 0 ? (
+                    Object.values(result.upgradeBonus.effects).map((effect, index) => (
+                      <div key={index} className="flex justify-between">
+                        <div>{effect.name}:</div>
+                        <div>+{(effect.boost * 100).toFixed(0)}% = {formatNumber(effect.bonusAmount)}/сек</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500">Нет исследований с бонусами к знаниям</div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+              
+              <Separator className="my-2" />
+              
+              {/* Итоги расчета */}
+              <div className="font-semibold">Итоги расчета:</div>
+              <div className="pl-4">
+                <div className="flex justify-between">
+                  <div>Базовое производство:</div>
+                  <div>{formatNumber(result.baseProduction)}/сек</div>
+                </div>
+                <div className="flex justify-between">
+                  <div>+ Бонус от рефералов:</div>
+                  <div>{formatNumber(result.referralBonus.bonusAmount)}/сек</div>
+                </div>
+                <div className="flex justify-between">
+                  <div>+ Бонус от помощников:</div>
+                  <div>{formatNumber(result.helperBonus.totalBonus)}/сек</div>
+                </div>
+                <div className="flex justify-between">
+                  <div>+ Бонус реферала-помощника:</div>
+                  <div>{formatNumber(result.helperProductionBonus.bonusAmount)}/сек</div>
+                </div>
+                <div className="flex justify-between">
+                  <div>+ Бонус от исследований:</div>
+                  <div>{formatNumber(result.upgradeBonus.totalBonus)}/сек</div>
+                </div>
+                <Separator className="my-1" />
+                <div className="flex justify-between font-semibold">
+                  <div>Расчетное производство:</div>
+                  <div>{formatNumber(result.calculatedProduction)}/сек</div>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <div>Текущее производство в игре:</div>
+                  <div>{formatNumber(result.displayedProduction)}/сек</div>
+                </div>
+              </div>
+              
+              {/* Проверка на расхождение */}
+              {result.hasDiscrepancy ? (
+                <div className="mt-2 p-2 bg-yellow-50 rounded-md border border-yellow-200 flex items-start">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 mr-1 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold">Обнаружено расхождение!</div>
+                    <div>Разница между расчетным и реальным значением: {formatNumber(result.discrepancy)}/сек</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 p-2 bg-green-50 rounded-md border border-green-200 flex items-start">
+                  <CheckCircle className="w-4 h-4 text-green-500 mr-1 flex-shrink-0 mt-0.5" />
+                  <div>Расчеты совпадают с игровыми значениями.</div>
+                </div>
+              )}
+            </>
+          )}
+          
+          {result && !result.success && (
+            <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-200 flex items-start">
+              <XCircle className="w-4 h-4 text-red-500 mr-1 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="font-semibold">Ошибка при расчете</div>
+                <div>{result.message}</div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
   );
 };
 

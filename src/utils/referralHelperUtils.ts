@@ -1,4 +1,3 @@
-
 import { ReferralHelper } from "@/context/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserIdentifier } from "@/api/userIdentification";
@@ -130,14 +129,21 @@ export const getHelperProductionBoost = (
   helperId: string,
   referralHelpers: ReferralHelper[]
 ): number => {
+  // ИСПРАВЛЕНИЕ: Используем проверку на userId вместо referralCode
+  // Проверяем, есть ли userId в localStorage
+  const userId = localStorage.getItem('userId');
+  
+  // Если userId совпадает с helperId, используем его, иначе используем helperId напрямую
+  const userIdToCheck = (userId && userId === helperId) ? userId : helperId;
+  
   // Считаем количество зданий, где пользователь помогает
   const acceptedBuildingsCount = referralHelpers.filter(
-    helper => helper.helperId === helperId && helper.status === 'accepted'
+    helper => helper.helperId === userIdToCheck && helper.status === 'accepted'
   ).length;
   
   // НОВАЯ ЛОГИКА: Каждое здание, где реферал является помощником, дает ему бонус 10%
   const boost = acceptedBuildingsCount * 0.1;
-  console.log(`Бонус для помощника ${helperId}: ${boost * 100}% (помогает в ${acceptedBuildingsCount} зданиях)`);
+  console.log(`Бонус для помощника ${userIdToCheck}: ${boost * 100}% (помогает в ${acceptedBuildingsCount} зданиях)`);
   return boost;
 };
 
