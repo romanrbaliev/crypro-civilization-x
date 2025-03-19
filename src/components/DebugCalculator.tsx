@@ -46,10 +46,19 @@ const DebugCalculator = () => {
       }
     };
     
+    // Слушатель события для принудительного обновления ресурсов
+    const handleForceUpdate = () => {
+      if (isOpen) {
+        handleCalculate();
+      }
+    };
+    
     window.addEventListener('helpers-updated', handleHelpersUpdated as EventListener);
+    window.addEventListener('force-resource-update', handleForceUpdate as EventListener);
     
     return () => {
       window.removeEventListener('helpers-updated', handleHelpersUpdated as EventListener);
+      window.removeEventListener('force-resource-update', handleForceUpdate as EventListener);
     };
   }, [isOpen, isDebugActive]);
 
@@ -79,6 +88,9 @@ const DebugCalculator = () => {
       }
       
       console.log('Данные о помощниках из базы данных:', data);
+      
+      // Сохраняем ID пользователя в локальное хранилище для быстрого доступа
+      localStorage.setItem('crypto_civ_user_id', userId);
       
       // Сравниваем с локальным состоянием
       const localHelpers = state.referralHelpers;

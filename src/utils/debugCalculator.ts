@@ -146,7 +146,9 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     steps.push(`Шаг 5: Расчет бонуса для реферала-помощника (10% за каждое здание):`);
     
     // Получаем ID текущего пользователя
-    let currentUserId = state.referralCode;
+    // ИЗМЕНЕНО: теперь используем локальное хранилище или кэш для user_id вместо referralCode
+    let currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+    
     if (currentUserId) {
       // Проверяем, является ли текущий пользователь помощником для кого-то
       const buildingsAsHelper = state.referralHelpers.filter(h => 
@@ -236,9 +238,10 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
       steps.push(`- Бонус от помощников для реферрера (5% за каждого): +${helperBonusTotal.toFixed(2)}/сек`);
     }
     
-    // Добавляем отображение бонуса для реферала-помощника
-    const buildingsAsHelper = state.referralCode ? state.referralHelpers.filter(h => 
-      h.helperId === state.referralCode && h.status === 'accepted'
+    // Обновлено: используем user_id вместо referralCode
+    const currentUserIdForSummary = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+    const buildingsAsHelper = currentUserIdForSummary ? state.referralHelpers.filter(h => 
+      h.helperId === currentUserIdForSummary && h.status === 'accepted'
     ) : [];
     
     if (buildingsAsHelper.length > 0) {
