@@ -135,7 +135,8 @@ const DebugCalculator = () => {
         <DialogHeader>
           <DialogTitle className="text-center">Детальный расчет накопления знаний</DialogTitle>
           <DialogDescription className="text-center">
-            Пошаговый анализ скорости накопления знаний с учетом обновленной логики бонусов (5% для реферрера)
+            Пошаговый анализ скорости накопления знаний с учетом обновленной логики бонусов 
+            (5% для реферрера за каждого помощника, 10% для реферала за каждое здание)
           </DialogDescription>
         </DialogHeader>
 

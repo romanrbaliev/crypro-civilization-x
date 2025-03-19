@@ -26,13 +26,32 @@ export const processResourceUpdate = (state: GameState): GameState => {
       .catch(err => console.error('Ошибка при синхронизации помощников:', err));
   }
   
+  // Проверяем, является ли текущий пользователь помощником для других игроков
+  // и учитываем бонус в 10% за каждое здание, на котором он помогает
+  const currentUserId = state.referralCode;
+  let referralHelperBonus = 0;
+  
+  if (currentUserId) {
+    const buildingsAsHelper = state.referralHelpers.filter(h => 
+      h.helperId === currentUserId && h.status === 'accepted'
+    ).length;
+    
+    // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
+    referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
+    
+    if (buildingsAsHelper > 0) {
+      console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
+    }
+  }
+  
   // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
     state.resources, 
     state.buildings, 
     state.referralHelpers,
     state.referrals,
-    state.referralCode
+    state.referralCode,
+    referralHelperBonus // Передаем бонус для реферала-помощника
   );
   
   // Применяем увеличение хранилища от зданий

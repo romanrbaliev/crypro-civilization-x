@@ -1,7 +1,7 @@
 
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
 import { formatNumber } from './helpers';
-import { getActiveBuildingHelpers, getHelperStatusSummary } from './referralHelperUtils';
+import { getActiveBuildingHelpers, getHelperStatusSummary, getReferralAssignedBuildingId } from './referralHelperUtils';
 
 /**
  * Детальный расчет производства знаний с пошаговой информацией
@@ -86,8 +86,8 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
       totalProduction += referralEffect;
     }
     
-    // Шаг 4: Бонусы от помощников - ОБНОВЛЕНО по новой логике (5% для реферрера)
-    steps.push(`Шаг 4: Расчет бонуса от помощников (НОВАЯ ЛОГИКА - 5% за каждого):`);
+    // Шаг 4: Бонусы от помощников для реферрера (5% за каждого)
+    steps.push(`Шаг 4: Расчет бонуса от помощников для реферрера (5% за каждого):`);
     
     let helperBonusTotal = 0;
     
@@ -138,12 +138,48 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
         });
       }
     } else {
-      steps.push(`- Общий бонус от помощников: +${helperBonusTotal.toFixed(2)}/сек (5% за каждого помощника)`);
+      steps.push(`- Общий бонус от помощников для реферрера: +${helperBonusTotal.toFixed(2)}/сек (5% за каждого помощника)`);
       totalProduction += helperBonusTotal;
     }
     
-    // Шаг 5: Бонусы от исследований
-    steps.push(`Шаг 5: Расчет бонусов от исследований:`);
+    // Шаг 5: Бонус для реферала-помощника (10% за каждое здание)
+    steps.push(`Шаг 5: Расчет бонуса для реферала-помощника (10% за каждое здание):`);
+    
+    // Получаем ID текущего пользователя
+    let currentUserId = state.referralCode;
+    if (currentUserId) {
+      // Проверяем, является ли текущий пользователь помощником для кого-то
+      const buildingsAsHelper = state.referralHelpers.filter(h => 
+        h.helperId === currentUserId && h.status === 'accepted'
+      );
+      
+      if (buildingsAsHelper.length > 0) {
+        steps.push(`- Текущий пользователь (${currentUserId}) является помощником для ${buildingsAsHelper.length} зданий:`);
+        
+        let helperBonusForReferral = 0;
+        
+        buildingsAsHelper.forEach((helperRecord, index) => {
+          steps.push(`  Здание #${index + 1}: ID=${helperRecord.buildingId}`);
+          
+          // НОВАЯ ЛОГИКА: Реферал получает 10% бонус за каждое здание, на котором он помогает
+          const perBuildingBonus = 0.1; // 10% за здание
+          const bonusFromBuilding = buildingProduction * perBuildingBonus;
+          helperBonusForReferral += bonusFromBuilding;
+          
+          steps.push(`  ✅ Бонус за здание: ${buildingProduction}/сек * 10% = +${bonusFromBuilding.toFixed(2)}/сек`);
+        });
+        
+        steps.push(`- Общий бонус для реферала-помощника: +${helperBonusForReferral.toFixed(2)}/сек (10% за каждое здание)`);
+        totalProduction += helperBonusForReferral;
+      } else {
+        steps.push(`- Текущий пользователь (${currentUserId}) не является помощником ни для каких зданий`);
+      }
+    } else {
+      steps.push(`- Не удалось определить ID текущего пользователя для проверки статуса помощника`);
+    }
+    
+    // Шаг 6: Бонусы от исследований
+    steps.push(`Шаг 6: Расчет бонусов от исследований:`);
     
     let upgradeBonus = 0;
     let upgradesFound = false;
@@ -188,7 +224,7 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     }
     
     // Итоговый расчет
-    steps.push(`Шаг 6: Итоговый расчет:`);
+    steps.push(`Шаг 7: Итоговый расчет:`);
     steps.push(`- Базовое производство от зданий: ${buildingProduction.toFixed(2)}/сек`);
     
     if (referralBonus > 0) {
@@ -197,7 +233,17 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     }
     
     if (helperBonusTotal > 0) {
-      steps.push(`- Бонус от помощников (НОВАЯ ЛОГИКА - 5% за каждого): +${helperBonusTotal.toFixed(2)}/сек`);
+      steps.push(`- Бонус от помощников для реферрера (5% за каждого): +${helperBonusTotal.toFixed(2)}/сек`);
+    }
+    
+    // Добавляем отображение бонуса для реферала-помощника
+    const buildingsAsHelper = state.referralCode ? state.referralHelpers.filter(h => 
+      h.helperId === state.referralCode && h.status === 'accepted'
+    ) : [];
+    
+    if (buildingsAsHelper.length > 0) {
+      const helperBonusForReferral = buildingProduction * buildingsAsHelper.length * 0.1;
+      steps.push(`- Бонус для реферала-помощника (10% за каждое здание, ${buildingsAsHelper.length} зданий): +${helperBonusForReferral.toFixed(2)}/сек`);
     }
     
     if (knowledgeUpgradeMultiplier > 0) {

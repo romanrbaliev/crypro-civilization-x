@@ -222,7 +222,8 @@ export const calculateResourceProduction = (
   buildings: { [key: string]: Building },
   referralHelpers: any[],
   referrals: any[],
-  referralCode: string | null
+  referralCode: string | null,
+  referralHelperBonus: number = 0 // Новый параметр для бонуса реферала-помощника
 ): { [key: string]: Resource } => {
   try {
     const newResources = JSON.parse(JSON.stringify(resources));
@@ -325,12 +326,20 @@ export const calculateResourceProduction = (
         console.log(`Бонус от рефералов для ${resourceId}: ${baseAmount} * ${referralBonus * 100}% = +${referralEffect.toFixed(2)}/сек`);
       }
       
-      // Бонус от помощников
+      // Бонус от помощников для реферрера
       const helperEffect = helperBonuses[resourceId] || 0;
       if (helperEffect > 0) {
         newResources[resourceId].production += helperEffect;
         newResources[resourceId].perSecond += helperEffect;
-        console.log(`Бонус от помощников для ${resourceId}: +${helperEffect.toFixed(2)}/сек`);
+        console.log(`Бонус от помощников для реферрера (${resourceId}): +${helperEffect.toFixed(2)}/сек`);
+      }
+      
+      // НОВАЯ ЛОГИКА: Бонус для реферала-помощника
+      if (referralHelperBonus > 0) {
+        const referralHelperEffect = baseAmount * referralHelperBonus;
+        newResources[resourceId].production += referralHelperEffect;
+        newResources[resourceId].perSecond += referralHelperEffect;
+        console.log(`Бонус для реферала-помощника (${resourceId}): ${baseAmount} * ${referralHelperBonus * 100}% = +${referralHelperEffect.toFixed(2)}/сек`);
       }
     });
     
