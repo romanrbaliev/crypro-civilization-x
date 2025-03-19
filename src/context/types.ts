@@ -1,3 +1,6 @@
+
+import { ReferralStatusUpdate } from '../api/referral/referralTypes';
+
 export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };

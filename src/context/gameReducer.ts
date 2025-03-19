@@ -1,5 +1,7 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
+import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
