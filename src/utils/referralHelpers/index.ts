@@ -5,3 +5,6 @@ export * from './helperStatus';
 export * from './helperBoosts';
 export * from './helperQueries';
 export * from './helperCache';
+
+// Реэкспортируем helperStatusCache непосредственно для использования в других модулях
+export { helperStatusCache } from './helperCache';

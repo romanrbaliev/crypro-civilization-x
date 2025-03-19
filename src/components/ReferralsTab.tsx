@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -28,10 +29,9 @@ import { getUserIdentifier } from '@/api/gameDataService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { checkSupabaseConnection } from '@/api/connectionUtils';
 import {
-  isReferralHired,
   isReferralHiredForBuilding,
   getReferralAssignedBuildingId
-} from '@/utils/referralHelperUtils';
+} from '@/utils/referralHelpers/buildingHelpers';
 import { triggerReferralUIUpdate } from '@/api/referralService';
 import { syncHelperDataWithGameState } from '@/api/referral/referralHelpers';
 

@@ -1,5 +1,5 @@
-
-import { helperStatusCache } from './referralHelperUtils';
+import { formatNumber } from './helpers';
+import { helperStatusCache } from './referralHelpers';
 
 export function formatNumber(num: number, digits: number = 2): string {
   const lookup = [
