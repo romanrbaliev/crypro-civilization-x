@@ -1,11 +1,8 @@
 
-// Сервис для сохранения и получения реферальной информации
-
 import { supabase } from '@/integrations/supabase/client';
-import { getUserIdentifier } from '../userIdentification';
-import { checkSupabaseConnection } from '../connectionUtils';
-import { REFERRAL_TABLE, SAVES_TABLE } from '../apiTypes';
-import { ReferralDataWithActivation } from './referralTypes';
+import { getUserIdentifier } from '../../userIdentification';
+import { checkSupabaseConnection } from '../../connectionUtils';
+import { REFERRAL_TABLE, SAVES_TABLE } from '../../apiTypes';
 
 // Сохранение информации о реферале
 export const saveReferralInfo = async (referralCode: string, referredBy: string | null = null): Promise<boolean> => {
@@ -91,7 +88,7 @@ export const saveReferralInfo = async (referralCode: string, referredBy: string 
 };
 
 // Вспомогательная функция для обновления данных пригласившего пользователя
-async function updateReferrerData(referralCode: string, newReferralId: string): Promise<void> {
+export async function updateReferrerData(referralCode: string, newReferralId: string): Promise<void> {
   try {
     const { data: referrer } = await supabase
       .from(REFERRAL_TABLE)
@@ -145,63 +142,3 @@ async function updateReferrerData(referralCode: string, newReferralId: string): 
     console.error('❌ Ошибка при обновлении данных реферера:', error);
   }
 }
-
-// Получение реферального кода пользователя
-export const getUserReferralCode = async (userId?: string): Promise<string | null> => {
-  try {
-    const userIdToUse = userId || await getUserIdentifier();
-    
-    const { data, error } = await supabase
-      .from(REFERRAL_TABLE)
-      .select('referral_code')
-      .eq('user_id', userIdToUse)
-      .single();
-    
-    if (error || !data) {
-      console.warn('⚠️ Не удалось получить реферальный код:', error);
-      return null;
-    }
-    
-    return data.referral_code;
-  } catch (error) {
-    console.error('❌ Ошибка при получении реферального кода:', error);
-    return null;
-  }
-};
-
-// Проверка и обновление реферальной информации при запуске
-export const checkReferralInfo = async (userId: string, referredBy: string | null): Promise<void> => {
-  try {
-    const { data: existingData } = await supabase
-      .from(REFERRAL_TABLE)
-      .select()
-      .eq('user_id', userId)
-      .single();
-    
-    if (existingData) {
-      console.log('✅ Реферальная информация уже существует для пользователя', userId);
-      return;
-    }
-    
-    // Генерируем код для пользователя, если его нет
-    const referralCode = Array.from({ length: 8 }, () => 
-      Math.floor(Math.random() * 16).toString(16).toUpperCase()
-    ).join('');
-    
-    await saveReferralInfo(referralCode, referredBy);
-    
-    if (referredBy) {
-      const { data: referrerData } = await supabase
-        .from(REFERRAL_TABLE)
-        .select('user_id')
-        .eq('referral_code', referredBy)
-        .single();
-        
-      if (referrerData) {
-        console.log('✅ Обновляем информацию о рефералах для пользователя', referrerData.user_id);
-      }
-    }
-  } catch (error) {
-    console.error('❌ Ошибка при проверке реферальной информации:', error);
-  }
-};

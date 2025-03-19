@@ -2,7 +2,7 @@
 // Главный файл экспорта реферальной системы
 
 export * from './referralTypes';
-// Для referralStorage экспортируем всё, кроме getUserReferralCode, который дублируется
-export { saveReferralInfo, checkReferralInfo } from './referralStorage';
+// Экспортируем функции из обновленной структуры referralStorage
+export { saveReferralInfo, checkReferralInfo, getUserReferralCode } from './referralStorage/index';
 export * from './referralQuery';
 export * from './referralActivation';
