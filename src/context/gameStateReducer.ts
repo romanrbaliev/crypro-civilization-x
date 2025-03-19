@@ -43,8 +43,8 @@ export const processLoadGame = (
     };
   }
   
-  // Проверяем и исправляем несогласованности в загруженных данных
-  let loadedState = { ...payload };
+  // Клонируем загруженное состояние
+  let loadedState = JSON.parse(JSON.stringify(payload));
   
   // Убеждаемся, что игра отмечена как запущенная
   loadedState.gameStarted = true;
@@ -71,6 +71,14 @@ export const processLoadGame = (
     loadedState.buildings.cryptoWallet = { ...initialState.buildings.cryptoWallet };
   }
   
+  // Проверка и обработка каждого ресурса из initialState
+  Object.keys(initialState.resources).forEach(resourceKey => {
+    if (!loadedState.resources[resourceKey]) {
+      console.warn(`⚠️ Ресурс ${resourceKey} не найден в загруженном состоянии! Добавляем из initialState.`);
+      loadedState.resources[resourceKey] = { ...initialState.resources[resourceKey] };
+    }
+  });
+  
   // Проверка и добавление новых полей, которые могли отсутствовать в сохранении
   if (!loadedState.specializationSynergies) {
     loadedState.specializationSynergies = { ...initialState.specializationSynergies };
@@ -82,15 +90,8 @@ export const processLoadGame = (
     loadedState.referrals = [];
     console.log('✅ Инициализирован пустой массив рефералов');
   } else {
-    // Обработка данных о рефералах - НЕ ИЗМЕНЯЕМ статус активации!
-    // Только конвертируем нестандартные значения в булев тип
+    // Обработка данных о рефералах - конвертируем строковые значения в булев тип
     loadedState.referrals = loadedState.referrals.map((referral) => {
-      // Установка значения по умолчанию, если поле отсутствует
-      if (referral.activated === undefined || referral.activated === null) {
-        console.log(`Добавляем отсутствующее поле activated для реферала ${referral.id}`);
-        return { ...referral, activated: false };
-      }
-      
       // Преобразуем строковое значение в булевое, если необходимо
       if (typeof referral.activated === 'string') {
         const isActivated = referral.activated === 'true';
@@ -98,7 +99,6 @@ export const processLoadGame = (
         return { ...referral, activated: isActivated };
       }
       
-      // Сохраняем исходное булево значение
       return referral;
     });
     

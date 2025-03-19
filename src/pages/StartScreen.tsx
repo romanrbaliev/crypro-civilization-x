@@ -18,6 +18,7 @@ const StartScreen = () => {
   const [referralInfo, setReferralInfo] = useState<string | null>(null);
   const [telegramInfo, setTelegramInfo] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [loadAttempted, setLoadAttempted] = useState(false);
   
   // Загружаем информацию о Telegram пользователе при монтировании
   useEffect(() => {
@@ -47,8 +48,14 @@ const StartScreen = () => {
   }, []);
   
   useEffect(() => {
+    // Предотвращаем повторные запросы после первой попытки загрузки
+    if (loadAttempted) {
+      return;
+    }
+    
     const checkForSavedGame = async () => {
       setIsLoading(true);
+      setLoadAttempted(true);
       
       try {
         // Получаем текущий ID пользователя
@@ -97,9 +104,6 @@ const StartScreen = () => {
         if (savedGame) {
           console.log('Загружено сохранение:', savedGame);
           
-          // ВАЖНО: Не изменяем статус активации рефералов при загрузке
-          // Просто загружаем рефералов из сохранения как есть
-          
           // Проверяем реферальный код и устанавливаем, если отсутствует
           if (!savedGame.referralCode) {
             const newCode = Array.from({ length: 8 }, () => 
@@ -109,6 +113,9 @@ const StartScreen = () => {
             savedGame.referralCode = newCode;
             console.log('Установлен реферальный код:', savedGame.referralCode);
           }
+          
+          // Фиксируем, что игра запущена
+          savedGame.gameStarted = true;
           
           // Обновляем состояние с данными о рефералах
           setHasExistingSave(true);
@@ -125,7 +132,9 @@ const StartScreen = () => {
           }, 500);
           
           // Автоматически перенаправляем на экран игры
-          navigate('/game');
+          setTimeout(() => {
+            navigate('/game');
+          }, 100);
         } else {
           setHasExistingSave(false);
           safeDispatchGameEvent("Новая игра создана", "info");
@@ -138,7 +147,9 @@ const StartScreen = () => {
           
           // Сразу запускаем новую игру и перенаправляем на экран игры
           dispatch({ type: "START_GAME" });
-          navigate('/game');
+          setTimeout(() => {
+            navigate('/game');
+          }, 100);
         }
       } catch (error) {
         console.error('Ошибка при проверке сохранений:', error);
@@ -146,14 +157,16 @@ const StartScreen = () => {
         
         // Даже при ошибке запускаем новую игру и переходим на игровой экран
         dispatch({ type: "START_GAME" });
-        navigate('/game');
+        setTimeout(() => {
+          navigate('/game');
+        }, 100);
       } finally {
         setIsLoading(false);
       }
     };
     
     checkForSavedGame();
-  }, [dispatch, state.referralCode, navigate, state.referredBy]);
+  }, [dispatch, state.referralCode, navigate, state.referredBy, loadAttempted]);
   
   // Извлечение реферального кода из URL-параметра start
   const extractReferralCodeFromUrl = () => {

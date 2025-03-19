@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { initialState } from '../initialState';
 import { saveGameToServer, loadGameFromServer, checkSupabaseConnection } from '@/api/gameDataService';
@@ -26,9 +25,10 @@ export async function saveGameState(state: GameState): Promise<boolean> {
       return false;
     }
     
-    // Обновляем timestamp перед сохранением
+    // Убеждаемся что флаг gameStarted установлен
     const stateToSave = {
       ...state,
+      gameStarted: true,
       lastSaved: Date.now()
     };
     
@@ -78,67 +78,6 @@ export async function loadGameState(): Promise<GameState | null> {
     
     if (loadedState) {
       console.log(`✅ Игра успешно загружена из облака (lastSaved: ${new Date(loadedState.lastSaved || 0).toLocaleTimeString() || 'не задано'})`);
-      
-      // Проверяем целостность загруженных данных
-      if (!loadedState.resources || !loadedState.buildings || !loadedState.upgrades) {
-        console.warn('⚠️ Загруженные данные повреждены, выполняем восстановление...');
-        safeDispatchGameEvent(
-          "Загруженные данные повреждены, выполняем восстановление",
-          "warning"
-        );
-        
-        // Восстанавливаем недостающие данные из initialState
-        const restoredState = {
-          ...initialState,
-          ...loadedState,
-          resources: { ...initialState.resources, ...(loadedState.resources || {}) },
-          buildings: { ...initialState.buildings, ...(loadedState.buildings || {}) },
-          upgrades: { ...initialState.upgrades, ...(loadedState.upgrades || {}) },
-          unlocks: { ...initialState.unlocks, ...(loadedState.unlocks || {}) },
-          specializationSynergies: { ...initialState.specializationSynergies, ...(loadedState.specializationSynergies || {}) },
-          counters: { ...initialState.counters, ...(loadedState.counters || {}) },
-          eventMessages: { ...initialState.eventMessages, ...(loadedState.eventMessages || {}) }
-        };
-        
-        // Обновляем timestamp последнего обновления
-        restoredState.lastUpdate = Date.now();
-        restoredState.lastSaved = Date.now();
-        
-        return restoredState;
-      }
-      
-      // Проверка и добавление новых полей, которых могло не быть в сохранении
-      if (!loadedState.specializationSynergies) {
-        loadedState.specializationSynergies = { ...initialState.specializationSynergies };
-        console.log('✅ Добавлены отсутствующие данные о синергиях специализаций');
-      }
-
-      // Проверка и инициализация реферальных систем
-      if (!loadedState.referrals) {
-        loadedState.referrals = [];
-        console.log('✅ Инициализирован пустой массив рефералов');
-      }
-      
-      if (!loadedState.referralHelpers) {
-        loadedState.referralHelpers = [];
-        console.log('✅ Инициализирован пустой массив помощников');
-      }
-      
-      // Проверка наличия счетчиков
-      if (!loadedState.counters) {
-        loadedState.counters = { ...initialState.counters };
-        console.log('✅ Добавлены отсутствующие счетчики');
-      }
-      
-      // Проверка наличия событий
-      if (!loadedState.eventMessages) {
-        loadedState.eventMessages = { ...initialState.eventMessages };
-        console.log('✅ Добавлены отсутствующие сообщения о событиях');
-      }
-      
-      // Обновляем timestamp последнего обновления
-      loadedState.lastUpdate = Date.now();
-      
       return loadedState;
     }
     
