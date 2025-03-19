@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
 import { hasActiveHelpers, syncHelperStatusWithDB, helperStatusCache } from '@/utils/referralHelperUtils';
@@ -29,7 +30,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Если у нас есть ID пользователя, проверяем является ли он помощником на основе локального состояния
   if (currentUserId) {
     const buildingsAsHelper = state.referralHelpers.filter(h => 
-      h.helperId === currentUserId && h.status === 'accepted' as "accepted" | "pending" | "rejected"
+      h.helperId === currentUserId && h.status === 'accepted'
     ).length;
     
     // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
@@ -113,7 +114,15 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Применяем увеличение хранилища от зданий
   updatedResources = applyStorageBoosts(updatedResources, state.buildings);
   
-  // Применяем эффекты от исследований - только к perSecond, не кумулятивно!
+  // Сброс baseProduction для исследований - нам нужны чистые значения
+  Object.keys(updatedResources).forEach(resourceId => {
+    // Сохраняем исходное значение base для применения эффектов
+    if (updatedResources[resourceId]) {
+      updatedResources[resourceId].baseProduction = updatedResources[resourceId].perSecond;
+    }
+  });
+  
+  // Применяем эффекты от исследований
   Object.values(state.upgrades).forEach(upgrade => {
     if (upgrade.purchased) {
       // Получаем эффекты исследования (поддерживаем оба поля effects и effect)
@@ -129,7 +138,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
           
           // Увеличиваем скорость накопления знаний
           updatedResources.knowledge.perSecond += boostAmount;
-          updatedResources.knowledge.production += boostAmount;
           
           console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления знаний: +${boostAmount.toFixed(2)}/сек`);
         }
@@ -144,7 +152,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
             
             // Увеличиваем скорость накопления ресурса
             updatedResources[resourceId].perSecond += boostAmount;
-            updatedResources[resourceId].production += boostAmount;
             
             console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления ${resourceId}: +${boostAmount.toFixed(2)}/сек`);
           }

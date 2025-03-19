@@ -1,3 +1,4 @@
+
 import { helperStatusCache } from './referralHelperUtils';
 
 export function formatNumber(num: number, digits: number = 2): string {
@@ -86,7 +87,7 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     
     const referralHelpers = state.referralHelpers || [];
     
-    // ИСПРАВЛЕНИЕ: Проверяем, что пользователь является работодателем (employerId), а не помощником (helperId)
+    // Проверяем, что пользователь является работодателем (employerId), а не помощником (helperId)
     const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
     
     // Фильтруем только тех помощников, где текущий пользователь - работодатель
@@ -125,6 +126,8 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
       
       steps.push(`- Всего уникальных помощников: ${helperIds.size}`);
       steps.push(`- Общий бонус от помощников: +${totalHelperBonus.toFixed(2)}/сек`);
+      
+      totalUpgradeBoost += totalHelperBonus;
     } else {
       steps.push('- Нет зданий с активными помощниками (0% бонуса)');
     }
@@ -136,7 +139,7 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
     let hasHelperRole = false;
     
     if (currentUserId) {
-      // ИСПРАВЛЕНИЕ: Проверяем, где текущий пользователь выступает в роли помощника
+      // Проверяем, где текущий пользователь выступает в роли помощника
       const whereIAmHelper = referralHelpers.filter((h: any) => 
         h.helperId === currentUserId && h.status === 'accepted'
       );

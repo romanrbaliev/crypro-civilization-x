@@ -151,10 +151,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "UPDATE_HELPERS": 
       // Обработчик события обновления помощников
       console.log("Обновление списка помощников из базы данных");
-      return {
+      const updatedState = {
         ...state,
         referralHelpers: action.payload.updatedHelpers || state.referralHelpers
       };
+      
+      // После обновления помощников сразу пересчитываем ресурсы
+      return processResourceUpdate(updatedState);
     
     default:
       return state;

@@ -20,11 +20,6 @@ export const useGame = () => {
       type: 'UPDATE_HELPERS', 
       payload: { updatedHelpers } 
     });
-    
-    // После обновления помощников запускаем пересчет ресурсов
-    setTimeout(() => {
-      forceUpdate();
-    }, 100);
   };
   
   return {

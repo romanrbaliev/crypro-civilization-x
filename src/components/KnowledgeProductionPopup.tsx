@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/popover';
 
 const KnowledgeProductionPopup = () => {
-  const { state } = useGame();
+  const { state, forceUpdate } = useGame();
   const [calculationSteps, setCalculationSteps] = useState<string[]>([]);
   const [finalValue, setFinalValue] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
@@ -19,12 +19,19 @@ const KnowledgeProductionPopup = () => {
   const updateCalculation = async () => {
     try {
       setLoading(true);
-      const { steps, finalValue } = await debugKnowledgeProduction(state);
-      setCalculationSteps(steps);
-      setFinalValue(finalValue);
+      
+      // Сначала форсируем обновление состояния игры
+      forceUpdate();
+      
+      // Небольшая задержка, чтобы обновление успело применится
+      setTimeout(async () => {
+        const { steps, finalValue } = await debugKnowledgeProduction(state);
+        setCalculationSteps(steps);
+        setFinalValue(finalValue);
+        setLoading(false);
+      }, 100);
     } catch (error) {
       console.error('Ошибка при обновлении расчета:', error);
-    } finally {
       setLoading(false);
     }
   };
