@@ -1,5 +1,5 @@
 
-import { GameState, Resource } from '../types';
+import { GameState, Resource, Building } from '../types';
 
 // Функция для проверки, достаточно ли ресурсов для совершения действия
 export const hasEnoughResources = (state: GameState, cost: { [key: string]: number }): boolean => {
@@ -210,7 +210,7 @@ export const checkUnlocks = (state: GameState): GameState => {
 // Функция для расчета изменений в производстве ресурсов
 export const calculateResourceProduction = (
   resources: { [key: string]: Resource },
-  buildings: any,
+  buildings: { [key: string]: Building },
   referralHelpers: any[],
   referrals: any[],
   referralCode: string | null
@@ -231,7 +231,7 @@ export const calculateResourceProduction = (
     console.log(`Активных рефералов: ${activeReferralsCount}, бонус: +${referralBonus * 100}%`);
     
     // Расчет базового производства от зданий
-    Object.values(buildings).forEach(building => {
+    Object.values(buildings).forEach((building: Building) => {
       const { count, production = {}, id: buildingId } = building;
       
       if (count > 0) {
@@ -278,13 +278,13 @@ export const calculateResourceProduction = (
 // Функция для применения бонусов к хранилищам ресурсов
 export const applyStorageBoosts = (
   resources: { [key: string]: Resource },
-  buildings: any
+  buildings: { [key: string]: Building }
 ): { [key: string]: Resource } => {
   try {
     const newResources = { ...resources };
     
     // Применяем бонусы к хранилищам от зданий
-    Object.values(buildings).forEach(building => {
+    Object.values(buildings).forEach((building: Building) => {
       const { count, production = {} } = building;
       
       if (count > 0) {
