@@ -35,6 +35,7 @@ export const updateHelperRequestStatus = async (
       .from(REFERRAL_HELPERS_TABLE)
       .update({ 
         status: status,
+        building_id: buildingId || '', // Обновляем buildingId если он указан
         created_at: new Date().toISOString() // используем created_at как updated_at, т.к. отдельного поля нет
       })
       .eq('helper_id', helperId)
@@ -70,14 +71,52 @@ export const updateHelperRequestStatus = async (
           description: "Статус помощника обновлен, но не удалось обновить статус активации",
           variant: "warning"
         });
-        return true; // Возвращаем true, т.к. основная операция выполнена успешно
+      } else {
+        console.log(`✅ Статус активации реферала успешно обновлен в БД для ${helperId}`);
       }
       
-      console.log(`✅ Статус активации реферала успешно обновлен в БД для ${helperId}`);
+      // Отправляем событие обновления для синхронизации с UI
+      setTimeout(() => {
+        try {
+          // Событие для обновления UI у работодателя
+          const employerEvent = new CustomEvent('referral-hire-status-updated', {
+            detail: { 
+              referralId: helperId, 
+              hired: true, 
+              buildingId 
+            }
+          });
+          window.dispatchEvent(employerEvent);
+          
+          // Событие для обновления у помощника
+          const helperEvent = new CustomEvent('helper-status-updated', {
+            detail: { 
+              buildingId,
+              status: 'accepted'
+            }
+          });
+          window.dispatchEvent(helperEvent);
+          
+          console.log(`✅ Отправлены события обновления статуса найма для помощника ${helperId} и здания ${buildingId}`);
+          
+          // Принудительно запрашиваем обновление из БД
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        } catch (error) {
+          console.error('❌ Ошибка при отправке событий обновления статуса:', error);
+        }
+      }, 500);
+      
       toast({
         title: "Статус обновлен",
-        description: "Информация о помощнике успешно обновлена в базе данных",
+        description: `Помощник успешно назначен в здание. Теперь производительность здания увеличена на 10%!`,
         variant: "success"
+      });
+    } else if (status === 'rejected') {
+      toast({
+        title: "Запрос отклонен",
+        description: "Запрос на помощь был отклонен",
+        variant: "info"
       });
     }
     
@@ -120,9 +159,113 @@ export const getHelperRequests = async (userId: string) => {
     }
     
     console.log(`✅ Получен список запросов помощников:`, data);
+    
+    // Отображаем уведомление о статусе помощника, если есть принятые запросы
+    const acceptedRequests = data?.filter(req => req.status === 'accepted') || [];
+    if (acceptedRequests.length > 0) {
+      toast({
+        title: "Вы являетесь помощником",
+        description: `Вы помогаете в ${acceptedRequests.length} зданиях, увеличивая их производительность на 10%`,
+        variant: "info"
+      });
+      
+      // Отправляем деталей о зданиях, где пользователь является помощником
+      setTimeout(() => {
+        try {
+          const helperDetailsEvent = new CustomEvent('helper-buildings-details', {
+            detail: { 
+              buildings: acceptedRequests.map(req => ({
+                buildingId: req.building_id,
+                employerId: req.employer_id
+              }))
+            }
+          });
+          window.dispatchEvent(helperDetailsEvent);
+          console.log(`✅ Отправлены детали зданий, где пользователь является помощником:`, 
+            acceptedRequests.map(req => req.building_id));
+        } catch (error) {
+          console.error('❌ Ошибка при отправке деталей зданий помощника:', error);
+        }
+      }, 300);
+    }
+    
     return { success: true, helpers: data || [] };
   } catch (error) {
     console.error('❌ Неожиданная ошибка при получении списка помощников:', error);
     return { success: false, helpers: [] };
+  }
+};
+
+/**
+ * Получает список зданий, в которых работают помощники
+ * @param userId ID пользователя-работодателя
+ */
+export const getEmployerHelperBuildings = async (userId: string) => {
+  try {
+    console.log(`Запрос списка зданий с помощниками для работодателя: ${userId}`);
+    
+    // Проверяем соединение с Supabase
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      console.error('❌ Нет соединения с Supabase при получении списка зданий с помощниками');
+      return { success: false, helperBuildings: [] };
+    }
+    
+    // Получаем список принятых запросов, где пользователь является работодателем
+    const { data, error } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('*')
+      .eq('employer_id', userId)
+      .eq('status', 'accepted');
+      
+    if (error) {
+      console.error('❌ Ошибка при получении списка зданий с помощниками:', error);
+      return { success: false, helperBuildings: [] };
+    }
+    
+    console.log(`✅ Получен список зданий с помощниками:`, data);
+    
+    // Группируем здания по ID для подсчета количества помощников в каждом здании
+    const buildingHelpers = (data || []).reduce((acc, helper) => {
+      if (!acc[helper.building_id]) {
+        acc[helper.building_id] = [];
+      }
+      acc[helper.building_id].push(helper.helper_id);
+      return acc;
+    }, {} as Record<string, string[]>);
+    
+    // Преобразуем в массив для удобства использования
+    const helperBuildings = Object.entries(buildingHelpers).map(([buildingId, helperIds]) => ({
+      buildingId,
+      helperIds,
+      boostPercentage: helperIds.length * 10 // 10% за каждого помощника
+    }));
+    
+    // Если есть здания с помощниками, отображаем уведомление
+    if (helperBuildings.length > 0) {
+      toast({
+        title: "Активные помощники",
+        description: `У вас ${helperBuildings.length} ${helperBuildings.length === 1 ? 'здание' : 'зданий'} с активными помощниками`,
+        variant: "info"
+      });
+      
+      // Отправляем события для обновления UI
+      setTimeout(() => {
+        try {
+          const employerDetailsEvent = new CustomEvent('employer-buildings-helpers', {
+            detail: { helperBuildings }
+          });
+          window.dispatchEvent(employerDetailsEvent);
+          console.log(`✅ Отправлены детали зданий с помощниками:`, helperBuildings);
+        } catch (error) {
+          console.error('❌ Ошибка при отправке деталей зданий с помощниками:', error);
+        }
+      }, 300);
+    }
+    
+    return { success: true, helperBuildings };
+  } catch (error) {
+    console.error('❌ Неожиданная ошибка при получении списка зданий с помощниками:', error);
+    return { success: false, helperBuildings: [] };
   }
 };

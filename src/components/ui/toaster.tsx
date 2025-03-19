@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -11,6 +12,7 @@ import { useEffect } from "react"
 import { getUserIdentifier } from "@/api/userIdentification"
 import { supabase } from "@/integrations/supabase/client"
 import { checkSupabaseConnection } from "@/api/connectionUtils"
+import { getHelperRequests, getEmployerHelperBuildings } from "@/api/referral/referralHelpers"
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -27,6 +29,17 @@ export function Toaster() {
           const isConnected = await checkSupabaseConnection();
           if (isConnected) {
             console.log('✅ Подключение к Supabase подтверждено при загрузке');
+            
+            // Запрашиваем данные о помощниках и зданиях при загрузке
+            const helperResult = await getHelperRequests(userId);
+            if (helperResult.success && helperResult.helpers.length > 0) {
+              console.log('✅ Получены данные о запросах на помощь при загрузке:', helperResult.helpers.length);
+            }
+            
+            const employerResult = await getEmployerHelperBuildings(userId);
+            if (employerResult.success && employerResult.helperBuildings.length > 0) {
+              console.log('✅ Получены данные о зданиях с помощниками при загрузке:', employerResult.helperBuildings.length);
+            }
           } else {
             console.error('❌ Ошибка подключения к Supabase при загрузке');
           }
@@ -107,6 +120,17 @@ export function Toaster() {
               window.dispatchEvent(updateEvent);
             }
           }
+          
+          // Обновляем данные о помощниках и зданиях
+          const helperResult = await getHelperRequests(userId);
+          if (helperResult.success) {
+            console.log('✅ Обновлены данные о запросах на помощь:', helperResult.helpers.length);
+          }
+          
+          const employerResult = await getEmployerHelperBuildings(userId);
+          if (employerResult.success) {
+            console.log('✅ Обновлены данные о зданиях с помощниками:', employerResult.helperBuildings.length);
+          }
         }
       } catch (error) {
         console.error('❌ Ошибка при обработке обновления рефералов:', error);
@@ -146,6 +170,43 @@ export function Toaster() {
     
     window.addEventListener('referral-activated', handleReferralActivated);
     
+    // Обработчик событий обновления статуса найма реферала
+    const handleHelperStatusUpdated = (event) => {
+      const { buildingId, status } = event.detail;
+      console.log(`Получено событие обновления статуса помощника для здания ${buildingId}: ${status}`);
+      
+      if (status === 'accepted') {
+        // Уведомление для помощника
+        useToast().toast({
+          title: "Вы назначены помощником",
+          description: `Вы назначены помощником в здание. Теперь вы приносите +10% к производительности!`,
+          variant: "success"
+        });
+      }
+    };
+    
+    window.addEventListener('helper-status-updated', handleHelperStatusUpdated);
+    
+    // Обработчик событий с деталями о зданиях, где пользователь является помощником
+    const handleHelperBuildingsDetails = (event) => {
+      const { buildings } = event.detail;
+      console.log(`Получены детали о ${buildings.length} зданиях, где пользователь является помощником:`, buildings);
+      
+      // Здесь можно отправить событие для обновления UI или добавить дополнительную логику
+    };
+    
+    window.addEventListener('helper-buildings-details', handleHelperBuildingsDetails);
+    
+    // Обработчик событий с деталями о зданиях с помощниками у работодателя
+    const handleEmployerBuildingsHelpers = (event) => {
+      const { helperBuildings } = event.detail;
+      console.log(`Получены детали о ${helperBuildings.length} зданиях с помощниками у работодателя:`, helperBuildings);
+      
+      // Здесь можно отправить событие для обновления UI или добавить дополнительную логику
+    };
+    
+    window.addEventListener('employer-buildings-helpers', handleEmployerBuildingsHelpers);
+    
     // Запрашиваем обновление статусов при первом рендере с увеличенной задержкой
     setTimeout(() => {
       const refreshEvent = new CustomEvent('refresh-referrals');
@@ -157,6 +218,9 @@ export function Toaster() {
       window.removeEventListener('refresh-referrals', handleRefresh);
       window.removeEventListener('referral-db-status', handleReferralDbStatus);
       window.removeEventListener('referral-activated', handleReferralActivated);
+      window.removeEventListener('helper-status-updated', handleHelperStatusUpdated);
+      window.removeEventListener('helper-buildings-details', handleHelperBuildingsDetails);
+      window.removeEventListener('employer-buildings-helpers', handleEmployerBuildingsHelpers);
     };
   }, []);
 

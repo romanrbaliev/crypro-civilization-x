@@ -37,3 +37,15 @@ export interface HelperBoostInfo {
   boostPercentage: number;
   helperIds: string[];
 }
+
+// Добавляем новый тип для зданий с помощниками
+export interface HelperBuilding {
+  buildingId: string;
+  helperIds: string[];
+  boostPercentage: number;
+}
+
+export interface EmployerHelperBuildingsResponse {
+  helperBuildings: HelperBuilding[];
+  success: boolean;
+}

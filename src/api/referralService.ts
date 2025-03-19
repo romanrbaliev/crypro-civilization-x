@@ -10,8 +10,12 @@ import {
   activateReferral,
 } from './referral';
 
-// Новая функция для обновления статуса помощника в базе данных
-import { updateHelperRequestStatus, getHelperRequests } from './referral/referralHelpers';
+// Новые функции для работы с помощниками
+import { 
+  updateHelperRequestStatus, 
+  getHelperRequests,
+  getEmployerHelperBuildings 
+} from './referral/referralHelpers';
 
 // Функция обновления статуса найма реферала (только для внутреннего состояния приложения)
 const updateReferralHiredStatus = async (referralId: string, hired: boolean, buildingId?: string): Promise<boolean> => {
@@ -54,5 +58,6 @@ export {
   activateReferral,
   updateReferralHiredStatus,
   updateHelperRequestStatus,
-  getHelperRequests
+  getHelperRequests,
+  getEmployerHelperBuildings
 };
