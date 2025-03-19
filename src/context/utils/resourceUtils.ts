@@ -1,3 +1,4 @@
+
 import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
 import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
 
@@ -37,7 +38,7 @@ export const calculateResourceProduction = (
       // Применяем производство от здания с учетом бонусов
       Object.entries(building.production).forEach(([resourceId, productionValue]) => {
         if (newResources[resourceId]) {
-          // Применяем все бонусы: количество зданий, буст от помощников, буст от рефералов
+          // Важное исправление: применяем все бонусы правильно - от количества зданий, от помощников и от рефералов
           const totalProduction = productionValue * building.count * (1 + helperBoost) * (1 + referralBonus);
           
           newResources[resourceId] = {

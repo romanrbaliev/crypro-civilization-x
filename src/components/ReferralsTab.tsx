@@ -100,7 +100,8 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
     activated: referral.activated,
     directDbStatus,
     isActivated,
-    typeOfActivated: typeof referral.activated
+    typeOfActivated: typeof referral.activated,
+    assignedBuildingId
   });
   
   return (
@@ -112,7 +113,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
             ID: <span className="font-mono">{referral.id}</span>
           </div>
           <div className="text-[9px] text-gray-500">
-            Присо��динился: {new Date(referral.joinedAt).toLocaleDateString()}
+            Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
           </div>
           <div className="text-[9px] mt-1">
             Статус: {' '}
@@ -134,7 +135,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
                 variant="outline" 
                 size="sm" 
                 className="h-6 px-2 text-[9px]"
-                onClick={() => onFire(referral.id, assignedBuildingId)}
+                onClick={() => onFire(referral.id, assignedBuildingId as string)}
               >
                 Уволить
               </Button>
@@ -553,7 +554,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       }
       
       if (!referralGameData.buildings) {
-        console.log('У реферала нет зданий, возвращаем только здания пользователя');
+        console.log('У реферала нет зданий, возвращаем только здания пол��зователя');
         return userBuildings;
       }
       
@@ -648,6 +649,17 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   const fireHelper = async (referralId: string, buildingId: string) => {
     try {
+      if (!buildingId) {
+        toast({
+          title: "Ошибка",
+          description: "Не указано здание для увольнения помощника",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log(`Увольнение помощника: реферал ID ${referralId}, здание ID ${buildingId}`);
+      
       const helper = state.referralHelpers.find(
         h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
       );
