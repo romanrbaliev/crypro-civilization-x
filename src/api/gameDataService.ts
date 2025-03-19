@@ -15,7 +15,7 @@ export {
 export { 
   saveGameToServer, 
   loadGameFromServer 
-} from './gameStorage';
+} from './gameStorage/index';
 export { 
   clearAllSavedData,
   clearAllSavedDataForAllUsers 
