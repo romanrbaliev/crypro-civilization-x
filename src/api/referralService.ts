@@ -11,6 +11,7 @@ import {
   updateReferralHiredStatus
 } from './referral';
 
+// Непосредственный экспорт функций для обратной совместимости
 export { 
   saveReferralInfo, 
   getUserReferrals, 

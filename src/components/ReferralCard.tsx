@@ -80,6 +80,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
     // Обработчик события обновления статуса реферала
     const handleStatusUpdate = (event: any) => {
       if (event.detail && event.detail.referralId === referral.id) {
+        console.log(`Обновление статуса для реферала ${referral.id}:`, event.detail);
         setIsHired(event.detail.hired);
         setAssignedBuilding(event.detail.buildingId);
       }
@@ -87,10 +88,15 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
     
     window.addEventListener('referral-status-updated', handleStatusUpdate);
     
+    // Проверяем статус при изменении массива помощников
+    if (state.referralHelpers.length > 0) {
+      checkIfHelperActive();
+    }
+    
     return () => {
       window.removeEventListener('referral-status-updated', handleStatusUpdate);
     };
-  }, [referral, state.referralHelpers]);
+  }, [referral, state.referralHelpers, referral.hired, referral.assignedBuildingId]);
   
   // Расчет времени регистрации
   const joinedTime = referral.joinedAt ? formatDistanceToNow(
@@ -138,17 +144,27 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
     }
   };
   
-  // Логи для отладки
-  console.log(`Отображение карточки реферала ${referral.id}:`, {
-    activated: referral.activated,
-    directDbStatus,
-    isActivated,
-    typeOfActivated: typeof referral.activated,
-    assignedBuildingId: {
-      _type: typeof referral.assignedBuildingId,
-      value: String(referral.assignedBuildingId)
+  // Определение содержимого бейджа статуса
+  const getBadgeContent = () => {
+    if (isHired) {
+      return "Нанят";
+    } else if (isActivated) {
+      return "Активирован";
+    } else {
+      return "Не активирован";
     }
-  });
+  };
+  
+  // Определение варианта бейджа статуса
+  const getBadgeVariant = () => {
+    if (isHired) {
+      return "secondary" as const;
+    } else if (isActivated) {
+      return "secondary" as const;
+    } else {
+      return "outline" as const;
+    }
+  };
   
   return (
     <Card className="mb-2 overflow-hidden border-slate-200">
@@ -158,8 +174,8 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
             <UserCircle className="w-4 h-4" /> 
             {referral.username}
           </CardTitle>
-          <Badge variant={isActivated ? "secondary" : "outline"}>
-            {isActivated ? "Активирован" : "Не активирован"}
+          <Badge variant={getBadgeVariant()}>
+            {getBadgeContent()}
           </Badge>
         </div>
       </CardHeader>
@@ -181,14 +197,14 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
       
       <CardFooter className="p-2 justify-between">
         <span className="text-xs flex items-center">
-          {isActivated ? (
-            isHired ? (
-              <Check className="w-3 h-3 text-emerald-600 mr-1" />
-            ) : (
-              <span className="text-blue-600 flex items-center">
-                <Check className="w-3 h-3 mr-1" /> Готов к работе
-              </span>
-            )
+          {isHired ? (
+            <span className="text-emerald-600 flex items-center">
+              <Check className="w-3 h-3 mr-1" /> Работает на вас
+            </span>
+          ) : isActivated ? (
+            <span className="text-blue-600 flex items-center">
+              <Check className="w-3 h-3 mr-1" /> Готов к работе
+            </span>
           ) : (
             <span className="text-slate-400 flex items-center">
               <X className="w-3 h-3 mr-1" /> Не изучил основы

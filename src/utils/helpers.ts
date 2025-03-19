@@ -47,11 +47,15 @@ export const calculateReferralBonus = (referrals: any[] = []): number => {
   if (!referrals || referrals.length === 0) return 0;
   
   // Фильтруем только активных рефералов и считаем общий бонус (5% за каждого)
-  const activeReferrals = referrals.filter(referral => 
-    typeof referral.activated === 'boolean' 
-      ? referral.activated 
-      : String(referral.activated).toLowerCase() === 'true'
-  );
+  const activeReferrals = referrals.filter(referral => {
+    // Проверяем разные форматы поля activated
+    if (typeof referral.activated === 'boolean') {
+      return referral.activated;
+    } else if (typeof referral.activated === 'string') {
+      return referral.activated.toLowerCase() === 'true';
+    }
+    return false;
+  });
   
   console.log("Активированные рефералы:", activeReferrals.map(r => r.id));
   
@@ -73,7 +77,10 @@ export const calculateBuildingBoostFromHelpers = (
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   );
   
-  console.log(`Расчет бонуса для здания ${buildingId}: ${activeHelpers.length} помощников, бонус ${activeHelpers.length * 0.1}`);
+  if (activeHelpers.length > 0) {
+    console.log(`Расчет бонуса для здания ${buildingId}: ${activeHelpers.length} помощников, бонус ${activeHelpers.length * 0.1}`);
+    console.log(`Активные помощники для здания ${buildingId}:`, activeHelpers.map(h => h.helperId));
+  }
   
   // Каждый помощник дает бонус +10% (0.1) к производительности здания
   return activeHelpers.length * 0.1;

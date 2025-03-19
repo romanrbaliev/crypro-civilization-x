@@ -277,6 +277,18 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     }
   }, 100);
   
+  // Обновляем статус реферала в базе данных
+  try {
+    const { updateReferralHiredStatus } = require('@/api/referralService');
+    if (typeof updateReferralHiredStatus === 'function') {
+      updateReferralHiredStatus(helper.helperId, true, helper.buildingId).catch(err => 
+        console.error("Ошибка при обновлении статуса реферала в БД:", err)
+      );
+    }
+  } catch (error) {
+    console.error('Ошибка при импорте функции updateReferralHiredStatus:', error);
+  }
+  
   return {
     ...state,
     referralHelpers: updatedHelpers,
