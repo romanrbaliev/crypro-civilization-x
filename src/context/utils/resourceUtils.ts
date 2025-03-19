@@ -31,6 +31,32 @@ export const calculateResourceProduction = (
   // Получаем полную информацию о бонусах от помощников для всех зданий
   const helperBoosts = getActiveHelperBoosts(buildings, referralHelpers);
   
+  // Более подробное логирование активных рефералов для отладки
+  const activatedReferrals = referrals.filter(r => {
+    if (typeof r.activated === 'boolean') return r.activated;
+    return String(r.activated).toLowerCase() === 'true';
+  }).map(r => r.id);
+  
+  console.log(`Активированные рефералы: ${JSON.stringify(activatedReferrals)}`);
+  
+  // Подробная информация о каждом активированном реферале
+  console.log(`Детали активированных рефералов: ${JSON.stringify(
+    referrals.filter(r => {
+      if (typeof r.activated === 'boolean') return r.activated;
+      return String(r.activated).toLowerCase() === 'true';
+    }).map(r => ({
+      id: r.id,
+      activated: r.activated,
+      hired: r.hired ? r.hired : {_type: "undefined", value: "undefined"},
+      assignedBuildingId: r.assignedBuildingId ? r.assignedBuildingId : {_type: "undefined", value: "undefined"}
+    }))
+  )}`);
+  
+  console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => {
+    if (typeof r.activated === 'boolean') return r.activated;
+    return String(r.activated).toLowerCase() === 'true';
+  }).length} активных из ${referrals.length} всего, бонус = ${referralBonus}`);
+  
   console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => {
     if (typeof r.activated === 'boolean') return r.activated;
     return String(r.activated).toLowerCase() === 'true';

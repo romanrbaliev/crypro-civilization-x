@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/utils/helpers";
 import { useGame } from "@/context/hooks/useGame";
@@ -31,9 +32,35 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const effectData = effects || upgrade.effect || {};
   const [isOpen, setIsOpen] = useState(!purchased); // По умолчанию открыты только неприобретенные
   
+  // Проверка, является ли это исследование "Основы блокчейна"
+  const isBlockchainBasics = id === 'blockchainBasics';
+  
+  // Отслеживаем покупку "Основ блокчейна" для активации реферала
+  useEffect(() => {
+    if (purchased && isBlockchainBasics && state.referredBy) {
+      console.log('Исследование "Основы блокчейна" куплено, активируем реферала');
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        dispatch({ type: "ACTIVATE_REFERRAL", payload: { referralId: userId } });
+      }
+    }
+  }, [purchased, isBlockchainBasics, state.referredBy, dispatch]);
+  
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: id } });
     setIsOpen(false); // Сворачиваем карточку после покупки
+    
+    // Если это "Основы блокчейна" и есть referredBy, активируем реферала
+    if (isBlockchainBasics && state.referredBy) {
+      console.log('Приобретены "Основы блокчейна", активируем реферала');
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        setTimeout(() => {
+          dispatch({ type: "ACTIVATE_REFERRAL", payload: { referralId: userId } });
+        }, 500);
+      }
+    }
+    
     if (onPurchase) onPurchase();
   };
   
