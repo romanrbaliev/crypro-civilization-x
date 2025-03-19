@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { loadGameFromServer, getUserIdentifier, checkReferralInfo, getUserReferrals } from '@/api/gameDataService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { saveReferralInfo } from '@/api/referralService';
+import { saveReferralInfo } from '@/api/referral';
 import { supabase } from '@/integrations/supabase/client';
 
 const StartScreen = () => {

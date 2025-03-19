@@ -1,9 +1,8 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { checkUnlockConditions, isBlockchainBasicsUnlocked, hasBlockchainBasics } from '@/utils/researchUtils';
-import { activateReferral } from '@/api/referralService';
+import { activateReferral } from '@/api/referral';
 
 // Обработка покупки улучшений
 export const processPurchaseUpgrade = (
