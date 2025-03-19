@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { isTelegramWebAppAvailable } from '@/utils/helpers';
+import { isTelegramWebAppAvailable, generateReferralCode } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -470,12 +471,6 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  const generateReferralCode = () => {
-    return Array.from({ length: 8 }, () => 
-      Math.floor(Math.random() * 16).toString(16).toUpperCase()
-    ).join('');
-  };
-
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink)
       .then(() => {
@@ -876,4 +871,162 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
               <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={copyReferralLink}>
                 <Copy className="h-3 w-3" />
               </Button>
-              <Button variant="outline" size="sm" className="h-
+              <Button variant="outline" size="sm" className="h-5 w-5 p-0" onClick={sendTelegramInvite}>
+                <Send className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          <div className="text-[8px] font-mono bg-gray-100 p-1 rounded overflow-hidden text-ellipsis">
+            {referralLink}
+          </div>
+          <div className="mt-1 text-[9px] text-blue-600">
+            Поделитесь ссылкой с друзьями и получайте бонусы!
+          </div>
+        </div>
+        
+        <div className="bg-gray-50 p-2 rounded-lg border mb-2 flex justify-between items-center">
+          <div>
+            <div className="text-[10px] font-medium">Статистика:</div>
+            <div className="text-[9px]">Всего рефералов: <span className="font-medium">{totalReferrals}</span></div>
+            <div className="text-[9px]">Активных: <span className="font-medium text-green-600">{activeReferrals}</span></div>
+          </div>
+          <div className="text-xs font-medium">
+            +{(activeReferrals * 5)}% к производству
+          </div>
+        </div>
+      </div>
+      
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="flex-1 flex flex-col">
+        <TabsList className="grid grid-cols-2 h-6">
+          <TabsTrigger value="all" className="text-[10px]">
+            <Users className="h-3 w-3 mr-1" />
+            Все рефералы
+          </TabsTrigger>
+          <TabsTrigger value="active" className="text-[10px]">
+            <Building className="h-3 w-3 mr-1" />
+            Активные
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all" className="flex-1 overflow-auto mt-2">
+          {hasHelperRequests && (
+            <div className="mb-2">
+              <div className="text-[10px] font-medium mb-1 flex items-center">
+                <MessageSquare className="h-3 w-3 mr-1 text-blue-500" />
+                Запросы на сотрудничество:
+              </div>
+              <div className="space-y-1">
+                {helperRequests.map(request => (
+                  <div key={request.id} className="p-1.5 rounded-lg border bg-blue-50 relative">
+                    <div className="text-[9px]">
+                      Пользователь ID: <span className="font-mono">{request.employer_id.substring(0, 6)}</span> предлагает вам работу
+                    </div>
+                    <div className="text-[9px] mt-0.5">
+                      Здание: <span className="font-medium">{state.buildings[request.building_id]?.name || 'Неизвестное здание'}</span>
+                    </div>
+                    <div className="flex space-x-1 mt-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-5 text-[9px] px-2 bg-green-50 hover:bg-green-100"
+                        onClick={() => respondToHelperRequest(request.id, true)}
+                      >
+                        <Check className="h-3 w-3 mr-1 text-green-600" />
+                        Принять
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-5 text-[9px] px-2 bg-red-50 hover:bg-red-100"
+                        onClick={() => respondToHelperRequest(request.id, false)}
+                      >
+                        <X className="h-3 w-3 mr-1 text-red-600" />
+                        Отклонить
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Separator className="my-2" />
+            </div>
+          )}
+          
+          {filteredReferrals.length > 0 ? (
+            <div className="space-y-1">
+              {filteredReferrals.map(referral => (
+                <ReferralItem
+                  key={referral.id}
+                  referral={referral}
+                  userBuildings={getUserBuildings()}
+                  helperRequests={helperRequests}
+                  ownedReferral={false}
+                  onHire={hireHelper}
+                  onFire={fireHelper}
+                  onLoadAvailableBuildings={loadAvailableBuildingsForReferral}
+                  availableBuildings={availableBuildings}
+                  isMobile={isMobile}
+                  selectedBuildingId={selectedBuildingId}
+                  setSelectedBuildingId={setSelectedBuildingId}
+                  isHelperAssigned={isHelperAssigned}
+                  assignedBuildingId={getAssignedBuildingId(referral.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-3">
+              <Users className="h-6 w-6 text-gray-400 mb-1" />
+              <p className="text-[11px] text-gray-600">У вас пока нет рефералов</p>
+              <p className="text-[9px] text-gray-500 mt-1">
+                Поделитесь реферальной ссылкой с друзьями, чтобы получать бонусы
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-6 text-[9px]"
+                onClick={sendTelegramInvite}
+              >
+                <Send className="h-3 w-3 mr-1" />
+                Пригласить друзей
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="active" className="flex-1 overflow-auto mt-2">
+          {filteredReferrals.length > 0 ? (
+            <div className="space-y-1">
+              {filteredReferrals.map(referral => (
+                <ReferralItem
+                  key={referral.id}
+                  referral={referral}
+                  userBuildings={getUserBuildings()}
+                  helperRequests={helperRequests}
+                  ownedReferral={false}
+                  onHire={hireHelper}
+                  onFire={fireHelper}
+                  onLoadAvailableBuildings={loadAvailableBuildingsForReferral}
+                  availableBuildings={availableBuildings}
+                  isMobile={isMobile}
+                  selectedBuildingId={selectedBuildingId}
+                  setSelectedBuildingId={setSelectedBuildingId}
+                  isHelperAssigned={isHelperAssigned}
+                  assignedBuildingId={getAssignedBuildingId(referral.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-3">
+              <Users className="h-6 w-6 text-gray-400 mb-1" />
+              <p className="text-[11px] text-gray-600">У вас нет активных рефералов</p>
+              <p className="text-[9px] text-gray-500 mt-1">
+                Активные рефералы это те, кто начал играть по вашей ссылке
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default ReferralsTab;
