@@ -44,8 +44,17 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
   
   // Покупка исследования
   const handlePurchase = () => {
-    dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
-    onAddEvent(`Завершено исследование: ${upgrade.name}`, "success");
+    try {
+      // Безопасно получаем объект эффектов
+      const effects = upgrade.effects || upgrade.effect || {};
+      console.log(`Покупка исследования ${upgrade.id} с эффектами:`, effects);
+      
+      dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
+      onAddEvent(`Завершено исследование: ${upgrade.name}`, "success");
+    } catch (error) {
+      console.error(`Ошибка при покупке исследования ${upgrade.id}:`, error);
+      onAddEvent(`Ошибка при покупке исследования: ${upgrade.name}`, "error");
+    }
   };
   
   // Отображение стоимости
@@ -64,7 +73,10 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
   
   // Отображение эффектов
   const renderEffects = () => {
-    return Object.entries(upgrade.effect).map(([effectId, amount]) => {
+    // Безопасно получаем объект эффектов
+    const effects = upgrade.effects || upgrade.effect || {};
+    
+    return Object.entries(effects).map(([effectId, amount]) => {
       const formattedEffect = formatEffect(effectId, Number(amount));
       return (
         <div key={effectId} className="text-blue-600 text-[9px]">

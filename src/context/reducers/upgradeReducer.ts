@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -41,7 +42,7 @@ export const processPurchaseUpgrade = (
     }
   };
   
-  console.log(`Куплено исследование ${upgradeId} с эффектами:`, upgrade.effect);
+  console.log(`Куплено исследование ${upgradeId} с эффектами:`, upgrade.effects || upgrade.effect || {});
   
   // Создаем новое состояние после покупки улучшения
   let stateAfterPurchase = {
@@ -50,12 +51,15 @@ export const processPurchaseUpgrade = (
     upgrades: newUpgrades,
   };
   
+  // Безопасно получаем объект эффектов
+  const effects = upgrade.effects || upgrade.effect || {};
+  
   // Сразу применяем эффекты улучшения, если они существуют
-  if (upgrade.effect) {
-    console.log(`Применяем эффекты исследования ${upgradeId}:`, upgrade.effect);
+  if (Object.keys(effects).length > 0) {
+    console.log(`Применяем эффекты исследования ${upgradeId}:`, effects);
     
     // Обрабатываем эффекты на скорость накопления ресурсов
-    Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
+    Object.entries(effects).forEach(([effectId, amount]) => {
       // Если эффект влияет на скорость накопления знаний
       if (effectId === 'knowledgeBoost' && stateAfterPurchase.resources.knowledge) {
         const currentPerSecond = stateAfterPurchase.resources.knowledge.perSecond || 0;
@@ -145,13 +149,21 @@ export const processPurchaseUpgrade = (
     }
   }
   
-  // Применяем изменения максимальных значений ресурсов
-  stateAfterPurchase = updateResourceMaxValues(stateAfterPurchase);
+  try {
+    // Применяем изменения максимальных значений ресурсов
+    stateAfterPurchase = updateResourceMaxValues(stateAfterPurchase);
+  } catch (error) {
+    console.error("Ошибка при обновлении максимальных значений ресурсов:", error);
+  }
   
   // Проверяем разблокировки после всех изменений
-  const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
-  
-  return stateWithNewUnlocks;
+  try {
+    const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
+    return stateWithNewUnlocks;
+  } catch (error) {
+    console.error("Ошибка при проверке разблокировок:", error);
+    return stateAfterPurchase;
+  }
 };
 
 // Проверка разблокировки улучшений на основе зависимостей

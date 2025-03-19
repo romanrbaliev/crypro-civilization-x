@@ -1,352 +1,99 @@
-import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
-import { 
-  calculateBuildingBoostFromHelpers, 
-  calculateHelperBoost, 
-  calculateReferralBonus, 
-  canAffordCost,
-  getActiveHelperBoosts
-} from '../../utils/helpers';
+import { GameState } from '../types';
 
-export const calculateResourceProduction = (
-  resources: { [key: string]: Resource },
-  buildings: { [key: string]: Building },
-  referralHelpers: ReferralHelper[] = [],
-  referrals: any[] = [],
-  referralCode: string = ''
-): { [key: string]: Resource } => {
-  const newResources = { ...resources };
-  
-  // Сбрасываем производство в секунду для всех ресурсов перед пересчетом
-  Object.keys(newResources).forEach(resourceId => {
-    newResources[resourceId] = {
-      ...newResources[resourceId],
-      perSecond: 0
-    };
-  });
-  
-  // Получаем бонус от рефералов - здесь исправляем расчет
-  const referralBonus = calculateReferralBonus(referrals);
-  
-  // Получаем полную информацию о бонусах от помощников для всех зданий
-  const helperBoosts = getActiveHelperBoosts(buildings, referralHelpers);
-  
-  // Добавляем более точное логирование активированных рефералов
-  console.log(`Активированные рефералы (${referrals.length} всего):`);
-  
-  referrals.forEach(ref => {
-    console.log(`Реферал ${ref.id}: активирован = ${ref.activated}, тип = ${typeof ref.activated}, hired = ${ref.hired || false}`);
-  });
-  
-  // Подробное логирование активных рефералов
-  const activeReferrals = referrals.filter(r => {
-    if (typeof r.activated === 'boolean') return r.activated;
-    return String(r.activated).toLowerCase() === 'true';
-  });
-  
-  console.log(`Активные рефералы: ${activeReferrals.length} из ${referrals.length}`);
-  
-  // Отправля��м событие с данными о текущих бонусах для отображения пользователю
-  setTimeout(() => {
-    try {
-      const boostSummaryEvent = new CustomEvent('debug-boosts-summary', {
-        detail: { 
-          referralBonus: (referralBonus * 100).toFixed(0),
-          helperBoosts,
-          message: `Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%, активных помощников: ${Object.keys(helperBoosts).length}`
-        }
-      });
-      window.dispatchEvent(boostSummaryEvent);
-    } catch (error) {
-      console.error('Ошибка при отправке события сводки бонусов:', error);
+// Функция для проверки, достаточно ли ресурсов для совершения действия
+export const hasEnoughResources = (state: GameState, cost: { [key: string]: number }): boolean => {
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
+      return false;
     }
-  }, 500);
-  
-  // Для каждого здания рассчитываем производство
-  Object.values(buildings).forEach(building => {
-    if (building.count > 0) {
-      // Получаем бонус от помощников для этого здания
-      const helperBoost = calculateBuildingBoostFromHelpers(building.id, referralHelpers);
-      
-      if (helperBoost > 0) {
-        console.log(`Здание ${building.name} имеет бонус от помощников: +${(helperBoost * 100).toFixed(0)}%`);
-      }
-      
-      // Применяем производство от здания с учетом бонусов
-      Object.entries(building.production).forEach(([resourceId, productionValue]) => {
-        if (newResources[resourceId]) {
-          // Полный расчет с учетом количества зданий, бонуса от помощников и бонуса от рефералов
-          const totalProduction = productionValue * building.count * (1 + helperBoost) * (1 + referralBonus);
-          
-          newResources[resourceId] = {
-            ...newResources[resourceId],
-            perSecond: (newResources[resourceId].perSecond || 0) + totalProduction
-          };
-          
-          // Добавляем детальную отладочную информацию
-          console.log(`Ресурс ${resourceId}: базовое производство ${productionValue * building.count}/сек, с бонусами: ${totalProduction}/сек (хелперы: +${(helperBoost * 100).toFixed(0)}%, рефералы: +${(referralBonus * 100).toFixed(0)}%)`);
-        }
-      });
-    }
-  });
-  
-  // ОСОБАЯ логика для базовой скорости накопления знаний через здание "Практика"
-  if (newResources.knowledge && buildings.practice && buildings.practice.count > 0) {
-    // Базовая скорость накопления знаний
-    const baseRate = 0.63;
-    
-    // Получаем бонус от помощников для здания "Практика"
-    const practiceHelperBoost = calculateBuildingBoostFromHelpers('practice', referralHelpers);
-    
-    // Применяем все бонусы к базовой скорости
-    const knowledgeRate = baseRate * (1 + practiceHelperBoost) * (1 + referralBonus);
-    
-    console.log(`Здание Практика: базовая скорость ${baseRate}/сек, с бонусами: ${knowledgeRate}/сек (хелперы: +${(practiceHelperBoost * 100).toFixed(0)}%, рефералы: +${(referralBonus * 100).toFixed(0)}%)`);
-    
-    // Оповещаем пользователя о текущей производительности Практики
-    setTimeout(() => {
-      try {
-        const practiceEvent = new CustomEvent('debug-practice-production', {
-          detail: { 
-            baseRate,
-            helperBoost: practiceHelperBoost,
-            referralBonus,
-            totalRate: knowledgeRate,
-            message: `Практика: ${baseRate}/сек × (1 + ${(practiceHelperBoost * 100).toFixed(0)}%) × (1 + ${(referralBonus * 100).toFixed(0)}%) = ${knowledgeRate.toFixed(4)}/сек`
-          }
-        });
-        window.dispatchEvent(practiceEvent);
-      } catch (error) {
-        console.error('Ошибка при отправке события производительности Практики:', error);
-      }
-    }, 600);
-    
-    // Обновляем скорость накопления знаний с учетом всех бонусов
-    newResources.knowledge = {
-      ...newResources.knowledge,
-      perSecond: knowledgeRate
-    };
   }
-  
-  return newResources;
+  return true;
 };
 
-export const applyStorageBoosts = (
-  resources: { [key: string]: Resource },
-  buildings: { [key: string]: Building }
-): { [key: string]: Resource } => {
-  const newResources = { ...resources };
-  
-  // Применяем увеличение хранилища от зданий, но только от эффектов Max, не от Boost
-  Object.values(buildings).forEach(building => {
-    if (building.count > 0) {
-      Object.entries(building.production).forEach(([resourceId, amount]) => {
-        // Проверяем, является ли эффект увеличением максимального значения ресурса
-        if (resourceId.includes('Max') && !resourceId.includes('Boost')) {
-          const actualResourceId = resourceId.replace('Max', '');
-          if (newResources[actualResourceId]) {
-            // Важное изменение: НЕ увеличиваем максимум ресурса каждый ��аз
-            // Это уже реализовано в функции updateResourceMaxValues
-            // Здесь мы просто логируем возможности зданий
-            console.log(`Здание ${building.name} может увеличивать максимум ${actualResourceId}`);
-          }
-        }
-      });
-    }
-  });
-  
-  return newResources;
-};
-
-export const updateResourceValues = (
-  resources: { [key: string]: Resource },
-  deltaTimeMs: number
-): { [key: string]: Resource } => {
-  const deltaTimeSeconds = deltaTimeMs / 1000;
-  const newResources = { ...resources };
-  
-  Object.keys(newResources).forEach(resourceId => {
-    const resource = newResources[resourceId];
-    
-    if (resource.unlocked) {
-      // Рассчитываем новое значение ресурса
-      const newValue = resource.value + resource.perSecond * deltaTimeSeconds;
-      
-      // Обновляем значение с учетом ограничения максимума
-      newResources[resourceId] = {
-        ...resource,
-        value: Math.min(newValue, resource.max)
-      };
-    }
-  });
-  
-  return newResources;
-};
-
-export const checkUnlocks = (state: GameState): GameState => {
-  let newState = { ...state };
-  
-  // Проверка для разблокировки генератора (при 11+ USDT)
-  if (state.resources.usdt.value >= 11 && !state.buildings.generator.unlocked) {
-    newState.buildings = {
-      ...newState.buildings,
-      generator: {
-        ...newState.buildings.generator,
-        unlocked: true
-      }
-    };
-    
-    console.log("Разблокирован генератор!");
-  }
-  
-  // Проверка для разблокировки домашнего компьютера (при 10+ электричества)
-  if (state.resources.electricity && state.resources.electricity.value >= 10 && !state.buildings.homeComputer.unlocked) {
-    newState.buildings = {
-      ...newState.buildings,
-      homeComputer: {
-        ...newState.buildings.homeComputer,
-        unlocked: true
-      }
-    };
-    
-    console.log("Разблокирован домашний компьютер!");
-  }
-  
-  return newState;
-};
-
-export const hasEnoughResources = (
-  state: GameState,
-  cost: { [resourceId: string]: number }
-): boolean => {
-  return canAffordCost(cost, state.resources);
-};
-
+// Функция для обновления максимальных значений ресурсов на основе эффектов зданий и улучшений
 export const updateResourceMaxValues = (state: GameState): GameState => {
   const newResources = { ...state.resources };
-  const baseResourceValues = {
-    knowledge: 100,
-    usdt: 50,
-    electricity: 1000,
-    computingPower: 100,
-    btc: 10
-  };
   
-  // Сначала устанавливаем базовые значения максимумов
-  Object.entries(baseResourceValues).forEach(([resourceId, baseMax]) => {
-    if (newResources[resourceId]) {
-      newResources[resourceId] = {
-        ...newResources[resourceId],
-        max: baseMax
-      };
-    }
-  });
-  
-  // Обработка эффектов зданий на максимальные значения
-  Object.values(state.buildings).forEach(building => {
-    if (building.count <= 0) return;
-    
-    // Применяем специфические эффекты зданий
-    if (building.id === 'cryptoWallet') {
-      // Криптокошелек увеличивает максимальный лимит USDT на 50 за каждый
-      if (newResources.usdt) {
-        newResources.usdt = {
-          ...newResources.usdt,
-          max: baseResourceValues.usdt + (building.count * 50)
-        };
-        console.log(`Криптокошелек (${building.count} шт.) устанавливает максимум USDT на ${newResources.usdt.max}`);
+  try {
+    // Для каждого ресурса устанавливаем базовое максимальное значение
+    Object.keys(newResources).forEach(resourceId => {
+      const resource = newResources[resourceId];
+      switch (resourceId) {
+        case "knowledge":
+          resource.max = 100;
+          break;
+        case "usdt":
+          resource.max = 50;
+          break;
+        case "electricty":
+        case "electricity":  // Исправление для поддержки обоих вариантов написания
+          resource.max = 100;
+          break;
+        case "computingPower":
+          resource.max = 1000;
+          break;
+        case "btc":
+          resource.max = Infinity;
+          break;
+        default:
+          if (!resource.max) resource.max = 100;
       }
-      
-      // Криптокошелек увеличивает максимальный лимит знаний на 25% за каждый
-      if (newResources.knowledge) {
-        const boostFactor = 1 + (building.count * 0.25);
-        newResources.knowledge = {
-          ...newResources.knowledge,
-          max: Math.floor(baseResourceValues.knowledge * boostFactor)
-        };
-        console.log(`Криптокошелек (${building.count} шт.) устанавливает максимум знаний на ${newResources.knowledge.max}`);
-      }
-    }
+    });
     
-    // Применяем общие эффекты зданий на максимальные значения ресурсов
-    // ВАЖНО: Используем отдельные вычисления для каждого типа ресурса,
-    // а не накапливаем изменения от каждого здания
-    Object.entries(building.production).forEach(([effectId, amount]) => {
-      if (effectId.includes('Max') && !effectId.includes('Boost')) {
-        const resourceId = effectId.replace('Max', '');
-        if (newResources[resourceId]) {
-          const baseMax = baseResourceValues[resourceId] || newResources[resourceId].max;
-          const totalIncrease = Number(amount) * building.count;
-          
-          if (resourceId === 'usdt' || resourceId === 'knowledge') {
-            // Пропускаем, так как уже обработано выше для криптокошелька
-            return;
+    // Применяем эффекты от зданий
+    Object.values(state.buildings).forEach(building => {
+      if (building.count > 0) {
+        // Безопасно получаем production с проверкой на null/undefined
+        const production = building.production || {};
+        
+        Object.entries(production).forEach(([productionType, amount]) => {
+          if (productionType.includes('Max')) {
+            const resourceId = productionType.replace('Max', '');
+            if (newResources[resourceId]) {
+              const currentMax = newResources[resourceId].max || 0;
+              newResources[resourceId].max = currentMax + (Number(amount) * building.count);
+            }
           }
-          
-          newResources[resourceId] = {
-            ...newResources[resourceId],
-            max: baseMax + totalIncrease
-          };
-          console.log(`Здание ${building.name} (${building.count} шт.) устанавливает максимум ${resourceId} на ${baseMax + totalIncrease}`);
-        }
+        });
       }
     });
-  });
-  
-  // Инициализация базовой скорости накопления знаний, если ее нет
-  if (newResources.knowledge && typeof newResources.knowledge.perSecond === 'undefined') {
-    newResources.knowledge = {
-      ...newResources.knowledge,
-      perSecond: 0.63 // Базовая скорость накопления знаний
-    };
-    console.log(`Установлена базовая скорость накопления знаний: ${newResources.knowledge.perSecond}`);
+    
+    // Применяем эффекты от улучшений
+    Object.values(state.upgrades).forEach(upgrade => {
+      if (upgrade.purchased) {
+        // Безопасно получаем effects/effect с проверкой на null/undefined
+        const effects = upgrade.effects || upgrade.effect || {};
+        
+        Object.entries(effects).forEach(([effectType, amount]) => {
+          if (effectType.includes('Max')) {
+            const resourceId = effectType.replace('Max', '');
+            if (newResources[resourceId]) {
+              const currentMax = newResources[resourceId].max || 0;
+              newResources[resourceId].max = currentMax + Number(amount);
+            }
+          } else if (effectType === 'knowledgeMaxBoost' && newResources.knowledge) {
+            const boost = Number(amount);
+            const baseMax = newResources.knowledge.max || 100;
+            newResources.knowledge.max = baseMax * (1 + boost);
+          } else if (effectType === 'usdtMaxBoost' && newResources.usdt) {
+            const boost = Number(amount);
+            const baseMax = newResources.usdt.max || 50;
+            newResources.usdt.max = baseMax * (1 + boost);
+          }
+        });
+      }
+    });
+    
+    // Проверяем, что значения ресурсов не превышают максимум
+    Object.keys(newResources).forEach(resourceId => {
+      const resource = newResources[resourceId];
+      if (resource.value > resource.max && resource.max !== Infinity) {
+        resource.value = resource.max;
+      }
+    });
+  } catch (error) {
+    console.error("Ошибка при обновлении максимальных значений ресурсов:", error);
   }
-  
-  // Обработка эффектов исследований на максимальные значения и скорость накопления
-  Object.values(state.upgrades).forEach(upgrade => {
-    if (!upgrade.purchased) return;
-    
-    console.log(`Применение эффектов исследования ${upgrade.name}:`, upgrade.effect);
-    
-    Object.entries(upgrade.effect).forEach(([effectId, amount]) => {
-      // Обработка процентных бустов (например, knowledgeMaxBoost)
-      if (effectId.endsWith('MaxBoost')) {
-        const resourceId = effectId.replace('MaxBoost', '');
-        if (newResources[resourceId]) {
-          const boostFactor = 1 + Number(amount);
-          const oldMax = newResources[resourceId].max;
-          newResources[resourceId] = {
-            ...newResources[resourceId],
-            max: Math.floor(newResources[resourceId].max * boostFactor)
-          };
-          console.log(`Исследование ${upgrade.name} увеличивает максимум ${resourceId} на ${(Number(amount) * 100).toFixed(0)}% (с ${oldMax} до ${newResources[resourceId].max})`);
-        }
-      }
-      // Обработка абсолютных значений (например, knowledgeMax)
-      else if (effectId.endsWith('Max')) {
-        const resourceId = effectId.replace('Max', '');
-        if (newResources[resourceId]) {
-          const oldMax = newResources[resourceId].max;
-          newResources[resourceId] = {
-            ...newResources[resourceId],
-            max: newResources[resourceId].max + Number(amount)
-          };
-          console.log(`Исследование ${upgrade.name} увеличивает максимум ${resourceId} на ${amount} (с ${oldMax} до ${newResources[resourceId].max})`);
-        }
-      }
-      // Обработка boost для скорости накопления ресурсов
-      else if (effectId === 'knowledgeBoost') {
-        if (newResources.knowledge) {
-          const basePerSecond = newResources.knowledge.perSecond || 0.63; // Используем текущую скорость или базовую
-          const boostedPerSecond = basePerSecond * (1 + Number(amount));
-          newResources.knowledge = {
-            ...newResources.knowledge,
-            perSecond: boostedPerSecond
-          };
-          console.log(`Исследование ${upgrade.name} увеличивает скорость накопления знаний на ${(Number(amount) * 100).toFixed(0)}%, новое значение: ${boostedPerSecond.toFixed(2)}/сек`);
-        }
-      }
-    });
-  });
   
   return {
     ...state,

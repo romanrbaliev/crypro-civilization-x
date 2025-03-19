@@ -29,6 +29,7 @@ interface UpgradeItemProps {
 const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const { state, dispatch } = useGame();
   const { id, name, description, cost, effects, purchased } = upgrade;
+  // Безопасно получаем объект эффектов с проверкой на null/undefined
   const effectData = effects || upgrade.effect || {};
   const [isOpen, setIsOpen] = useState(!purchased); // По умолчанию открыты только неприобретенные
   
@@ -47,21 +48,26 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   }, [purchased, isBlockchainBasics, state.referredBy, dispatch]);
   
   const handlePurchase = () => {
-    dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: id } });
-    setIsOpen(false); // Сворачиваем карточку после покупки
-    
-    // Если это "Основы блокчейна" и есть referredBy, активируем реферала
-    if (isBlockchainBasics && state.referredBy) {
-      console.log('Приобретены "Основы блокчейна", активируем реферала');
-      const userId = localStorage.getItem('userId');
-      if (userId) {
-        setTimeout(() => {
-          dispatch({ type: "ACTIVATE_REFERRAL", payload: { referralId: userId } });
-        }, 500);
+    try {
+      console.log(`Покупка исследования ${id} с эффектами:`, effectData);
+      dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: id } });
+      setIsOpen(false); // Сворачиваем карточку после покупки
+      
+      // Если это "Основы блокчейна" и есть referredBy, активируем реферала
+      if (isBlockchainBasics && state.referredBy) {
+        console.log('Приобретены "Основы блокчейна", активируем реферала');
+        const userId = localStorage.getItem('userId');
+        if (userId) {
+          setTimeout(() => {
+            dispatch({ type: "ACTIVATE_REFERRAL", payload: { referralId: userId } });
+          }, 500);
+        }
       }
+      
+      if (onPurchase) onPurchase();
+    } catch (error) {
+      console.error(`Ошибка при покупке исследования ${id}:`, error);
     }
-    
-    if (onPurchase) onPurchase();
   };
   
   const canAfford = () => {
