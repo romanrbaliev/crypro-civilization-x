@@ -15,12 +15,13 @@ import { checkSupabaseConnection } from "./api/gameDataService";
 import { createSavesTableIfNotExists } from "./api/gameDataService";
 import "./index.css";
 
-// Настраиваем клиент для React Query
+// Настраиваем клиент для React Query с повышенным количеством повторных попыток
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: false,
+      retry: 3, // Увеличиваем количество повторных попыток
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Экспоненциальное увеличение задержки
     },
   },
 });
@@ -43,6 +44,7 @@ if (typeof window !== 'undefined') {
   window.__supabaseInitialized = window.__supabaseInitialized || false;
   window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || true;
   window.__game_user_id = window.__game_user_id || null;
+  window.__cloudflareRetryCount = window.__cloudflareRetryCount || 0;
   
   // Создаем шину событий при инициализации приложения
   ensureGameEventBus();
@@ -52,6 +54,7 @@ const App = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [cloudflareError, setCloudflareError] = useState(false);
   
   // Обработчик статуса соединения
   useEffect(() => {
@@ -65,48 +68,59 @@ const App = () => {
         });
       } else {
         // Повторно проверяем подключение к Supabase при восстановлении интернета
-        checkSupabaseConnection().then(connected => {
-          setIsSupabaseConnected(connected);
-          if (connected) {
-            toast({
-              title: "Соединение восстановлено",
-              description: "Подключение к интернету и серверу восстановлено.",
-              variant: "success",
-            });
-          }
-        });
+        tryConnectToSupabase();
       }
+    };
+    
+    // Функция для проверки соединения с Supabase с обработкой ошибок Cloudflare
+    const tryConnectToSupabase = async () => {
+      try {
+        const connected = await checkSupabaseConnection();
+        setIsSupabaseConnected(connected);
+        setCloudflareError(false);
+        
+        if (connected) {
+          toast({
+            title: "Соединение восстановлено",
+            description: "Подключение к интернету и серверу восстановлено.",
+            variant: "success",
+          });
+          
+          // Проверяем наличие нужных таблиц и создаем их если нужно
+          try {
+            await createSavesTableIfNotExists();
+            console.log('✅ Проверка и создание таблиц в Supabase выполнены');
+          } catch (error) {
+            console.error('❌ Ошибка при проверке/создании таблиц:', error);
+          }
+        } else {
+          window.__cloudflareRetryCount = (window.__cloudflareRetryCount || 0) + 1;
+          
+          if (window.__cloudflareRetryCount > 3) {
+            setCloudflareError(true);
+            console.error('❌ Возможно проблема с Cloudflare или сервер недоступен');
+          }
+          
+          console.error('❌ Нет соединения с Supabase, попытка:', window.__cloudflareRetryCount);
+        }
+      } catch (error) {
+        window.__cloudflareRetryCount = (window.__cloudflareRetryCount || 0) + 1;
+        console.error('❌ Ошибка при проверке соединения:', error);
+        
+        if (window.__cloudflareRetryCount > 3 || 
+            (error instanceof Error && error.message.includes('cloudflare'))) {
+          setCloudflareError(true);
+        }
+      }
+      
+      setIsInitialized(true);
     };
     
     window.addEventListener('online', handleOnlineStatusChange);
     window.addEventListener('offline', handleOnlineStatusChange);
     
     // Начальная проверка подключения к Supabase и создание нужных таблиц
-    const initSupabase = async () => {
-      const connected = await checkSupabaseConnection();
-      setIsSupabaseConnected(connected);
-      
-      if (connected) {
-        // Проверяем наличие нужных таблиц и создаем их если нужно
-        try {
-          await createSavesTableIfNotExists();
-          console.log('✅ Проверка и создание таблиц в Supabase выполнены');
-        } catch (error) {
-          console.error('❌ Ошибка при проверке/создании таблиц:', error);
-        }
-      } else {
-        console.error('❌ Нет соединения с Supabase');
-        toast({
-          title: "Ошибка подключения к серверу",
-          description: "Невозможно подключиться к серверу. Проверьте интернет-соединение.",
-          variant: "destructive",
-        });
-      }
-      
-      setIsInitialized(true);
-    };
-    
-    initSupabase();
+    tryConnectToSupabase();
     
     return () => {
       window.removeEventListener('online', handleOnlineStatusChange);
@@ -130,16 +144,24 @@ const App = () => {
       console.log('🔄 Инициализация Telegram WebApp в App.tsx');
       
       try {
-        // Отправляем сигнал готовности приложения
+        // Отправляем сигнал готовности приложения с дополнительной обработкой ошибок
         if (window.Telegram?.WebApp?.ready) {
-          window.Telegram.WebApp.ready();
-          console.log('✅ Отправлен сигнал готовности Telegram WebApp');
+          try {
+            window.Telegram.WebApp.ready();
+            console.log('✅ Отправлен сигнал готовности Telegram WebApp');
+          } catch (readyError) {
+            console.error('❌ Ошибка при отправке сигнала готовности:', readyError);
+          }
         }
         
-        // Расширяем приложение на весь экран
+        // Расширяем приложение на весь экран с обработкой ошибок
         if (window.Telegram?.WebApp?.expand) {
-          window.Telegram.WebApp.expand();
-          console.log('✅ Telegram WebApp развернут на весь экран');
+          try {
+            window.Telegram.WebApp.expand();
+            console.log('✅ Telegram WebApp развернут на весь экран');
+          } catch (expandError) {
+            console.error('❌ Ошибка при развертывании WebApp:', expandError);
+          }
         }
         
         // Детальное логирование данных Telegram
@@ -187,6 +209,49 @@ const App = () => {
       console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме браузера');
     }
   }, []);
+
+  // Для отображения ошибки Cloudflare
+  if (isInitialized && cloudflareError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-orange-50 to-white p-4">
+        <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg text-center">
+          <div className="w-16 h-16 mx-auto text-orange-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Проблема с доступом к серверу</h1>
+          <p className="text-gray-600">
+            Возможно, произошла ошибка Cloudflare или сервер временно недоступен.
+          </p>
+          <div className="mt-6 space-y-3">
+            <button 
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={() => window.location.reload()}
+            >
+              Обновить страницу
+            </button>
+            <button 
+              className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={() => {
+                setCloudflareError(false);
+                window.__cloudflareRetryCount = 0;
+                setIsInitialized(false);
+                // Перезапускаем процесс инициализации
+                setTimeout(() => {
+                  window.location.reload();
+                }, 500);
+              }}
+            >
+              Повторить попытку подключения
+            </button>
+          </div>
+        </div>
+        <Toaster />
+      </div>
+    );
+  }
 
   // Для оффлайн-режима или отсутствия соединения с Supabase показываем заглушку
   if (isInitialized && (!isOnline || !isSupabaseConnected)) {
@@ -238,6 +303,7 @@ declare global {
     __supabaseInitialized?: boolean;
     __FORCE_TELEGRAM_MODE?: boolean;
     __game_user_id?: string | null;
+    __cloudflareRetryCount?: number;
   }
 }
 

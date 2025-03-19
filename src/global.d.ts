@@ -2,6 +2,7 @@
 // Расширяем интерфейс Window для наших глобальных переменных
 interface Window {
   __game_user_id?: string;
+  __cloudflareRetryCount?: number;
   Telegram?: {
     WebApp?: {
       initDataUnsafe?: {
