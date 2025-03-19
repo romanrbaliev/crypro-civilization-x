@@ -112,7 +112,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
             ID: <span className="font-mono">{referral.id}</span>
           </div>
           <div className="text-[9px] text-gray-500">
-            Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
+            Присо��динился: {new Date(referral.joinedAt).toLocaleDateString()}
           </div>
           <div className="text-[9px] mt-1">
             Статус: {' '}
@@ -266,12 +266,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
   useEffect(() => {
     if (state.referralCode) {
-      setReferralLink(`https://t.me/Crypto_civilization_bot?start=${state.referralCode}`);
+      setReferralLink(`https://t.me/Crypto_civilization_bot/app?startapp=${state.referralCode}`);
       console.log(`ReferralsTab: Используем существующий реферальный код: ${state.referralCode}`);
     } else {
       const newCode = generateReferralCode();
       dispatch({ type: "SET_REFERRAL_CODE", payload: { code: newCode } });
-      setReferralLink(`https://t.me/Crypto_civilization_bot?start=${newCode}`);
+      setReferralLink(`https://t.me/Crypto_civilization_bot/app?startapp=${newCode}`);
       console.log(`ReferralsTab: Сгенерирован новый реферальный код: ${newCode}`);
     }
   }, [state.referralCode, dispatch, userId]);

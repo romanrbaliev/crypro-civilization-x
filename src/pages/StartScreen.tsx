@@ -160,15 +160,22 @@ const StartScreen = () => {
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
       // В Telegram стартовые параметры доступны через initDataUnsafe.start_param
-      if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+      // или через startapp для прямого запуска mini app
+      if (tg.initDataUnsafe?.start_param) {
         console.log('Обнаружен start_param в Telegram:', tg.initDataUnsafe.start_param);
         return tg.initDataUnsafe.start_param;
+      }
+      
+      // Проверяем на наличие startapp параметра
+      if (tg.initDataUnsafe?.startapp) {
+        console.log('Обнаружен startapp параметр в Telegram:', tg.initDataUnsafe.startapp);
+        return tg.initDataUnsafe.startapp;
       }
     }
     
     // Проверка параметра URL для веб-версии
     const urlParams = new URLSearchParams(window.location.search);
-    const startParam = urlParams.get('start');
+    const startParam = urlParams.get('start') || urlParams.get('startapp');
     
     return startParam;
   };
