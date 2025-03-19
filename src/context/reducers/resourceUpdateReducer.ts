@@ -27,31 +27,40 @@ export const processResourceUpdate = (state: GameState): GameState => {
       .catch(err => console.error('Ошибка при синхронизации помощников:', err));
   }
   
-  // Проверяем, является ли текущий пользователь помощником для других игроков
-  // и учитываем бонус в 10% за каждое здание, на котором он помогает
-  let currentUserId = state.referralCode ? null : null; // Временное значение, будет заменено позже
+  // Используем user_id из локального хранилища или кэша
+  // для немедленного определения, является ли пользователь помощником
+  let currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
   let referralHelperBonus = 0;
   
-  // Отложенная проверка через Promise
-  getUserIdentifier()
-    .then(userId => {
-      currentUserId = userId;
-      
-      // Если currentUserId теперь известен, вычисляем бонус
-      if (currentUserId) {
-        const buildingsAsHelper = state.referralHelpers.filter(h => 
-          h.helperId === currentUserId && h.status === 'accepted'
-        ).length;
-        
-        // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
-        referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
-        
-        if (buildingsAsHelper > 0) {
-          console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
+  // Если у нас есть ID пользователя, вычисляем бонус немедленно
+  if (currentUserId) {
+    const buildingsAsHelper = state.referralHelpers.filter(h => 
+      h.helperId === currentUserId && h.status === 'accepted'
+    ).length;
+    
+    // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
+    referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
+    
+    if (buildingsAsHelper > 0) {
+      console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
+    }
+  } else {
+    // Если ID не найден в кэше, пробуем получить его асинхронно
+    // и обновляем состояние игры в следующем цикле
+    getUserIdentifier()
+      .then(userId => {
+        if (userId) {
+          console.log(`Получен ID пользователя: ${userId}`);
+          
+          // Отправляем событие для принудительного обновления ресурсов
+          setTimeout(() => {
+            const forceUpdateEvent = new CustomEvent('force-resource-update');
+            window.dispatchEvent(forceUpdateEvent);
+          }, 100);
         }
-      }
-    })
-    .catch(err => console.error('Ошибка при получении идентификатора пользователя:', err));
+      })
+      .catch(err => console.error('Ошибка при получении идентификатора пользователя:', err));
+  }
   
   // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
@@ -59,7 +68,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     state.buildings, 
     state.referralHelpers,
     state.referrals,
-    state.referralCode, // Временно используем referralCode вместо user_id
+    currentUserId, // Передаем user_id вместо referralCode
     referralHelperBonus // Передаем бонус для реферала-помощника
   );
   
