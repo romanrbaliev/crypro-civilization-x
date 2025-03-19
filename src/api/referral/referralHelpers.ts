@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { checkSupabaseConnection } from '../connectionUtils';
 import { toast } from '@/hooks/use-toast';
+import { REFERRAL_HELPERS_TABLE } from '../apiTypes';
 
 /**
  * Обновляет статус запроса помощника в базе данных
@@ -31,7 +32,7 @@ export const updateHelperRequestStatus = async (
     
     // Обновляем запись в таблице referral_helpers
     const { data, error } = await supabase
-      .from('referral_helpers')
+      .from(REFERRAL_HELPERS_TABLE)
       .update({ 
         status: status,
         created_at: new Date().toISOString() // используем created_at как updated_at, т.к. отдельного поля нет
@@ -56,8 +57,8 @@ export const updateHelperRequestStatus = async (
       const { error: referralError } = await supabase
         .from('referral_data')
         .update({ 
-          is_activated: true,  // Реферал теперь активирован
-          // Нет поля hired и assigned_building_id, поэтому не добавляем их
+          is_activated: true  // Реферал теперь активирован
+          // Поля hired и assigned_building_id не существуют в таблице
           // Эта информация будет храниться в состоянии приложения
         })
         .eq('user_id', helperId);
@@ -109,7 +110,7 @@ export const getHelperRequests = async (userId: string) => {
     
     // Получаем список запросов, где пользователь является помощником
     const { data, error } = await supabase
-      .from('referral_helpers')
+      .from(REFERRAL_HELPERS_TABLE)
       .select('*')
       .eq('helper_id', userId);
       
