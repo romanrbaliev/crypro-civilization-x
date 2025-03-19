@@ -112,7 +112,7 @@ async function updateReferrerData(referralCode: string, newReferralId: string): 
         const gameData = saveData.game_data as any;
         
         const newReferral = {
-          id: newReferralId,
+          id: newReferralId, // Используем user_id вместо referral_code
           username: `Пользователь ${newReferralId.substring(0, 6)}`,
           activated: false,
           joinedAt: Date.now()
@@ -170,10 +170,8 @@ export const getUserReferralCode = async (userId?: string): Promise<string | nul
 };
 
 // Проверка и обновление реферальной информации при запуске
-export const checkReferralInfo = async (referralCode: string, referredBy: string | null): Promise<void> => {
+export const checkReferralInfo = async (userId: string, referredBy: string | null): Promise<void> => {
   try {
-    const userId = await getUserIdentifier();
-    
     const { data: existingData } = await supabase
       .from(REFERRAL_TABLE)
       .select()
@@ -184,6 +182,11 @@ export const checkReferralInfo = async (referralCode: string, referredBy: string
       console.log('✅ Реферальная информация уже существует для пользователя', userId);
       return;
     }
+    
+    // Генерируем код для пользователя, если его нет
+    const referralCode = Array.from({ length: 8 }, () => 
+      Math.floor(Math.random() * 16).toString(16).toUpperCase()
+    ).join('');
     
     await saveReferralInfo(referralCode, referredBy);
     

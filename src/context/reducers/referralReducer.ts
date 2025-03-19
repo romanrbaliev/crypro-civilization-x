@@ -1,9 +1,11 @@
+
 import { GameState, ReferralHelper } from '../types';
 import { ReferralStatusUpdate } from '../../api/referral/referralTypes';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
 import { triggerReferralUIUpdate } from '@/api/referralService';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { generateReferralCode } from '@/utils/helpers';
+import { getUserIdentifier } from '@/api/userIdentification';
 
 // Обработка реферальной системы
 export const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {

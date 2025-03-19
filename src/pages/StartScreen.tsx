@@ -95,7 +95,7 @@ const StartScreen = () => {
           setReferralInfo(`Вы пришли по реферальной ссылке: ${referrerCode}`);
           
           // Обновляем реферальную информацию в базе данных
-          await checkReferralInfo(state.referralCode || '', referrerCode);
+          await checkReferralInfo(currentUserId, referrerCode); // Используем user_id вместо referralCode
         }
         
         // Пытаемся загрузить сохраненную игру

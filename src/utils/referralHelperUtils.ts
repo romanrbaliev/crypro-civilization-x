@@ -5,61 +5,61 @@ import { getUserIdentifier } from "@/api/userIdentification";
 
 /**
  * Проверяет, нанят ли реферал на определенное здание
- * @param referralId ID реферала
+ * @param userId ID пользователя (user_id)
  * @param buildingId ID здания
  * @param referralHelpers Список помощников
  * @returns true, если реферал нанят на указанное здание
  */
 export const isReferralHiredForBuilding = (
-  referralId: string,
+  userId: string,
   buildingId: string,
   referralHelpers: ReferralHelper[]
 ): boolean => {
   const result = referralHelpers.some(
     helper => 
-      helper.helperId === referralId && 
+      helper.helperId === userId && 
       helper.buildingId === buildingId && 
       helper.status === 'accepted'
   );
   
-  console.log(`Проверка назначения реферала ${referralId} на здание ${buildingId}:`, result);
+  console.log(`Проверка назначения реферала ${userId} на здание ${buildingId}:`, result);
   return result;
 };
 
 /**
  * Проверяет, нанят ли реферал на любое здание
- * @param referralId ID реферала
+ * @param userId ID пользователя (user_id)
  * @param referralHelpers Список помощников
  * @returns true, если реферал нанят хотя бы на одно здание
  */
 export const isReferralHired = (
-  referralId: string,
+  userId: string,
   referralHelpers: ReferralHelper[]
 ): boolean => {
   const result = referralHelpers.some(
-    helper => helper.helperId === referralId && helper.status === 'accepted'
+    helper => helper.helperId === userId && helper.status === 'accepted'
   );
   
-  console.log(`Проверка найма реферала ${referralId}:`, result);
+  console.log(`Проверка найма реферала ${userId}:`, result);
   return result;
 };
 
 /**
  * Получает ID здания, на которое нанят реферал
- * @param referralId ID реферала
+ * @param userId ID пользователя (user_id)
  * @param referralHelpers Список помощников
  * @returns ID здания или null, если реферал не нанят
  */
 export const getReferralAssignedBuildingId = (
-  referralId: string,
+  userId: string,
   referralHelpers: ReferralHelper[]
 ): string | null => {
   const helper = referralHelpers.find(
-    h => h.helperId === referralId && h.status === 'accepted'
+    h => h.helperId === userId && h.status === 'accepted'
   );
   
   const result = helper ? helper.buildingId : null;
-  console.log(`Получение ID здания для реферала ${referralId}:`, result);
+  console.log(`Получение ID здания для реферала ${userId}:`, result);
   return result;
 };
 
@@ -86,18 +86,18 @@ export const calculateBuildingBoostFromHelpers = (
 
 /**
  * Ищет запрос на трудоустройство для указанных реферала и здания
- * @param referralId ID реферала
+ * @param userId ID пользователя (user_id)
  * @param buildingId ID здания
  * @param referralHelpers Список помощников
  * @returns Объект запроса или null
  */
 export const findHelperRequest = (
-  referralId: string,
+  userId: string,
   buildingId: string,
   referralHelpers: ReferralHelper[]
 ): ReferralHelper | null => {
   return referralHelpers.find(
-    h => h.helperId === referralId && h.buildingId === buildingId
+    h => h.helperId === userId && h.buildingId === buildingId
   ) || null;
 };
 
@@ -122,37 +122,37 @@ export const getTotalHelperBoost = (
 
 /**
  * Получает бонус производства для реферала-помощника
- * @param helperId ID помощника
+ * @param userId ID пользователя (user_id)
  * @param referralHelpers Список помощников
  * @returns Процентный бонус от 0 до 1
  */
 export const getHelperProductionBoost = (
-  helperId: string,
+  userId: string,
   referralHelpers: ReferralHelper[]
 ): number => {
   // Считаем количество зданий, где пользователь помогает
   const acceptedBuildingsCount = referralHelpers.filter(
-    helper => helper.helperId === helperId && helper.status === 'accepted'
+    helper => helper.helperId === userId && helper.status === 'accepted'
   ).length;
   
   // НОВАЯ ЛОГИКА: Каждое здание, где реферал является помощником, дает ему бонус 10%
   const boost = acceptedBuildingsCount * 0.1;
-  console.log(`Бонус для помощника ${helperId}: ${boost * 100}% (помогает в ${acceptedBuildingsCount} зданиях)`);
+  console.log(`Бонус для помощника ${userId}: ${boost * 100}% (помогает в ${acceptedBuildingsCount} зданиях)`);
   return boost;
 };
 
 /**
  * Получает список принятых помощников для конкретного пользователя
  * @param referralHelpers Список всех помощников
- * @param referralId ID реферала для проверки
+ * @param userId ID пользователя (user_id)
  * @returns Список принятых запросов помощи
  */
 export const getAcceptedHelperRequests = (
   referralHelpers: ReferralHelper[],
-  referralId: string
+  userId: string
 ): ReferralHelper[] => {
   return referralHelpers.filter(
-    helper => helper.helperId === referralId && helper.status === 'accepted'
+    helper => helper.helperId === userId && helper.status === 'accepted'
   );
 };
 

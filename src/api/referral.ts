@@ -1,3 +1,4 @@
+
 // Новый файл, объединяющий операции с рефералами
 
 import { supabase } from '@/integrations/supabase/client';
@@ -111,7 +112,7 @@ async function updateReferrerData(referralCode: string, newReferralId: string): 
         const gameData = saveData.game_data as any;
         
         const newReferral = {
-          id: newReferralId,
+          id: newReferralId, // Используем user_id вместо referral_code
           username: `Пользователь ${newReferralId.substring(0, 6)}`,
           activated: false,
           hired: false,
@@ -170,10 +171,8 @@ export const getUserReferralCode = async (userId?: string): Promise<string | nul
 };
 
 // Проверка и обновление реферальной информации при запуске
-export const checkReferralInfo = async (referralCode: string, referredBy: string | null): Promise<void> => {
+export const checkReferralInfo = async (userId: string, referredBy: string | null): Promise<void> => {
   try {
-    const userId = await getUserIdentifier();
-    
     const { data: existingData } = await supabase
       .from(REFERRAL_TABLE)
       .select()
@@ -184,6 +183,11 @@ export const checkReferralInfo = async (referralCode: string, referredBy: string
       console.log('✅ Реферальная информация уже существует для пользователя', userId);
       return;
     }
+    
+    // Генерируем код для пользователя, если его нет
+    const referralCode = Array.from({ length: 8 }, () => 
+      Math.floor(Math.random() * 16).toString(16).toUpperCase()
+    ).join('');
     
     await saveReferralInfo(referralCode, referredBy);
     
@@ -291,7 +295,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
     if (!gameData.referrals) {
       // Если у реферера еще нет рефералов, создаем массив
       gameData.referrals = [{
-        id: referralId,
+        id: referralId, // Используем user_id вместо referral_code
         username: `Пользователь ${referralId.substring(0, 6)}`,
         activated: true,
         hired: false,
@@ -306,7 +310,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       if (referralIndex === -1) {
         // Если реферал не найден, добавляем его
         gameData.referrals.push({
-          id: referralId,
+          id: referralId, // Используем user_id вместо referral_code
           username: `Пользователь ${referralId.substring(0, 6)}`,
           activated: true,
           hired: false,
@@ -397,7 +401,7 @@ export const getUserReferrals = async (): Promise<any[]> => {
     
     // Преобразуем данные в нужный формат
     return referralsData.map(referral => ({
-      id: referral.user_id,
+      id: referral.user_id, // Используем user_id вместо referral_code
       username: `Пользователь ${referral.user_id.substring(0, 6)}`,
       activated: referral.is_activated === true,
       joinedAt: Date.now() // Временная заглушка

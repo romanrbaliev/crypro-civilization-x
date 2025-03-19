@@ -79,7 +79,7 @@ export const getUserReferrals = async (): Promise<any[]> => {
       });
       
       return {
-        id: referral.user_id,
+        id: referral.user_id, // Используем user_id вместо referral_code
         username: `Пользователь ${referral.user_id.substring(0, 6)}`,
         activated: activated,
         hired: isHired,

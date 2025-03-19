@@ -28,7 +28,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Проверяем, является ли текущий пользователь помощником для других игроков
   // и учитываем бонус в 10% за каждое здание, на котором он помогает
-  const currentUserId = state.referralCode;
+  const currentUserId = state.referralCode ? await getUserIdentifier() : null; // Используем user_id вместо referralCode
   let referralHelperBonus = 0;
   
   if (currentUserId) {
@@ -50,7 +50,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     state.buildings, 
     state.referralHelpers,
     state.referrals,
-    state.referralCode,
+    currentUserId, // Передаем user_id вместо referralCode
     referralHelperBonus // Передаем бонус для реферала-помощника
   );
   
@@ -117,3 +117,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
     gameTime: state.gameTime + deltaTime
   };
 };
+
+// Импортируем функцию getUserIdentifier
+import { getUserIdentifier } from '@/api/userIdentification';
