@@ -2,6 +2,7 @@
 import { ReferralHelper } from "@/context/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserIdentifier } from "@/api/userIdentification";
+import { REFERRAL_HELPERS_TABLE } from "@/api/apiTypes";
 
 /**
  * Проверяет, нанят ли реферал на определенное здание
@@ -40,8 +41,70 @@ export const isReferralHired = (
     helper => helper.helperId === userId && helper.status === 'accepted'
   );
   
-  console.log(`Проверка найма реферала ${userId}:`, result);
+  console.log(`Проверка найма реферала ${userId} в локальном состоянии:`, result);
+  
+  if (!result) {
+    // Если в локальном состоянии нет информации о найме,
+    // запускаем асинхронную проверку в БД
+    checkHelperStatusInDBAsync(userId).then(hasHelperRoleInDB => {
+      if (hasHelperRoleInDB) {
+        console.log(`Обнаружено расхождение: пользователь ${userId} является помощником в БД, но не в локальном состоянии`);
+        
+        // Отправляем событие для обновления
+        setTimeout(() => {
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        }, 500);
+      }
+    });
+  }
+  
   return result;
+};
+
+/**
+ * Асинхронно проверяет в базе данных, является ли пользователь помощником
+ * @param userId ID пользователя
+ * @returns Promise, который разрешается в true, если пользователь помощник
+ */
+export const checkHelperStatusInDBAsync = async (userId: string): Promise<boolean> => {
+  if (!userId) return false;
+  
+  try {
+    console.log(`Асинхронная проверка статуса помощника в БД для ${userId}...`);
+    
+    // Проверяем соединение с базой данных
+    const { data: connectionCheck, error: connectionError } = await supabase
+      .from('referral_data')
+      .select('user_id')
+      .limit(1);
+    
+    if (connectionError) {
+      console.error('Ошибка при проверке соединения с Supabase:', connectionError);
+      return false;
+    }
+    
+    // Запрашиваем записи, где пользователь является помощником
+    const { data, error } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('id, status, building_id')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted');
+    
+    if (error) {
+      console.error('Ошибка при проверке статуса помощника в БД:', error);
+      return false;
+    }
+    
+    const isHelper = data && data.length > 0;
+    console.log(`Результат проверки в БД для ${userId}: ${isHelper ? 'является помощником' : 'не является помощником'}`);
+    console.log(`Данные из БД:`, data);
+    
+    return isHelper;
+  } catch (error) {
+    console.error('Неожиданная ошибка при проверке статуса помощника в БД:', error);
+    return false;
+  }
 };
 
 /**
@@ -60,7 +123,61 @@ export const getReferralAssignedBuildingId = (
   
   const result = helper ? helper.buildingId : null;
   console.log(`Получение ID здания для реферала ${userId}:`, result);
+  
+  if (!result) {
+    // Если в локальном состоянии нет информации, проверяем в БД
+    getBuildingIdFromDBAsync(userId).then(buildingIdFromDB => {
+      if (buildingIdFromDB) {
+        console.log(`В БД найдено здание ${buildingIdFromDB} для помощника ${userId}, но отсутствует в локальном состоянии`);
+        
+        // Отправляем событие для обновления
+        setTimeout(() => {
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        }, 500);
+      }
+    });
+  }
+  
   return result;
+};
+
+/**
+ * Асинхронно получает ID здания из БД, на котором пользователь является помощником
+ * @param userId ID пользователя
+ * @returns Promise с ID здания или null
+ */
+export const getBuildingIdFromDBAsync = async (userId: string): Promise<string | null> => {
+  if (!userId) return null;
+  
+  try {
+    console.log(`Запрос здания из БД для помощника ${userId}...`);
+    
+    // Запрашиваем записи, где пользователь является помощником
+    const { data, error } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('building_id')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted')
+      .limit(1)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Ошибка "нет данных" - не является ошибкой в нашем случае
+        console.log(`В БД не найдено зданий для помощника ${userId}`);
+        return null;
+      }
+      console.error('Ошибка при запросе здания из БД:', error);
+      return null;
+    }
+    
+    console.log(`Найдено здание в БД для помощника ${userId}:`, data?.building_id);
+    return data?.building_id || null;
+  } catch (error) {
+    console.error('Неожиданная ошибка при запросе здания из БД:', error);
+    return null;
+  }
 };
 
 /**
@@ -78,7 +195,7 @@ export const calculateBuildingBoostFromHelpers = (
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   ).length;
   
-  // НОВАЯ ЛОГИКА: Теперь каждый помощник дает бонус в 5% реферреру
+  // Каждый помощник дает бонус в 5% реферреру
   const boost = acceptedHelpersCount * 0.05;
   console.log(`Бонус от помощников для здания ${buildingId}: ${boost * 100}% (${acceptedHelpersCount} помощников)`);
   return boost;
@@ -114,7 +231,7 @@ export const getTotalHelperBoost = (
     helper => helper.status === 'accepted'
   ).length;
   
-  // НОВАЯ ЛОГИКА: Каждый помощник дает бонус в 5% к реферреру
+  // Каждый помощник дает бонус в 5% к реферреру
   const totalBoost = acceptedHelpersCount * 0.05;
   console.log(`Общий бонус от помощников: ${totalBoost * 100}% (${acceptedHelpersCount} принятых запросов)`);
   return totalBoost;
@@ -135,10 +252,57 @@ export const getHelperProductionBoost = (
     helper => helper.helperId === userId && helper.status === 'accepted'
   ).length;
   
-  // НОВАЯ ЛОГИКА: Каждое здание, где реферал является помощником, дает ему бонус 10%
+  // НОВАЯ ЛОГИКА: если в локальном состоянии нет данных о том, что пользователь является помощником,
+  // проверяем в базе данных (асинхронно)
+  if (acceptedBuildingsCount === 0) {
+    getBuildingCountFromDBAsync(userId).then(count => {
+      if (count > 0) {
+        console.log(`В БД пользователь ${userId} помогает в ${count} зданиях, но в локальном состоянии это не отражено`);
+        
+        // Отправляем событие для обновления
+        setTimeout(() => {
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        }, 500);
+      }
+    });
+  }
+  
+  // Каждое здание, где реферал является помощником, дает ему бонус 10%
   const boost = acceptedBuildingsCount * 0.1;
   console.log(`Бонус для помощника ${userId}: ${boost * 100}% (помогает в ${acceptedBuildingsCount} зданиях)`);
   return boost;
+};
+
+/**
+ * Асинхронно получает из БД количество зданий, на которых пользователь является помощником
+ * @param userId ID пользователя
+ * @returns Promise с количеством зданий
+ */
+export const getBuildingCountFromDBAsync = async (userId: string): Promise<number> => {
+  if (!userId) return 0;
+  
+  try {
+    console.log(`Запрос количества зданий из БД для помощника ${userId}...`);
+    
+    const { data, error } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('building_id')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted');
+    
+    if (error) {
+      console.error('Ошибка при запросе количества зданий из БД:', error);
+      return 0;
+    }
+    
+    const count = data?.length || 0;
+    console.log(`В БД найдено ${count} зданий для помощника ${userId}`);
+    return count;
+  } catch (error) {
+    console.error('Неожиданная ошибка при запросе количества зданий из БД:', error);
+    return 0;
+  }
 };
 
 /**
@@ -242,10 +406,37 @@ export const syncHelperStatusWithDB = async (
     }
     
     console.log('Синхронизация помощников с базой данных для пользователя:', userId);
+    window.__game_user_id = userId; // Кэшируем ID пользователя
     
-    // Получаем данные о помощниках из базы данных
+    // Сначала проверяем, является ли пользователь помощником в БД
+    const { data: helperData, error: helperError } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('*')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted');
+    
+    if (helperError) {
+      console.error('Ошибка при проверке статуса помощника в БД:', helperError);
+    } else if (helperData && helperData.length > 0) {
+      console.log(`Пользователь ${userId} является помощником в ${helperData.length} зданиях по данным БД:`, helperData);
+      
+      // Проверяем, отражено ли это в локальном состоянии
+      const localHelpers = referralHelpers.filter(h => h.helperId === userId && h.status === 'accepted');
+      
+      if (localHelpers.length !== helperData.length) {
+        console.log(`Обнаружено расхождение: в БД ${helperData.length} зданий, в локальном состоянии ${localHelpers.length}`);
+        
+        // Отправляем событие для обновления
+        setTimeout(() => {
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        }, 500);
+      }
+    }
+    
+    // Затем получаем данные о всех помощниках для работодателя
     const { data, error } = await supabase
-      .from('referral_helpers')
+      .from(REFERRAL_HELPERS_TABLE)
       .select('id, helper_id, building_id, status')
       .eq('employer_id', userId);
     
@@ -255,7 +446,7 @@ export const syncHelperStatusWithDB = async (
     }
     
     if (!data || data.length === 0) {
-      console.log('В базе данных нет информации о помощниках');
+      console.log('В базе данных нет информации о помощниках для работодателя', userId);
       return null;
     }
     
@@ -269,7 +460,8 @@ export const syncHelperStatusWithDB = async (
         id: helper.id.toString(),
         helperId: helper.helper_id,
         buildingId: helper.building_id,
-        status: helper.status
+        status: helper.status,
+        createdAt: Date.now()
       });
     });
     

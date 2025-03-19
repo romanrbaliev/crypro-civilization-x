@@ -3,15 +3,83 @@ import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
 import { hasActiveHelpers, syncHelperStatusWithDB } from '@/utils/referralHelperUtils';
 import { getUserIdentifier } from '@/api/userIdentification';
+import { supabase } from '@/integrations/supabase/client';
 
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const deltaTime = now - state.lastUpdate;
   
+  // Пытаемся получить ID пользователя сразу из кэша или localStorage
+  let currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+  let referralHelperBonus = 0;
+  
+  // Если у нас есть ID пользователя, сразу проверяем, является ли он помощником
+  if (currentUserId) {
+    const buildingsAsHelper = state.referralHelpers.filter(h => 
+      h.helperId === currentUserId && h.status === 'accepted'
+    ).length;
+    
+    // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
+    referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
+    
+    if (buildingsAsHelper > 0) {
+      console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
+    } else {
+      // Если локальное состояние показывает, что пользователь не является помощником,
+      // проверим напрямую в базе данных, возможно, данные не синхронизированы
+      checkHelperStatusInDB(currentUserId).then(helperBuildingsCount => {
+        if (helperBuildingsCount > 0) {
+          // Пользователь является помощником по данным в БД, но не в локальном состоянии
+          console.log(`БД подтверждает: пользователь ${currentUserId} помогает на ${helperBuildingsCount} зданиях, но локальное состояние не обновлено`);
+          
+          // Принудительно обновляем состояние
+          const forceUpdateEvent = new CustomEvent('force-resource-update');
+          window.dispatchEvent(forceUpdateEvent);
+          
+          // Запрашиваем полное обновление помощников из БД
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        } else {
+          console.log(`Проверка в БД: пользователь ${currentUserId} не является помощником ни для одного здания`);
+        }
+      }).catch(err => {
+        console.error('Ошибка при проверке статуса помощника в БД:', err);
+      });
+    }
+  } else {
+    // Если ID не найден в кэше, пробуем получить его асинхронно
+    getUserIdentifier()
+      .then(userId => {
+        if (userId) {
+          // Сохраняем ID пользователя для быстрого доступа в будущем
+          window.__game_user_id = userId;
+          localStorage.setItem('crypto_civ_user_id', userId);
+          
+          console.log(`Получен ID пользователя: ${userId}`);
+          
+          // Проверяем этого пользователя в качестве помощника
+          checkHelperStatusInDB(userId).then(helperBuildingsCount => {
+            if (helperBuildingsCount > 0) {
+              console.log(`Новый пользователь ${userId} помогает на ${helperBuildingsCount} зданиях по данным БД`);
+              
+              // Отправляем событие для принудительного обновления ресурсов
+              setTimeout(() => {
+                const forceUpdateEvent = new CustomEvent('force-resource-update');
+                window.dispatchEvent(forceUpdateEvent);
+                
+                // Запрашиваем полное обновление помощников из БД
+                const refreshEvent = new CustomEvent('refresh-referrals');
+                window.dispatchEvent(refreshEvent);
+              }, 100);
+            }
+          });
+        }
+      })
+      .catch(err => console.error('Ошибка при получении идентификатора пользователя:', err));
+  }
+  
   // Синхронизируем статусы помощников с базой данных
-  // Это поможет исправить несоответствие между локальным состоянием и БД
-  let updatedState = { ...state };
-  if (state.referralHelpers.length > 0) {
+  if (state.referralHelpers.length > 0 && currentUserId) {
     syncHelperStatusWithDB(state.referralHelpers)
       .then(updatedHelpers => {
         if (updatedHelpers && updatedHelpers.length > 0) {
@@ -25,54 +93,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
         }
       })
       .catch(err => console.error('Ошибка при синхронизации помощников:', err));
-  }
-  
-  // Используем user_id из локального хранилища или кэша
-  // для немедленного определения, является ли пользователь помощником
-  let currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
-  let referralHelperBonus = 0;
-  
-  // Если у нас есть ID пользователя, вычисляем бонус немедленно
-  if (currentUserId) {
-    const buildingsAsHelper = state.referralHelpers.filter(h => 
-      h.helperId === currentUserId && h.status === 'accepted'
-    ).length;
-    
-    // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
-    referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
-    
-    if (buildingsAsHelper > 0) {
-      console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
-    }
-  } else {
-    // Если ID не найден в кэше, пробуем получить его асинхронно
-    // и обновляем состояние игры в следующем цикле
-    getUserIdentifier()
-      .then(userId => {
-        if (userId) {
-          // Сохраняем ID пользователя для быстрого доступа в будущем
-          window.__game_user_id = userId;
-          localStorage.setItem('crypto_civ_user_id', userId);
-          
-          console.log(`Получен ID пользователя: ${userId}`);
-          
-          // Проверяем этого пользователя в качестве помощника
-          const buildingsAsHelper = state.referralHelpers.filter(h => 
-            h.helperId === userId && h.status === 'accepted'
-          ).length;
-          
-          if (buildingsAsHelper > 0) {
-            console.log(`Пользователь ${userId} помогает на ${buildingsAsHelper} зданиях`);
-          }
-          
-          // Отправляем событие для принудительного обновления ресурсов
-          setTimeout(() => {
-            const forceUpdateEvent = new CustomEvent('force-resource-update');
-            window.dispatchEvent(forceUpdateEvent);
-          }, 100);
-        }
-      })
-      .catch(err => console.error('Ошибка при получении идентификатора пользователя:', err));
   }
   
   // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
@@ -139,6 +159,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
       const buildingName = state.buildings[helper.buildingId]?.name || helper.buildingId;
       console.log(`- ${helper.helperId} помогает со зданием "${buildingName}"`);
     });
+  } else if (currentUserId) {
+    // Если в локальном состоянии нет помощников, проверяем их наличие в БД
+    console.log(`В локальном состоянии нет активных помощников. Пользователь ID: ${currentUserId}`);
   }
   
   return {
@@ -148,3 +171,48 @@ export const processResourceUpdate = (state: GameState): GameState => {
     gameTime: state.gameTime + deltaTime
   };
 };
+
+// Новая функция для прямой проверки статуса помощника в базе данных
+async function checkHelperStatusInDB(userId: string): Promise<number> {
+  if (!userId) return 0;
+  
+  try {
+    console.log(`Проверка статуса помощника напрямую в БД для ${userId}...`);
+    
+    // Проверка соединения с Supabase перед запросом
+    const { data: connectionCheck, error: connectionError } = await supabase
+      .from('referral_data')
+      .select('user_id')
+      .limit(1);
+    
+    if (connectionError) {
+      console.error('Ошибка при проверке соединения с Supabase:', connectionError);
+      return 0;
+    }
+    
+    // Запрашиваем данные о помощниках напрямую из таблицы
+    const { data, error } = await supabase
+      .from('referral_helpers')
+      .select('building_id, status')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted');
+    
+    if (error) {
+      console.error('Ошибка при проверке статуса помощника в БД:', error);
+      return 0;
+    }
+    
+    if (data && data.length > 0) {
+      console.log(`В БД найдено ${data.length} записей, где ${userId} является активным помощником:`, data);
+      // Возвращаем количество зданий, на которых пользователь является помощником
+      return data.length;
+    } else {
+      console.log(`В БД не найдено записей, где ${userId} является активным помощником`);
+      return 0;
+    }
+  } catch (error) {
+    console.error('Неожиданная ошибка при проверке статуса помощника в БД:', error);
+    return 0;
+  }
+}
+

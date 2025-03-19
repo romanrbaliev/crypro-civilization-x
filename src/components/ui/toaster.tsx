@@ -21,58 +21,149 @@ export function Toaster() {
     const storeUserId = async () => {
       try {
         const userId = await getUserIdentifier();
-        window.__game_user_id = userId;
-        console.log('ID пользователя сохранен в глобальной переменной:', userId);
-        
-        try {
-          // Используем функцию checkSupabaseConnection для проверки соединения
-          const isConnected = await checkSupabaseConnection();
-          if (isConnected) {
-            console.log('✅ Подключение к Supabase подтверждено при загрузке');
-            
-            // Запрашиваем данные о помощниках и зданиях при загрузке
-            const helperResult = await getHelperRequests(userId);
-            if (helperResult.success && helperResult.helpers.length > 0) {
-              console.log('✅ Получены данные о запросах на помощь при загрузке:', helperResult.helpers.length);
+        if (userId) {
+          window.__game_user_id = userId;
+          localStorage.setItem('crypto_civ_user_id', userId);
+          console.log('ID пользователя сохранен в глобальной переменной и localStorage:', userId);
+          
+          try {
+            // Используем функцию checkSupabaseConnection для проверки соединения
+            const isConnected = await checkSupabaseConnection();
+            if (isConnected) {
+              console.log('✅ Подключение к Supabase подтверждено при загрузке');
+              
+              // ПРОВЕРКА НАПРЯМУЮ, ЯВЛЯЕТСЯ ЛИ ПОЛЬЗОВАТЕЛЬ ПОМОЩНИКОМ
+              const { data: helperData, error: helperError } = await supabase
+                .from('referral_helpers')
+                .select('*')
+                .eq('helper_id', userId)
+                .eq('status', 'accepted');
+              
+              if (helperError) {
+                console.error('❌ Ошибка при проверке статуса помощника в БД:', helperError);
+              } else if (helperData && helperData.length > 0) {
+                console.log(`🌟 ВАЖНО: Пользователь ${userId} является помощником в ${helperData.length} зданиях по данным БД:`, 
+                  helperData.map(h => ({
+                    building_id: h.building_id,
+                    employer_id: h.employer_id,
+                    id: h.id
+                  }))
+                );
+                
+                // Отправляем события для обновления UI
+                setTimeout(() => {
+                  // Событие для общего обновления UI с данными зданий
+                  const helperDetailsEvent = new CustomEvent('helper-buildings-details', {
+                    detail: { 
+                      buildings: helperData.map(h => ({
+                        buildingId: h.building_id,
+                        employerId: h.employer_id
+                      }))
+                    }
+                  });
+                  window.dispatchEvent(helperDetailsEvent);
+                  
+                  // Принудительно запрашиваем обновление состояния
+                  const forceUpdateEvent = new CustomEvent('force-resource-update');
+                  window.dispatchEvent(forceUpdateEvent);
+                  
+                  // Обновляем полный список из API
+                  const refreshEvent = new CustomEvent('refresh-referrals');
+                  window.dispatchEvent(refreshEvent);
+                }, 1000);
+                
+                // Уведомление пользователя
+                useToast().toast({
+                  title: "Вы являетесь помощником",
+                  description: `Вы помогаете в ${helperData.length} зданиях, увеличивая их производительность на 10% каждое`,
+                  variant: "info"
+                });
+              } else {
+                console.log(`Пользователь ${userId} не является помощником по данным БД`);
+              }
+              
+              // Запрашиваем данные о помощниках и зданиях при загрузке через API
+              const helperResult = await getHelperRequests(userId);
+              if (helperResult.success && helperResult.helpers.length > 0) {
+                console.log('✅ Получены данные о запросах на помощь при загрузке:', helperResult.helpers.length);
+              }
+              
+              const employerResult = await getEmployerHelperBuildings(userId);
+              if (employerResult.success && employerResult.helperBuildings.length > 0) {
+                console.log('✅ Получены данные о зданиях с помощниками при загрузке:', employerResult.helperBuildings.length);
+              }
+            } else {
+              console.error('❌ Ошибка подключения к Supabase при загрузке');
             }
-            
-            const employerResult = await getEmployerHelperBuildings(userId);
-            if (employerResult.success && employerResult.helperBuildings.length > 0) {
-              console.log('✅ Получены данные о зданиях с помощниками при загрузке:', employerResult.helperBuildings.length);
-            }
-          } else {
-            console.error('❌ Ошибка подключения к Supabase при загрузке');
+          } catch (e) {
+            console.error('❌ Ошибка при проверке подключения к Supabase:', e);
           }
-        } catch (e) {
-          console.error('❌ Ошибка при проверке подключения к Supabase:', e);
+        } else {
+          console.error('Не удалось получить ID пользователя');
         }
       } catch (error) {
         console.error('Ошибка при получении ID пользователя:', error);
       }
     };
     
+    // Запускаем сразу при монтировании компонента
     storeUserId();
     
     // Улучшенный обработчик для принудительного обновления из БД
-    const handleRefresh = async (event) => {
+    const handleRefresh = async () => {
       console.log('Получено событие обновления рефералов');
       try {
-        const userId = window.__game_user_id;
+        const userId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
         if (userId) {
           console.log('Запрос обновления для пользователя:', userId);
           
-          // Проверяем подключение к Supabase (исправлен запрос)
-          const { data: connectionCheck, error: connectionError } = await supabase
-            .from('referral_data')
-            .select('user_id')
-            .limit(1);
-            
-          if (connectionError) {
-            console.error('❌ Ошибка подключения к Supabase при обработке обновления:', connectionError);
+          // Проверяем подключение к Supabase
+          const isConnected = await checkSupabaseConnection();
+          if (!isConnected) {
+            console.error('❌ Ошибка подключения к Supabase при обработке обновления');
             return;
           }
           
           console.log('✅ Подключение к Supabase подтверждено при обновлении');
+          
+          // Проверка, является ли пользователь помощником напрямую из БД
+          const { data: helperData, error: helperError } = await supabase
+            .from('referral_helpers')
+            .select('*')
+            .eq('helper_id', userId)
+            .eq('status', 'accepted');
+          
+          if (helperError) {
+            console.error('❌ Ошибка при проверке статуса помощника в БД:', helperError);
+          } else if (helperData && helperData.length > 0) {
+            console.log(`🌟 ВАЖНО: Пользователь ${userId} является помощником в ${helperData.length} зданиях по данным БД:`, 
+              helperData.map(h => ({
+                building_id: h.building_id,
+                employer_id: h.employer_id,
+                id: h.id
+              }))
+            );
+            
+            // Отправляем события для обновления UI
+            setTimeout(() => {
+              for (const helper of helperData) {
+                // Событие для обновления статуса помощника
+                const helperStatusEvent = new CustomEvent('helper-status-updated', {
+                  detail: { 
+                    buildingId: helper.building_id,
+                    status: 'accepted'
+                  }
+                });
+                window.dispatchEvent(helperStatusEvent);
+              }
+              
+              // Принудительно обновляем ресурсы
+              const forceUpdateEvent = new CustomEvent('force-resource-update');
+              window.dispatchEvent(forceUpdateEvent);
+            }, 300);
+          } else {
+            console.log(`Пользователь ${userId} не является помощником по данным БД`);
+          }
           
           // Получаем реферальный код пользователя
           const { data: referralCodeData } = await supabase
@@ -121,7 +212,7 @@ export function Toaster() {
             }
           }
           
-          // Обновляем данные о помощниках и зданиях
+          // Обновляем данные о помощниках и зданиях через API
           const helperResult = await getHelperRequests(userId);
           if (helperResult.success) {
             console.log('✅ Обновлены данные о запросах на помощь:', helperResult.helpers.length);
@@ -182,6 +273,12 @@ export function Toaster() {
           description: `Вы назначены помощником в здание. Теперь вы приносите +10% к производительности!`,
           variant: "success"
         });
+        
+        // Принудительно обновляем ресурсы
+        setTimeout(() => {
+          const forceUpdateEvent = new CustomEvent('force-resource-update');
+          window.dispatchEvent(forceUpdateEvent);
+        }, 200);
       }
     };
     
@@ -192,7 +289,13 @@ export function Toaster() {
       const { buildings } = event.detail;
       console.log(`Получены детали о ${buildings.length} зданиях, где пользователь является помощником:`, buildings);
       
-      // Здесь можно отправить событие для обновления UI или добавить дополнительную логику
+      if (buildings.length > 0) {
+        // Отправляем событие обновления ресурсов
+        setTimeout(() => {
+          const forceUpdateEvent = new CustomEvent('force-resource-update');
+          window.dispatchEvent(forceUpdateEvent);
+        }, 200);
+      }
     };
     
     window.addEventListener('helper-buildings-details', handleHelperBuildingsDetails);
@@ -202,18 +305,23 @@ export function Toaster() {
       const { helperBuildings } = event.detail;
       console.log(`Получены детали о ${helperBuildings.length} зданиях с помощниками у работодателя:`, helperBuildings);
       
-      // Здесь можно отправить событие для обновления UI или добавить дополнительную логику
+      // Принудительно обновляем ресурсы
+      if (helperBuildings.length > 0) {
+        setTimeout(() => {
+          const forceUpdateEvent = new CustomEvent('force-resource-update');
+          window.dispatchEvent(forceUpdateEvent);
+        }, 200);
+      }
     };
     
     window.addEventListener('employer-buildings-helpers', handleEmployerBuildingsHelpers);
     
-    // УБРАНО АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ: не запрашиваем обновление статусов при первом рендере
-    // Этот код был причиной постоянного обновления
-    // setTimeout(() => {
-    //   const refreshEvent = new CustomEvent('refresh-referrals');
-    //   window.dispatchEvent(refreshEvent);
-    //   console.log('Отправлен запрос на начальное обновление статусов рефералов');
-    // }, 2000);
+    // Запускаем начальное обновление статусов через 2 секунды после загрузки
+    const initialUpdateTimer = setTimeout(() => {
+      const refreshEvent = new CustomEvent('refresh-referrals');
+      window.dispatchEvent(refreshEvent);
+      console.log('Отправлен запрос на начальное обновление статусов рефералов');
+    }, 2000);
     
     return () => {
       window.removeEventListener('refresh-referrals', handleRefresh);
@@ -222,6 +330,7 @@ export function Toaster() {
       window.removeEventListener('helper-status-updated', handleHelperStatusUpdated);
       window.removeEventListener('helper-buildings-details', handleHelperBuildingsDetails);
       window.removeEventListener('employer-buildings-helpers', handleEmployerBuildingsHelpers);
+      clearTimeout(initialUpdateTimer);
     };
   }, []);
 
