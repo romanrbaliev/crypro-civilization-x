@@ -1,5 +1,4 @@
 
-// Обновляем компонент DebugCalculator для поддержки асинхронного расчета
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { debugKnowledgeProduction } from '@/utils/debugCalculator';

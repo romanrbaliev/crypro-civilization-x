@@ -70,7 +70,7 @@ async function updateHelperStatusFromDB(state: GameState, userId: string): Promi
         // Обновляем существующую запись
         updatedHelpers[existingIndex] = {
           ...updatedHelpers[existingIndex],
-          status: helperData.status
+          status: helperData.status as "accepted" | "pending" | "rejected"
         };
         console.log(`Обновлена запись о помощнике: ${helperData.helperId} для здания ${helperData.buildingId}, статус: ${helperData.status}`);
       } else {
@@ -78,10 +78,10 @@ async function updateHelperStatusFromDB(state: GameState, userId: string): Promi
         updatedHelpers.push({
           buildingId: helperData.buildingId,
           helperId: helperData.helperId,
-          status: helperData.status,
+          status: helperData.status as "accepted" | "pending" | "rejected",
           // Добавляем поля, которые могут потребоваться для совместимости
           id: `db-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          employerId: '' // будет обновлено позже при полной синхронизации
+          createdAt: Date.now()
         });
         console.log(`Добавлена новая запись о помощнике: ${helperData.helperId} для здания ${helperData.buildingId}, статус: ${helperData.status}`);
       }
@@ -98,8 +98,8 @@ async function updateHelperStatusFromDB(state: GameState, userId: string): Promi
   }
 }
 
-// Основная функция обработки обновления ресурсов - теперь с поддержкой асинхронного обновления
-export const processResourceUpdate = async (state: GameState): Promise<GameState> => {
+// Основная функция обработки обновления ресурсов
+export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const deltaTime = now - state.lastUpdate;
   
@@ -107,31 +107,37 @@ export const processResourceUpdate = async (state: GameState): Promise<GameState
   let currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
   let referralHelperBonus = 0;
   
-  // Если у нас есть ID пользователя, обновляем данные о помощниках из БД перед расчетом
+  // Асинхронно обновляем помощников из базы данных, но не ждем завершения
+  // для синхронной работы редьюсера
   if (currentUserId) {
-    try {
-      // Обновляем состояние с учетом данных из БД
-      const updatedState = await updateHelperStatusFromDB(state, currentUserId);
+    // Запускаем асинхронное обновление, но не блокируем основной поток
+    updateHelperStatusFromDB(state, currentUserId)
+      .then((updatedState) => {
+        // Если есть изменения, отправляем событие для обновления состояния
+        if (updatedState.referralHelpers.length !== state.referralHelpers.length) {
+          const helpersEvent = new CustomEvent('helpers-updated', {
+            detail: { updatedHelpers: updatedState.referralHelpers }
+          });
+          window.dispatchEvent(helpersEvent);
+        }
+      })
+      .catch(err => console.error('Ошибка при асинхронном обновлении помощников:', err));
+    
+    // Пока используем существующие данные для текущего расчета
+    const buildingsAsHelper = state.referralHelpers.filter(h => 
+      h.helperId === currentUserId && h.status === 'accepted'
+    ).length;
+    
+    // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
+    referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
+    
+    if (buildingsAsHelper > 0) {
+      console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
+    } else {
+      console.log(`В локальном состоянии пользователь ${currentUserId} не является помощником ни для одного здания`);
       
-      // Рассчитываем бонус от помощников на основе обновленных данных
-      const buildingsAsHelper = updatedState.referralHelpers.filter(h => 
-        h.helperId === currentUserId && h.status === 'accepted'
-      ).length;
-      
-      // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
-      referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
-      
-      if (buildingsAsHelper > 0) {
-        console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
-        
-        // Обновляем состояние для дальнейшего расчета
-        state = updatedState;
-      } else {
-        console.log(`По данным БД пользователь ${currentUserId} не является помощником ни для одного здания`);
-        
-        // Проверяем напрямую в базе данных, возможно данные не синхронизированы
-        const helperBuildingsCount = await checkHelperStatusInDB(currentUserId);
-        
+      // Проверяем напрямую в базе данных, возможно данные не синхронизированы
+      checkHelperStatusInDB(currentUserId).then(helperBuildingsCount => {
         if (helperBuildingsCount > 0) {
           console.log(`БД подтверждает: пользователь ${currentUserId} помогает на ${helperBuildingsCount} зданиях, но локальное состояние не обновлено`);
           
@@ -139,40 +145,32 @@ export const processResourceUpdate = async (state: GameState): Promise<GameState
           const refreshEvent = new CustomEvent('refresh-referrals');
           window.dispatchEvent(refreshEvent);
         }
-      }
-    } catch (error) {
-      console.error('Ошибка при обновлении данных о помощниках:', error);
+      });
     }
   } else {
-    // Если ID не найден в кэше, пробуем получить его асинхронно
+    // Пытаемся получить ID пользователя
     getUserIdentifier()
       .then(userId => {
         if (userId) {
-          // Сохраняем ID пользователя для быстрого доступа в будущем
           window.__game_user_id = userId;
           localStorage.setItem('crypto_civ_user_id', userId);
           
-          console.log(`Получен ID пользователя: ${userId}`);
-          
-          // Проверяем этого пользователя в качестве помощника
+          // Проверяем пользователя
           checkHelperStatusInDB(userId).then(helperBuildingsCount => {
             if (helperBuildingsCount > 0) {
-              console.log(`Новый пользователь ${userId} помогает на ${helperBuildingsCount} зданиях по данным БД`);
-              
-              // Отправляем событие для принудительного обновления ресурсов
+              // Запрашиваем обновление
               setTimeout(() => {
-                const forceUpdateEvent = new CustomEvent('force-resource-update');
-                window.dispatchEvent(forceUpdateEvent);
-                
-                // Запрашиваем полное обновление помощников из БД
-                const refreshEvent = new CustomEvent('refresh-referrals');
-                window.dispatchEvent(refreshEvent);
+                const events = [
+                  new CustomEvent('force-resource-update'),
+                  new CustomEvent('refresh-referrals')
+                ];
+                events.forEach(e => window.dispatchEvent(e));
               }, 100);
             }
           });
         }
       })
-      .catch(err => console.error('Ошибка при получении идентификатора пользователя:', err));
+      .catch(err => console.error('Ошибка при получении ID пользователя:', err));
   }
   
   // Синхронизируем статусы помощников с базой данных
@@ -180,75 +178,61 @@ export const processResourceUpdate = async (state: GameState): Promise<GameState
     syncHelperStatusWithDB(state.referralHelpers)
       .then(updatedHelpers => {
         if (updatedHelpers && updatedHelpers.length > 0) {
-          // Отправляем событие для обновления состояния игры
           const updateEvent = new CustomEvent('helpers-updated', {
             detail: { updatedHelpers }
           });
           window.dispatchEvent(updateEvent);
-          
-          console.log('Помощники синхронизированы с базой данных:', updatedHelpers);
         }
       })
       .catch(err => console.error('Ошибка при синхронизации помощников:', err));
   }
   
-  // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
+  // Рассчитываем производство ресурсов
   let updatedResources = calculateResourceProduction(
     state.resources, 
     state.buildings, 
     state.referralHelpers,
     state.referrals,
-    currentUserId, // Передаем user_id вместо referralCode
-    referralHelperBonus // Передаем бонус для реферала-помощника
+    currentUserId,
+    referralHelperBonus
   );
   
-  // Применяем увеличение хранилища от зданий
+  // Применяем увеличение хранилища
   updatedResources = applyStorageBoosts(updatedResources, state.buildings);
   
-  // Применяем эффекты от исследований - только к perSecond, не кумулятивно!
+  // Применяем эффекты от исследований
   Object.values(state.upgrades).forEach(upgrade => {
     if (upgrade.purchased) {
-      // Получаем эффекты исследования (поддерживаем оба поля effects и effect)
       const effects = upgrade.effects || upgrade.effect || {};
       
-      // Применяем эффекты к скорости накопления ресурсов
       Object.entries(effects).forEach(([effectId, amount]) => {
         if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
           const boost = Number(amount);
-          // Используем baseProduction вместо perSecond для предотвращения двойного учета
           const baseProduction = updatedResources.knowledge.baseProduction || 0;
           const boostAmount = baseProduction * boost;
           
-          // Увеличиваем скорость накопления знаний
           updatedResources.knowledge.perSecond += boostAmount;
           updatedResources.knowledge.production += boostAmount;
-          
-          console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления знаний: +${boostAmount.toFixed(2)}/сек`);
         }
         else if (effectId.includes('Boost') && !effectId.includes('Max')) {
-          // Обрабатываем другие бонусы к скорости
           const resourceId = effectId.replace('Boost', '');
           if (updatedResources[resourceId]) {
             const boost = Number(amount);
-            // Используем baseProduction вместо perSecond для предотвращения двойного учета
             const baseProduction = updatedResources[resourceId].baseProduction || 0;
             const boostAmount = baseProduction * boost;
             
-            // Увеличиваем скорость накопления ресурса
             updatedResources[resourceId].perSecond += boostAmount;
             updatedResources[resourceId].production += boostAmount;
-            
-            console.log(`Исследование "${upgrade.name}" даёт +${boost * 100}% к скорости накопления ${resourceId}: +${boostAmount.toFixed(2)}/сек`);
           }
         }
       });
     }
   });
   
-  // Обновляем значения ресурсов с учетом времени
+  // Обновляем значения ресурсов
   updatedResources = updateResourceValues(updatedResources, deltaTime);
   
-  // Добавляем логирование для отладки состояния помощников
+  // Логирование для отладки
   if (hasActiveHelpers(state.referralHelpers)) {
     const activeHelpers = state.referralHelpers.filter(h => h.status === 'accepted');
     console.log(`Активные помощники (${activeHelpers.length}):`);
@@ -256,9 +240,6 @@ export const processResourceUpdate = async (state: GameState): Promise<GameState
       const buildingName = state.buildings[helper.buildingId]?.name || helper.buildingId;
       console.log(`- ${helper.helperId} помогает со зданием "${buildingName}"`);
     });
-  } else if (currentUserId) {
-    // Если в локальном состоянии нет помощников, проверяем их наличие в БД
-    console.log(`В локальном состоянии нет активных помощников. Пользователь ID: ${currentUserId}`);
   }
   
   return {
@@ -269,14 +250,14 @@ export const processResourceUpdate = async (state: GameState): Promise<GameState
   };
 };
 
-// Функция для прямой проверки статуса помощника в базе данных
+// Функция для проверки статуса помощника в базе данных
 async function checkHelperStatusInDB(userId: string): Promise<number> {
   if (!userId) return 0;
   
   try {
     console.log(`Проверка статуса помощника напрямую в БД для ${userId}...`);
     
-    // Проверка соединения с Supabase перед запросом
+    // Проверка соединения с Supabase
     const { data: connectionCheck, error: connectionError } = await supabase
       .from('referral_data')
       .select('user_id')
@@ -287,7 +268,7 @@ async function checkHelperStatusInDB(userId: string): Promise<number> {
       return 0;
     }
     
-    // Запрашиваем данные о помощниках напрямую из таблицы
+    // Запрос данных о помощниках
     const { data, error } = await supabase
       .from('referral_helpers')
       .select('building_id, status')
@@ -301,7 +282,6 @@ async function checkHelperStatusInDB(userId: string): Promise<number> {
     
     if (data && data.length > 0) {
       console.log(`В БД найдено ${data.length} записей, где ${userId} является активным помощником:`, data);
-      // Возвращаем количество зданий, на которых пользователь является помощником
       return data.length;
     } else {
       console.log(`В БД не найдено записей, где ${userId} является активным помощником`);
