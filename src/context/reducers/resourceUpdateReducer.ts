@@ -2,6 +2,7 @@
 import { GameState } from '../types';
 import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
 import { hasActiveHelpers, syncHelperStatusWithDB } from '@/utils/referralHelperUtils';
+import { getUserIdentifier } from '@/api/userIdentification';
 
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
@@ -28,21 +29,29 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Проверяем, является ли текущий пользователь помощником для других игроков
   // и учитываем бонус в 10% за каждое здание, на котором он помогает
-  const currentUserId = state.referralCode ? await getUserIdentifier() : null; // Используем user_id вместо referralCode
+  let currentUserId = state.referralCode ? null : null; // Временное значение, будет заменено позже
   let referralHelperBonus = 0;
   
-  if (currentUserId) {
-    const buildingsAsHelper = state.referralHelpers.filter(h => 
-      h.helperId === currentUserId && h.status === 'accepted'
-    ).length;
-    
-    // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
-    referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
-    
-    if (buildingsAsHelper > 0) {
-      console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
-    }
-  }
+  // Отложенная проверка через Promise
+  getUserIdentifier()
+    .then(userId => {
+      currentUserId = userId;
+      
+      // Если currentUserId теперь известен, вычисляем бонус
+      if (currentUserId) {
+        const buildingsAsHelper = state.referralHelpers.filter(h => 
+          h.helperId === currentUserId && h.status === 'accepted'
+        ).length;
+        
+        // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
+        referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
+        
+        if (buildingsAsHelper > 0) {
+          console.log(`Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
+        }
+      }
+    })
+    .catch(err => console.error('Ошибка при получении идентификатора пользователя:', err));
   
   // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
   let updatedResources = calculateResourceProduction(
@@ -50,7 +59,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     state.buildings, 
     state.referralHelpers,
     state.referrals,
-    currentUserId, // Передаем user_id вместо referralCode
+    state.referralCode, // Временно используем referralCode вместо user_id
     referralHelperBonus // Передаем бонус для реферала-помощника
   );
   
@@ -117,6 +126,3 @@ export const processResourceUpdate = (state: GameState): GameState => {
     gameTime: state.gameTime + deltaTime
   };
 };
-
-// Импортируем функцию getUserIdentifier
-import { getUserIdentifier } from '@/api/userIdentification';
