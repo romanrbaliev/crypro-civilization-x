@@ -129,21 +129,22 @@ export const getHelperProductionBoost = (
   helperId: string,
   referralHelpers: ReferralHelper[]
 ): number => {
-  // ИСПРАВЛЕНИЕ: Используем проверку на userId вместо referralCode
-  // Проверяем, есть ли userId в localStorage
-  const userId = localStorage.getItem('userId');
+  // ВАЖНО: helperId должен быть userId для корректной проверки
+  console.log(`Проверка бонуса помощника для пользователя: ${helperId}`);
+  console.log(`Всего помощников: ${referralHelpers.length}`);
   
-  // Если userId совпадает с helperId, используем его, иначе используем helperId напрямую
-  const userIdToCheck = (userId && userId === helperId) ? userId : helperId;
+  // Логируем все здания, на которых пользователь является помощником
+  const userHelpers = referralHelpers.filter(
+    helper => helper.helperId === helperId && helper.status === 'accepted'
+  );
   
-  // Считаем количество зданий, где пользователь помогает
-  const acceptedBuildingsCount = referralHelpers.filter(
-    helper => helper.helperId === userIdToCheck && helper.status === 'accepted'
-  ).length;
+  console.log(`Пользователь ${helperId} является помощником на ${userHelpers.length} зданиях:`, 
+    userHelpers.map(h => ({ buildingId: h.buildingId, status: h.status }))
+  );
   
-  // НОВАЯ ЛОГИКА: Каждое здание, где реферал является помощником, дает ему бонус 10%
-  const boost = acceptedBuildingsCount * 0.1;
-  console.log(`Бонус для помощника ${userIdToCheck}: ${boost * 100}% (помогает в ${acceptedBuildingsCount} зданиях)`);
+  // Каждое здание, где реферал является помощником, дает ему бонус 10%
+  const boost = userHelpers.length * 0.1;
+  console.log(`Итоговый бонус для помощника ${helperId}: ${boost * 100}% (помогает в ${userHelpers.length} зданиях)`);
   return boost;
 };
 

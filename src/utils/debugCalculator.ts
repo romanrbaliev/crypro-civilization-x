@@ -87,7 +87,7 @@ export const calculateKnowledgeProduction = (state: GameState): KnowledgeProduct
     const referralBonus = activeReferrals.length * 0.05; // 5% за каждого активного реферала
     const referralBonusAmount = totalBaseProduction * referralBonus;
 
-    // Шаг 3: Определяем бонусы от помощников
+    // Шаг 3: Определяем бонусы от помощников для реферрера
     const helperBonuses: Record<string, HelperBonusDetail> = {};
     let totalHelperBonus = 0;
 
@@ -107,9 +107,20 @@ export const calculateKnowledgeProduction = (state: GameState): KnowledgeProduct
       }
     });
 
-    // Шаг 4: Определяем бонус для реферала-помощника (если текущий пользователь является помощником)
+    // Шаг 4: Определяем бонус для реферала-помощника
+    // ВАЖНО: Используем userId, а не referralCode, чтобы корректно проверить статус помощника
     const helperProductionBoost = userId ? getHelperProductionBoost(userId, state.referralHelpers) : 0;
     const helperProductionBonusAmount = totalBaseProduction * helperProductionBoost;
+
+    // Выводим детальную информацию для отладки
+    console.log(`Расчет бонуса для помощника:`, {
+      userId,
+      referralCode: state.referralCode,
+      helpersCount: state.referralHelpers.length,
+      userHelpers: state.referralHelpers.filter(h => h.helperId === userId && h.status === 'accepted'),
+      boost: helperProductionBoost,
+      amount: helperProductionBonusAmount
+    });
 
     // Шаг 5: Определяем бонусы от исследований
     const upgradeEffects: Record<string, UpgradeEffect> = {};
@@ -163,7 +174,12 @@ export const calculateKnowledgeProduction = (state: GameState): KnowledgeProduct
       calculatedProduction,
       displayedProduction,
       discrepancy: hasDiscrepancy ? discrepancy : 0,
-      hasDiscrepancy
+      hasDiscrepancy,
+      details: {
+        userId: userId,
+        activeReferrals: activeReferrals.map(r => r.id),
+        userHelpers: state.referralHelpers.filter(h => h.helperId === userId && h.status === 'accepted').map(h => h.buildingId)
+      }
     };
   } catch (error) {
     console.error("Ошибка при расчете производства знаний:", error);
