@@ -1,6 +1,7 @@
 
 import { useContext } from 'react';
 import { GameContext } from '../GameContext';
+import { ReferralHelper } from '../types';
 
 export const useGame = () => {
   const context = useContext(GameContext);
@@ -14,7 +15,7 @@ export const useGame = () => {
   };
   
   // Добавим функцию для обновления помощников из базы данных
-  const updateHelpers = (updatedHelpers) => {
+  const updateHelpers = (updatedHelpers: ReferralHelper[]) => {
     context.dispatch({ 
       type: 'UPDATE_HELPERS', 
       payload: { updatedHelpers } 
