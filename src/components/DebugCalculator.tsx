@@ -135,7 +135,7 @@ const DebugCalculator = () => {
         <DialogHeader>
           <DialogTitle className="text-center">Детальный расчет накопления знаний</DialogTitle>
           <DialogDescription className="text-center">
-            Пошаговый анализ скорости накопления знаний
+            Пошаговый анализ скорости накопления знаний с учетом обновленной логики бонусов (5% для реферрера)
           </DialogDescription>
         </DialogHeader>
 
@@ -146,6 +146,11 @@ const DebugCalculator = () => {
               <p className="text-xs text-gray-600">
                 Значение в интерфейсе: {state.resources.knowledge?.perSecond ? formatNumber(state.resources.knowledge.perSecond) : '0'}/сек
               </p>
+              {Math.abs(calculationResult.total - (state.resources.knowledge?.perSecond || 0)) > 0.01 && (
+                <p className="text-xs text-red-600 font-semibold mt-1">
+                  Обнаружено расхождение! Разница: {Math.abs(calculationResult.total - (state.resources.knowledge?.perSecond || 0)).toFixed(2)}/сек
+                </p>
+              )}
             </div>
             
             <Button 

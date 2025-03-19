@@ -86,8 +86,8 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
       totalProduction += referralEffect;
     }
     
-    // Шаг 4: Бонусы от помощников
-    steps.push(`Шаг 4: Расчет бонуса от помощников:`);
+    // Шаг 4: Бонусы от помощников - ОБНОВЛЕНО по новой логике (5% для реферрера)
+    steps.push(`Шаг 4: Расчет бонуса от помощников (НОВАЯ ЛОГИКА - 5% за каждого):`);
     
     let helperBonusTotal = 0;
     
@@ -99,12 +99,13 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
       steps.push(`- Проверка здания "${building.name}" (ID: ${building.id}):`);
       
       if (helpers.length > 0) {
-        const helperBonus = helpers.length * 0.1; // 10% за каждого
+        // ОБНОВЛЕННАЯ ЛОГИКА: Теперь каждый помощник дает 5% бонуса для реферрера
+        const helperBonus = helpers.length * 0.05; // 5% за каждого
         const helperEffect = building.totalProduction * helperBonus;
         
         helperBonusTotal += helperEffect;
         
-        steps.push(`  ✅ Найдено ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству`);
+        steps.push(`  ✅ Найдено ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству (по 5% за каждого)`);
         steps.push(`  ✅ Эффект: ${building.totalProduction}/сек * ${(helperBonus * 100).toFixed(0)}% = +${helperEffect.toFixed(2)}/сек`);
         
         // Выводим подробно о каждом помощнике
@@ -137,7 +138,7 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
         });
       }
     } else {
-      steps.push(`- Общий бонус от помощников: +${helperBonusTotal.toFixed(2)}/сек`);
+      steps.push(`- Общий бонус от помощников: +${helperBonusTotal.toFixed(2)}/сек (5% за каждого помощника)`);
       totalProduction += helperBonusTotal;
     }
     
@@ -196,7 +197,7 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     }
     
     if (helperBonusTotal > 0) {
-      steps.push(`- Бонус от помощников: +${helperBonusTotal.toFixed(2)}/сек`);
+      steps.push(`- Бонус от помощников (НОВАЯ ЛОГИКА - 5% за каждого): +${helperBonusTotal.toFixed(2)}/сек`);
     }
     
     if (knowledgeUpgradeMultiplier > 0) {
