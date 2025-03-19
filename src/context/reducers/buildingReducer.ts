@@ -118,6 +118,14 @@ export const processPurchaseBuilding = (
       console.log("Разблокировано исследование 'Основы блокчейна' (blockchain_basics)");
     }
     
+    if (upgrades.blockchainBasics) {
+      upgrades.blockchainBasics = {
+        ...upgrades.blockchainBasics,
+        unlocked: true
+      };
+      console.log("Разблокировано исследование 'Основы блокчейна' (blockchainBasics)");
+    }
+    
     newState = {
       ...newState,
       upgrades: upgrades
