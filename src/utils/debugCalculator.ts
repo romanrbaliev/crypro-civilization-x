@@ -1,288 +1,178 @@
+import { helperStatusCache } from './referralHelperUtils';
 
-import { GameState, Resource, Building, Upgrade } from '@/context/types';
-import { formatNumber } from './helpers';
-import { getActiveBuildingHelpers, getHelperStatusSummary, getReferralAssignedBuildingId } from './referralHelperUtils';
+export function formatNumber(num: number, digits: number = 2): string {
+  const lookup = [
+    { value: 1, symbol: "" },
+    { value: 1e3, symbol: "k" },
+    { value: 1e6, symbol: "M" },
+    { value: 1e9, symbol: "G" },
+    { value: 1e12, symbol: "T" },
+    { value: 1e15, symbol: "P" },
+    { value: 1e18, symbol: "E" }
+  ];
+  const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
+  var item = lookup.slice().reverse().find(function(item) {
+    return num >= item.value;
+  });
+  return item ? (num / item.value).toFixed(digits).replace(rx, "$1") + item.symbol : "0";
+}
 
-/**
- * Детальный расчет производства знаний с пошаговой информацией
- */
-export const debugKnowledgeProduction = (state: GameState): { steps: string[], total: number } => {
+// Обновленная функция для детального анализа производства знаний
+export async function debugKnowledgeProduction(state: any): Promise<{ steps: string[], finalValue: number }> {
   const steps: string[] = [];
-  let totalProduction = 0;
+  let baseValue = 0;
   
   try {
-    steps.push(`Анализ скорости накопления знаний`);
+    // Шаг 1: Базовое производство от зданий
+    steps.push('1. Базовое производство от зданий:');
     
-    // Шаг 1: Проверяем существование ресурса "Знания"
-    const knowledgeResource = state.resources['knowledge'];
-    if (!knowledgeResource) {
-      steps.push(`Ошибка: Ресурс 'knowledge' не найден в состоянии игры`);
-      return { steps, total: 0 };
-    }
+    const buildings = state.buildings;
+    let totalBuildingProduction = 0;
     
-    steps.push(`Шаг 1: Ресурс "Знания" существует. Текущее значение: ${formatNumber(knowledgeResource.value)}/${knowledgeResource.max !== Infinity ? formatNumber(knowledgeResource.max) : '∞'}`);
+    Object.values(buildings).forEach((building: any) => {
+      if (building.count > 0 && building.production && building.production.knowledge) {
+        const buildingContribution = building.count * building.production.knowledge;
+        totalBuildingProduction += buildingContribution;
+        steps.push(`- ${building.name} (${building.count} шт.): ${buildingContribution.toFixed(2)}/сек`);
+      }
+    });
     
-    // Шаг 2: Базовое производство от зданий
-    steps.push(`Шаг 2: Расчет базового производства от зданий:`);
+    steps.push(`Всего от зданий: ${totalBuildingProduction.toFixed(2)}/сек`);
+    baseValue = totalBuildingProduction;
     
-    let buildingProduction = 0;
-    let hasPracticeBuilding = false;
-    let buildingProductionDetails = [];
+    // Шаг 2: Бонусы от исследований
+    steps.push('\n2. Бонусы от исследований:');
     
-    Object.values(state.buildings).forEach(building => {
-      const { id, name, count, production = {} } = building;
-      
-      // Проверяем, производит ли здание знания
-      if (count > 0 && production.knowledge) {
-        const baseAmount = Number(production.knowledge) * count;
-        buildingProduction += baseAmount;
+    const upgrades = state.upgrades;
+    let totalUpgradeBoost = 0;
+    
+    Object.values(upgrades).forEach((upgrade: any) => {
+      if (upgrade.purchased) {
+        const effects = upgrade.effects || upgrade.effect || {};
         
-        buildingProductionDetails.push({
-          id,
-          name,
-          count,
-          baseProduction: Number(production.knowledge),
-          totalProduction: baseAmount
-        });
-        
-        steps.push(`- ${name} (${count} шт.): базовое производство ${Number(production.knowledge)}/сек * ${count} = ${baseAmount}/сек`);
-        
-        if (id === 'practice') {
-          hasPracticeBuilding = true;
+        if (effects.knowledgeBoost) {
+          const boost = Number(effects.knowledgeBoost);
+          const boostAmount = baseValue * boost;
+          totalUpgradeBoost += boostAmount;
+          steps.push(`- "${upgrade.name}" даёт +${(boost * 100).toFixed(0)}%: ${boostAmount.toFixed(2)}/сек`);
         }
       }
     });
     
-    if (buildingProduction === 0) {
-      steps.push(`- Нет зданий, производящих знания`);
-    }
-    
-    if (!hasPracticeBuilding) {
-      steps.push(`- Внимание: здание "Практика" не обнаружено или не производит знания`);
-    }
-    
-    steps.push(`Итого базовое производство от зданий: ${buildingProduction}/сек`);
-    totalProduction = buildingProduction;
+    steps.push(`Всего от исследований: +${totalUpgradeBoost.toFixed(2)}/сек`);
     
     // Шаг 3: Бонусы от рефералов
-    steps.push(`Шаг 3: Расчет бонуса от рефералов:`);
+    const referrals = state.referrals || [];
+    const activeReferrals = referrals.filter((ref: any) => 
+      ref.status === 'active' || ref.activated === true || ref.activated === 'true'
+    );
     
-    // Получаем общую сводку по статусам помощников
-    const helperSummary = getHelperStatusSummary(state.referralHelpers);
-    steps.push(`- Общая сводка по помощникам: ${helperSummary.accepted} активных, ${helperSummary.pending} ожидающих, ${helperSummary.rejected} отклоненных из ${helperSummary.total}`);
-    
-    const activeReferrals = state.referrals.filter(ref => 
-      (ref.status === 'active' || ref.activated === true || ref.activated === 'true'));
-    
-    const referralBonus = activeReferrals.length * 0.05; // 5% за каждого
-    
-    steps.push(`- Всего рефералов: ${state.referrals.length}`);
-    steps.push(`- Активных рефералов: ${activeReferrals.length}`);
-    steps.push(`- Бонус от рефералов: ${activeReferrals.length} * 5% = +${(referralBonus * 100).toFixed(0)}%`);
+    steps.push('\n3. Бонусы от рефералов:');
     
     if (activeReferrals.length > 0) {
-      const referralEffect = buildingProduction * referralBonus;
-      steps.push(`- Эффект бонуса: ${buildingProduction} * ${(referralBonus * 100).toFixed(0)}% = +${referralEffect.toFixed(2)}/сек`);
-      totalProduction += referralEffect;
+      const referralBonus = activeReferrals.length * 0.05; // 5% за каждого активного реферала
+      const referralBoostAmount = baseValue * referralBonus;
+      
+      steps.push(`- Активных рефералов: ${activeReferrals.length}, бонус: +${(referralBonus * 100).toFixed(0)}%`);
+      steps.push(`- Увеличение производства: +${referralBoostAmount.toFixed(2)}/сек`);
+      
+      totalUpgradeBoost += referralBoostAmount;
+    } else {
+      steps.push('- Нет активных рефералов (0% бонуса)');
     }
     
-    // Шаг 4: Бонусы от помощников для реферрера (5% за каждого)
-    steps.push(`Шаг 4: Расчет бонуса от помощников для реферрера (5% за каждого):`);
+    // Шаг 4: Бонусы от помощников для реферрера
+    steps.push('\n4. Бонусы от помощников для реферрера:');
     
-    let helperBonusTotal = 0;
+    const referralHelpers = state.referralHelpers || [];
+    const helperIds = new Set();
+    let totalHelperBonus = 0;
     
-    // Проходим по каждому зданию, производящему знания
-    buildingProductionDetails.forEach(building => {
-      // Находим помощников для этого здания с помощью унифицированной функции
-      const helpers = getActiveBuildingHelpers(building.id, state.referralHelpers);
-      
-      steps.push(`- Проверка здания "${building.name}" (ID: ${building.id}):`);
-      
-      if (helpers.length > 0) {
-        // ОБНОВЛЕННАЯ ЛОГИКА: Теперь каждый помощник дает 5% бонуса для реферрера
-        const helperBonus = helpers.length * 0.05; // 5% за каждого
-        const helperEffect = building.totalProduction * helperBonus;
-        
-        helperBonusTotal += helperEffect;
-        
-        steps.push(`  ✅ Найдено ${helpers.length} помощников = +${(helperBonus * 100).toFixed(0)}% к производству (по 5% за каждого)`);
-        steps.push(`  ✅ Эффект: ${building.totalProduction}/сек * ${(helperBonus * 100).toFixed(0)}% = +${helperEffect.toFixed(2)}/сек`);
-        
-        // Выводим подробно о каждом помощнике
-        helpers.forEach((helper, index) => {
-          steps.push(`    - Помощник #${index + 1}: ID=${helper.helperId}, статус=${helper.status}`);
-        });
-      } else {
-        steps.push(`  ❌ Помощников для этого здания не найдено`);
+    // Группируем помощников по зданиям
+    const helpersByBuilding: Record<string, any[]> = {};
+    
+    referralHelpers.forEach((helper: any) => {
+      if (helper.status === 'accepted') {
+        if (!helpersByBuilding[helper.buildingId]) {
+          helpersByBuilding[helper.buildingId] = [];
+        }
+        helpersByBuilding[helper.buildingId].push(helper);
+        helperIds.add(helper.helperId);
       }
     });
     
-    // Если нет помощников - показываем это явно
-    if (helperBonusTotal === 0) {
-      // Более подробно показываем отсутствие помощников
-      steps.push(`- Нет активных помощников на зданиях, производящих знания`);
+    // Для каждого здания с помощниками
+    Object.entries(helpersByBuilding).forEach(([buildingId, helpers]) => {
+      const building = buildings[buildingId];
       
-      // Перечисляем все здания с их ID для диагностики
-      steps.push(`- Список зданий, производящих знания:`);
-      buildingProductionDetails.forEach(b => {
-        steps.push(`  ${b.name} (ID: ${b.id})`);
-      });
-      
-      // Показываем всех доступных помощников
-      steps.push(`- Доступные помощники в системе (${state.referralHelpers.length}):`);
-      if (state.referralHelpers.length === 0) {
-        steps.push(`  Нет доступных помощников`);
-      } else {
-        state.referralHelpers.forEach(helper => {
-          steps.push(`  Помощник ID: ${helper.helperId}, для здания: ${helper.buildingId}, статус: ${helper.status}`);
-        });
+      if (building && building.resourceProduction && building.resourceProduction.knowledge) {
+        const buildingProduction = building.resourceProduction.knowledge;
+        const helperBonus = helpers.length * 0.05; // 5% за каждого помощника
+        const helperBoostAmount = buildingProduction * helperBonus;
+        
+        totalHelperBonus += helperBoostAmount;
+        steps.push(`- Здание "${building.name}" с ${helpers.length} помощниками: +${(helperBonus * 100).toFixed(0)}% к базовому производству ${buildingProduction.toFixed(2)}/сек = +${helperBoostAmount.toFixed(2)}/сек`);
       }
+    });
+    
+    if (Object.keys(helpersByBuilding).length === 0) {
+      steps.push('- Нет зданий с активными помощниками (0% бонуса)');
     } else {
-      steps.push(`- Общий бонус от помощников для реферрера: +${helperBonusTotal.toFixed(2)}/сек (5% за каждого помощника)`);
-      totalProduction += helperBonusTotal;
+      steps.push(`- Всего уникальных помощников: ${helperIds.size}`);
+      steps.push(`- Общий бонус от помощников: +${totalHelperBonus.toFixed(2)}/сек`);
     }
     
     // Шаг 5: Бонус для реферала-помощника (10% за каждое здание)
-    steps.push(`Шаг 5: Расчет бонуса для реферала-помощника (10% за каждое здание):`);
+    steps.push('\n5. Бонус для реферала-помощника:');
     
-    // Получаем ID текущего пользователя
-    // ИЗМЕНЕНО: теперь используем локальное хранилище или кэш для user_id вместо referralCode
     const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
-    
-    // Выводим ID пользователя для отладки
-    steps.push(`- Текущий пользователь ID: ${currentUserId || 'не определен'}`);
+    let helperBuildingsCount = 0;
     
     if (currentUserId) {
-      // Проверяем, является ли текущий пользователь помощником для кого-то
-      const buildingsAsHelper = state.referralHelpers.filter(h => 
+      // Получаем актуальное количество зданий из кеша или БД
+      helperBuildingsCount = await helperStatusCache.get(currentUserId);
+      
+      // Проверяем локальное состояние тоже для диагностики
+      const localHelperBuildings = referralHelpers.filter((h: any) => 
         h.helperId === currentUserId && h.status === 'accepted'
       );
       
-      // Выводим все записи о помощниках для полной диагностики
-      steps.push(`- Все записи о помощниках (${state.referralHelpers.length}):`);
-      state.referralHelpers.forEach((h, idx) => {
-        steps.push(`  Запись #${idx+1}: helperId=${h.helperId}, buildingId=${h.buildingId}, status=${h.status}`);
-      });
+      steps.push(`- Данные о помощнике из БД: ${helperBuildingsCount} зданий`);
+      steps.push(`- Данные о помощнике из локального состояния: ${localHelperBuildings.length} зданий`);
       
-      if (buildingsAsHelper.length > 0) {
-        steps.push(`- Текущий пользователь (${currentUserId}) является помощником для ${buildingsAsHelper.length} зданий:`);
+      if (helperBuildingsCount > 0) {
+        const helperBonus = helperBuildingsCount * 0.1; // 10% за каждое здание
+        const helperBoostAmount = baseValue * helperBonus;
         
-        let helperBonusForReferral = 0;
+        steps.push(`- Пользователь ${currentUserId} помогает на ${helperBuildingsCount} зданиях`);
+        steps.push(`- Бонус: +${(helperBonus * 100).toFixed(0)}% к базовому производству = +${helperBoostAmount.toFixed(2)}/сек`);
         
-        buildingsAsHelper.forEach((helperRecord, index) => {
-          steps.push(`  Здание #${index + 1}: ID=${helperRecord.buildingId}`);
-          
-          // НОВАЯ ЛОГИКА: Реферал получает 10% бонус за каждое здание, на котором он помогает
-          const perBuildingBonus = 0.1; // 10% за здание
-          const bonusFromBuilding = buildingProduction * perBuildingBonus;
-          helperBonusForReferral += bonusFromBuilding;
-          
-          steps.push(`  ✅ Бонус за здание: ${buildingProduction}/сек * 10% = +${bonusFromBuilding.toFixed(2)}/сек`);
-        });
-        
-        steps.push(`- Общий бонус для реферала-помощника: +${helperBonusForReferral.toFixed(2)}/сек (10% за каждое здание)`);
-        totalProduction += helperBonusForReferral;
+        totalUpgradeBoost += helperBoostAmount;
       } else {
         steps.push(`- Текущий пользователь (${currentUserId}) не является помощником ни для каких зданий`);
-        
-        // Добавляем явное логирование для поиска пользователя среди помощников
-        const helpersWithThisId = state.referralHelpers.filter(h => h.helperId === currentUserId);
-        if (helpersWithThisId.length > 0) {
-          steps.push(`  Найдены записи для этого пользователя, но они не в статусе 'accepted':`);
-          helpersWithThisId.forEach((h, idx) => {
-            steps.push(`  - Запись #${idx+1}: helperId=${h.helperId}, buildingId=${h.buildingId}, status=${h.status}`);
-          });
-        }
       }
     } else {
-      steps.push(`- Не удалось определить ID текущего пользователя для проверки статуса помощника`);
+      steps.push('- Не удалось определить ID пользователя');
     }
     
-    // Шаг 6: Бонусы от исследований
-    steps.push(`Шаг 6: Расчет бонусов от исследований:`);
+    // Шаг 6: Расчёт итогового значения
+    const finalValue = baseValue + totalUpgradeBoost + totalHelperBonus;
+    steps.push('\n6. Итоговое производство знаний:');
+    steps.push(`- Базовое производство: ${baseValue.toFixed(2)}/сек`);
+    steps.push(`- Бонусы от исследований и рефералов: +${totalUpgradeBoost.toFixed(2)}/сек`);
+    steps.push(`- Бонусы от помощников для реферрера: +${totalHelperBonus.toFixed(2)}/сек`);
+    steps.push(`- Итого: ${finalValue.toFixed(2)}/сек`);
     
-    let upgradeBonus = 0;
-    let upgradesFound = false;
-    let knowledgeUpgradeMultiplier = 0;
-    
-    Object.values(state.upgrades).forEach(upgrade => {
-      if (!upgrade.purchased) return;
-      
-      const effects = upgrade.effects || upgrade.effect || {};
-      
-      for (const [effectId, value] of Object.entries(effects)) {
-        // Проверяем эффекты, влияющие на скорость накопления знаний
-        if (effectId === 'knowledgeBoost' || effectId === 'knowledgeProduction') {
-          upgradesFound = true;
-          const boostValue = Number(value);
-          knowledgeUpgradeMultiplier += boostValue;
-          
-          steps.push(`- Исследование "${upgrade.name}": эффект "${effectId}" = +${(boostValue * 100).toFixed(0)}%`);
-        }
-      }
-    });
-    
-    if (!upgradesFound) {
-      steps.push(`- Нет исследований, влияющих на производство знаний`);
-      
-      // Показать список всех купленных исследований для диагностики
-      const purchasedUpgrades = Object.values(state.upgrades).filter(u => u.purchased);
-      steps.push(`- Купленные исследования (${purchasedUpgrades.length}):`);
-      if (purchasedUpgrades.length > 0) {
-        purchasedUpgrades.forEach(u => {
-          const effects = u.effects || u.effect || {};
-          steps.push(`  "${u.name}" (ID: ${u.id}) с эффектами: ${JSON.stringify(effects)}`);
-        });
-      } else {
-        steps.push(`  Нет купленных исследований`);
-      }
-    } else {
-      const upgradeEffect = buildingProduction * knowledgeUpgradeMultiplier;
-      steps.push(`- Общий бонус от исследований: +${(knowledgeUpgradeMultiplier * 100).toFixed(0)}%`);
-      steps.push(`- Эффект исследований: ${buildingProduction}/сек * ${(knowledgeUpgradeMultiplier * 100).toFixed(0)}% = +${upgradeEffect.toFixed(2)}/сек`);
-      totalProduction += upgradeEffect;
-    }
-    
-    // Итоговый расчет
-    steps.push(`Шаг 7: Итоговый расчет:`);
-    steps.push(`- Базовое производство от зданий: ${buildingProduction.toFixed(2)}/сек`);
-    
-    if (referralBonus > 0) {
-      const referralEffect = buildingProduction * referralBonus;
-      steps.push(`- Бонус от рефералов: +${referralEffect.toFixed(2)}/сек`);
-    }
-    
-    if (helperBonusTotal > 0) {
-      steps.push(`- Бонус от помощников для реферрера (5% за каждого): +${helperBonusTotal.toFixed(2)}/сек`);
-    }
-    
-    // Обновлено: используем user_id вместо referralCode
-    const currentUserIdForSummary = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
-    const buildingsAsHelper = currentUserIdForSummary ? state.referralHelpers.filter(h => 
-      h.helperId === currentUserIdForSummary && h.status === 'accepted'
-    ) : [];
-    
-    if (buildingsAsHelper.length > 0) {
-      const helperBonusForReferral = buildingProduction * buildingsAsHelper.length * 0.1;
-      steps.push(`- Бонус для реферала-помощника (10% за каждое здание, ${buildingsAsHelper.length} зданий): +${helperBonusForReferral.toFixed(2)}/сек`);
-    }
-    
-    if (knowledgeUpgradeMultiplier > 0) {
-      const upgradeEffect = buildingProduction * knowledgeUpgradeMultiplier;
-      steps.push(`- Бонус от исследований: +${upgradeEffect.toFixed(2)}/сек`);
-    }
-    
-    steps.push(`Итоговая скорость накопления знаний: ${totalProduction.toFixed(2)}/сек`);
-    steps.push(`Показатель в интерфейсе: ${knowledgeResource.perSecond ? knowledgeResource.perSecond.toFixed(2) : '0'}/сек`);
-    
-    if (Math.abs(totalProduction - (knowledgeResource.perSecond || 0)) > 0.01) {
-      steps.push(`Обнаружено расхождение между расчетным значением и значением в интерфейсе!`);
-    }
-    
+    return { 
+      steps, 
+      finalValue 
+    };
   } catch (error) {
-    console.error('Ошибка при расчете скорости накопления знаний:', error);
-    steps.push(`Произошла ошибка при расчете: ${error instanceof Error ? error.message : String(error)}`);
+    steps.push(`\nОшибка при расчёте: ${error}`);
+    console.error('Ошибка при расчёте производства знаний:', error);
+    return { 
+      steps, 
+      finalValue: baseValue 
+    };
   }
-  
-  return { steps, total: totalProduction };
-};
+}

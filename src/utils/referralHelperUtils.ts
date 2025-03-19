@@ -1,4 +1,3 @@
-
 import { ReferralHelper } from "@/context/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserIdentifier } from "@/api/userIdentification";
@@ -372,7 +371,7 @@ export const getHelperStatusSummary = (
   const pending = referralHelpers.filter(h => h.status === 'pending').length;
   const rejected = referralHelpers.filter(h => h.status === 'rejected').length;
   
-  // Подсчитываем количество помощников по зданиям
+  // П��дсчитываем количество помощников по зданиям
   const buildings: {[key: string]: number} = {};
   referralHelpers
     .filter(h => h.status === 'accepted')
@@ -485,5 +484,91 @@ export const syncHelperStatusWithDB = async (
   } catch (error) {
     console.error('Ошибка при синхронизации помощников с базой данных:', error);
     return null;
+  }
+};
+
+/**
+ * Функция для проверки статуса помощника в базе данных
+ * @param userId ID пользователя
+ * @returns Promise с количеством зданий, на которых пользователь является помощником
+ */
+export const getHelperBuildingsFromDB = async (userId: string): Promise<number> => {
+  if (!userId) return 0;
+  
+  try {
+    console.log(`Проверка статуса помощника в БД для ${userId}...`);
+    
+    // Запрашиваем данные о помощниках напрямую из таблицы
+    const { data, error } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('building_id, status')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted');
+    
+    if (error) {
+      console.error('Ошибка при проверке статуса помощника в БД:', error);
+      return 0;
+    }
+    
+    if (data && data.length > 0) {
+      console.log(`В БД найдено ${data.length} записей, где ${userId} является активным помощником:`, data);
+      return data.length;
+    } else {
+      console.log(`В БД не найдено записей, где ${userId} является активным помощником`);
+      return 0;
+    }
+  } catch (error) {
+    console.error('Неожиданная ошибка при проверке статуса помощника в БД:', error);
+    return 0;
+  }
+};
+
+/**
+ * Кеш для хранения данных о помощниках
+ */
+export const helperStatusCache = {
+  userId: '',
+  helperCount: 0,
+  lastUpdated: 0,
+  updating: false,
+  
+  // Обновление данных в кеше
+  async update(userId: string, forceUpdate = false): Promise<number> {
+    // Если данные уже в процессе обновления, возвращаем текущее значение
+    if (this.updating && !forceUpdate) return this.helperCount;
+    
+    // Если кеш актуален (обновлялся менее 30 секунд назад) и userId совпадает, возвращаем кешированное значение
+    const now = Date.now();
+    if (!forceUpdate && this.userId === userId && now - this.lastUpdated < 30000) {
+      return this.helperCount;
+    }
+    
+    this.updating = true;
+    try {
+      const count = await getHelperBuildingsFromDB(userId);
+      this.userId = userId;
+      this.helperCount = count;
+      this.lastUpdated = now;
+      
+      // Отправляем событие об обновлении статуса помощника
+      if (typeof window !== 'undefined' && window.gameEventBus) {
+        const event = new CustomEvent('helper-status-updated', { 
+          detail: { userId, helperCount: count }
+        });
+        window.gameEventBus.dispatchEvent(event);
+      }
+      
+      return count;
+    } finally {
+      this.updating = false;
+    }
+  },
+  
+  // Получение данных из кеша или обновление, если необходимо
+  async get(userId: string, forceUpdate = false): Promise<number> {
+    if (forceUpdate || this.userId !== userId || Date.now() - this.lastUpdated > 30000) {
+      return this.update(userId, forceUpdate);
+    }
+    return this.helperCount;
   }
 };
