@@ -27,7 +27,7 @@ interface ReferralCardProps {
   referral: {
     id: string;
     username: string;
-    activated: boolean;
+    activated: boolean | string;
     hired?: boolean;
     joinedAt: number;
     assignedBuildingId?: string;
@@ -49,7 +49,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
     referral.assignedBuildingId || null
   );
   
-  // Определение статуса помощника
+  // Определение статуса помощника с правильной проверкой типа
   const directDbStatus = typeof referral.activated === 'boolean' ? referral.activated : false;
   const isActivated = directDbStatus || 
     (typeof referral.activated === 'string' && referral.activated.toLowerCase() === 'true');
@@ -158,7 +158,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
             <UserCircle className="w-4 h-4" /> 
             {referral.username}
           </CardTitle>
-          <Badge variant={isActivated ? "success" : "outline"}>
+          <Badge variant={isActivated ? "secondary" : "outline"}>
             {isActivated ? "Активирован" : "Не активирован"}
           </Badge>
         </div>
