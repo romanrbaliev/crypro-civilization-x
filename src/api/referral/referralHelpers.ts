@@ -4,6 +4,9 @@ import { checkSupabaseConnection } from '../connectionUtils';
 import { toast } from '@/hooks/use-toast';
 import { REFERRAL_HELPERS_TABLE } from '../apiTypes';
 
+// Кэш для отслеживания показанных уведомлений
+const notificationsCache = new Set<string>();
+
 /**
  * Обновляет статус запроса помощника в базе данных
  * @param helperId ID помощника
@@ -107,11 +110,16 @@ export const updateHelperRequestStatus = async (
         }
       }, 500);
       
-      toast({
-        title: "Статус обновлен",
-        description: `Помощник успешно назначен в здание. Теперь производительность здания увеличена на 10%!`,
-        variant: "success"
-      });
+      // Используем уникальный ключ для уведомления, чтобы избежать дублей
+      const notificationKey = `helper-assigned-${helperId}-${buildingId}`;
+      if (!notificationsCache.has(notificationKey)) {
+        notificationsCache.add(notificationKey);
+        toast({
+          title: "Статус обновлен",
+          description: `Помощник успешно назначен в здание. Теперь производительность здания увеличена на 10%!`,
+          variant: "success"
+        });
+      }
     } else if (status === 'rejected') {
       toast({
         title: "Запрос отклонен",
@@ -163,11 +171,17 @@ export const getHelperRequests = async (userId: string) => {
     // Отображаем уведомление о статусе помощника, если есть принятые запросы
     const acceptedRequests = data?.filter(req => req.status === 'accepted') || [];
     if (acceptedRequests.length > 0) {
-      toast({
-        title: "Вы являетесь помощником",
-        description: `Вы помогаете в ${acceptedRequests.length} зданиях, увеличивая их производительность на 10%`,
-        variant: "info"
-      });
+      // Используем уникальный ключ для уведомления, чтобы избежать дублей
+      const notificationKey = `helper-status-${userId}-${acceptedRequests.length}`;
+      if (!notificationsCache.has(notificationKey)) {
+        notificationsCache.add(notificationKey);
+        
+        toast({
+          title: "Вы являетесь помощником",
+          description: `Вы помогаете в ${acceptedRequests.length} зданиях, увеличивая их производительность на 10%`,
+          variant: "info"
+        });
+      }
       
       // Отправляем деталей о зданиях, где пользователь является помощником
       setTimeout(() => {
@@ -243,11 +257,17 @@ export const getEmployerHelperBuildings = async (userId: string) => {
     
     // Если есть здания с помощниками, отображаем уведомление
     if (helperBuildings.length > 0) {
-      toast({
-        title: "Активные помощники",
-        description: `У вас ${helperBuildings.length} ${helperBuildings.length === 1 ? 'здание' : 'зданий'} с активными помощниками`,
-        variant: "info"
-      });
+      // Используем уникальный ключ для уведомления, чтобы избежать дублей
+      const notificationKey = `employer-buildings-${userId}-${helperBuildings.length}`;
+      if (!notificationsCache.has(notificationKey)) {
+        notificationsCache.add(notificationKey);
+        
+        toast({
+          title: "Активные помощники",
+          description: `У вас ${helperBuildings.length} ${helperBuildings.length === 1 ? 'здание' : 'зданий'} с активными помощниками`,
+          variant: "info"
+        });
+      }
       
       // Отправляем события для обновления UI
       setTimeout(() => {
@@ -268,4 +288,9 @@ export const getEmployerHelperBuildings = async (userId: string) => {
     console.error('❌ Неожиданная ошибка при получении списка зданий с помощниками:', error);
     return { success: false, helperBuildings: [] };
   }
+};
+
+// Экспортируем функцию для очистки кэша уведомлений (для тестирования)
+export const clearNotificationsCache = () => {
+  notificationsCache.clear();
 };

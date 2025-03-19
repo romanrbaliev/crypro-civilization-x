@@ -8,7 +8,7 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { getUserIdentifier } from "@/api/userIdentification"
 import { supabase } from "@/integrations/supabase/client"
 import { checkSupabaseConnection } from "@/api/connectionUtils"
@@ -16,6 +16,8 @@ import { getHelperRequests, getEmployerHelperBuildings } from "@/api/referral/re
 
 export function Toaster() {
   const { toasts } = useToast()
+  // Добавляем состояние для отслеживания показанных уведомлений
+  const notificationsShownRef = useRef<Set<string>>(new Set());
   
   useEffect(() => {
     const storeUserId = async () => {
@@ -72,12 +74,19 @@ export function Toaster() {
                   window.dispatchEvent(refreshEvent);
                 }, 1000);
                 
-                // Уведомление пользователя
-                useToast().toast({
-                  title: "Вы являетесь помощником",
-                  description: `Вы помогаете в ${helperData.length} зданиях, увеличивая их производительность на 10% каждое`,
-                  variant: "info"
-                });
+                // Проверяем, не показывали ли мы уже это уведомление
+                const notificationKey = `helper-buildings-${helperData.length}`;
+                if (!notificationsShownRef.current.has(notificationKey)) {
+                  // Добавляем это уведомление в показанные
+                  notificationsShownRef.current.add(notificationKey);
+                  
+                  // Уведомление пользователя
+                  useToast().toast({
+                    title: "Вы являетесь помощником",
+                    description: `Вы помогаете в ${helperData.length} зданиях, увеличивая их производительность на 10% каждое`,
+                    variant: "info"
+                  });
+                }
               } else {
                 console.log(`Пользователь ${userId} не является помощником по данным БД`);
               }
@@ -261,18 +270,25 @@ export function Toaster() {
     
     window.addEventListener('referral-activated', handleReferralActivated);
     
-    // Обработчик событий обновления статуса найма реферала
+    // Добавляем отслеживание показанных уведомлений для предотвращения повторов
     const handleHelperStatusUpdated = (event) => {
       const { buildingId, status } = event.detail;
       console.log(`Получено событие обновления статуса помощника для здания ${buildingId}: ${status}`);
       
       if (status === 'accepted') {
-        // Уведомление для помощника
-        useToast().toast({
-          title: "Вы назначены помощником",
-          description: `Вы назначены помощником в здание. Теперь вы приносите +10% к производительности!`,
-          variant: "success"
-        });
+        // Проверяем, не показывали ли мы уже это уведомление
+        const notificationKey = `helper-status-${buildingId}`;
+        if (!notificationsShownRef.current.has(notificationKey)) {
+          // Добавляем это уведомление в показанные
+          notificationsShownRef.current.add(notificationKey);
+          
+          // Уведомление для помощника
+          useToast().toast({
+            title: "Вы назначены помощником",
+            description: `Вы назначены помощником в здание. Теперь вы приносите +10% к производительности!`,
+            variant: "success"
+          });
+        }
         
         // Принудительно обновляем ресурсы
         setTimeout(() => {
@@ -305,8 +321,20 @@ export function Toaster() {
       const { helperBuildings } = event.detail;
       console.log(`Получены детали о ${helperBuildings.length} зданиях с помощниками у работодателя:`, helperBuildings);
       
-      // Принудительно обновляем ресурсы
-      if (helperBuildings.length > 0) {
+      // Проверяем, не показывали ли мы уже это уведомление
+      const notificationKey = `employer-buildings-${helperBuildings.length}`;
+      if (helperBuildings.length > 0 && !notificationsShownRef.current.has(notificationKey)) {
+        // Добавляем это уведомление в показанные
+        notificationsShownRef.current.add(notificationKey);
+        
+        // Показываем уведомление только один раз
+        useToast().toast({
+          title: "Активные помощники",
+          description: `У вас ${helperBuildings.length} ${helperBuildings.length === 1 ? 'здание' : 'зданий'} с активными помощниками`,
+          variant: "info"
+        });
+        
+        // Принудительно обновляем ресурсы
         setTimeout(() => {
           const forceUpdateEvent = new CustomEvent('force-resource-update');
           window.dispatchEvent(forceUpdateEvent);
