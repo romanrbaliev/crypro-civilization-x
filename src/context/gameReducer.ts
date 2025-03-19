@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -23,7 +24,7 @@ import {
   processPrestige,
   processResetGame,
   processRestartComputers
-} from './reducers/gameStateReducer';
+} from './gameStateReducer'; // Исправлен путь импорта
 import { generateReferralCode } from '@/utils/helpers';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
