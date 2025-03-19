@@ -1,4 +1,3 @@
-
 export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };
@@ -157,4 +156,5 @@ export type GameAction =
   | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
-  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; activated: boolean } };
+  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; activated: boolean } }
+  | { type: "FORCE_RESOURCE_UPDATE" };

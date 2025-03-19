@@ -36,7 +36,6 @@ import {
 
 // Обработка реферальной системы
 const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
-  // Сохраняем реферальный код в Supabase
   saveReferralInfo(payload.code, state.referredBy).catch(err => 
     console.error("Ошибка при сохранении реферального кода:", err)
   );
@@ -48,13 +47,11 @@ const processSetReferralCode = (state: GameState, payload: { code: string }): Ga
 };
 
 const processAddReferral = (state: GameState, payload: { referral: any }): GameState => {
-  // Проверяем, не существует ли уже такой реферал
   const existingReferral = state.referrals.find(ref => ref.id === payload.referral.id);
   if (existingReferral) {
     return state;
   }
   
-  // Нормализуем значение поля activated при добавлении
   const normalizedReferral = {
     ...payload.referral,
     activated: typeof payload.referral.activated === 'boolean' 
@@ -73,19 +70,16 @@ const processAddReferral = (state: GameState, payload: { referral: any }): GameS
 const processActivateReferral = (state: GameState, payload: { referralId: string }): GameState => {
   console.log(`Активируем реферала ${payload.referralId}`);
   
-  // Активируем реферала в Supabase
   activateReferral(payload.referralId).catch(err => 
     console.error("Ошибка при активации реферала:", err)
   );
   
-  // Проверяем, существует ли реферал
   const existingReferral = state.referrals.find(ref => ref.id === payload.referralId);
   if (!existingReferral) {
     console.warn(`Реферал ${payload.referralId} не найден в списке рефералов`);
     return state;
   }
   
-  // Если реферал уже активирован, ничего не делаем
   if (existingReferral.activated === true) {
     console.log(`Реферал ${payload.referralId} уже активирован`);
     return state;
@@ -93,14 +87,12 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
   
   console.log(`Обновляем статус активации реферала ${payload.referralId} на true`);
   
-  // Создаем новый список рефералов с обновленным статусом
   const updatedReferrals = state.referrals.map(ref => 
     ref.id === payload.referralId ? { ...ref, activated: true } : ref
   );
   
   console.log('Обновленный список рефералов:', updatedReferrals);
   
-  // Отправляем событие активации, чтобы обновить интерфейс
   setTimeout(() => {
     try {
       const updateEvent = new CustomEvent('referral-activated', {
@@ -113,22 +105,19 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
     }
   }, 0);
   
-  // Возвращаем обновленное состояние
   return {
     ...state,
     referrals: updatedReferrals
   };
 };
 
-// Новые обработчики для системы помощников
+// УЛУЧШЕННЫЕ обработчики для системы помощников
 const processHireReferralHelper = (state: GameState, payload: { referralId: string; buildingId: string }): GameState => {
   const { referralId, buildingId } = payload;
   
-  // Находим реферала
   const referral = state.referrals.find(ref => ref.id === referralId);
   if (!referral) return state;
   
-  // Проверяем, существует ли уже такое назначение
   const existingHelper = state.referralHelpers.find(
     h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'pending'
   );
@@ -139,19 +128,15 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
     return state;
   }
   
-  // Также проверяем, есть ли уже принятый помощник для этого реферала
   const existingActiveHelper = state.referralHelpers.find(
     h => h.helperId === referralId && h.status === 'accepted'
   );
   
   if (existingActiveHelper) {
-    // Если помощник уже работает на каком-то здании, сначала увольняем его
     const updatedHelpers = state.referralHelpers.filter(h => h.id !== existingActiveHelper.id);
     
-    // Генерируем уникальный ID для нового помощника
     const helperId = `helper_${generateId()}`;
     
-    // Создаем запись помощника с явным указанием типа для status
     const newHelper: ReferralHelper = {
       id: helperId,
       buildingId,
@@ -160,22 +145,34 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
       createdAt: Date.now()
     };
     
-    // Добавляем в список помощников
     const updatedState = {
       ...state,
       referralHelpers: [...updatedHelpers, newHelper]
     };
     
-    // Отправляем уведомление
     safeDispatchGameEvent(`Отправлено предложение о работе ${referral.username}`, "info");
+    
+    setTimeout(() => {
+      try {
+        const confirmEvent = new CustomEvent('debug-helper-step', {
+          detail: { 
+            step: 'request-sent', 
+            message: `Предложение о работе на здание '${state.buildings[buildingId]?.name || buildingId}' отправлено реферралу ${referral.username}`,
+            referralId,
+            buildingId
+          }
+        });
+        window.dispatchEvent(confirmEvent);
+      } catch (error) {
+        console.error('Ошибка при отправке события подтверждения:', error);
+      }
+    }, 500);
     
     return updatedState;
   }
   
-  // Генерируем уникальный ID для помощника
   const helperId = `helper_${generateId()}`;
   
-  // Создаем запись помощника с явным указанием типа для status
   const newHelper: ReferralHelper = {
     id: helperId,
     buildingId,
@@ -184,44 +181,65 @@ const processHireReferralHelper = (state: GameState, payload: { referralId: stri
     createdAt: Date.now()
   };
   
-  // Добавляем в список помощников
   const updatedState = {
     ...state,
     referralHelpers: [...state.referralHelpers, newHelper]
   };
   
-  // Отправляем уведомление
   safeDispatchGameEvent(`Отправлено предложение о работе ${referral.username}`, "info");
+  
+  setTimeout(() => {
+    try {
+      const confirmEvent = new CustomEvent('debug-helper-step', {
+        detail: { 
+          step: 'request-sent', 
+          message: `Предложение о работе на здание '${state.buildings[buildingId]?.name || buildingId}' отправлено реферралу ${referral.username}`,
+          referralId,
+          buildingId
+        }
+      });
+      window.dispatchEvent(confirmEvent);
+    } catch (error) {
+      console.error('Ошибка при отправке события подтверждения:', error);
+    }
+  }, 500);
   
   return updatedState;
 };
 
-// ИСПРАВЛЕНО: Улучшенная реализация ответа на запрос помощника
+// УЛУЧШЕННАЯ реализация ответа на запрос помощника
 const processRespondToHelperRequest = (state: GameState, payload: { helperId: string; accepted: boolean }): GameState => {
   const { helperId, accepted } = payload;
   
-  // Находим запрос помощника
   const helper = state.referralHelpers.find(h => h.id === helperId);
   if (!helper) {
     console.error('Помощник не найден:', helperId);
+    safeDispatchGameEvent("Ошибка: запрос помощника не найден", "error");
     return state;
   }
   
   console.log('Обработка ответа на запрос помощника:', helper, 'accepted:', accepted);
   
-  // Если помощник отклонен, просто обновляем его статус
   if (!accepted) {
-    // Обновляем статус запроса с явным указанием типа
     const updatedHelpers = state.referralHelpers.map(h => 
       h.id === helperId ? { ...h, status: 'rejected' as const } : h
     );
     
-    // Находим имя здания для сообщения
     const building = state.buildings[helper.buildingId];
     const buildingName = building ? building.name : helper.buildingId;
     
-    // Отправляем уведомление
     safeDispatchGameEvent(`Вы отклонили предложение о работе для здания "${buildingName}"`, "info");
+    
+    try {
+      const { updateHelperRequestStatus } = require('@/api/referralService');
+      if (typeof updateHelperRequestStatus === 'function') {
+        updateHelperRequestStatus(helper.helperId, 'rejected').catch(err => 
+          console.error("Ошибка при обновлении статуса помощника в БД:", err)
+        );
+      }
+    } catch (error) {
+      console.error('Ошибка при импорте функции updateHelperRequestStatus:', error);
+    }
     
     return {
       ...state,
@@ -229,14 +247,10 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     };
   }
   
-  // Если помощник принят, обновляем все связанные данные
-  
-  // 1. Обновляем статус помощника в массиве referralHelpers
   let updatedHelpers = state.referralHelpers.map(h => 
     h.id === helperId ? { ...h, status: 'accepted' as const } : h
   );
   
-  // 2. Обновляем статус реферала в массиве referrals
   const updatedReferrals = state.referrals.map(ref => 
     ref.id === helper.helperId 
       ? { 
@@ -249,14 +263,11 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
   
   console.log(`Реферал ${helper.helperId} теперь нанят на здание ${helper.buildingId}`);
   
-  // 3. Находим имя здания для сообщения
   const building = state.buildings[helper.buildingId];
   const buildingName = building ? building.name : helper.buildingId;
   
-  // 4. Отправляем уведомление
   safeDispatchGameEvent(`Вы приняли предложение о работе для здания "${buildingName}"`, "success");
   
-  // 5. Отправляем событие обновления статуса реферала
   setTimeout(() => {
     try {
       const updateEvent = new CustomEvent('referral-status-updated', {
@@ -268,12 +279,30 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
       });
       window.dispatchEvent(updateEvent);
       console.log(`Отправлено событие обновления статуса реферала ${helper.helperId}`);
+      
+      const debugEvent = new CustomEvent('debug-helper-step', {
+        detail: { 
+          step: 'request-accepted', 
+          message: `Запрос принят! Помощник назначен на здание '${buildingName}'`,
+          helperId: helper.helperId,
+          buildingId: helper.buildingId
+        }
+      });
+      window.dispatchEvent(debugEvent);
+      
+      const productionEvent = new CustomEvent('helper-production-update', {
+        detail: { 
+          helperId: helper.helperId,
+          buildingId: helper.buildingId,
+          buildingName: buildingName
+        }
+      });
+      window.dispatchEvent(productionEvent);
     } catch (error) {
-      console.error('Ошибка при отправке события обновления статуса реферала:', error);
+      console.error('Ошибка при отправке событий обновления:', error);
     }
-  }, 100);
+  }, 300);
   
-  // 6. Обновляем статус реферала в базе данных
   try {
     const { updateReferralHiredStatus } = require('@/api/referralService');
     if (typeof updateReferralHiredStatus === 'function') {
@@ -281,34 +310,53 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
         console.error("Ошибка при обновлении статуса реферала в БД:", err)
       );
     }
+    
+    const { updateHelperRequestStatus } = require('@/api/referralService');
+    if (typeof updateHelperRequestStatus === 'function') {
+      updateHelperRequestStatus(helper.helperId, 'accepted', helper.buildingId).catch(err => 
+        console.error("Ошибка при обновлении статуса помощника в БД:", err)
+      );
+    }
   } catch (error) {
-    console.error('Ошибка при импорте функции updateReferralHiredStatus:', error);
+    console.error('Ошибка при импорте функций обновления в БД:', error);
   }
   
-  return {
+  let updatedState = {
     ...state,
     referralHelpers: updatedHelpers,
     referrals: updatedReferrals
   };
+  
+  console.log('Состояние обновлено с новым статусом помощника:', 
+    `Строение: ${buildingName}`, 
+    `Помощник: ${helper.helperId}`, 
+    `Статус: accepted`
+  );
+  
+  setTimeout(() => {
+    if (typeof window.dispatchEvent === 'function') {
+      const forceUpdateEvent = new CustomEvent('force-resource-update');
+      window.dispatchEvent(forceUpdateEvent);
+      console.log('Отправлено событие принудительного обновления ресурсов');
+    }
+  }, 500);
+  
+  return updatedState;
 };
 
-// Функция для генерации уникального ID
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
-// Обработка обновления статуса реферала из базы данных
 const processUpdateReferralStatus = (state: GameState, payload: { referralId: string; activated: boolean }): GameState => {
   console.log(`Обновление статуса реферала ${payload.referralId} на ${payload.activated} в gameReducer`);
   
-  // Проверяем, существует ли реферал в списке
   const referralExists = state.referrals.some(ref => ref.id === payload.referralId);
   if (!referralExists) {
     console.warn(`Реферал ${payload.referralId} не найден в списке при обновлении статуса`);
     return state;
   }
   
-  // Обновляем статус реферала с явным указанием типа boolean
   const updatedReferrals = state.referrals.map(ref => 
     ref.id === payload.referralId 
       ? { ...ref, activated: payload.activated === true } 
@@ -325,62 +373,46 @@ const processUpdateReferralStatus = (state: GameState, payload: { referralId: st
   };
 };
 
-// Главный редьюсер игры - координирует все остальные редьюсеры
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
   switch (action.type) {
-    // Инкремент ресурса
     case "INCREMENT_RESOURCE": 
       return processIncrementResource(state, action.payload);
     
-    // Обновление ресурсов (выполняется каждый тик)
     case "UPDATE_RESOURCES": 
       return processResourceUpdate(state);
     
-    // Покупка здания
     case "PURCHASE_BUILDING": 
       return processPurchaseBuilding(state, action.payload);
     
-    // Покупка практики (специальный обработчик)
     case "PRACTICE_PURCHASE": 
       return processPracticePurchase(state);
     
-    // Покупка улучшения
     case "PURCHASE_UPGRADE": 
       return processPurchaseUpgrade(state, action.payload);
     
-    // Разблокировка фичи
     case "UNLOCK_FEATURE": 
-      // Исправляем ошибку: меняем feature на featureId
       return processUnlockFeature(state, { featureId: action.payload.featureId });
     
-    // Разблокировка ресурса
     case "UNLOCK_RESOURCE": 
       return processUnlockResource(state, action.payload);
     
-    // Установка разблокировки здания
     case "SET_BUILDING_UNLOCKED": 
       return processSetBuildingUnlocked(state, action.payload);
     
-    // Инкремент счетчика
     case "INCREMENT_COUNTER": 
-      // Исправляем ошибку: меняем counter на counterId
       return processIncrementCounter(state, { counterId: action.payload.counterId, value: action.payload.value });
     
-    // Проверка и обновление синергий
     case "CHECK_SYNERGIES":
       return checkSynergies(state);
     
-    // Активация синергии
     case "ACTIVATE_SYNERGY":
       return activateSynergy(state, action.payload);
     
-    // Загрузка сохраненной игры
     case "LOAD_GAME": {
       console.log('Загрузка сохраненной игры через LOAD_GAME action');
       
-      // Инициализируем синергии, если их нет в загруженном состоянии
       let newState = processLoadGame(state, action.payload as GameState);
       
       if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
@@ -388,7 +420,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         newState = initializeSynergies(newState);
       }
       
-      // Если нет реферального кода, генерируем его
       if (!newState.referralCode) {
         const code = generateReferralCode();
         newState = {
@@ -401,18 +432,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return newState;
     }
     
-    // Запуск игры с генерацией реферального кода
     case "START_GAME": {
-      // Сначала обработаем базовую логику START_GAME
       let newState = processStartGame(state);
       
-      // Инициализируем синергии, если их нет
       if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
         console.log('Инициализируем отсутствующие синергии в START_GAME');
         newState = initializeSynergies(newState);
       }
       
-      // Если реферальный код еще не установлен, генерируем его
       if (!newState.referralCode) {
         const code = generateReferralCode();
         newState = {
@@ -421,13 +448,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         };
         console.log(`Сгенерирован реферальный код при старте: ${code}`);
         
-        // Сохраняем реферальный код в Supabase
         saveReferralInfo(code, newState.referredBy).catch(err => 
           console.error("Ошибка при сохранении реферального кода:", err)
         );
       }
       
-      // Проверяем другие необходимые поля
       if (!newState.referrals) {
         newState.referrals = [];
       }
@@ -439,31 +464,24 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return newState;
     }
     
-    // Престиж (перезапуск с бонусами)
     case "PRESTIGE": 
       return processPrestige(state);
     
-    // Полный сброс прогресса
     case "RESET_GAME": 
       return processResetGame(state);
     
-    // Перезапуск компьютеров
     case "RESTART_COMPUTERS": 
       return processRestartComputers(state);
     
-    // Майнинг вычислительной мощности
     case "MINE_COMPUTING_POWER": 
       return processMiningPower(state);
     
-    // Применение знаний
     case "APPLY_KNOWLEDGE": 
       return processApplyKnowledge(state);
       
-    // Обмен BTC на USDT
     case "EXCHANGE_BTC": 
       return processExchangeBtc(state);
     
-    // Реферальная система
     case "SET_REFERRAL_CODE":
       return processSetReferralCode(state, action.payload);
     
@@ -473,16 +491,18 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "ACTIVATE_REFERRAL":
       return processActivateReferral(state, action.payload);
     
-    // Система помощников
     case "HIRE_REFERRAL_HELPER":
       return processHireReferralHelper(state, action.payload);
     
     case "RESPOND_TO_HELPER_REQUEST":
       return processRespondToHelperRequest(state, action.payload);
       
-    // Обновление статуса реферала из базы данных
     case "UPDATE_REFERRAL_STATUS":
       return processUpdateReferralStatus(state, action.payload);
+      
+    case "FORCE_RESOURCE_UPDATE":
+      console.log("Принудительное обновление ресурсов и бонусов");
+      return processResourceUpdate(state);
       
     default:
       return state;

@@ -4,6 +4,7 @@ import {
   addGameEventListener, 
   removeGameEventListener 
 } from './utils/gameEvents';
+import { toast } from '@/hooks/use-toast';
 
 // Компонент для управления шиной событий игры
 export const GameEventSystem: React.FC = () => {
@@ -54,7 +55,7 @@ export const GameEventSystem: React.FC = () => {
         sentMessagesRef.current.delete(msg);
       });
       
-      // Вместо проверки начала сообщений, используем более надежный подход с детальными пояснениями
+      // Логика обработки специфических сообщений
       if (message.includes("Открыта новая функция: Применить знания")) {
         // Сразу добавляем детальное сообщение в Map, чтобы избежать его повторения
         const detailMessage = "Накопите 10 знаний, чтобы применить их и получить USDT";
@@ -180,14 +181,109 @@ export const GameEventSystem: React.FC = () => {
       // и отправляются через отдельное событие
     };
     
+    // Обработчик для отладочных событий системы помощников
+    const handleDebugHelperEvent = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !event.detail?.message) {
+        return;
+      }
+      
+      const { message, step } = event.detail;
+      
+      // Показываем всплывающее уведомление с важной информацией о шагах
+      toast({
+        title: "Система помощников",
+        description: message,
+        variant: "default"
+      });
+      
+      // Записываем в журнал информацию о шаге
+      console.log(`Отладка системы помощников (шаг: ${step}): ${message}`);
+    };
+    
+    // Обработчик для событий производительности зданий
+    const handleProductionEvent = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !event.detail) {
+        return;
+      }
+      
+      const { buildingId, buildingName } = event.detail;
+      
+      // Уведомляем о пересчете производительности
+      toast({
+        title: "Производительность обновлена",
+        description: `Пересчитана производительность здания "${buildingName}"`,
+        variant: "default"
+      });
+      
+      console.log(`Событие обновления производительности для здания ${buildingId}`);
+      
+      // Принудительное обновление для пересчета ресурсов
+      if (typeof window.dispatchEvent === 'function') {
+        setTimeout(() => {
+          const forceUpdateEvent = new CustomEvent('force-resource-update');
+          window.dispatchEvent(forceUpdateEvent);
+        }, 200);
+      }
+    };
+    
+    // Обработчик для сводки бонусов
+    const handleBoostsSummary = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !event.detail?.message) {
+        return;
+      }
+      
+      const { message, referralBonus, helperBoosts } = event.detail;
+      
+      // Формируем подробное сообщение для пользователя
+      let detailMessage = message;
+      
+      if (Object.keys(helperBoosts || {}).length > 0) {
+        detailMessage += "\nАктивные бонусы от помощников:";
+        Object.entries(helperBoosts).forEach(([buildingId, data]: [string, any]) => {
+          detailMessage += `\n- ${data.helperIds.length} помощников (+${data.boost * 100}%)`;
+        });
+      }
+      
+      // Показываем всплывающее уведомление со сводкой
+      toast({
+        title: "Сводка бонусов",
+        description: detailMessage,
+        variant: "default"
+      });
+    };
+    
+    // Обработчик для детальной информации о производстве Практики
+    const handlePracticeProduction = (event: Event) => {
+      if (!(event instanceof CustomEvent) || !event.detail?.message) {
+        return;
+      }
+      
+      const { message } = event.detail;
+      
+      // Показываем информацию о производительности Практики
+      toast({
+        title: "Производство знаний (Практика)",
+        description: message,
+        variant: "default"
+      });
+    };
+    
     // Регистрируем обработчики
     addGameEventListener(eventBus, handleGameEvent as any);
     eventBus.addEventListener('game-event-detail', handleDetailEvent as any);
+    eventBus.addEventListener('debug-helper-step', handleDebugHelperEvent as any);
+    eventBus.addEventListener('helper-production-update', handleProductionEvent as any);
+    eventBus.addEventListener('debug-boosts-summary', handleBoostsSummary as any);
+    eventBus.addEventListener('debug-practice-production', handlePracticeProduction as any);
     
     // Очистка при размонтировании
     return () => {
       removeGameEventListener(eventBus, handleGameEvent as any);
       eventBus.removeEventListener('game-event-detail', handleDetailEvent as any);
+      eventBus.removeEventListener('debug-helper-step', handleDebugHelperEvent as any);
+      eventBus.removeEventListener('helper-production-update', handleProductionEvent as any);
+      eventBus.removeEventListener('debug-boosts-summary', handleBoostsSummary as any);
+      eventBus.removeEventListener('debug-practice-production', handlePracticeProduction as any);
       if (typeof window !== 'undefined') {
         delete window.gameEventBus;
       }

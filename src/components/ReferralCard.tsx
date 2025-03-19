@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -15,13 +15,15 @@ import {
   Clock, 
   UserCircle, 
   Briefcase,
-  X 
+  X,
+  RefreshCw 
 } from 'lucide-react';
 import { useGame } from '@/context/hooks/useGame';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { isReferralHelperForBuilding, getHelperRequestId } from '@/utils/helpers';
 import { updateReferralHiredStatus } from '@/api/referralService';
+import { toast } from '@/hooks/use-toast';
 
 interface ReferralCardProps {
   referral: {
@@ -48,6 +50,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
   const [assignedBuilding, setAssignedBuilding] = useState<string | null>(
     referral.assignedBuildingId || null
   );
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   
   // Определение статуса помощника с правильной проверкой типа
   const directDbStatus = typeof referral.activated === 'boolean' ? referral.activated : false;
@@ -60,32 +63,57 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
     directDbStatus,
     isActivated,
     typeOfActivated: typeof referral.activated,
+    hired: isHired,
     assignedBuildingId: assignedBuilding || { _type: "undefined", value: "undefined" }
   });
   
-  useEffect(() => {
+  // Обновление статуса реферала при изменениях
+  const updateReferralStatus = useCallback(() => {
     // Проверяем, есть ли для этого реферала активный запрос помощника
-    const checkIfHelperActive = () => {
-      if (!referral || !referral.id) return false;
+    if (!referral || !referral.id) return false;
+    
+    // Ищем активный запрос помощника для этого реферала
+    const activeHelper = state.referralHelpers.find(
+      h => h.helperId === referral.id && h.status === 'accepted'
+    );
+    
+    if (activeHelper) {
+      console.log(`Найден активный помощник для реферала ${referral.id}:`, activeHelper);
+      setIsHired(true);
+      setAssignedBuilding(activeHelper.buildingId);
       
-      // Ищем активный запрос помощника для этого реферала
-      const activeHelper = state.referralHelpers.find(
-        h => h.helperId === referral.id && h.status === 'accepted'
-      );
-      
-      if (activeHelper) {
-        console.log(`Найден активный помощник для реферала ${referral.id}:`, activeHelper);
-        setIsHired(true);
-        setAssignedBuilding(activeHelper.buildingId);
-        return true;
+      // Обновляем статус "hired" в состоянии реферала, если он не установлен
+      if (!referral.hired) {
+        dispatch({
+          type: "ADD_REFERRAL",
+          payload: { 
+            referral: { 
+              ...referral, 
+              hired: true, 
+              assignedBuildingId: activeHelper.buildingId 
+            } 
+          }
+        });
       }
       
-      setIsHired(!!referral.hired);
-      setAssignedBuilding(referral.assignedBuildingId || null);
-      return !!referral.hired;
-    };
+      return true;
+    }
     
-    checkIfHelperActive();
+    // Если нет активного помощника, но в реферале указано, что он нанят
+    if (referral.hired) {
+      setIsHired(true);
+      setAssignedBuilding(referral.assignedBuildingId || null);
+      return true;
+    }
+    
+    setIsHired(false);
+    setAssignedBuilding(null);
+    return false;
+  }, [referral, state.referralHelpers, dispatch]);
+  
+  useEffect(() => {
+    // Инициализация статуса
+    updateReferralStatus();
     
     // Обработчик события обновления статуса реферала
     const handleStatusUpdate = (event: any) => {
@@ -93,20 +121,77 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
         console.log(`Обновление статуса для реферала ${referral.id}:`, event.detail);
         setIsHired(event.detail.hired);
         setAssignedBuilding(event.detail.buildingId);
+        
+        // Показываем уведомление пользователю
+        const buildingName = state.buildings[event.detail.buildingId]?.name || event.detail.buildingId;
+        if (event.detail.hired) {
+          toast({
+            title: "Помощник нанят",
+            description: `${referral.username} теперь работает на здании "${buildingName}"`,
+            variant: "success"
+          });
+        }
+      }
+    };
+    
+    // Обработчик отладочного события
+    const handleDebugEvent = (event: any) => {
+      if (event.detail && (event.detail.helperId === referral.id || event.detail.referralId === referral.id)) {
+        console.log(`Отладочное событие для реферала ${referral.id}:`, event.detail);
+        
+        // Обновляем UI и показываем сообщение
+        toast({
+          title: "Событие системы помощников",
+          description: event.detail.message,
+          variant: "default"
+        });
+        
+        // Автоматически обновляем статус
+        setTimeout(updateReferralStatus, 500);
       }
     };
     
     window.addEventListener('referral-status-updated', handleStatusUpdate);
+    window.addEventListener('debug-helper-step', handleDebugEvent);
+    window.addEventListener('debug-helper-boost', handleDebugEvent);
+    window.addEventListener('debug-helper-personal-boost', handleDebugEvent);
     
     // Проверяем статус при изменении массива помощников
     if (state.referralHelpers.length > 0) {
-      checkIfHelperActive();
+      updateReferralStatus();
     }
     
     return () => {
       window.removeEventListener('referral-status-updated', handleStatusUpdate);
+      window.removeEventListener('debug-helper-step', handleDebugEvent);
+      window.removeEventListener('debug-helper-boost', handleDebugEvent);
+      window.removeEventListener('debug-helper-personal-boost', handleDebugEvent);
     };
-  }, [referral, state.referralHelpers, referral.hired, referral.assignedBuildingId]);
+  }, [referral.id, state.referralHelpers, state.buildings, updateReferralStatus]);
+  
+  // Принудительное обновление статуса
+  const handleRefresh = () => {
+    setRefreshing(true);
+    
+    // Запускаем событие для получения обновленных данных из БД
+    const refreshEvent = new CustomEvent('refresh-referrals');
+    window.dispatchEvent(refreshEvent);
+    
+    // Обновляем локальный статус
+    updateReferralStatus();
+    
+    // Показываем уведомление
+    toast({
+      title: "Обновление статуса",
+      description: `Обновление статуса для реферала ${referral.username}`,
+      variant: "default"
+    });
+    
+    // Завершаем обновление через 1 секунду
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
   
   // Расчет времени регистрации
   const joinedTime = referral.joinedAt ? formatDistanceToNow(
@@ -136,8 +221,20 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
       try {
         await updateReferralHiredStatus(referral.id, false);
         console.log(`Реферал ${referral.id} уволен, статус обновлен в БД`);
+        
+        toast({
+          title: "Помощник уволен",
+          description: `${referral.username} больше не является вашим помощником`,
+          variant: "default"
+        });
       } catch (error) {
         console.error(`Ошибка при обновлении статуса реферала ${referral.id}:`, error);
+        
+        toast({
+          title: "Ошибка",
+          description: "Не удалось уволить помощника. Попробуйте еще раз.",
+          variant: "destructive"
+        });
       }
       
       // Если реферал нанят на выбранное в данный момент здание, отменяем это назначение
@@ -154,9 +251,24 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
       
       setIsHired(false);
       setAssignedBuilding(null);
+      
+      // Принудительное обновление для пересчета производства
+      setTimeout(() => {
+        if (typeof window.dispatchEvent === 'function') {
+          const forceUpdateEvent = new CustomEvent('force-resource-update');
+          window.dispatchEvent(forceUpdateEvent);
+        }
+      }, 500);
     } else if (canHire && selectedBuilding && onHire) {
       // Если реферал может быть нанят и выбрано здание, нанимаем его
       onHire(referral.id, selectedBuilding);
+      
+      toast({
+        title: "Запрос отправлен",
+        description: `Запрос на работу отправлен рефералу ${referral.username}`,
+        variant: "default"
+      });
+      
       console.log(`Реферал ${referral.id} назначен помощником на здание ${selectedBuilding}`);
     }
   };
@@ -191,9 +303,20 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
             <UserCircle className="w-4 h-4" /> 
             {referral.username}
           </CardTitle>
-          <Badge variant={getBadgeVariant()}>
-            {getBadgeContent()}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={getBadgeVariant()}>
+              {getBadgeContent()}
+            </Badge>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6" 
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       

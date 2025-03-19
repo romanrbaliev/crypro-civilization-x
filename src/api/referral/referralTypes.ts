@@ -28,3 +28,11 @@ export interface ReferralHelpersResponse {
   helpers: ReferralHelperRequest[];
   success: boolean;
 }
+
+// Добавляем новый тип для подробной информации о бонусах помощников
+export interface HelperBoostInfo {
+  buildingId: string;
+  buildingName: string;
+  boostPercentage: number;
+  helperIds: string[];
+}

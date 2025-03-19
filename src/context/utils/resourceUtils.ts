@@ -1,6 +1,12 @@
 
 import { Resource, Building, ReferralHelper, GameState, Upgrade } from '../types';
-import { calculateBuildingBoostFromHelpers, calculateHelperBoost, calculateReferralBonus, canAffordCost } from '../../utils/helpers';
+import { 
+  calculateBuildingBoostFromHelpers, 
+  calculateHelperBoost, 
+  calculateReferralBonus, 
+  canAffordCost,
+  getActiveHelperBoosts
+} from '../../utils/helpers';
 
 export const calculateResourceProduction = (
   resources: { [key: string]: Resource },
@@ -22,11 +28,30 @@ export const calculateResourceProduction = (
   // Получаем бонус от рефералов
   const referralBonus = calculateReferralBonus(referrals);
   
+  // Получаем полную информацию о бонусах от помощников для всех зданий
+  const helperBoosts = getActiveHelperBoosts(buildings, referralHelpers);
+  
   console.log(`Расчет бонуса от рефералов: ${referrals.filter(r => {
     if (typeof r.activated === 'boolean') return r.activated;
     return String(r.activated).toLowerCase() === 'true';
   }).length} активных из ${referrals.length} всего`);
   console.log(`Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%`);
+  
+  // Отправляем событие с данными о текущих бонусах для отображения пользователю
+  setTimeout(() => {
+    try {
+      const boostSummaryEvent = new CustomEvent('debug-boosts-summary', {
+        detail: { 
+          referralBonus: (referralBonus * 100).toFixed(0),
+          helperBoosts,
+          message: `Общий бонус от рефералов: +${(referralBonus * 100).toFixed(0)}%, активных помощников: ${Object.keys(helperBoosts).length}`
+        }
+      });
+      window.dispatchEvent(boostSummaryEvent);
+    } catch (error) {
+      console.error('Ошибка при отправке события сводки бонусов:', error);
+    }
+  }, 500);
   
   // Для каждого здания рассчитываем производство
   Object.values(buildings).forEach(building => {
@@ -56,7 +81,7 @@ export const calculateResourceProduction = (
     }
   });
   
-  // Отдельная логика для базовой скорости накопления знаний через здание "Практика"
+  // ОСОБАЯ логика для базовой скорости накопления знаний через здание "Практика"
   if (newResources.knowledge && buildings.practice && buildings.practice.count > 0) {
     // Базовая скорость накопления знаний
     const baseRate = 0.63;
@@ -68,6 +93,24 @@ export const calculateResourceProduction = (
     const knowledgeRate = baseRate * (1 + practiceHelperBoost) * (1 + referralBonus);
     
     console.log(`Здание Практика: базовая скорость ${baseRate}/сек, с бонусами: ${knowledgeRate}/сек (хелперы: +${(practiceHelperBoost * 100).toFixed(0)}%, рефералы: +${(referralBonus * 100).toFixed(0)}%)`);
+    
+    // Оповещаем пользователя о текущей производительности Практики
+    setTimeout(() => {
+      try {
+        const practiceEvent = new CustomEvent('debug-practice-production', {
+          detail: { 
+            baseRate,
+            helperBoost: practiceHelperBoost,
+            referralBonus,
+            totalRate: knowledgeRate,
+            message: `Практика: ${baseRate}/сек × (1 + ${(practiceHelperBoost * 100).toFixed(0)}%) × (1 + ${(referralBonus * 100).toFixed(0)}%) = ${knowledgeRate.toFixed(4)}/сек`
+          }
+        });
+        window.dispatchEvent(practiceEvent);
+      } catch (error) {
+        console.error('Ошибка при отправке события производительности Практики:', error);
+      }
+    }, 600);
     
     // Обновляем скорость накопления знаний с учетом всех бонусов
     newResources.knowledge = {

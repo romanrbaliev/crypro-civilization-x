@@ -11,6 +11,9 @@ import {
   updateReferralHiredStatus
 } from './referral';
 
+// Новая функция для обновления статуса помощника в базе данных
+import { updateHelperRequestStatus } from './referral/referralHelpers';
+
 // Непосредственный экспорт функций для обратной совместимости
 export { 
   saveReferralInfo, 
@@ -18,5 +21,6 @@ export {
   getUserReferralCode,
   checkReferralInfo,
   activateReferral,
-  updateReferralHiredStatus
+  updateReferralHiredStatus,
+  updateHelperRequestStatus
 };

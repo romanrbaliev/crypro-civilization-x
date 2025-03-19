@@ -57,10 +57,21 @@ export const calculateReferralBonus = (referrals: any[] = []): number => {
     return false;
   });
   
-  console.log("Активированные рефералы:", activeReferrals.map(r => r.id));
+  // Подробное логирование для отладки
+  if (activeReferrals.length > 0) {
+    console.log("Активированные рефералы:", activeReferrals.map(r => r.id));
+    console.log("Детали активированных рефералов:", activeReferrals.map(r => ({
+      id: r.id, 
+      activated: r.activated,
+      hired: r.hired,
+      assignedBuildingId: r.assignedBuildingId
+    })));
+  }
   
   // Возвращаем бонус: 5% (0.05) за каждого активного реферала
-  return activeReferrals.length * 0.05; 
+  const bonus = activeReferrals.length * 0.05;
+  console.log(`Расчет бонуса от рефералов: ${activeReferrals.length} активных из ${referrals.length} всего, бонус = ${bonus}`);
+  return bonus; 
 };
 
 /**
@@ -68,7 +79,7 @@ export const calculateReferralBonus = (referrals: any[] = []): number => {
  */
 export const calculateBuildingBoostFromHelpers = (
   buildingId: string, 
-  helpers: { buildingId: string; helperId: string; status: string }[] = []
+  helpers: { buildingId: string; helperId: string; status: string; id: string }[] = []
 ): number => {
   if (!helpers || helpers.length === 0) return 0;
   
@@ -77,9 +88,33 @@ export const calculateBuildingBoostFromHelpers = (
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   );
   
+  // Подробное логирование для отладки
   if (activeHelpers.length > 0) {
-    console.log(`Расчет бонуса для здания ${buildingId}: ${activeHelpers.length} помощников, бонус ${activeHelpers.length * 0.1}`);
-    console.log(`Активные помощники для здания ${buildingId}:`, activeHelpers.map(h => h.helperId));
+    console.log(`Найдены активные помощники для здания ${buildingId}:`, 
+      activeHelpers.map(h => ({id: h.id, helperId: h.helperId, status: h.status}))
+    );
+    
+    // Оповещение для пользователя
+    try {
+      const helperIds = activeHelpers.map(h => h.helperId);
+      const boostPercentage = activeHelpers.length * 10;
+      
+      setTimeout(() => {
+        const boostEvent = new CustomEvent('debug-helper-boost', {
+          detail: { 
+            buildingId,
+            helperIds,
+            boostPercentage,
+            message: `Здание получает бонус +${boostPercentage}% от ${activeHelpers.length} помощников`
+          }
+        });
+        window.dispatchEvent(boostEvent);
+      }, 300);
+    } catch (error) {
+      console.error('Ошибка при отправке события о бонусе здания:', error);
+    }
+    
+    console.log(`Расчет бонуса для здания ${buildingId}: ${activeHelpers.length} помощников, бонус +${activeHelpers.length * 10}%`);
   }
   
   // Каждый помощник дает бонус +10% (0.1) к производительности здания
@@ -99,6 +134,33 @@ export const calculateHelperBoost = (
   const activeHelperRequests = helpers.filter(
     helper => helper.helperId === referralId && helper.status === 'accepted'
   );
+  
+  // Подробное логирование для отладки
+  if (activeHelperRequests.length > 0) {
+    console.log(`Реферал ${referralId} является помощником для ${activeHelperRequests.length} зданий:`,
+      activeHelperRequests.map(h => h.buildingId)
+    );
+    
+    // Оповещение для пользователя-помощника
+    try {
+      const buildingIds = activeHelperRequests.map(h => h.buildingId);
+      const boostPercentage = activeHelperRequests.length * 10;
+      
+      setTimeout(() => {
+        const helperBoostEvent = new CustomEvent('debug-helper-personal-boost', {
+          detail: { 
+            referralId,
+            buildingIds,
+            boostPercentage,
+            message: `Вы получаете бонус +${boostPercentage}% как помощник для ${activeHelperRequests.length} зданий`
+          }
+        });
+        window.dispatchEvent(helperBoostEvent);
+      }, 300);
+    } catch (error) {
+      console.error('Ошибка при отправке события о личном бонусе помощника:', error);
+    }
+  }
   
   // Каждый активный запрос дает бонус +10% (0.1)
   return activeHelperRequests.length * 0.1;
@@ -178,11 +240,17 @@ export const isReferralHelperForBuilding = (
   buildingId: string,
   helpers: { buildingId: string; helperId: string; status: string }[] = []
 ): boolean => {
-  return helpers.some(
+  const isHelper = helpers.some(
     helper => helper.helperId === referralId && 
               helper.buildingId === buildingId && 
               helper.status === 'accepted'
   );
+  
+  if (isHelper) {
+    console.log(`Реферал ${referralId} ЯВЛЯЕТСЯ помощником для здания ${buildingId}`);
+  }
+  
+  return isHelper;
 };
 
 /**
@@ -197,5 +265,42 @@ export const getHelperRequestId = (
     helper => helper.helperId === referralId && helper.buildingId === buildingId
   );
   
+  if (helperRequest) {
+    console.log(`Найден запрос помощника для реферала ${referralId} и здания ${buildingId}:`, helperRequest);
+  }
+  
   return helperRequest ? helperRequest.id : null;
+};
+
+/**
+ * Получает список всех активных помощников с информацией о бонусах
+ */
+export const getActiveHelperBoosts = (
+  buildings: { [key: string]: Building },
+  helpers: { id: string; buildingId: string; helperId: string; status: string }[] = []
+): { [buildingId: string]: { boost: number, helperIds: string[] } } => {
+  const boosts: { [buildingId: string]: { boost: number, helperIds: string[] } } = {};
+  
+  if (!helpers || helpers.length === 0) return boosts;
+  
+  // Группируем помощников по зданиям
+  helpers.filter(h => h.status === 'accepted').forEach(helper => {
+    if (!boosts[helper.buildingId]) {
+      boosts[helper.buildingId] = { boost: 0.1, helperIds: [helper.helperId] };
+    } else {
+      boosts[helper.buildingId].boost += 0.1;
+      boosts[helper.buildingId].helperIds.push(helper.helperId);
+    }
+  });
+  
+  // Логирование для отладки
+  if (Object.keys(boosts).length > 0) {
+    console.log('Активные бонусы от помощников:');
+    Object.entries(boosts).forEach(([buildingId, data]) => {
+      const buildingName = buildings[buildingId]?.name || buildingId;
+      console.log(`- ${buildingName}: +${data.boost * 100}% от ${data.helperIds.length} помощников`);
+    });
+  }
+  
+  return boosts;
 };
