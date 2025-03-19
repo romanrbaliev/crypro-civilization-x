@@ -21,20 +21,20 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       const resource = newResources[resourceId];
       switch (resourceId) {
         case "knowledge":
-          resource.max = 100;
+          resource.max = 100; // Базовый максимум для знаний
           break;
         case "usdt":
-          resource.max = 50;
+          resource.max = 50; // Базовый максимум для USDT
           break;
         case "electricty":
         case "electricity":  // Исправление для поддержки обоих вариантов написания
-          resource.max = 100;
+          resource.max = 100; // Базовый максимум для электричества
           break;
         case "computingPower":
-          resource.max = 1000;
+          resource.max = 1000; // Базовый максимум для вычислительной мощности
           break;
         case "btc":
-          resource.max = Infinity;
+          resource.max = Infinity; // Максимум для BTC неограничен
           break;
         default:
           if (!resource.max) resource.max = 100;
@@ -53,6 +53,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
             if (newResources[resourceId]) {
               const currentMax = newResources[resourceId].max || 0;
               newResources[resourceId].max = currentMax + (Number(amount) * building.count);
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. ${resourceId} на ${Number(amount) * building.count}`);
             }
           }
         });
@@ -66,20 +67,28 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
         const effects = upgrade.effects || upgrade.effect || {};
         
         Object.entries(effects).forEach(([effectType, amount]) => {
-          if (effectType.includes('Max')) {
+          if (effectType.includes('Max') && !effectType.includes('Boost')) {
             const resourceId = effectType.replace('Max', '');
             if (newResources[resourceId]) {
               const currentMax = newResources[resourceId].max || 0;
-              newResources[resourceId].max = currentMax + Number(amount);
+              const addedAmount = Number(amount);
+              newResources[resourceId].max = currentMax + addedAmount;
+              console.log(`Исследование ${upgrade.name} увеличивает макс. ${resourceId} на ${addedAmount}, новый макс: ${newResources[resourceId].max}`);
             }
-          } else if (effectType === 'knowledgeMaxBoost' && newResources.knowledge) {
+          } 
+          else if (effectType === 'knowledgeMaxBoost' && newResources.knowledge) {
             const boost = Number(amount);
-            const baseMax = newResources.knowledge.max || 100;
-            newResources.knowledge.max = baseMax * (1 + boost);
-          } else if (effectType === 'usdtMaxBoost' && newResources.usdt) {
+            const baseMax = 100; // Базовый максимум для знаний
+            const addedAmount = baseMax * boost;
+            newResources.knowledge.max += addedAmount;
+            console.log(`Исследование ${upgrade.name} увеличивает макс. знаний на ${boost * 100}% (${addedAmount}), новый макс: ${newResources.knowledge.max}`);
+          } 
+          else if (effectType === 'usdtMaxBoost' && newResources.usdt) {
             const boost = Number(amount);
-            const baseMax = newResources.usdt.max || 50;
-            newResources.usdt.max = baseMax * (1 + boost);
+            const baseMax = 50; // Базовый максимум для USDT
+            const addedAmount = baseMax * boost;
+            newResources.usdt.max += addedAmount;
+            console.log(`Исследование ${upgrade.name} увеличивает макс. USDT на ${boost * 100}% (${addedAmount}), новый макс: ${newResources.usdt.max}`);
           }
         });
       }
@@ -216,10 +225,15 @@ export const calculateResourceProduction = (
   referralCode: string | null
 ): { [key: string]: Resource } => {
   try {
-    const newResources = { ...resources };
+    const newResources = JSON.parse(JSON.stringify(resources));
     
-    // Сбрасываем текущее производство для всех ресурсов
+    // Сбрасываем текущее производство для всех ресурсов, но сохраняем базовое производство
     Object.keys(newResources).forEach(resourceId => {
+      // Сохраняем базовое производство отдельно
+      if (newResources[resourceId].production > 0 && !newResources[resourceId].baseProduction) {
+        newResources[resourceId].baseProduction = newResources[resourceId].production;
+      }
+      
       newResources[resourceId].production = 0;
       newResources[resourceId].perSecond = 0;
     });
@@ -250,14 +264,17 @@ export const calculateResourceProduction = (
           const resourceId = productionType;
           if (newResources[resourceId]) {
             // Устанавливаем или увеличиваем базовое производство ресурса
-            baseProduction[resourceId] = (baseProduction[resourceId] || 0) + (Number(amount) * count);
+            const productionAmount = Number(amount) * count;
+            baseProduction[resourceId] = (baseProduction[resourceId] || 0) + productionAmount;
             
-            // Сохраняем базовое производство каждого здания для конкретного ресурса
-            // для дальнейшего применения бонусов помощников
+            // Сохраняем базовое производство здания для этого ресурса (для применения бонусов)
             if (!building.resourceProduction) {
               building.resourceProduction = {};
             }
-            building.resourceProduction[resourceId] = Number(amount) * count;
+            building.resourceProduction[resourceId] = productionAmount;
+            
+            // Обновляем базовое производство ресурса
+            newResources[resourceId].baseProduction = (newResources[resourceId].baseProduction || 0) + productionAmount;
           }
         });
       }

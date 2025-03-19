@@ -51,39 +51,83 @@ export const processPurchaseUpgrade = (
     upgrades: newUpgrades,
   };
   
-  // Безопасно получаем объект эффектов
+  // Применяем эффекты улучшения
   const effects = upgrade.effects || upgrade.effect || {};
   
-  // Сразу применяем эффекты улучшения, если они существуют
+  // Проходим по всем эффектам и применяем их
   if (Object.keys(effects).length > 0) {
     console.log(`Применяем эффекты исследования ${upgradeId}:`, effects);
     
-    // Обрабатываем эффекты на скорость накопления ресурсов
+    // Создаем глубокую копию ресурсов для безопасного обновления
+    const updatedResources = JSON.parse(JSON.stringify(newResources));
+    
     Object.entries(effects).forEach(([effectId, amount]) => {
-      // Если эффект влияет на скорость накопления знаний
-      if (effectId === 'knowledgeBoost' && stateAfterPurchase.resources.knowledge) {
-        const currentPerSecond = stateAfterPurchase.resources.knowledge.perSecond || 0;
-        const boost = Number(amount);
-        
-        // Увеличиваем скорость накопления знаний на соответствующий процент
-        newResources.knowledge = {
-          ...newResources.knowledge,
-          perSecond: currentPerSecond * (1 + boost)
-        };
-        
-        console.log(`Применен эффект ${effectId}: увеличение скорости знаний на ${boost * 100}%, новая скорость: ${newResources.knowledge.perSecond}`);
+      const numAmount = Number(amount);
+      
+      // Обработка бонусов к скорости накопления
+      if (effectId === 'knowledgeBoost') {
+        console.log(`Применяем эффект knowledgeBoost: +${numAmount * 100}%`);
+        if (updatedResources.knowledge) {
+          const baseProduction = updatedResources.knowledge.baseProduction || 0;
+          updatedResources.knowledge.production += baseProduction * numAmount;
+          updatedResources.knowledge.perSecond += baseProduction * numAmount;
+          
+          console.log(`Увеличение скорости накопления знаний на ${numAmount * 100}%, 
+            новая скорость: ${updatedResources.knowledge.perSecond}/сек`);
+        }
+      }
+      
+      // Обработка бонусов к максимальному хранению
+      else if (effectId === 'knowledgeMaxBoost') {
+        console.log(`Применяем эффект knowledgeMaxBoost: +${numAmount * 100}%`);
+        if (updatedResources.knowledge) {
+          const baseMax = updatedResources.knowledge.max || 100;
+          const boost = baseMax * numAmount;
+          updatedResources.knowledge.max += boost;
+          
+          console.log(`Увеличение максимума знаний на ${numAmount * 100}%, 
+            новый максимум: ${updatedResources.knowledge.max}`);
+          
+          safeDispatchGameEvent(`Увеличен максимум знаний на ${numAmount * 100}%`, "success");
+        }
+      }
+      
+      // Обработка бонусов к максимальному хранению USDT
+      else if (effectId === 'usdtMaxBoost') {
+        console.log(`Применяем эффект usdtMaxBoost: +${numAmount * 100}%`);
+        if (updatedResources.usdt) {
+          const baseMax = updatedResources.usdt.max || 50;
+          const boost = baseMax * numAmount;
+          updatedResources.usdt.max += boost;
+          
+          console.log(`Увеличение максимума USDT на ${numAmount * 100}%, 
+            новый максимум: ${updatedResources.usdt.max}`);
+          
+          safeDispatchGameEvent(`Увеличен максимум USDT на ${numAmount * 100}%`, "success");
+        }
+      }
+      
+      // Общая обработка бустов и максимумов для других ресурсов
+      else if (effectId.includes('Boost') && !effectId.includes('Max')) {
+        const resourceId = effectId.replace('Boost', '');
+        console.log(`Применяем эффект ${effectId} для ресурса ${resourceId}: +${numAmount * 100}%`);
+        if (updatedResources[resourceId]) {
+          const baseProduction = updatedResources[resourceId].baseProduction || 0;
+          updatedResources[resourceId].production += baseProduction * numAmount;
+          updatedResources[resourceId].perSecond += baseProduction * numAmount;
+        }
       }
     });
     
     stateAfterPurchase = {
       ...stateAfterPurchase,
-      resources: newResources
+      resources: updatedResources
     };
   }
   
   // Если приобретены "Основы блокчейна", разблокируем криптокошелек
   if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-    // Разблокируем криптокошелек (используем безопасное обновление)
+    // Разблокируем криптокошелек
     const newBuildings = { ...stateAfterPurchase.buildings };
     
     // Проверяем существование криптокошелька перед обновлением
@@ -111,8 +155,7 @@ export const processPurchaseUpgrade = (
       buildings: newBuildings
     };
     
-    // ВАЖНО: Только при ПОКУПКЕ исследования "Основы блокчейна" 
-    // активируем реферала (не при разблокировке, а только при покупке)
+    // Активируем реферала при покупке исследования "Основы блокчейна"
     if (state.referredBy) {
       console.log('***Активируем реферала при ПОКУПКЕ "Основы блокчейна"***');
       console.log('Пригласивший пользователь:', state.referredBy);
@@ -194,9 +237,6 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
     }
   });
-  
-  // Мы удаляем логику активации реферала при разблокировке, так как теперь она происходит
-  // только при покупке исследования "Основы блокчейна", чтобы избежать двойной активации
   
   if (hasChanges) {
     return {

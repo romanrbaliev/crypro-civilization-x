@@ -48,7 +48,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
       Object.entries(effects).forEach(([effectId, amount]) => {
         if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
           const boost = Number(amount);
-          const baseProduction = updatedResources.knowledge.perSecond;
+          // Используем baseProduction вместо perSecond для предотвращения двойного учета
+          const baseProduction = updatedResources.knowledge.baseProduction || 0;
           const boostAmount = baseProduction * boost;
           
           // Увеличиваем скорость накопления знаний
@@ -62,7 +63,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
           const resourceId = effectId.replace('Boost', '');
           if (updatedResources[resourceId]) {
             const boost = Number(amount);
-            const baseProduction = updatedResources[resourceId].perSecond;
+            // Используем baseProduction вместо perSecond для предотвращения двойного учета
+            const baseProduction = updatedResources[resourceId].baseProduction || 0;
             const boostAmount = baseProduction * boost;
             
             // Увеличиваем скорость накопления ресурса
@@ -79,9 +81,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Обновляем значения ресурсов с учетом времени
   updatedResources = updateResourceValues(updatedResources, deltaTime);
   
-  // Добавляем логирование для отладки состояния помощников 
-  // (но без авто-обновления и только если есть активные помощники)
-  // Используем унифицированную функцию для проверки активных помощников
+  // Добавляем логирование для отладки состояния помощников
   if (hasActiveHelpers(state.referralHelpers)) {
     const activeHelpers = state.referralHelpers.filter(h => h.status === 'accepted');
     console.log(`Активные помощники (${activeHelpers.length}):`);
