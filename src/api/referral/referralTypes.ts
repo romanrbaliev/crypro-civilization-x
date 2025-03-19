@@ -49,3 +49,11 @@ export interface EmployerHelperBuildingsResponse {
   helperBuildings: HelperBuilding[];
   success: boolean;
 }
+
+// Добавим тип для обновления статуса реферала
+export interface ReferralStatusUpdate {
+  referralId: string;
+  activated: boolean;
+  hired?: boolean;
+  buildingId?: string | null;
+}

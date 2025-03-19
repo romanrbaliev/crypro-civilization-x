@@ -1,4 +1,3 @@
-
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -310,7 +309,7 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
       );
     }
   } catch (error) {
-    console.error('Ошибка при импорте функций обновления в БД:', error);
+    console.error('Ошиб��а при импорте функций обновления в БД:', error);
   }
   
   // Создаем обновленное состояние
@@ -343,12 +342,7 @@ const generateId = (): string => {
 };
 
 // Улучшенная функция обновления статуса реферала
-const processUpdateReferralStatus = (state: GameState, payload: { 
-  referralId: string; 
-  activated: boolean; 
-  hired?: boolean;
-  buildingId?: string | null;
-}): GameState => {
+const processUpdateReferralStatus = (state: GameState, payload: ReferralStatusUpdate): GameState => {
   console.log(`Обновление статуса реферала ${payload.referralId}:`, payload);
   
   const referralExists = state.referrals.some(ref => ref.id === payload.referralId);

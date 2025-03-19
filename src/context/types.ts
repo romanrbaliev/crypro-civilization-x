@@ -140,10 +140,10 @@ export type GameAction =
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
   | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }
   | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
-  | { type: "INCREMENT_COUNTER"; payload: { counterId: string; value?: number } }
+  | { type: "INCREMENT_COUNTER"; payload: { counterId: string; value: number } }
   | { type: "CHECK_SYNERGIES" }
   | { type: "ACTIVATE_SYNERGY"; payload: { synergyId: string } }
-  | { type: "LOAD_GAME"; payload: Partial<GameState> }
+  | { type: "LOAD_GAME"; payload: GameState }
   | { type: "START_GAME" }
   | { type: "PRESTIGE" }
   | { type: "RESET_GAME" }
@@ -156,5 +156,5 @@ export type GameAction =
   | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
-  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; activated: boolean } }
+  | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
   | { type: "FORCE_RESOURCE_UPDATE" };
