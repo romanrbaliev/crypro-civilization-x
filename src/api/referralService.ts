@@ -401,6 +401,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       return false;
     }
     
+    // Обновляем статус активации в таблице referral_data
     const { error: updateReferralError } = await supabase
       .from(REFERRAL_TABLE)
       .update({ is_activated: true })
@@ -451,7 +452,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
         const newReferral = {
           id: referralId,
           username: `Пользователь ${referralId.substring(0, 6)}`,
-          activated: true,
+          activated: true,  // Явно указываем boolean тип
           joinedAt: Date.now()
         };
         
@@ -470,7 +471,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
         
         gameData.referrals[referralIndex] = {
           ...referral,
-          activated: true
+          activated: true  // Явно указываем boolean тип
         };
       }
       
@@ -492,6 +493,7 @@ export const activateReferral = async (referralId: string): Promise<boolean> => 
       
       safeDispatchGameEvent("Ваш реферер получил бонус за ваше развитие!", "success");
       
+      // Отправляем событие для обновления UI
       setTimeout(() => {
         try {
           const refreshEvent = new CustomEvent('refresh-referrals');

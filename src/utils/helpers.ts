@@ -1,4 +1,3 @@
-
 /**
  * Проверяет, достаточно ли ресурсов для совершения покупки
  */
@@ -93,8 +92,8 @@ export const calculateReferralBonus = (referrals: any[]): number => {
   }));
   console.log(`Детальная информация о рефералах:`, JSON.stringify(referralDetails, null, 2));
   
-  // КРИТИЧЕСКИ ВАЖНО: Считаем только рефералов с явным значением activated === true
-  // Никаких приведений типов и предположений
+  // КРИТИЧЕСКИ ВАЖНО: Считаем ТОЛЬКО рефералов с явным значением activated === true
+  // Строгое (===) сравнение с true гарантирует, что учитываются только явно активированные рефералы
   const activeReferrals = referrals.filter(ref => ref.activated === true);
   console.log(`Расчет бонуса от рефералов: ${activeReferrals.length} активных из ${referrals.length} всего`);
   
@@ -102,11 +101,10 @@ export const calculateReferralBonus = (referrals: any[]): number => {
     console.log('Активированные рефералы:', activeReferrals.map(r => r.id));
   }
   
-  // Дополнительный лог общего бонуса
+  // Бонус: +5% за каждого активного реферала
   const bonus = activeReferrals.length * 0.05;
   console.log(`Общий бонус от рефералов: +${bonus * 100}%`);
   
-  // Бонус: +5% за каждого активного реферала
   return bonus;
 };
 
