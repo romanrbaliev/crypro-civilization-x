@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,12 @@ import { Label } from "@/components/ui/label";
 import { getUserIdentifier } from '@/api/gameDataService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { checkSupabaseConnection } from '@/api/connectionUtils';
+import {
+  isReferralHired,
+  isReferralHiredForBuilding,
+  getReferralAssignedBuildingId
+} from '@/utils/referralHelperUtils';
+import { triggerReferralUIUpdate } from '@/api/referralService';
 
 interface ReferralsTabProps {
   onAddEvent: (message: string, type?: string) => void;
@@ -47,6 +53,7 @@ interface ReferralItemProps {
   setSelectedBuildingId: (id: string) => void;
   isHelperAssigned: (referralId: string, buildingId: string) => boolean;
   assignedBuildingId?: string;
+  referralHelpers: any[];
 }
 
 const ReferralItem: React.FC<ReferralItemProps> = ({
@@ -62,8 +69,10 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
   selectedBuildingId,
   setSelectedBuildingId,
   isHelperAssigned,
-  assignedBuildingId
+  assignedBuildingId,
+  referralHelpers
 }) => {
+  // Проверяем, назначен ли реферал на какое-либо здание
   const isAssigned = Boolean(assignedBuildingId);
   
   const [directDbStatus, setDirectDbStatus] = useState<boolean | null>(null);
@@ -74,6 +83,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
         ? referral.activated 
         : String(referral.activated).toLowerCase() === 'true');
   
+  // При монтировании проверяем статус в базе данных
   useEffect(() => {
     const checkStatusInDb = async () => {
       try {
@@ -97,11 +107,18 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
     checkStatusInDb();
   }, [referral.id]);
   
+  // Проверяем, нанят ли реферал в данный момент
+  const isHired = useMemo(() => {
+    return referralHelpers.some(
+      helper => helper.helperId === referral.id && helper.status === 'accepted'
+    );
+  }, [referral.id, referralHelpers]);
+  
   console.log(`Отображение карточки реферала ${referral.id}:`, {
     activated: referral.activated,
     directDbStatus,
     isActivated,
-    typeOfActivated: typeof referral.activated,
+    isHired,
     assignedBuildingId
   });
   
@@ -111,16 +128,20 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
         <div className="flex-grow">
           <div className="text-[10px] font-medium">{referral.username}</div>
           <div className="text-[9px] text-gray-500">
-            ID: <span className="font-mono">{referral.id}</span>
+            ID: <span className="font-mono">{referral.id.substring(0, 8)}</span>
           </div>
           <div className="text-[9px] text-gray-500">
             Присоединился: {new Date(referral.joinedAt).toLocaleDateString()}
           </div>
           <div className="text-[9px] mt-1">
             Статус: {' '}
-            <span className={isActivated ? "text-green-600" : "text-gray-500"}>
-              {isActivated ? "Активирован" : "Не активирован"}
-            </span>
+            {isHired ? (
+              <span className="text-green-600 font-medium">Помощник</span>
+            ) : isActivated ? (
+              <span className="text-blue-600">Активирован</span>
+            ) : (
+              <span className="text-gray-500">Не активирован</span>
+            )}
           </div>
           {isAssigned && assignedBuildingId && (
             <div className="text-[9px] text-green-600 mt-0.5">
@@ -131,13 +152,14 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
         
         {isActivated && !ownedReferral && (
           <div className="ml-2 flex-shrink-0">
-            {isAssigned ? (
+            {isHired ? (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-6 px-2 text-[9px]"
+                className="h-6 px-2 text-[9px] bg-red-50 hover:bg-red-100"
                 onClick={() => onFire(referral.id, assignedBuildingId as string)}
               >
+                <X className="h-3 w-3 mr-1 text-red-600" />
                 Уволить
               </Button>
             ) : (
@@ -148,8 +170,9 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-6 px-2 text-[9px]"
+                    className="h-6 px-2 text-[9px] bg-green-50 hover:bg-green-100"
                   >
+                    <Building className="h-3 w-3 mr-1 text-green-600" />
                     Нанять
                   </Button>
                 </DialogTrigger>
@@ -234,6 +257,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const REFERRAL_TABLE = 'referral_data';
   const SAVES_TABLE = 'game_saves';
 
+  // Получение информации о Telegram пользователе
   useEffect(() => {
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
       try {
@@ -252,6 +276,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   }, []);
 
+  // Получение ID пользователя
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
@@ -266,6 +291,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     loadUserInfo();
   }, []);
 
+  // Настройка реферальной ссылки
   useEffect(() => {
     if (state.referralCode) {
       setReferralLink(`https://t.me/Crypto_civilization_bot/app?startapp=${state.referralCode}`);
@@ -278,7 +304,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   }, [state.referralCode, dispatch, userId]);
 
-  const loadReferrals = async () => {
+  // Загрузка рефералов из базы данных
+  const loadReferrals = useCallback(async () => {
     try {
       setIsRefreshingReferrals(true);
       const id = await getUserIdentifier();
@@ -293,20 +320,39 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       if (userData && userData.referral_code) {
         console.log('Реферальный код пользователя:', userData.referral_code);
         
+        // Получаем данные рефералов напрямую из базы данных
         const { data: directReferrals } = await supabase
           .from(REFERRAL_TABLE)
-          .select('user_id, created_at, referred_by')
+          .select('user_id, created_at, referred_by, is_activated')
           .eq('referred_by', userData.referral_code);
           
         console.log('Найденные рефералы напрямую из базы:', directReferrals);
         
         if (directReferrals && directReferrals.length > 0) {
-          const formattedReferrals = directReferrals.map(ref => ({
-            id: ref.user_id,
-            username: `ID: ${ref.user_id}`,
-            activated: true,
-            joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
-          }));
+          // Получаем информацию о назначенных помощниках
+          const { data: helperData } = await supabase
+            .from('referral_helpers')
+            .select('helper_id, building_id, status')
+            .eq('employer_id', id)
+            .eq('status', 'accepted');
+            
+          const helpers = helperData || [];
+          console.log('Найденные помощники из базы:', helpers);
+          
+          const formattedReferrals = directReferrals.map(ref => {
+            const helperInfo = helpers.find(h => h.helper_id === ref.user_id);
+            const isHired = Boolean(helperInfo);
+            const assignedBuildingId = helperInfo ? helperInfo.building_id : undefined;
+            
+            return {
+              id: ref.user_id,
+              username: `ID: ${ref.user_id.substring(0, 6)}`,
+              activated: ref.is_activated === true,
+              hired: isHired,
+              assignedBuildingId: assignedBuildingId,
+              joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
+            };
+          });
           
           dispatch({ 
             type: "LOAD_GAME", 
@@ -334,8 +380,9 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     } finally {
       setIsRefreshingReferrals(false);
     }
-  };
+  }, [state, dispatch, onAddEvent]);
 
+  // Принудительное обновление рефералов из базы данных
   const forceRefreshReferrals = async () => {
     try {
       setIsRefreshingReferrals(true);
@@ -397,47 +444,36 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         return;
       }
       
-      const updatedReferrals = await Promise.all((directReferrals || []).map(async (ref) => {
-        const { data: activationData, error: activationError } = await supabase
-          .from('referral_data')
-          .select('is_activated')
-          .eq('user_id', ref.user_id)
-          .single();
-          
-        if (activationError) {
-          console.error(`❌ Ошибка при получении статуса активации для ${ref.user_id}:`, activationError);
-          return {
-            id: ref.user_id,
-            username: `ID: ${ref.user_id.substring(0, 6)}`,
-            activated: false,
-            typeOfActivated: 'boolean',
-            joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
-          };
-        }
-          
-        const isActivated = activationData?.is_activated === true;
+      // Получаем информацию о назначенных помощниках
+      const { data: helperData } = await supabase
+        .from('referral_helpers')
+        .select('helper_id, building_id, status')
+        .eq('employer_id', id)
+        .eq('status', 'accepted');
+        
+      const helpers = helperData || [];
+      console.log('Найденные помощники из базы:', helpers);
+      
+      const updatedReferrals = (directReferrals || []).map(ref => {
+        const helperInfo = helpers.find(h => h.helper_id === ref.user_id);
+        const isHired = Boolean(helperInfo);
+        const assignedBuildingId = helperInfo ? helperInfo.building_id : undefined;
         
         console.log(`Обновление статуса для реферала ${ref.user_id}:`, {
-          dbStatus: activationData?.is_activated,
-          isActivated
+          dbStatus: ref.is_activated,
+          isHired,
+          buildingId: assignedBuildingId
         });
         
-        dispatch({
-          type: "UPDATE_REFERRAL_STATUS",
-          payload: {
-            referralId: ref.user_id,
-            activated: isActivated
-          }
-        });
-          
         return {
           id: ref.user_id,
           username: `ID: ${ref.user_id.substring(0, 6)}`,
-          activated: isActivated,
-          typeOfActivated: typeof isActivated,
+          activated: ref.is_activated === true,
+          hired: isHired,
+          assignedBuildingId: assignedBuildingId,
           joinedAt: ref.created_at ? new Date(ref.created_at).getTime() : Date.now()
         };
-      }));
+      });
       
       console.log('Обновленные данные рефералов для сохранения:', 
         JSON.stringify(updatedReferrals, null, 2));
@@ -450,11 +486,24 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         } 
       });
       
+      // Для каждого назначенного реферала создаем событие обновления UI
+      helpers.forEach(helper => {
+        triggerReferralUIUpdate(helper.helper_id, true, helper.building_id);
+      });
+      
       const activeCount = updatedReferrals.filter(r => r.activated === true).length;
       onAddEvent(`Обновлено ${updatedReferrals.length} рефералов. Активных: ${activeCount}`, "success");
       
+      // Запускаем событие обновления в приложении
       const refreshEvent = new CustomEvent('refresh-referrals');
       window.dispatchEvent(refreshEvent);
+      
+      // Запускаем принудительное обновление ресурсов
+      setTimeout(() => {
+        const forceUpdateEvent = new CustomEvent('force-resource-update');
+        window.dispatchEvent(forceUpdateEvent);
+        console.log('Отправлен запрос на принудительное обновление ресурсов');
+      }, 500);
       
     } catch (error) {
       console.error('❌ Ошибка при обновлении рефералов:', error);
@@ -464,13 +513,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
+  // Начальная загрузка рефералов
   useEffect(() => {
     console.log('ReferralsTab: Монтирование компонента, загружаем рефералов...');
     loadReferrals();
     const intervalId = setInterval(loadReferrals, 60000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [loadReferrals]);
 
+  // Копирование реферальной ссылки
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink)
       .then(() => {
@@ -490,6 +541,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       });
   };
 
+  // Отправка приглашения через Telegram
   const sendTelegramInvite = () => {
     if (isTelegramWebAppAvailable() && window.Telegram?.WebApp) {
       try {
@@ -508,11 +560,13 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
+  // Обработчик обновления рефералов
   const handleRefreshReferrals = () => {
     forceRefreshReferrals();
     onAddEvent("Обновление списка рефералов...", "info");
   };
 
+  // Получение совместимых зданий
   const getCompatibleBuildings = async (referralId: string) => {
     try {
       console.log(`Получение доступных зданий для реферала ${referralId}`);
@@ -576,22 +630,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
-  const getBuildingResources = (buildingId: string) => {
-    const building = state.buildings[buildingId];
-    if (!building) return [];
-    
-    return Object.entries(building.production)
-      .filter(([_, amount]) => amount > 0)
-      .map(([resourceId, amount]) => {
-        const resource = state.resources[resourceId];
-        return {
-          id: resourceId,
-          name: resource?.name || resourceId,
-          amount: amount
-        };
-      });
-  };
-
+  // Найм помощника
   const hireHelper = async (referralId: string, buildingId: string) => {
     if (!buildingId) {
       toast({
@@ -605,6 +644,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     try {
       const userId = await getUserIdentifier();
       
+      // Добавляем информацию о помощнике в локальное состояние
       dispatch({ 
         type: "HIRE_REFERRAL_HELPER", 
         payload: { 
@@ -613,6 +653,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         } 
       });
 
+      // Отправляем запрос в базу данных
       const { data, error } = await supabase
         .from('referral_helpers')
         .insert({
@@ -632,6 +673,20 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         description: "Ожидаем ответа помощника",
       });
       onAddEvent("Приглашение помощника отправлено", "success");
+      
+      // Обновляем UI
+      const referral = state.referrals.find(r => r.id === referralId);
+      if (referral) {
+        dispatch({
+          type: "UPDATE_REFERRAL_STATUS",
+          payload: {
+            referralId,
+            activated: true,
+            hired: false,
+            buildingId: null
+          }
+        });
+      }
     } catch (error) {
       console.error("Ошибка при отправке приглашения:", error);
       toast({
@@ -642,6 +697,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
+  // Увольнение помощника
   const fireHelper = async (referralId: string, buildingId: string) => {
     try {
       if (!buildingId) {
@@ -669,6 +725,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         return;
       }
       
+      // Обновляем статус в базе данных
       const { error } = await supabase
         .from('referral_helpers')
         .update({ status: 'rejected' })
@@ -681,6 +738,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         throw error;
       }
       
+      // Обновляем локальное состояние
       const updatedHelpers = state.referralHelpers.map(h => 
         (h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted')
           ? { ...h, status: 'rejected' as const }
@@ -695,11 +753,35 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         } 
       });
       
+      // Обновляем статус реферала
+      const updatedReferrals = state.referrals.map(ref => 
+        ref.id === referralId 
+          ? { ...ref, hired: false, assignedBuildingId: undefined } 
+          : ref
+      );
+      
+      dispatch({
+        type: "LOAD_GAME",
+        payload: {
+          ...state,
+          referrals: updatedReferrals
+        }
+      });
+      
+      // Уведомляем пользователя
       toast({
         title: "Помощник уволен",
         description: "Бонус к производительности здания отменён",
       });
       onAddEvent("Помощник уволен", "info");
+      
+      // Запускаем обновление UI
+      triggerReferralUIUpdate(referralId, false);
+      
+      // Принудительно обновляем производство
+      setTimeout(() => {
+        dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      }, 500);
       
     } catch (error) {
       console.error("Ошибка при увольнении помощника:", error);
@@ -711,6 +793,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
+  // Загрузка запросов на сотрудничество
   useEffect(() => {
     const loadHelperRequests = async () => {
       try {
@@ -738,8 +821,15 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Обработка ответа на запрос помощника
   const respondToHelperRequest = async (helperId: string, accepted: boolean) => {
     try {
+      const helperRequest = helperRequests.find(req => req.id === helperId);
+      if (!helperRequest) {
+        console.error("Запрос не найден:", helperId);
+        return;
+      }
+      
       dispatch({ 
         type: "RESPOND_TO_HELPER_REQUEST", 
         payload: { 
@@ -760,11 +850,32 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
 
       setHelperRequests(prev => prev.filter(req => req.id !== helperId));
 
+      const buildingId = helperRequest.building_id;
+      const buildingName = state.buildings[buildingId]?.name || 'неизвестное здание';
+
       toast({
         title: accepted ? "Вы приняли предложение" : "Вы отклонили предложение",
-        description: accepted ? "Теперь вы получаете бонус +10% к производительности" : "Предложение отклонено",
+        description: accepted 
+          ? `Теперь вы помогаете зданию "${buildingName}" и получаете бонус +10% к производительности` 
+          : "Предложение отклонено",
       });
-      onAddEvent(accepted ? "Вы приняли предложение о работе" : "Вы отклонили предложение о работе", accepted ? "success" : "info");
+      
+      onAddEvent(
+        accepted 
+          ? `Вы приняли предложение о работе для здания "${buildingName}"` 
+          : "Вы отклонили предложение о работе", 
+        accepted ? "success" : "info"
+      );
+      
+      if (accepted) {
+        // Запускаем обновление UI
+        triggerReferralUIUpdate(helperRequest.helper_id, true, buildingId);
+        
+        // Через 1 секунду запускаем принудительное обновление производства
+        setTimeout(() => {
+          dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+        }, 1000);
+      }
     } catch (error) {
       console.error("Ошибка при ответе на запрос:", error);
       toast({
@@ -775,19 +886,17 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
   
+  // Проверка, назначен ли помощник на здание
   const isHelperAssigned = (referralId: string, buildingId: string) => {
-    return state.referralHelpers.some(
-      h => h.helperId === referralId && h.buildingId === buildingId && h.status === 'accepted'
-    );
+    return isReferralHiredForBuilding(referralId, buildingId, state.referralHelpers);
   };
   
+  // Получение ID здания, на которое назначен помощник
   const getAssignedBuildingId = (referralId: string) => {
-    const helper = state.referralHelpers.find(
-      h => h.helperId === referralId && h.status === 'accepted'
-    );
-    return helper ? helper.buildingId : undefined;
+    return getReferralAssignedBuildingId(referralId, state.referralHelpers);
   };
 
+  // Загрузка доступных зданий для реферала
   const loadAvailableBuildingsForReferral = async (referralId: string) => {
     try {
       const buildings = await getCompatibleBuildings(referralId);
@@ -807,6 +916,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
+  // Статистика рефералов
   const totalReferrals = state.referrals?.length || 0;
   const activeReferrals = state.referrals?.filter(ref => 
     typeof ref.activated === 'boolean' 
@@ -814,6 +924,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       : String(ref.activated).toLowerCase() === 'true'
   )?.length || 0;
 
+  // Фильтрация рефералов по вкладке
   const filteredReferrals = currentTab === 'active' 
     ? (state.referrals || []).filter(ref => 
         (typeof ref.activated === 'boolean' && ref.activated === true) ||
@@ -821,13 +932,14 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       )
     : (state.referrals || []);
 
+  // Получение списка зданий пользователя
   const getUserBuildings = () => Object.values(state.buildings || {})
     .filter(b => b.count > 0);
 
   const hasHelperRequests = helperRequests.length > 0;
-
   const isTelegramUser = telegramUserInfo !== null;
 
+  // Основной рендеринг компонента
   return (
     <div className="p-2 flex flex-col h-full">
       <div className="mb-2">
@@ -969,6 +1081,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                   setSelectedBuildingId={setSelectedBuildingId}
                   isHelperAssigned={isHelperAssigned}
                   assignedBuildingId={getAssignedBuildingId(referral.id)}
+                  referralHelpers={state.referralHelpers}
                 />
               ))}
             </div>
@@ -1011,6 +1124,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                   setSelectedBuildingId={setSelectedBuildingId}
                   isHelperAssigned={isHelperAssigned}
                   assignedBuildingId={getAssignedBuildingId(referral.id)}
+                  referralHelpers={state.referralHelpers}
                 />
               ))}
             </div>

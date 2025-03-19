@@ -7,9 +7,9 @@ export interface ReferralData {
   id: string;
   username: string;
   activated: boolean;
-  hired?: boolean; // Для фронтенда, в базе данных это поле не хранится
+  hired?: boolean;
   joinedAt: number;
-  assignedBuildingId?: string; // Для фронтенда, в базе данных это поле не хранится
+  assignedBuildingId?: string;
 }
 
 export interface ReferralDataWithActivation extends ReferralData {

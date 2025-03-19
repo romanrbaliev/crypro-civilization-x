@@ -19,9 +19,22 @@ export const getUserReferrals = async (): Promise<any[]> => {
       return [];
     }
     
+    // Проверяем соединение с базой данных
+    const { data: connectionTest, error: connectionError } = await supabase
+      .from(REFERRAL_TABLE)
+      .select('count(*)');
+      
+    if (connectionError) {
+      console.error('❌ Ошибка соединения с базой данных:', connectionError);
+      return [];
+    }
+    
+    console.log('✅ Соединение с базой данных подтверждено');
+    
+    // Получаем только реальные данные из базы данных
     const { data, error } = await supabase
       .from(REFERRAL_TABLE)
-      .select('*')
+      .select('user_id, created_at, is_activated')
       .eq('referred_by', userReferralCode);
     
     if (error) {
@@ -31,22 +44,46 @@ export const getUserReferrals = async (): Promise<any[]> => {
     
     console.log(`✅ Получено ${data?.length || 0} рефералов из базы данных:`, data);
     
+    // Дополнительная проверка на валидность данных
+    if (!data || !Array.isArray(data)) {
+      console.warn('⚠️ Данные о рефералах отсутствуют или имеют неверный формат');
+      return [];
+    }
+    
+    // Получаем данные о помощниках для определения, назначены ли рефералы на здания
+    const { data: helpersData, error: helpersError } = await supabase
+      .from('referral_helpers')
+      .select('helper_id, building_id, status')
+      .eq('employer_id', userId)
+      .eq('status', 'accepted');
+      
+    if (helpersError) {
+      console.error('❌ Ошибка при получении данных о помощниках:', helpersError);
+    }
+    
+    const activeHelpers = helpersData || [];
+    console.log('Активные помощники:', activeHelpers);
+    
     const referrals = (data || []).map(referral => {
-      const referralData = referral as unknown as ReferralDataWithActivation;
+      // Проверяем статус помощника
+      const helperInfo = activeHelpers.find(h => h.helper_id === referral.user_id);
+      const isHired = Boolean(helperInfo);
+      const assignedBuildingId = helperInfo ? helperInfo.building_id : undefined;
       
-      let activated = false;
+      const activated = referral.is_activated === true;
       
-      if (typeof referralData.is_activated === 'boolean') {
-        activated = referralData.is_activated;
-        console.log(`Реферал ${referral.user_id} имеет статус активации:`, activated);
-      } else {
-        console.log(`Реферал ${referral.user_id} имеет неопределенный статус активации, устанавливаем false`);
-      }
+      console.log(`Обработка реферала ${referral.user_id}:`, {
+        activated,
+        hired: isHired,
+        buildingId: assignedBuildingId
+      });
       
       return {
         id: referral.user_id,
         username: `Пользователь ${referral.user_id.substring(0, 6)}`,
         activated: activated,
+        hired: isHired,
+        assignedBuildingId: assignedBuildingId,
         joinedAt: new Date(referral.created_at).getTime()
       };
     });

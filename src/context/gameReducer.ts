@@ -1,3 +1,4 @@
+
 import { GameState, GameAction, ReferralHelper } from './types';
 import { initialState } from './initialState';
 
@@ -27,6 +28,7 @@ import {
 import { generateReferralCode } from '@/utils/helpers';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
 import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
+import { triggerReferralUIUpdate } from '@/api/referralService';
 import { 
   checkSynergies, 
   activateSynergy, 
@@ -100,6 +102,10 @@ const processActivateReferral = (state: GameState, payload: { referralId: string
       });
       window.dispatchEvent(updateEvent);
       console.log(`Отправлено событие активации реферала ${payload.referralId}`);
+      
+      // Принудительно обновляем ресурсы после активации реферала
+      const forceUpdateEvent = new CustomEvent('force-resource-update');
+      window.dispatchEvent(forceUpdateEvent);
     } catch (error) {
       console.error('Ошибка при отправке события активации реферала:', error);
     }
@@ -247,10 +253,12 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     };
   }
   
+  // Обновляем статус помощника на "accepted"
   let updatedHelpers = state.referralHelpers.map(h => 
     h.id === helperId ? { ...h, status: 'accepted' as const } : h
   );
   
+  // Обновляем статус реферала и связываем с зданием
   const updatedReferrals = state.referrals.map(ref => 
     ref.id === helper.helperId 
       ? { 
@@ -268,18 +276,13 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
   
   safeDispatchGameEvent(`Вы приняли предложение о работе для здания "${buildingName}"`, "success");
   
+  // Отправляем уведомления и события обновления состояния
   setTimeout(() => {
     try {
-      const updateEvent = new CustomEvent('referral-status-updated', {
-        detail: { 
-          referralId: helper.helperId, 
-          hired: true, 
-          buildingId: helper.buildingId 
-        }
-      });
-      window.dispatchEvent(updateEvent);
-      console.log(`Отправлено событие обновления статуса реферала ${helper.helperId}`);
+      // Отправляем событие обновления статуса реферала
+      triggerReferralUIUpdate(helper.helperId, true, helper.buildingId);
       
+      // Отправляем отладочное событие
       const debugEvent = new CustomEvent('debug-helper-step', {
         detail: { 
           step: 'request-accepted', 
@@ -289,31 +292,20 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
         }
       });
       window.dispatchEvent(debugEvent);
-      
-      const productionEvent = new CustomEvent('helper-production-update', {
-        detail: { 
-          helperId: helper.helperId,
-          buildingId: helper.buildingId,
-          buildingName: buildingName
-        }
-      });
-      window.dispatchEvent(productionEvent);
     } catch (error) {
       console.error('Ошибка при отправке событий обновления:', error);
     }
   }, 300);
   
+  // Обновляем статус в базе данных
   try {
-    const { updateReferralHiredStatus } = require('@/api/referralService');
-    if (typeof updateReferralHiredStatus === 'function') {
+    const { updateReferralHiredStatus, updateHelperRequestStatus } = require('@/api/referralService');
+    if (typeof updateReferralHiredStatus === 'function' && typeof updateHelperRequestStatus === 'function') {
       updateReferralHiredStatus(helper.helperId, true, helper.buildingId).catch(err => 
         console.error("Ошибка при обновлении статуса реферала в БД:", err)
       );
-    }
-    
-    const { updateHelperRequestStatus } = require('@/api/referralService');
-    if (typeof updateHelperRequestStatus === 'function') {
-      updateHelperRequestStatus(helper.helperId, 'accepted', helper.buildingId).catch(err => 
+      
+      updateHelperRequestStatus(helper.id, 'accepted', helper.buildingId).catch(err => 
         console.error("Ошибка при обновлении статуса помощника в БД:", err)
       );
     }
@@ -321,6 +313,7 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     console.error('Ошибка при импорте функций обновления в БД:', error);
   }
   
+  // Создаем обновленное состояние
   let updatedState = {
     ...state,
     referralHelpers: updatedHelpers,
@@ -333,6 +326,7 @@ const processRespondToHelperRequest = (state: GameState, payload: { helperId: st
     `Статус: accepted`
   );
   
+  // Запускаем принудительное обновление ресурсов
   setTimeout(() => {
     if (typeof window.dispatchEvent === 'function') {
       const forceUpdateEvent = new CustomEvent('force-resource-update');
@@ -348,8 +342,14 @@ const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
-const processUpdateReferralStatus = (state: GameState, payload: { referralId: string; activated: boolean }): GameState => {
-  console.log(`Обновление статуса реферала ${payload.referralId} на ${payload.activated} в gameReducer`);
+// Улучшенная функция обновления статуса реферала
+const processUpdateReferralStatus = (state: GameState, payload: { 
+  referralId: string; 
+  activated: boolean; 
+  hired?: boolean;
+  buildingId?: string | null;
+}): GameState => {
+  console.log(`Обновление статуса реферала ${payload.referralId}:`, payload);
   
   const referralExists = state.referrals.some(ref => ref.id === payload.referralId);
   if (!referralExists) {
@@ -357,15 +357,34 @@ const processUpdateReferralStatus = (state: GameState, payload: { referralId: st
     return state;
   }
   
+  // Обновляем статус реферала с учетом всех полей
   const updatedReferrals = state.referrals.map(ref => 
     ref.id === payload.referralId 
-      ? { ...ref, activated: payload.activated === true } 
+      ? { 
+          ...ref, 
+          activated: payload.activated === true,
+          ...(payload.hired !== undefined ? { hired: payload.hired } : {}),
+          ...(payload.buildingId !== undefined ? 
+              { assignedBuildingId: payload.buildingId === null ? undefined : payload.buildingId } 
+              : {})
+        } 
       : ref
   );
   
-  console.log(`Обновлены статусы рефералов из БД в gameReducer:`, 
-    updatedReferrals.map(r => ({ id: r.id, activated: r.activated }))
+  console.log(`Обновлены статусы рефералов в gameReducer:`, 
+    updatedReferrals.map(r => ({ 
+      id: r.id, 
+      activated: r.activated,
+      hired: r.hired,
+      buildingId: r.assignedBuildingId
+    }))
   );
+  
+  // Запускаем принудительное обновление ресурсов
+  setTimeout(() => {
+    const forceUpdateEvent = new CustomEvent('force-resource-update');
+    window.dispatchEvent(forceUpdateEvent);
+  }, 500);
   
   return {
     ...state,

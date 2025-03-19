@@ -13,12 +13,15 @@ export const isReferralHiredForBuilding = (
   buildingId: string,
   referralHelpers: ReferralHelper[]
 ): boolean => {
-  return referralHelpers.some(
+  const result = referralHelpers.some(
     helper => 
       helper.helperId === referralId && 
       helper.buildingId === buildingId && 
       helper.status === 'accepted'
   );
+  
+  console.log(`Проверка назначения реферала ${referralId} на здание ${buildingId}:`, result);
+  return result;
 };
 
 /**
@@ -31,9 +34,12 @@ export const isReferralHired = (
   referralId: string,
   referralHelpers: ReferralHelper[]
 ): boolean => {
-  return referralHelpers.some(
+  const result = referralHelpers.some(
     helper => helper.helperId === referralId && helper.status === 'accepted'
   );
+  
+  console.log(`Проверка найма реферала ${referralId}:`, result);
+  return result;
 };
 
 /**
@@ -50,7 +56,9 @@ export const getReferralAssignedBuildingId = (
     h => h.helperId === referralId && h.status === 'accepted'
   );
   
-  return helper ? helper.buildingId : null;
+  const result = helper ? helper.buildingId : null;
+  console.log(`Получение ID здания для реферала ${referralId}:`, result);
+  return result;
 };
 
 /**
@@ -69,7 +77,9 @@ export const calculateBuildingBoostFromHelpers = (
   ).length;
   
   // Каждый помощник дает бонус в 10%
-  return acceptedHelpersCount * 0.1;
+  const boost = acceptedHelpersCount * 0.1;
+  console.log(`Бонус от помощников для здания ${buildingId}: ${boost * 100}% (${acceptedHelpersCount} помощников)`);
+  return boost;
 };
 
 /**
@@ -103,5 +113,33 @@ export const getTotalHelperBoost = (
   ).length;
   
   // Каждый помощник дает бонус в 10% к определенному зданию
-  return acceptedHelpersCount * 0.1;
+  const totalBoost = acceptedHelpersCount * 0.1;
+  console.log(`Общий бонус от помощников: ${totalBoost * 100}% (${acceptedHelpersCount} принятых запросов)`);
+  return totalBoost;
+};
+
+/**
+ * Получает список принятых помощников для конкретного пользователя
+ * @param referralHelpers Список всех помощников
+ * @param referralId ID реферала для проверки
+ * @returns Список принятых запросов помощи
+ */
+export const getAcceptedHelperRequests = (
+  referralHelpers: ReferralHelper[],
+  referralId: string
+): ReferralHelper[] => {
+  return referralHelpers.filter(
+    helper => helper.helperId === referralId && helper.status === 'accepted'
+  );
+};
+
+/**
+ * Проверяет, есть ли у пользователя активные помощники
+ * @param referralHelpers Список всех помощников
+ * @returns true, если есть хотя бы один принятый запрос
+ */
+export const hasActiveHelpers = (
+  referralHelpers: ReferralHelper[]
+): boolean => {
+  return referralHelpers.some(helper => helper.status === 'accepted');
 };
