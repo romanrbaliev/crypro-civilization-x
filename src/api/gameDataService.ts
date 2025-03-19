@@ -11,7 +11,7 @@ export {
   getUserReferralCode, 
   checkReferralInfo, 
   activateReferral 
-} from './referral';
+} from './referralService';
 export { 
   saveGameToServer, 
   loadGameFromServer 
