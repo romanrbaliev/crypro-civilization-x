@@ -83,9 +83,6 @@ export const processPurchaseBuilding = (
     buildings: newBuildings
   };
   
-  // Обновляем максимальные значения ресурсов
-  newState = updateResourceMaxValues(newState);
-  
   // НОВЫЙ КОД: Разблокировка вкладки исследований при покупке первого генератора
   if (buildingId === "generator" && building.count === 0) {
     console.log("Разблокируем вкладку исследований после покупки первого генератора");
@@ -134,6 +131,9 @@ export const processPurchaseBuilding = (
     safeDispatchGameEvent("Разблокирована вкладка исследований", "success");
     safeDispatchGameEvent("Доступно новое исследование: Основы блокчейна", "info");
   }
+  
+  // Обновляем максимальные значения ресурсов
+  newState = updateResourceMaxValues(newState);
   
   // Проверяем разблокировку улучшений
   newState = checkUpgradeUnlocks(newState);
