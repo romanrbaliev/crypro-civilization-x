@@ -43,20 +43,6 @@ import {
   initializeReferralSystem
 } from './reducers/referralReducer';
 
-// Обновляем ACTION_TYPES, добавляя поддержку асинхронности
-export type ACTION_TYPES =
-  | { type: 'START_GAME' }
-  | { type: 'UPDATE_RESOURCES' }
-  | { type: 'TRIGGER_ACTION'; payload: { action: string; amount?: number } }
-  | { type: 'PURCHASE_BUILDING'; payload: { buildingId: string; amount?: number } }
-  | { type: 'PURCHASE_UPGRADE'; payload: { upgradeId: string } }
-  | { type: 'UPDATE_REFERRALS'; payload: { referrals: any[] } }
-  | { type: 'UPDATE_REFERRAL_HELPERS'; payload: { helpers: any[] } }
-  | { type: 'UPDATE_BUILDING_HELPER_STATUS'; payload: { buildingId: string; helperId: string; status: string } }
-  | { type: 'RESET_GAME' }
-  | { type: 'LOAD_GAME'; payload: GameState }
-  | { type: 'UPDATE_STATE_FROM_DB'; payload: { stateUpdates: Partial<GameState> } };
-
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
