@@ -91,6 +91,8 @@ const DebugCalculator = () => {
       
       // Сохраняем ID пользователя в локальное хранилище для быстрого доступа
       localStorage.setItem('crypto_civ_user_id', userId);
+      // Сохраняем ID пользователя в глобальную переменную для более быстрого доступа
+      window.__game_user_id = userId;
       
       // Сравниваем с локальным состоянием
       const localHelpers = state.referralHelpers;
@@ -119,6 +121,60 @@ const DebugCalculator = () => {
       if (needsUpdate) {
         console.log('Обновление помощников из базы данных:', updatedHelpers);
         updateHelpers(updatedHelpers);
+      }
+      
+      // Также проверяем записи, где текущий пользователь выступает помощником
+      const { data: helperData, error: helperError } = await supabase
+        .from('referral_helpers')
+        .select('*')
+        .eq('helper_id', userId);
+        
+      if (helperError) {
+        console.error('Ошибка при получении данных о помощниках текущего пользователя:', helperError);
+        return;
+      }
+      
+      if (helperData && helperData.length > 0) {
+        console.log(`Найдены записи, где пользователь ${userId} выступает помощником:`, helperData);
+        
+        // Проверяем, все ли эти записи есть в локальном состоянии
+        let needsHelperUpdate = false;
+        const updatedHelpersList = [...updatedHelpers];
+        
+        helperData.forEach(dbRecord => {
+          const localRecordIndex = updatedHelpersList.findIndex(
+            h => h.helperId === dbRecord.helper_id && h.buildingId === dbRecord.building_id
+          );
+          
+          if (localRecordIndex < 0) {
+            // Запись есть в БД, но нет в локальном состоянии - добавляем
+            console.log(`Добавляем отсутствующую в локальном состоянии запись о помощнике:`, dbRecord);
+            updatedHelpersList.push({
+              id: dbRecord.id.toString(),
+              helperId: dbRecord.helper_id,
+              buildingId: dbRecord.building_id,
+              status: dbRecord.status as 'pending' | 'accepted' | 'rejected',
+              createdAt: Date.now()
+            });
+            needsHelperUpdate = true;
+          } else if (updatedHelpersList[localRecordIndex].status !== dbRecord.status) {
+            // Статус в БД отличается от локального - обновляем
+            console.log(`Обновляем статус записи о помощнике:`, {
+              old: updatedHelpersList[localRecordIndex].status,
+              new: dbRecord.status
+            });
+            updatedHelpersList[localRecordIndex] = {
+              ...updatedHelpersList[localRecordIndex],
+              status: dbRecord.status as 'pending' | 'accepted' | 'rejected'
+            };
+            needsHelperUpdate = true;
+          }
+        });
+        
+        if (needsHelperUpdate) {
+          console.log('Обновление списка помощников после проверки записей самого пользователя:', updatedHelpersList);
+          updateHelpers(updatedHelpersList);
+        }
       }
     } catch (error) {
       console.error('Ошибка при проверке помощников в базе данных:', error);

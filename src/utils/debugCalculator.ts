@@ -147,13 +147,22 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
     
     // Получаем ID текущего пользователя
     // ИЗМЕНЕНО: теперь используем локальное хранилище или кэш для user_id вместо referralCode
-    let currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+    const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+    
+    // Выводим ID пользователя для отладки
+    steps.push(`- Текущий пользователь ID: ${currentUserId || 'не определен'}`);
     
     if (currentUserId) {
       // Проверяем, является ли текущий пользователь помощником для кого-то
       const buildingsAsHelper = state.referralHelpers.filter(h => 
         h.helperId === currentUserId && h.status === 'accepted'
       );
+      
+      // Выводим все записи о помощниках для полной диагностики
+      steps.push(`- Все записи о помощниках (${state.referralHelpers.length}):`);
+      state.referralHelpers.forEach((h, idx) => {
+        steps.push(`  Запись #${idx+1}: helperId=${h.helperId}, buildingId=${h.buildingId}, status=${h.status}`);
+      });
       
       if (buildingsAsHelper.length > 0) {
         steps.push(`- Текущий пользователь (${currentUserId}) является помощником для ${buildingsAsHelper.length} зданий:`);
@@ -175,6 +184,15 @@ export const debugKnowledgeProduction = (state: GameState): { steps: string[], t
         totalProduction += helperBonusForReferral;
       } else {
         steps.push(`- Текущий пользователь (${currentUserId}) не является помощником ни для каких зданий`);
+        
+        // Добавляем явное логирование для поиска пользователя среди помощников
+        const helpersWithThisId = state.referralHelpers.filter(h => h.helperId === currentUserId);
+        if (helpersWithThisId.length > 0) {
+          steps.push(`  Найдены записи для этого пользователя, но они не в статусе 'accepted':`);
+          helpersWithThisId.forEach((h, idx) => {
+            steps.push(`  - Запись #${idx+1}: helperId=${h.helperId}, buildingId=${h.buildingId}, status=${h.status}`);
+          });
+        }
       }
     } else {
       steps.push(`- Не удалось определить ID текущего пользователя для проверки статуса помощника`);

@@ -50,7 +50,20 @@ export const processResourceUpdate = (state: GameState): GameState => {
     getUserIdentifier()
       .then(userId => {
         if (userId) {
+          // Сохраняем ID пользователя для быстрого доступа в будущем
+          window.__game_user_id = userId;
+          localStorage.setItem('crypto_civ_user_id', userId);
+          
           console.log(`Получен ID пользователя: ${userId}`);
+          
+          // Проверяем этого пользователя в качестве помощника
+          const buildingsAsHelper = state.referralHelpers.filter(h => 
+            h.helperId === userId && h.status === 'accepted'
+          ).length;
+          
+          if (buildingsAsHelper > 0) {
+            console.log(`Пользователь ${userId} помогает на ${buildingsAsHelper} зданиях`);
+          }
           
           // Отправляем событие для принудительного обновления ресурсов
           setTimeout(() => {

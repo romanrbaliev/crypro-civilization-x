@@ -1,49 +1,24 @@
 
-// Расширяем интерфейс Window для наших глобальных переменных
+// Добавляем типы для глобальных переменных окружения
+/// <reference types="vite/client" />
+
 interface Window {
-  __game_user_id?: string;
-  __cloudflareRetryCount?: number;
-  Telegram?: {
-    WebApp?: {
-      initDataUnsafe?: {
-        user?: {
-          id: string;
-          first_name?: string;
-          last_name?: string;
-          username?: string;
-          language_code?: string;
-        };
-        start_param?: string;
-        startapp?: string; // Добавляем поле startapp для параметра запуска мини-приложения
-      };
-      // Добавляем все необходимые методы и свойства Telegram WebApp
-      close?: () => void;
-      share?: (url: string) => void;
-      ready?: () => void;
-      expand?: () => void;
-      platform?: string;
-      version?: string;
-      initData?: string;
-      CloudStorage?: {
-        getItem: (key: string) => Promise<string | null>;
-        setItem: (key: string, value: string) => Promise<void>;
-        removeItem: (key: string) => Promise<void>;
-      };
-      showPopup?: (params: {
-        title?: string;
-        message: string;
-        buttons?: Array<{
-          id?: string;
-          type?: string;
-          text?: string;
-        }>;
-      }, callback?: (buttonId: string) => void) => void;
-      openTelegramLink?: (url: string) => void;
-    };
+  gameEventBus: EventTarget;
+  TelegramWebviewProxy: any;
+  Telegram: {
+    WebApp: any;
   };
-  gameEventBus?: EventTarget;
-  __telegramInitialized?: boolean;
-  __telegramNotificationShown?: boolean;
-  __supabaseInitialized?: boolean;
-  __FORCE_TELEGRAM_MODE?: boolean;
+  __uv: string; // user version
+  __av: string; // app version
+  __game_user_id?: string; // кэшированный ID пользователя
 }
+
+// Глобальные типы для использования в приложении
+declare type ProductionType = "click" | "auto";
+declare type ResourceType = "knowledge" | "usdt" | "computingPower" | "electricity" | "reputation" | "btc";
+declare type BuildingType = "practice" | "generator" | "computer" | "wallet" | "miner" | "internetConnection" | "storageServer" | "tradingBot" | "analyticCenter" | "dataCenter" | "marketplace";
+declare type UpgradeCategory = "basic" | "intermediate" | "advanced" | "specialized" | "prestige";
+declare type SpecializationType = "investor" | "trader" | "miner" | "influencer" | "analyst" | "founder" | "arbitrageur";
+
+// Глобальные утилиты
+declare const __DEV__: boolean;
