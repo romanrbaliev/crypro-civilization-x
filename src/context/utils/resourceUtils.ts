@@ -1,4 +1,5 @@
 
+
 import { Resource, ReferralHelper, GameState, PhaseBoosts } from '../types';
 
 // Функция для расчета производства ресурсов
@@ -234,3 +235,70 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
     resources: updatedResources
   };
 };
+
+// Проверяет, достаточно ли ресурсов для покупки
+export const hasEnoughResources = (
+  state: GameState,
+  cost: { [resourceId: string]: number }
+): boolean => {
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Проверяет и обновляет разблокировки в зависимости от ресурсов
+export const checkUnlocks = (state: GameState): GameState => {
+  let updatedState = { ...state };
+  
+  // Проверяем разблокировку генератора при достижении 11 USDT
+  if (state.resources.usdt.value >= 11 && !state.buildingUnlocked.generator) {
+    console.log("Разблокируем генератор при достижении 11 USDT");
+    updatedState = {
+      ...updatedState,
+      buildingUnlocked: {
+        ...updatedState.buildingUnlocked,
+        generator: true
+      }
+    };
+    
+    if (updatedState.buildings.generator) {
+      updatedState.buildings = {
+        ...updatedState.buildings,
+        generator: {
+          ...updatedState.buildings.generator,
+          unlocked: true
+        }
+      };
+    }
+  }
+  
+  // Проверяем разблокировку домашнего компьютера при достижении 10 электричества
+  if (state.resources.electricity && 
+      state.resources.electricity.value >= 10 && 
+      !state.buildingUnlocked.homeComputer) {
+    console.log("Разблокируем домашний компьютер при достижении 10 электричества");
+    updatedState = {
+      ...updatedState,
+      buildingUnlocked: {
+        ...updatedState.buildingUnlocked,
+        homeComputer: true
+      }
+    };
+    
+    if (updatedState.buildings.homeComputer) {
+      updatedState.buildings = {
+        ...updatedState.buildings,
+        homeComputer: {
+          ...updatedState.buildings.homeComputer,
+          unlocked: true
+        }
+      };
+    }
+  }
+  
+  return updatedState;
+};
+
