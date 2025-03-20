@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import ResourceList from '@/components/ResourceList';
@@ -10,7 +9,7 @@ import EventLog from '@/components/EventLog';
 import ResearchTab from '@/components/ResearchTab';
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { useGame } from '@/context/hooks/useGame';
-import { Resource, GameState } from '@/context/types';
+import { Resource } from '@/context/types';
 import { Users, Building2, Lightbulb, Clock, BarChart2 } from 'lucide-react';
 import GameLevel from '@/components/GameLevel';
 import { toast } from '@/hooks/use-toast';
@@ -131,7 +130,7 @@ const GameScreen = () => {
       if (userId && !isHelperSyncRunning) {
         setIsHelperSyncRunning(true);
         try {
-          await syncHelperDataWithGameState(userId, state);
+          await syncHelperDataWithGameState(userId, () => state);
         } catch (error) {
           console.error('Ошибка при синхронизации данных помощников:', error);
         } finally {

@@ -24,9 +24,10 @@ import {
 interface BuildingItemProps {
   building: Building;
   onPurchase?: () => void;
+  onAddEvent?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
-const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => {
+const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase, onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { id, name, description, cost, costMultiplier, production, count } = building;
   // Состояние карточки - открыта или закрыта
@@ -38,6 +39,12 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     
     // После покупки оставляем карточку открытой, чтобы пользователь видел новую информацию
     if (count === 0) setIsOpen(true);
+    
+    // Вызываем колбэк onAddEvent, если он есть
+    if (onAddEvent) {
+      onAddEvent(`Приобретено здание: ${name}`, 'success');
+    }
+    
     if (onPurchase) onPurchase();
   };
   
