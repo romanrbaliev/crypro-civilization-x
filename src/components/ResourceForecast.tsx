@@ -1,74 +1,54 @@
 
-import React from "react";
-import { formatNumber, calculateTimeToReach } from "@/utils/helpers";
+import React, { useMemo } from "react";
+import { Progress } from "@/components/ui/progress";
 import { Resource } from "@/context/types";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Clock } from "lucide-react";
+import { formatNumber } from "@/utils/helpers";
 
 interface ResourceForecastProps {
   resource: Resource;
   targetValue: number;
-  label: string;
+  label?: string;
 }
 
-const ResourceForecast: React.FC<ResourceForecastProps> = ({ resource, targetValue, label }) => {
-  // Если скорость равна 0, то время бесконечно
-  if (resource.perSecond <= 0) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center space-x-1 text-[7px] text-muted-foreground cursor-help">
-              <Clock className="h-2 w-2" />
-              <span>{label}: ∞</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            <p className="text-[7px]">Нет активного производства {resource.name}</p>
-            <p className="text-[7px]">Постройте здания или исследуйте улучшения</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-  
-  // Если у нас уже есть достаточно ресурсов, показываем "готово"
-  if (resource.value >= targetValue) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center space-x-1 text-[7px] text-green-600 cursor-help">
-              <Clock className="h-2 w-2" />
-              <span>{label}: Готово!</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            <p className="text-[7px]">У вас уже есть необходимое количество {resource.name}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-  
-  // В противном случае рассчитываем время
-  const timeToReach = calculateTimeToReach(resource.value, targetValue, resource.perSecond);
-  
+const ResourceForecast: React.FC<ResourceForecastProps> = ({ 
+  resource, 
+  targetValue,
+  label
+}) => {
+  // Вычисляем прогресс
+  const progress = useMemo(() => {
+    if (resource.value >= targetValue) return 100;
+    return Math.floor((resource.value / targetValue) * 100);
+  }, [resource.value, targetValue]);
+
+  // Вычисляем время до достижения цели
+  const timeEstimate = useMemo(() => {
+    if (resource.value >= targetValue) return "Достигнуто!";
+    if (resource.perSecond <= 0) return "∞";
+    
+    const remaining = targetValue - resource.value;
+    const secondsLeft = remaining / resource.perSecond;
+    
+    if (secondsLeft < 60) {
+      return `${Math.ceil(secondsLeft)} сек`;
+    } else if (secondsLeft < 3600) {
+      return `${Math.ceil(secondsLeft / 60)} мин`;
+    } else {
+      return `${Math.ceil(secondsLeft / 3600)} ч`;
+    }
+  }, [resource.value, targetValue, resource.perSecond]);
+
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center space-x-1 text-[7px] text-muted-foreground cursor-help">
-            <Clock className="h-2 w-2" />
-            <span>{label}: {timeToReach}</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          <p className="text-[7px]">Время до достижения {formatNumber(targetValue)} {resource.name}</p>
-          <p className="text-[7px]">При текущей скорости {formatNumber(resource.perSecond)}/сек</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="forecast-container">
+      <div className="flex justify-between items-center text-xs text-gray-500 mb-1">
+        <span>{label || `${resource.name} до ${formatNumber(targetValue)}`}</span>
+        <span>{timeEstimate}</span>
+      </div>
+      <Progress value={progress} className="h-1 w-full" />
+      <div className="text-right text-xs text-gray-500 mt-1">
+        {formatNumber(resource.value)}/{formatNumber(targetValue)} ({progress}%)
+      </div>
+    </div>
   );
 };
 
