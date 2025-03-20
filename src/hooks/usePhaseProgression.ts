@@ -116,7 +116,7 @@ export function usePhaseProgression() {
       });
       safeDispatchGameEvent(
         "Достигнута Фаза 2: Основы криптоэкономики! Развивайте инфраструктуру и накапливайте ресурсы.", 
-        "achievement"
+        "success"  // Изменили "achievement" на "success"
       );
     }
   }, [state, dispatch]);

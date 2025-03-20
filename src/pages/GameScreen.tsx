@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Tabs,
@@ -37,7 +38,7 @@ import { useAutoSaveGame } from "@/hooks/useAutoSaveGame";
 import { useResourceUpdater } from "@/hooks/useResourceUpdater";
 import { usePhaseProgression } from "@/hooks/usePhaseProgression";
 import { toast } from "sonner";
-import { resetAllGameData } from "@/api/gameStorage";
+import { resetAllGameData } from "@/api/gameStorage/index";
 import {
   Settings,
   Save,
@@ -46,9 +47,12 @@ import {
   HelpCircle
 } from "lucide-react";
 
+// Определяем тип для событий журнала
+type GameEvent = string;
+
 const GameScreen: React.FC = () => {
   const { state, dispatch } = useGame();
-  const [events, setEvents] = useState<string[]>([]);
+  const [events, setEvents] = useState<GameEvent[]>([]);
   const [isResetting, setIsResetting] = useState(false);
 
   useAutoSaveGame(state);
@@ -60,11 +64,11 @@ const GameScreen: React.FC = () => {
   useEffect(() => {
     if (!state.gameStarted) {
       dispatch({ type: "START_GAME" });
-      addEventMessage("Игра началась!", "success");
+      addEventMessage("Игра началась!");
     }
   }, [state.gameStarted, dispatch]);
 
-  const addEventMessage = (message: string, type: string = "default") => {
+  const addEventMessage = (message: string, variant?: "success" | "error" | "warning" | "info") => {
     setEvents(prevEvents => {
       const newEvents = [...prevEvents, message];
       if (newEvents.length > 5) {
@@ -75,7 +79,8 @@ const GameScreen: React.FC = () => {
 
     toast(message, {
       description: new Date().toLocaleTimeString(),
-      type: type
+      // Используем правильные параметры для toast
+      variant: variant
     });
   };
 
@@ -95,6 +100,9 @@ const GameScreen: React.FC = () => {
 
   // Проверка разблокировки вкладки специализации (Фаза 3)
   const isSpecializationUnlocked = phase >= 3;
+
+  // Получаем все доступные ресурсы для отображения
+  const visibleResources = Object.values(state.resources).filter(resource => resource.unlocked);
 
   return (
     <div className="game-container flex flex-col h-full max-w-md mx-auto">
@@ -171,7 +179,7 @@ const GameScreen: React.FC = () => {
           </TabsList>
           
           <TabsContent value="resources" className="h-full">
-            <ResourceList />
+            <ResourceList resources={visibleResources} />
             <ActionButtons onAddEvent={addEventMessage} />
             <EventLog events={events} />
           </TabsContent>
