@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
-import { Building, Lightbulb, Info, Trash2, Settings, Users } from "lucide-react";
+import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
 import Header from "@/components/Header";
 import EquipmentTab from "@/components/EquipmentTab";
 import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";
+import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import DebugCalculator from "@/components/DebugCalculator";
 import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
@@ -51,6 +53,9 @@ const GameScreen = () => {
     .some(b => b.unlocked && b.id !== "practice");
     
   const hasUnlockedResearch = state.unlocks.research === true;
+  
+  // Проверка на доступность вкладки специализации (Фаза 3)
+  const hasUnlockedSpecialization = state.phase >= 3;
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
@@ -309,6 +314,8 @@ const GameScreen = () => {
               
               {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
               
+              {hasUnlockedSpecialization && renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />)}
+              
               {renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
             </div>
           </div>
@@ -323,6 +330,10 @@ const GameScreen = () => {
               
               {selectedTab === "research" && hasUnlockedResearch && (
                 <ResearchTab onAddEvent={addEvent} />
+              )}
+              
+              {selectedTab === "specialization" && hasUnlockedSpecialization && (
+                <SpecializationTab onAddEvent={addEvent} />
               )}
               
               {selectedTab === "referrals" && (
