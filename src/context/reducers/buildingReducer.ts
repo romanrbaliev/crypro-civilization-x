@@ -1,7 +1,8 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { checkUpgradeUnlocks } from './upgradeReducer';
+import { checkUpgradeUnlocks } from '@/utils/unlockSystem';
 
 // Обработка покупки зданий
 export const processPurchaseBuilding = (
