@@ -3,10 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
 import GameCanvas from '@/components/GameCanvas';
-import GameLevel from '@/components/GameLevel';
 import { toast } from 'sonner';
-import { ArrowLeft, Heart, Trophy, Pause, Play, BarChart2 } from 'lucide-react';
-import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Heart, Trophy, Pause, Play } from 'lucide-react';
 
 const Game = () => {
   const navigate = useNavigate();
@@ -15,7 +13,6 @@ const Game = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [highScore, setHighScore] = useState(0);
-  const [currentTab, setCurrentTab] = useState("game");
 
   // Загрузка рекорда из localStorage
   useEffect(() => {
@@ -65,12 +62,6 @@ const Game = () => {
     });
   };
 
-  // Обработчик изменения фазы игры
-  const handlePhaseChange = (phase: number) => {
-    console.log(`Фаза игры изменилась на: ${phase}`);
-    // Можно добавить дополнительную логику при смене фазы
-  };
-
   const togglePause = () => {
     setIsPaused(!isPaused);
   };
@@ -115,31 +106,15 @@ const Game = () => {
         </div>
       </div>
       
-      {/* Вкладки */}
-      <Tabs defaultValue="game" value={currentTab} onValueChange={setCurrentTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-4 mt-2 grid grid-cols-2">
-          <TabsTrigger value="game">Игра</TabsTrigger>
-          <TabsTrigger value="progress">
-            <BarChart2 className="w-4 h-4 mr-1" />
-            Прогресс
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Игровая область */}
-        <TabsContent value="game" className="flex-1 p-4 overflow-hidden">
-          <GameCanvas
-            onScoreChange={handleScoreChange}
-            onLivesChange={handleLivesChange}
-            onGameOver={handleGameOver}
-            isPaused={isPaused}
-          />
-        </TabsContent>
-        
-        {/* Вкладка прогресса */}
-        <TabsContent value="progress" className="flex-1 overflow-auto">
-          <GameLevel onPhaseChange={handlePhaseChange} />
-        </TabsContent>
-      </Tabs>
+      {/* Игровая область */}
+      <div className="flex-1 p-4 overflow-hidden">
+        <GameCanvas
+          onScoreChange={handleScoreChange}
+          onLivesChange={handleLivesChange}
+          onGameOver={handleGameOver}
+          isPaused={isPaused}
+        />
+      </div>
       
       {/* Инструкции для мобильных устройств */}
       <div className="glass p-4 text-center text-sm z-10 border-t border-white/20">
