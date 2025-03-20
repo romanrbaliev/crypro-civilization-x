@@ -66,10 +66,11 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     
     return Object.entries(building.production).map(([resourceId, amount]) => {
       if (resourceId.includes('Max') || resourceId.includes('Boost')) {
-        const formattedEffect = formatEffectName(resourceId, amount);
+        // Fix: The formatEffectName function only takes one parameter (effectId), not two
+        const formattedEffect = formatEffectName(resourceId);
         return (
           <div key={resourceId} className="text-blue-600 text-[10px]">
-            {formattedEffect}
+            +{amount} {formattedEffect}
           </div>
         );
       }
