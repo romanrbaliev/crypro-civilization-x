@@ -8,6 +8,13 @@ export { validateGameState, mergeWithInitialState } from './stateUtils';
 export const resetAllGameData = async (): Promise<boolean> => {
   try {
     localStorage.removeItem('gameState');
+    
+    // Принудительно сбрасываем состояния зданий в initialState
+    const initialState = await import('../../context/initialState');
+    if (initialState.initialBuildings.coolingSystem) {
+      initialState.initialBuildings.coolingSystem.unlocked = false;
+    }
+    
     return true;
   } catch (error) {
     console.error("Ошибка при сбросе данных игры:", error);

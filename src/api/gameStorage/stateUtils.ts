@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { initialState } from '@/context/initialState';
 
@@ -87,7 +86,7 @@ export function mergeWithInitialState(loadedState: any): GameState {
   
   if (!loadedState.referralHelpers) {
     loadedState.referralHelpers = [];
-    console.log('✅ Инициализирован пустой массив помощников');
+    console.log('✅ Инициализирован пустой масс��в помощников');
   }
   
   // Проверка наличия счетчиков
@@ -114,6 +113,15 @@ export function mergeWithInitialState(loadedState: any): GameState {
     if (!loadedState.buildings[buildingKey]) {
       loadedState.buildings[buildingKey] = { ...baseState.buildings[buildingKey] };
       console.log(`✅ Восстановлено отсутствующее здание: ${buildingKey}`);
+    }
+  }
+  
+  // Убедимся, что здания имеют правильное состояние разблокировки при загрузке
+  if (loadedState.buildings && loadedState.buildings.coolingSystem) {
+    // Проверяем условие для разблокировки системы охлаждения
+    if (loadedState.buildings.homeComputer && loadedState.buildings.homeComputer.count < 2) {
+      loadedState.buildings.coolingSystem.unlocked = false;
+      console.log('🔒 Система охлаждения заблокирована при загрузке: недостаточно компьютеров');
     }
   }
   

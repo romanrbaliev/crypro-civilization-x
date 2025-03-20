@@ -104,13 +104,16 @@ export const processPurchaseBuilding = (
     }
   }
 
-  // Разблокируем систему охлаждения после покупки 2+ домашних компьютеров
-  if (buildingId === "homeComputer" && building.count === 1) { // Теперь у нас 2 компьютера
-    newState.buildings.coolingSystem = {
-      ...newState.buildings.coolingSystem,
-      unlocked: true
-    };
-    safeDispatchGameEvent("Разблокирована Система охлаждения", "info");
+  // Разблокируем систему охлаждения только после покупки 2+ домашних компьютеров
+  if (buildingId === "homeComputer" && newState.buildings.homeComputer.count >= 2) {
+    console.log(`Проверяем разблокировку системы охлаждения. Количество компьютеров: ${newState.buildings.homeComputer.count}`);
+    if (!newState.buildings.coolingSystem.unlocked) {
+      newState.buildings.coolingSystem = {
+        ...newState.buildings.coolingSystem,
+        unlocked: true
+      };
+      safeDispatchGameEvent("Разблокирована Система охлаждения", "info");
+    }
   }
   
   // Разблокировка вкладки исследований при покупке первого генератора
@@ -207,6 +210,15 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     if (building.id === "autoMiner" && !shouldUnlock) {
       if (state.resources.computingPower && state.resources.computingPower.unlocked) {
         shouldUnlock = true;
+      }
+    }
+
+    // Система охлаждения разблокируется только при наличии минимум 2-х домашних компьютеров
+    if (building.id === "coolingSystem" && !shouldUnlock) {
+      if (state.buildings.homeComputer && state.buildings.homeComputer.count >= 2) {
+        shouldUnlock = true;
+      } else {
+        shouldUnlock = false;
       }
     }
 
