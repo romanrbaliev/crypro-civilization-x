@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -14,32 +13,32 @@ import DebugCalculator from "@/components/DebugCalculator";
 import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
-import { useToast, toast } from "@/hooks/use-toast";
-import { resetAllGameData } from "@/context/utils/gameStorage";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { 
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger
+  SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { resetAllGameData } from "@/context/utils/gameStorage";
+import { toast } from "@/hooks/use-toast";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -300,7 +299,7 @@ const GameScreen = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2">
-            <ResourceList />
+            <ResourceList resources={unlockedResources} />
             <DebugCalculator />
           </div>
           
@@ -332,7 +331,7 @@ const GameScreen = () => {
             </div>
             
             <div className="mt-auto sticky bottom-0 bg-white pb-2 pt-1">
-              <ActionButtons />
+              <ActionButtons onAddEvent={addEvent} />
             </div>
           </div>
         </div>

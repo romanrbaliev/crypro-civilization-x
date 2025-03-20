@@ -6,18 +6,16 @@ import { Brain } from "lucide-react";
 interface LearnButtonProps {
   onClick: () => void;
   disabled?: boolean;
-  className?: string;
 }
 
 export const LearnButton: React.FC<LearnButtonProps> = ({ 
   onClick,
-  disabled = false,
-  className = ""
+  disabled = false
 }) => {
   return (
     <Button
       onClick={onClick}
-      className={`w-full ${className}`}
+      className="w-full"
       variant="default"
       size="sm"
       disabled={disabled}

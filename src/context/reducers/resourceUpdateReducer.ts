@@ -1,177 +1,122 @@
-import { GameState } from '../types';
 
-// Обработка обновления ресурсов
+import { GameState } from '../types';
+import { calculateResourceProduction, applyStorageBoosts, updateResourceValues } from '../utils/resourceUtils';
+import { helperStatusCache } from '@/utils/referralHelpers/helperCache';
+import { getUserIdentifier } from '@/api/userIdentification';
+import { syncHelperStatusWithDB } from '@/utils/referralHelpers/helperStatus';
+
+// Асинхронная функция для прямой проверки статуса помощника в базе данных
+async function checkHelperStatusInDB(userId: string): Promise<number> {
+  if (!userId) return 0;
+  
+  try {
+    // Получаем количество зданий, где пользователь является помощником, из кеша
+    return await helperStatusCache.get(userId, true);
+  } catch (error) {
+    console.error('Неожиданная ошибка при проверке статуса помощника в БД:', error);
+    return 0;
+  }
+}
+
 export const processResourceUpdate = (state: GameState): GameState => {
-  // Текущее время
   const now = Date.now();
-  const deltaTime = (now - state.lastUpdate) / 1000; // разница в секундах
+  const deltaTime = now - state.lastUpdate;
   
-  // Если прошло недостаточно времени, возвращаем текущее состояние
-  if (deltaTime < 0.05) {
-    return state;
-  }
+  // Пытаемся получить ID пользователя сразу из кэша или localStorage
+  let currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+  let referralHelperBonus = 0;
   
-  // Создаем новое состояние
-  const newResources = { ...state.resources };
-  const gameTime = state.gameTime + deltaTime;
-  
-  // Обновляем базовое производство ресурсов
-  for (const [resourceId, resource] of Object.entries(newResources)) {
-    // Сбрасываем производство
-    newResources[resourceId] = {
-      ...resource,
-      production: 0,
-      perSecond: 0
-    };
-  }
-  
-  // Обновляем производство на основе зданий
-  let totalComputingPower = 0;
-  let totalElectricityConsumption = 0;
-  let electricityGain = 0;
-  
-  // Сначала рассчитываем производство электричества
-  for (const building of Object.values(state.buildings)) {
-    // Пропускаем неактивные здания
-    if (building.count <= 0) continue;
+  // Если у нас есть ID пользователя, проверяем является ли он помощником на основе локального состояния
+  if (currentUserId) {
+    const buildingsAsHelper = state.referralHelpers.filter(h => 
+      h.helperId === currentUserId && h.status === 'accepted'
+    ).length;
     
-    // Если здание производит электричество, учитываем его
-    if (building.production.electricity) {
-      electricityGain += building.production.electricity * building.count;
+    // Каждое здание, на котором пользователь помогает, дает ему бонус 10%
+    referralHelperBonus = buildingsAsHelper * 0.1; // 10% за каждое здание
+    
+    if (buildingsAsHelper > 0) {
+      console.log(`Локальное состояние: Пользователь ${currentUserId} помогает на ${buildingsAsHelper} зданиях, бонус: +${referralHelperBonus * 100}%`);
     }
-  }
-  
-  // Затем рассчитываем потребление электричества и производство вычислительной мощности
-  for (const building of Object.values(state.buildings)) {
-    // Пропускаем неактивные здания
-    if (building.count <= 0) continue;
     
-    // Если здание - компьютер, оно потребляет электричество
-    if (building.id === "homeComputer") {
-      // Базовое потребление: 0.5 электричества на единицу
-      const computerConsumption = 0.5 * building.count;
-      totalElectricityConsumption += computerConsumption;
-      
-      // Если есть достаточно электричества, то генерируем вычислительную мощность
-      if (newResources.electricity.value >= computerConsumption * deltaTime || electricityGain >= computerConsumption) {
-        // Рассчитываем производство вычислительной мощности
-        // Базовое производство с учетом бонусов от улучшений
-        let computingPowerBoost = 1.0;
+    // Параллельно запрашиваем обновление статуса помощника из БД для будущих расчетов
+    // Обновление происходит асинхронно и не блокирует текущее обновление ресурсов
+    helperStatusCache.update(currentUserId).then(helperBuildingsCount => {
+      // Если данные в БД отличаются от локального состояния
+      if (helperBuildingsCount !== buildingsAsHelper) {
+        console.log(`БД и локальное состояние различаются: в БД ${helperBuildingsCount} зданий, локально ${buildingsAsHelper}`);
         
-        // Проверяем улучшения для вычислительной мощности
-        for (const upgrade of Object.values(state.upgrades)) {
-          if (upgrade.purchased && upgrade.effects && upgrade.effects.computingPowerBoost) {
-            computingPowerBoost += Number(upgrade.effects.computingPowerBoost);
-          }
-        }
-        
-        // Проверяем здания, дающие бонус к вычислительной мощности (например, система охлаждения)
-        for (const otherBuilding of Object.values(state.buildings)) {
-          if (otherBuilding.count > 0 && otherBuilding.production.computingPowerBoost) {
-            computingPowerBoost += Number(otherBuilding.production.computingPowerBoost);
-          }
-        }
-        
-        // Рассчитываем итоговое производство вычислительной мощности
-        const computingPowerProduction = building.production.computingPower * building.count * computingPowerBoost;
-        totalComputingPower += computingPowerProduction;
-        
-        // Обновляем производство вычислительной мощности
-        newResources.computingPower.production += computingPowerProduction;
-        newResources.computingPower.perSecond += computingPowerProduction;
+        // Запрашиваем полное обновление помощников из БД
+        setTimeout(() => {
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        }, 100);
       }
-    }
-    
-    // Обработка других типов зданий и их производства
-    for (const [prodResourceId, prodAmount] of Object.entries(building.production)) {
-      // Пропускаем особые ключи
-      if (prodResourceId === "computingPower" || prodResourceId === "electricity") continue;
-      if (prodResourceId.endsWith("Boost") || prodResourceId.endsWith("Max")) continue;
-      
-      // Для стандартных ресурсов
-      if (newResources[prodResourceId]) {
-        // Базовое производство
-        let baseProduction = Number(prodAmount) * building.count;
-        
-        // Учитываем бонусы производства от улучшений
-        const boostKey = `${prodResourceId}Boost`;
-        let productionBoost = 0;
-        
-        // Проверяем улучшения для данного ресурса
-        for (const upgrade of Object.values(state.upgrades)) {
-          if (upgrade.purchased && upgrade.effects && upgrade.effects[boostKey]) {
-            productionBoost += Number(upgrade.effects[boostKey]);
-          }
+    }).catch(err => {
+      console.error('Ошибка при проверке статуса помощника в БД:', err);
+    });
+  } else {
+    // Если ID не найден в кэше, пробуем получить его асинхронно
+    getUserIdentifier()
+      .then(userId => {
+        if (userId) {
+          // Сохраняем ID пользователя для быстрого доступа в будущем
+          window.__game_user_id = userId;
+          localStorage.setItem('crypto_civ_user_id', userId);
+          
+          console.log(`Получен ID пользователя: ${userId}`);
+          
+          // Проверяем этого пользователя в качестве помощника
+          helperStatusCache.update(userId).then(helperBuildingsCount => {
+            if (helperBuildingsCount > 0) {
+              console.log(`Новый пользователь ${userId} помогает на ${helperBuildingsCount} зданиях по данным БД`);
+              
+              // Запрашиваем полное обновление помощников из БД
+              setTimeout(() => {
+                const refreshEvent = new CustomEvent('refresh-referrals');
+                window.dispatchEvent(refreshEvent);
+              }, 100);
+            }
+          });
         }
-        
-        // Проверяем здания, дающие бонус к производству
-        for (const otherBuilding of Object.values(state.buildings)) {
-          if (otherBuilding.count > 0 && otherBuilding.production[boostKey]) {
-            productionBoost += Number(otherBuilding.production[boostKey]);
-          }
+      })
+      .catch(err => console.error('Ошибка при получении идентификатора пользователя:', err));
+  }
+  
+  // Синхронизируем статусы помощников с базой данных в фоновом режиме
+  if (state.referralHelpers.length > 0 && currentUserId) {
+    syncHelperStatusWithDB(state.referralHelpers)
+      .then(updatedHelpers => {
+        if (updatedHelpers && updatedHelpers.length > 0) {
+          // Отправляем событие для обновления состояния игры
+          const updateEvent = new CustomEvent('helpers-updated', {
+            detail: { updatedHelpers }
+          });
+          window.dispatchEvent(updateEvent);
+          
+          console.log('Помощники синхронизированы с базой данных:', updatedHelpers);
         }
-        
-        // Рассчитываем итоговое производство
-        const finalProduction = baseProduction * (1 + productionBoost);
-        
-        // Обновляем производство ресурса
-        newResources[prodResourceId].production += finalProduction;
-        newResources[prodResourceId].perSecond += finalProduction;
-      }
-    }
+      })
+      .catch(err => console.error('Ошибка при синхронизации помощников:', err));
   }
   
-  // Обновляем текущую электричество с учетом потребления
-  const netElectricityProduction = electricityGain - totalElectricityConsumption;
-  newResources.electricity.perSecond = netElectricityProduction;
+  // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
+  let updatedResources = calculateResourceProduction(
+    state.resources, 
+    state.buildings, 
+    state.referralHelpers,
+    state.referrals,
+    currentUserId, 
+    referralHelperBonus 
+  );
   
-  // Обработка автоматического майнинга биткоинов
-  if (state.buildings.autoMiner.count > 0 && totalComputingPower > 0) {
-    // Базовая эффективность майнинга
-    let miningEfficiency = state.miningParams.miningEfficiency;
-    
-    // Применяем бонусы от улучшений
-    for (const upgrade of Object.values(state.upgrades)) {
-      if (upgrade.purchased && upgrade.effects && upgrade.effects.miningEfficiencyBoost) {
-        miningEfficiency *= (1 + Number(upgrade.effects.miningEfficiencyBoost));
-      }
-    }
-    
-    // Рассчитываем производство BTC
-    const btcProduction = totalComputingPower * miningEfficiency / state.miningParams.networkDifficulty;
-    
-    // Обновляем производство BTC
-    newResources.btc.production = btcProduction;
-    newResources.btc.perSecond = btcProduction;
-  }
+  // Обновляем значения ресурсов с учетом времени
+  const finalResources = updateResourceValues(updatedResources, deltaTime);
   
-  // Обновляем фактические значения ресурсов за прошедшее время
-  for (const [resourceId, resource] of Object.entries(newResources)) {
-    // Изменение значения ресурса
-    let newValue = resource.value + resource.perSecond * deltaTime;
-    
-    // Ограничиваем значение максимумом
-    if (resource.max !== Infinity && newValue > resource.max) {
-      newValue = resource.max;
-    }
-    
-    // Не допускаем отрицательные значения
-    if (newValue < 0) {
-      newValue = 0;
-    }
-    
-    // Обновляем значение ресурса
-    newResources[resourceId] = {
-      ...resource,
-      value: newValue
-    };
-  }
-  
-  // Обновляем другие параметры состояния
   return {
     ...state,
-    resources: newResources,
+    resources: finalResources,
     lastUpdate: now,
-    gameTime: gameTime
+    gameTime: state.gameTime + deltaTime
   };
 };

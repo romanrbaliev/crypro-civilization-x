@@ -7,18 +7,13 @@ import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import TechTree from "@/components/TechTree";
 import SynergyTab from "@/components/SynergyTab";
 
-const ResearchTab: React.FC = () => {
+interface ResearchTabProps {
+  onAddEvent: (message: string, type: string) => void;
+}
+
+const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
   const [currentTab, setCurrentTab] = useState("tree");
-  
-  // Функция для отправки событий через глобальную шину событий
-  const addEvent = (message: string, type: string = "info") => {
-    if (window.gameEventBus) {
-      window.gameEventBus.dispatchEvent(
-        new CustomEvent('game-event', { detail: { message, type } })
-      );
-    }
-  };
   
   // Фильтруем исследования без категории (старые исследования)
   const unlockedUpgrades = Object.values(state.upgrades)
@@ -91,7 +86,7 @@ const ResearchTab: React.FC = () => {
       </TabsList>
       
       <TabsContent value="tree" className="flex-1 overflow-auto mt-0">
-        <TechTree onAddEvent={addEvent} />
+        <TechTree onAddEvent={onAddEvent} />
       </TabsContent>
       
       <TabsContent value="list" className="flex-1 overflow-auto mt-0">
@@ -104,7 +99,7 @@ const ResearchTab: React.FC = () => {
                   <UpgradeItem 
                     key={upgrade.id} 
                     upgrade={upgrade} 
-                    onPurchase={() => addEvent(`Завершено исследование: ${upgrade.name}`, "success")} 
+                    onPurchase={() => onAddEvent(`Завершено исследование: ${upgrade.name}`, "success")} 
                   />
                 ))}
               </div>
@@ -137,7 +132,7 @@ const ResearchTab: React.FC = () => {
       </TabsContent>
       
       <TabsContent value="synergy" className="flex-1 overflow-auto mt-0">
-        <SynergyTab onAddEvent={addEvent} />
+        <SynergyTab onAddEvent={onAddEvent} />
       </TabsContent>
     </Tabs>
   );
