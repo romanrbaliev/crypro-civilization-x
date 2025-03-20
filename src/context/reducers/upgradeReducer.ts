@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -166,7 +165,7 @@ export const processPurchaseUpgrade = (
       
       // Асинхронно активируем реферала
       try {
-        // Немедленно отправляем событие о начале активации
+        // Немедленно отправляем событие о начале актив��ции
         safeDispatchGameEvent("Уведомляем вашего реферера о прогрессе...", "info");
         
         // Устанавливаем небольшую задержку, чтобы пользователь увидел сообщение
@@ -237,6 +236,29 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
     }
   });
+  
+  // Дополнительные условия для Фазы 2
+  // Разблокировка "Основы криптовалют" после покупки "Основы блокчейна"
+  if (state.upgrades.basicBlockchain?.purchased && !newUpgrades.cryptoCurrencyBasics.unlocked) {
+    newUpgrades.cryptoCurrencyBasics = {
+      ...newUpgrades.cryptoCurrencyBasics,
+      unlocked: true
+    };
+    hasChanges = true;
+    safeDispatchGameEvent(`Разблокировано новое исследование: Основы криптовалют`, "info");
+  }
+
+  // Разблокировка "Proof of Work" после покупки "Основы криптовалют" и наличия 3+ компьютеров
+  if (state.upgrades.cryptoCurrencyBasics?.purchased && 
+      state.buildings.homeComputer?.count >= 3 && 
+      !newUpgrades.proofOfWork.unlocked) {
+    newUpgrades.proofOfWork = {
+      ...newUpgrades.proofOfWork,
+      unlocked: true
+    };
+    hasChanges = true;
+    safeDispatchGameEvent(`Разблокировано новое исследование: Proof of Work`, "info");
+  }
   
   if (hasChanges) {
     return {

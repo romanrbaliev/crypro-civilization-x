@@ -51,7 +51,6 @@ export const processPurchaseBuilding = (
   console.log(`Куплено здание ${building.name}`);
   
   // Разблокируем ресурсы, производимые этим зданием
-  // ИСПРАВЛЕНО: Проверяем именно по ID здания, а не по наличию полей
   if (buildingId === "generator" && !newResources.electricity.unlocked) {
     console.log("Разблокируем ресурс электричества после покупки генератора");
     newResources.electricity = {
@@ -71,6 +70,16 @@ export const processPurchaseBuilding = (
     safeDispatchGameEvent("Разблокирован ресурс: Вычислительная мощность", "info");
   }
   
+  // Разблокируем BTC после покупки автомайнера
+  if (buildingId === "autoMiner" && building.count === 0 && !newResources.btc.unlocked) {
+    console.log("Разблокируем ресурс BTC после покупки автомайнера");
+    newResources.btc = {
+      ...newResources.btc,
+      unlocked: true
+    };
+    safeDispatchGameEvent("Разблокирован ресурс: Bitcoin (BTC)", "info");
+  }
+
   // После покупки практики разблокируем автоматическое получение знаний
   if (buildingId === "practice" && building.count === 0) {
     safeDispatchGameEvent("Теперь знания о крипте накапливаются автоматически", "success");
@@ -82,6 +91,27 @@ export const processPurchaseBuilding = (
     resources: newResources,
     buildings: newBuildings
   };
+  
+  // Разблокируем криптобиблиотеку после покупки интернет-канала
+  if (buildingId === "internetConnection" && building.count === 0) {
+    console.log("Проверяем условия для разблокировки криптобиблиотеки");
+    if (state.resources.usdt.value >= 80) {
+      newState.buildings.cryptoLibrary = {
+        ...newState.buildings.cryptoLibrary,
+        unlocked: true
+      };
+      safeDispatchGameEvent("Разблокирована Криптобиблиотека", "info");
+    }
+  }
+
+  // Разблокируем систему охлаждения после покупки 2+ домашних компьютеров
+  if (buildingId === "homeComputer" && building.count === 1) { // Теперь у нас 2 компьютера
+    newState.buildings.coolingSystem = {
+      ...newState.buildings.coolingSystem,
+      unlocked: true
+    };
+    safeDispatchGameEvent("Разблокирована Система охлаждения", "info");
+  }
   
   // Разблокировка вкладки исследований при покупке первого генератора
   if (buildingId === "generator" && building.count === 0) {
@@ -115,14 +145,6 @@ export const processPurchaseBuilding = (
       console.log("Разблокировано исследование 'Основы блокчейна' (blockchain_basics)");
     }
     
-    if (upgrades.blockchainBasics) {
-      upgrades.blockchainBasics = {
-        ...upgrades.blockchainBasics,
-        unlocked: true
-      };
-      console.log("Разблокировано исследование 'Основы блокчейна' (blockchainBasics)");
-    }
-    
     newState = {
       ...newState,
       upgrades: upgrades
@@ -139,4 +161,71 @@ export const processPurchaseBuilding = (
   newState = checkUpgradeUnlocks(newState);
   
   return newState;
+};
+
+// Добавим новую функцию для проверки условий разблокировки зданий
+export const checkBuildingUnlocks = (state: GameState): GameState => {
+  const newBuildings = { ...state.buildings };
+  let hasChanges = false;
+
+  // Проверяем условия разблокировки для каждого здания
+  Object.values(newBuildings).forEach(building => {
+    // Пропускаем уже разблокированные здания
+    if (building.unlocked) return;
+
+    let shouldUnlock = false;
+
+    // Проверяем требования к ресурсам
+    if (building.requirements) {
+      shouldUnlock = true;
+      
+      for (const [reqId, reqValue] of Object.entries(building.requirements)) {
+        // Для требований типа "имеется исследование"
+        if (state.upgrades[reqId] && (!state.upgrades[reqId].purchased || state.upgrades[reqId].purchased !== true)) {
+          shouldUnlock = false;
+          break;
+        }
+        
+        // Для требований типа "N штук здания"
+        else if (reqId.endsWith('Count')) {
+          const buildingId = reqId.replace('Count', '');
+          if (!state.buildings[buildingId] || state.buildings[buildingId].count < reqValue) {
+            shouldUnlock = false;
+            break;
+          }
+        }
+        
+        // Для обычных требований к ресурсам
+        else if (state.resources[reqId] && state.resources[reqId].value < reqValue) {
+          shouldUnlock = false;
+          break;
+        }
+      }
+    }
+
+    // Специальные условия для зданий Фазы 2
+    if (building.id === "autoMiner" && !shouldUnlock) {
+      if (state.resources.computingPower && state.resources.computingPower.unlocked) {
+        shouldUnlock = true;
+      }
+    }
+
+    if (shouldUnlock) {
+      newBuildings[building.id] = {
+        ...building,
+        unlocked: true
+      };
+      hasChanges = true;
+      safeDispatchGameEvent(`Разблокировано новое здание: ${building.name}`, "info");
+    }
+  });
+
+  if (hasChanges) {
+    return {
+      ...state,
+      buildings: newBuildings
+    };
+  }
+
+  return state;
 };

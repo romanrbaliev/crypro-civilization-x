@@ -75,6 +75,30 @@ export const initialBuildings: { [key: string]: Building } = {
     unlocked: false,
     requirements: { usdt: 45 },
     productionBoost: 0
+  },
+  cryptoLibrary: {
+    id: "cryptoLibrary",
+    name: "Криптобиблиотека",
+    description: "Значительно увеличивает скорость получения знаний и их максимум",
+    cost: { usdt: 100, knowledge: 150 },
+    costMultiplier: 1.25,
+    production: { knowledge: 1.5, knowledgeMax: 100 },
+    count: 0,
+    unlocked: false,
+    requirements: { internetConnection: 1, usdt: 80 },
+    productionBoost: 0
+  },
+  coolingSystem: {
+    id: "coolingSystem",
+    name: "Система охлаждения",
+    description: "Снижает потребление электричества компьютеров на 20%",
+    cost: { usdt: 120, electricity: 50 },
+    costMultiplier: 1.3,
+    production: { electricityEfficiencyBoost: 0.2 },
+    count: 0,
+    unlocked: false,
+    requirements: { homeComputer: 2 },
+    productionBoost: 0
   }
 };
 
@@ -100,11 +124,21 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     purchased: false,
     requirements: { cryptoWalletCount: 1 }
   },
+  cryptoCurrencyBasics: {
+    id: "cryptoCurrencyBasics",
+    name: "Основы криптовалют",
+    description: "Базовое понимание различных криптовалют",
+    cost: { knowledge: 100 },
+    effects: { miningEfficiencyBoost: 0.1 },
+    unlocked: false,
+    purchased: false,
+    requirements: { basicBlockchain: 1 }
+  },
   algorithmOptimization: {
     id: "algorithmOptimization",
     name: "Оптимизация алгоритмов",
     description: "Увеличивает эффективность майнинга на 15%",
-    cost: { knowledge: 100, usdt: 50 },
+    cost: { knowledge: 150, usdt: 50 },
     effects: { miningEfficiencyBoost: 0.15 },
     unlocked: false,
     purchased: false,
@@ -113,7 +147,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
   energyEfficiency: {
     id: "energyEfficiency",
     name: "Энергоэффективные компоненты",
-    description: "Снижает потребление ��лектричества при майнинге на 10%",
+    description: "Снижает потребление электричества при майнинге на 10%",
     cost: { knowledge: 120, usdt: 75 },
     effects: { energyEfficiencyBoost: 0.1 },
     unlocked: false,
@@ -129,6 +163,16 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
     unlocked: false,
     purchased: false,
     requirements: { algorithmOptimization: 1 }
+  },
+  proofOfWork: {
+    id: "proofOfWork",
+    name: "Proof of Work",
+    description: "Понимание принципа доказательства работы в блокчейне",
+    cost: { knowledge: 200, usdt: 50 },
+    effects: { miningEfficiencyBoost: 0.25 },
+    unlocked: false,
+    purchased: false,
+    requirements: { cryptoCurrencyBasics: 1, homeComputer: 3 }
   }
 };
 
