@@ -140,7 +140,7 @@ export type GameAction =
   | { type: "UPDATE_RESOURCES" }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "PRACTICE_PURCHASE" }
-  | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string; markAsUnlocked?: boolean } }
+  | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
   | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }
   | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
@@ -162,5 +162,5 @@ export type GameAction =
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
   | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
   | { type: "FORCE_RESOURCE_UPDATE" }
-  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } }
-  | { type: "UPDATE_PHASE"; payload: { phase: number } };
+  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } };
+

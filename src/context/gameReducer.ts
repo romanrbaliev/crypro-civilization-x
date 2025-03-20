@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
@@ -30,9 +31,6 @@ import {
   initializeSynergies,
   synergyReducer 
 } from './reducers/synergyReducer';
-
-// Импортируем обработчик обновления фазы
-import { processUpdatePhase } from './reducers/phaseReducer';
 
 // Импортируем обработчики для реферальной системы
 import {
@@ -190,9 +188,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       const resourcesUpdated = processResourceUpdate(updatedState);
       return updateResourceMaxValues(resourcesUpdated);
     }
-    
-    case "UPDATE_PHASE": 
-      return processUpdatePhase(state, action.payload);
     
     default:
       return state;

@@ -1,20 +1,17 @@
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useGame } from "@/context/hooks/useGame";
-import LearnButton from "./buttons/LearnButton";
-import MineButton from "./buttons/MineButton";
-import ApplyKnowledgeButton from "./buttons/ApplyKnowledgeButton";
 import { useActionButtons } from "@/hooks/useActionButtons";
-import { formatNumber } from "@/utils/helpers";
+import LearnButton from "@/components/buttons/LearnButton";
+import ApplyKnowledgeButton from "@/components/buttons/ApplyKnowledgeButton";
+import PracticeButton from "@/components/buttons/PracticeButton";
+import MineButton from "@/components/buttons/MineButton";
+import ExchangeBtcButton from "@/components/buttons/ExchangeBtcButton";
 
 interface ActionButtonsProps {
-  onAddEvent: (message: string, type?: string) => void;
+  onAddEvent?: (message: string, type?: string) => void;
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) => {
   const {
     state,
     handleLearnClick,
@@ -23,81 +20,79 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     handleMineClick,
     handleExchangeBtc,
     isButtonEnabled,
-    practiceBuildingExists,
-    practiceIsUnlocked,
     practiceCurrentCost,
     practiceCurrentLevel,
     hasAutoMiner,
     currentExchangeRate
   } = useActionButtons({ onAddEvent });
-
-  // Проверяем, разблокированы ли соответствующие функции
-  const applyKnowledgeUnlocked = state.unlocks.applyKnowledge || state.counters.applyKnowledge?.value > 0 || state.resources.knowledge.value >= 3;
-  const miningUnlocked = state.resources.computingPower && state.resources.computingPower.unlocked;
-  const exchangeBtcUnlocked = state.resources.btc && state.resources.btc.unlocked && state.resources.btc.value > 0;
-
-  return (
-    <div className="action-buttons-container space-y-2 my-2">
-      {/* Основные действия */}
-      <Card className="p-2 space-y-2">
-        <LearnButton 
-          onClick={handleLearnClick}
-          className="mb-1"
+  
+  // Создаем кнопки в обратном порядке - основная кнопка будет последней в массиве
+  const buttons = [];
+  
+  // Кнопка обмена BTC (если ресурс разблокирован)
+  if (state.resources.btc && state.resources.btc.unlocked) {
+    buttons.push(
+      <div key="exchange">
+        <ExchangeBtcButton
+          onClick={handleExchangeBtc}
+          disabled={state.resources.btc.value <= 0}
+          currentRate={currentExchangeRate}
         />
-
-        {applyKnowledgeUnlocked && (
-          <ApplyKnowledgeButton
-            onClick={handleApplyKnowledge}
-            disabled={!isButtonEnabled('knowledge', 10)}
-            className="mb-1"
-          />
-        )}
-        
-        {practiceBuildingExists && practiceIsUnlocked && (
-          <Button
-            onClick={handlePractice}
-            className="w-full mb-1"
-            variant={isButtonEnabled('usdt', practiceCurrentCost) ? "default" : "outline"}
-            size="sm"
-            disabled={!isButtonEnabled('usdt', practiceCurrentCost)}
-          >
-            Практиковаться ({formatNumber(practiceCurrentCost)} USDT)
-            {practiceCurrentLevel > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                Уровень {practiceCurrentLevel}
-              </Badge>
-            )}
-          </Button>
-        )}
-      </Card>
-
-      {/* Майнинг и обмен */}
-      {(miningUnlocked || exchangeBtcUnlocked) && (
-        <Card className="p-2 space-y-2">
-          {miningUnlocked && !hasAutoMiner && (
-            <MineButton
-              onClick={handleMineClick}
-              disabled={!isButtonEnabled('computingPower', 50)}
-              className="mb-1"
-            />
-          )}
-
-          {exchangeBtcUnlocked && (
-            <Button
-              onClick={handleExchangeBtc}
-              className="w-full"
-              variant="outline"
-              size="sm"
-              disabled={state.resources.btc.value <= 0}
-            >
-              Обменять BTC на USDT
-              <Badge variant="secondary" className="ml-2">
-                Курс: {formatNumber(currentExchangeRate)} USDT
-              </Badge>
-            </Button>
-          )}
-        </Card>
-      )}
+      </div>
+    );
+  }
+  
+  // Кнопка майнинга (если она доступна и нет автомайнера)
+  if (state.resources.computingPower.unlocked && !hasAutoMiner) {
+    buttons.push(
+      <div key="mine">
+        <MineButton
+          onClick={handleMineClick}
+          disabled={!isButtonEnabled("computingPower", 50)}
+        />
+      </div>
+    );
+  }
+  
+  // Кнопка практики (если доступна)
+  if (state.unlocks.practice) {
+    console.log(`Рендерим кнопку Практиковаться: cost=${practiceCurrentCost}`);
+    buttons.push(
+      <div key="practice">
+        <PracticeButton
+          onClick={handlePractice}
+          disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
+          level={practiceCurrentLevel}
+          cost={practiceCurrentCost}
+        />
+      </div>
+    );
+  }
+  
+  // Кнопка применения знаний (если доступна)
+  if (state.unlocks.applyKnowledge) {
+    buttons.push(
+      <div key="apply">
+        <ApplyKnowledgeButton
+          onClick={handleApplyKnowledge}
+          disabled={!isButtonEnabled("knowledge", 10)}
+        />
+      </div>
+    );
+  }
+  
+  // Добавляем основную кнопку в конец, только если скорость накопления знаний меньше 10
+  if (state.resources.knowledge.perSecond < 10) {
+    buttons.push(
+      <div key="learn">
+        <LearnButton onClick={handleLearnClick} />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-2 mt-2">
+      {buttons}
     </div>
   );
 };
