@@ -46,6 +46,15 @@ import {
 // Импортируем утилиты для работы с ресурсами
 import { updateResourceMaxValues } from './utils/resourceUtils';
 
+// Новый обработчик для смены фазы
+const processSetPhase = (state: GameState, payload: { phase: number }): GameState => {
+  return {
+    ...state,
+    phase: payload.phase,
+    phaseStartTime: Date.now()
+  };
+};
+
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
@@ -109,6 +118,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       newState = initializeReferralSystem(newState);
       
+      // Инициализируем фазу, если она не определена
+      if (!newState.phase) {
+        newState = {
+          ...newState,
+          phase: 1,
+          phaseStartTime: Date.now()
+        };
+      }
+      
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
       return newState;
@@ -123,6 +141,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       }
       
       newState = initializeReferralSystem(newState);
+      
+      // Инициализируем фазу для новой игры
+      newState = {
+        ...newState,
+        phase: 1,
+        phaseStartTime: Date.now()
+      };
       
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
@@ -170,8 +195,21 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
     case "FORCE_RESOURCE_UPDATE": {
       console.log("Принудительное обновление ресурсов и бонусов");
+      
+      // Если вместе с обновлением ресурсов пришло обновление фазы
+      if (action.payload?.phase && action.payload.phase !== state.phase) {
+        console.log(`Обновляем фазу с ${state.phase} на ${action.payload.phase}`);
+        newState = {
+          ...state,
+          phase: action.payload.phase,
+          phaseStartTime: Date.now()
+        };
+      } else {
+        newState = state;
+      }
+      
       // Сначала обновляем производство ресурсов
-      const updatedState = processResourceUpdate(state);
+      const updatedState = processResourceUpdate(newState);
       // Затем пересчитываем максимальные значения ресурсов
       return updateResourceMaxValues(updatedState);
     }
@@ -188,6 +226,9 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       const resourcesUpdated = processResourceUpdate(updatedState);
       return updateResourceMaxValues(resourcesUpdated);
     }
+    
+    case "SET_PHASE":
+      return processSetPhase(state, action.payload);
     
     default:
       return state;

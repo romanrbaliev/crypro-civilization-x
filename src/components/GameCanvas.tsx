@@ -1,434 +1,388 @@
 
-import React, { useRef, useEffect, useState } from 'react';
-import { addBullet, createInitialGameState, GameObjectType, GameState, movePlayer, resetGame, updateGameState } from '@/utils/gameLogic';
-import { Animator, easing } from '@/utils/animations';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface GameCanvasProps {
-  onScoreChange?: (score: number) => void;
-  onLivesChange?: (lives: number) => void;
-  onGameOver?: (finalScore: number) => void;
+  onScoreChange: (score: number) => void;
+  onLivesChange: (lives: number) => void;
+  onGameOver: (finalScore: number) => void;
+  isPaused?: boolean;
 }
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ 
   onScoreChange, 
-  onLivesChange, 
-  onGameOver 
+  onLivesChange,
+  onGameOver,
+  isPaused = false
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestIdRef = useRef<number>(0);
-  const [gameState, setGameState] = useState<GameState>(createInitialGameState());
-  const [isStarted, setIsStarted] = useState(false);
-  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
-
+  const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
+  const [isGameStarted, setIsGameStarted] = useState(false);
+  const [isGameOver, setIsGameOver] = useState(false);
+  
+  // Справочники для игровой логики
+  const gameStateRef = useRef({
+    playerX: 0,
+    playerY: 0,
+    enemies: [] as {x: number, y: number, speed: number, size: number}[],
+    bullets: [] as {x: number, y: number, speed: number}[],
+    score: 0,
+    lives: 3,
+    lastFrameTime: 0,
+    isPaused: false,
+    isGameOver: false,
+    touchX: null as number | null,
+    touchY: null as number | null
+  });
+  
   // Инициализация игры
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const resizeCanvas = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      cancelAnimationFrame(requestIdRef.current);
-    };
-  }, []);
-
-  // Обработка событий клавиатуры
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isStarted) return;
-      
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-          movePlayer(gameState, 0, -1);
-          break;
-        case 'ArrowDown':
-        case 's':
-          movePlayer(gameState, 0, 1);
-          break;
-        case 'ArrowLeft':
-        case 'a':
-          movePlayer(gameState, -1, 0);
-          break;
-        case 'ArrowRight':
-        case 'd':
-          movePlayer(gameState, 1, 0);
-          break;
-        case ' ':
-          handleShoot();
-          break;
-        case 'p':
-          handlePause();
-          break;
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (!isStarted) return;
-      
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'ArrowDown':
-        case 'w':
-        case 's':
-          movePlayer(gameState, gameState.objects.find(obj => obj.type === GameObjectType.PLAYER)?.vx || 0, 0);
-          break;
-        case 'ArrowLeft':
-        case 'ArrowRight':
-        case 'a':
-        case 'd':
-          movePlayer(gameState, 0, gameState.objects.find(obj => obj.type === GameObjectType.PLAYER)?.vy || 0);
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [gameState, isStarted]);
-
-  // Обработка событий касания для мобильных устройств
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (!isStarted) return;
-      
-      const touch = e.touches[0];
-      touchStartPosRef.current = {
-        x: touch.clientX,
-        y: touch.clientY
-      };
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isStarted || !touchStartPosRef.current) return;
-      
-      const touch = e.touches[0];
-      const dx = touch.clientX - touchStartPosRef.current.x;
-      const dy = touch.clientY - touchStartPosRef.current.y;
-      
-      const threshold = 10;
-      const moveX = Math.abs(dx) > threshold ? Math.sign(dx) : 0;
-      const moveY = Math.abs(dy) > threshold ? Math.sign(dy) : 0;
-      
-      movePlayer(gameState, moveX, moveY);
-      
-      touchStartPosRef.current = {
-        x: touch.clientX,
-        y: touch.clientY
-      };
-    };
-
-    const handleTouchEnd = () => {
-      if (!isStarted) return;
-      
-      movePlayer(gameState, 0, 0);
-      touchStartPosRef.current = null;
-    };
-
-    const handleTap = (e: TouchEvent) => {
-      if (!isStarted) return;
-      handleShoot();
-    };
-
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
-    canvas.addEventListener('touchend', handleTouchEnd);
-    canvas.addEventListener('touchend', handleTap);
-
-    return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-      canvas.removeEventListener('touchend', handleTap);
-    };
-  }, [gameState, isStarted]);
-
-  // Обработка событий мыши
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isStarted) return;
-      
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      const player = gameState.objects.find(obj => obj.type === GameObjectType.PLAYER);
-      if (player) {
-        const dx = x - (player.x + player.width / 2);
-        const dy = y - (player.y + player.height / 2);
-        const length = Math.sqrt(dx * dx + dy * dy);
-        
-        if (length > 5) {
-          movePlayer(gameState, dx / length, dy / length);
-        } else {
-          movePlayer(gameState, 0, 0);
-        }
-      }
-    };
-
-    const handleMouseDown = () => {
-      if (!isStarted) return;
-      handleShoot();
-    };
-
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mousedown', handleMouseDown);
-
-    return () => {
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mousedown', handleMouseDown);
-    };
-  }, [gameState, isStarted]);
-
-  // Игровой цикл
-  useEffect(() => {
-    let previousScore = gameState.score;
-    let previousLives = gameState.lives;
-
-    const animate = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      
-      if (isStarted && !gameState.isPaused && !gameState.isGameOver) {
-        const newGameState = updateGameState(gameState, canvas);
-        setGameState(newGameState);
-        
-        if (newGameState.score !== previousScore) {
-          previousScore = newGameState.score;
-          onScoreChange?.(newGameState.score);
-        }
-        
-        if (newGameState.lives !== previousLives) {
-          previousLives = newGameState.lives;
-          onLivesChange?.(newGameState.lives);
-        }
-        
-        if (newGameState.isGameOver) {
-          onGameOver?.(newGameState.score);
-        }
-      }
-      
-      renderGame(canvas, gameState);
-      requestIdRef.current = requestAnimationFrame(animate);
-    };
-
-    requestIdRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(requestIdRef.current);
-  }, [gameState, isStarted, onGameOver, onLivesChange, onScoreChange]);
-
-  // Отрисовка игры
-  const renderGame = (canvas: HTMLCanvasElement, state: GameState) => {
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Очистка канваса
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Устанавливаем размер canvas
+    const resizeCanvas = () => {
+      const container = canvas.parentElement;
+      if (container) {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        
+        // Обновляем начальную позицию игрока
+        gameStateRef.current.playerX = canvas.width / 2;
+        gameStateRef.current.playerY = canvas.height - 50;
+      }
+    };
     
-    // Отрисовка фона
-    ctx.fillStyle = 'rgba(249, 250, 251, 0.8)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
     
-    // Отрисовка сетки
-    ctx.strokeStyle = 'rgba(203, 213, 225, 0.3)';
-    ctx.lineWidth = 1;
+    // Обработчики событий для мыши и касаний
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      gameStateRef.current.playerX = e.clientX - rect.left;
+    };
     
-    const gridSize = 30;
-    for (let x = 0; x < canvas.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
+    const handleMouseDown = (e: MouseEvent) => {
+      if (gameStateRef.current.isPaused || gameStateRef.current.isGameOver) return;
+      fireBullet();
+    };
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      setIsGameStarted(true);
+      
+      if (gameStateRef.current.isPaused || gameStateRef.current.isGameOver) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      
+      gameStateRef.current.touchX = touch.clientX - rect.left;
+      gameStateRef.current.touchY = touch.clientY - rect.top;
+      
+      // Выстрел при нажатии
+      fireBullet();
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      
+      if (gameStateRef.current.isPaused || gameStateRef.current.isGameOver) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      
+      gameStateRef.current.touchX = touch.clientX - rect.left;
+      gameStateRef.current.touchY = touch.clientY - rect.top;
+      
+      // Обновляем позицию игрока при движении
+      gameStateRef.current.playerX = gameStateRef.current.touchX;
+    };
+    
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      gameStateRef.current.touchX = null;
+      gameStateRef.current.touchY = null;
+    };
+    
+    // Добавляем обработчики событий
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    // Запуск игрового цикла
+    startGameLoop();
+    
+    // Удаляем обработчики при размонтировании
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+  
+  // Обновляем состояние паузы в соответствии с пропсом
+  useEffect(() => {
+    gameStateRef.current.isPaused = isPaused;
+  }, [isPaused]);
+  
+  // Стрельба
+  const fireBullet = () => {
+    const bullet = {
+      x: gameStateRef.current.playerX,
+      y: gameStateRef.current.playerY - 20,
+      speed: 8
+    };
+    
+    gameStateRef.current.bullets.push(bullet);
+  };
+  
+  // Создание врага
+  const createEnemy = (canvasWidth: number) => {
+    const size = 20 + Math.random() * 15;
+    return {
+      x: Math.random() * (canvasWidth - size * 2) + size,
+      y: -size,
+      speed: 1 + Math.random() * 2,
+      size: size
+    };
+  };
+  
+  // Игровой цикл
+  const startGameLoop = () => {
+    const loop = (timestamp: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      const gameState = gameStateRef.current;
+      
+      // Расчет delta time для гладкой анимации
+      if (!gameState.lastFrameTime) {
+        gameState.lastFrameTime = timestamp;
+      }
+      
+      const deltaTime = timestamp - gameState.lastFrameTime;
+      gameState.lastFrameTime = timestamp;
+      
+      // Если игра на паузе или закончена, не обновляем
+      if (!gameState.isPaused && !gameState.isGameOver) {
+        updateGame(deltaTime, canvas.width, canvas.height);
+      }
+      
+      // Отрисовка
+      drawGame(ctx, canvas.width, canvas.height);
+      
+      // Продолжаем цикл
+      requestAnimationFrame(loop);
+    };
+    
+    requestAnimationFrame(loop);
+  };
+  
+  // Обновление состояния игры
+  const updateGame = (deltaTime: number, canvasWidth: number, canvasHeight: number) => {
+    const gameState = gameStateRef.current;
+    
+    // Создаем новых врагов случайно
+    if (Math.random() < 0.02) {
+      gameState.enemies.push(createEnemy(canvasWidth));
     }
     
-    for (let y = 0; y < canvas.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-    
-    // Отрисовка всех игровых объектов
-    state.objects.forEach(obj => {
-      if (!obj.isActive) return;
+    // Двигаем врагов
+    gameState.enemies.forEach((enemy, i) => {
+      enemy.y += enemy.speed * (deltaTime / 16);
       
-      ctx.fillStyle = obj.color || '#000000';
+      // Проверка коллизии с игроком
+      const dx = enemy.x - gameState.playerX;
+      const dy = enemy.y - gameState.playerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
       
-      if (obj.type === GameObjectType.PLAYER) {
-        // Рисуем игрока как космический корабль
-        ctx.save();
-        ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);
+      if (distance < enemy.size + 15) {
+        // Коллизия с игроком
+        gameState.enemies.splice(i, 1);
+        gameState.lives--;
         
-        // Тело корабля
-        ctx.beginPath();
-        ctx.moveTo(obj.width / 2, 0);
-        ctx.lineTo(-obj.width / 2, obj.height / 2);
-        ctx.lineTo(-obj.width / 3, 0);
-        ctx.lineTo(-obj.width / 2, -obj.height / 2);
-        ctx.closePath();
-        ctx.fill();
+        // Обновляем UI
+        setLives(gameState.lives);
+        onLivesChange(gameState.lives);
         
-        // Двигатель (эффект пламени)
-        if (Math.abs(obj.vx || 0) > 0 || Math.abs(obj.vy || 0) > 0) {
-          ctx.fillStyle = '#F97316';
-          ctx.beginPath();
-          ctx.moveTo(-obj.width / 2, obj.height / 4);
-          ctx.lineTo(-obj.width / 2 - 10 - Math.random() * 5, 0);
-          ctx.lineTo(-obj.width / 2, -obj.height / 4);
-          ctx.closePath();
-          ctx.fill();
+        // Проверяем условие окончания игры
+        if (gameState.lives <= 0) {
+          gameState.isGameOver = true;
+          setIsGameOver(true);
+          onGameOver(gameState.score);
         }
-        
-        ctx.restore();
-      } else if (obj.type === GameObjectType.OBSTACLE) {
-        // Рисуем препятствие как астероид
-        ctx.save();
-        ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);
-        ctx.beginPath();
-        
-        const vertices = 8;
-        const radius = obj.width / 2;
-        
-        for (let i = 0; i < vertices; i++) {
-          const angle = (i / vertices) * Math.PI * 2;
-          const variation = 0.8 + Math.random() * 0.4;
-          const x = Math.cos(angle) * radius * variation;
-          const y = Math.sin(angle) * radius * variation;
-          
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-        
-        // Добавляем детали астероиду
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        for (let i = 0; i < 3; i++) {
-          const x = (Math.random() - 0.5) * radius;
-          const y = (Math.random() - 0.5) * radius;
-          const size = 2 + Math.random() * 4;
-          
-          ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        
-        ctx.restore();
-      } else if (obj.type === GameObjectType.COLLECTIBLE) {
-        // Рисуем коллекционный предмет как звезду
-        ctx.save();
-        ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);
-        
-        const spikes = 5;
-        const outerRadius = obj.width / 2;
-        const innerRadius = obj.width / 4;
-        
-        ctx.beginPath();
-        for (let i = 0; i < spikes * 2; i++) {
-          const radius = i % 2 === 0 ? outerRadius : innerRadius;
-          const angle = (i / (spikes * 2)) * Math.PI * 2;
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
-          
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-        
-        // Добавляем свечение
-        ctx.shadowColor = obj.color || '#10B981';
-        ctx.shadowBlur = 10;
-        ctx.fill();
-        
-        ctx.restore();
-      } else if (obj.type === GameObjectType.BULLET) {
-        // Рисуем пулю с эффектом свечения
-        ctx.save();
-        ctx.shadowColor = '#3B82F6';
-        ctx.shadowBlur = 5;
-        ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-        ctx.restore();
+      }
+      
+      // Удаляем врагов, вышедших за экран
+      if (enemy.y > canvasHeight + enemy.size) {
+        gameState.enemies.splice(i, 1);
       }
     });
     
-    // Отрисовка старта/конца игры
-    if (!isStarted) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Двигаем пули
+    gameState.bullets.forEach((bullet, i) => {
+      bullet.y -= bullet.speed * (deltaTime / 16);
       
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'white';
-      ctx.font = '24px sans-serif';
-      ctx.fillText('Нажмите для начала игры', canvas.width / 2, canvas.height / 2);
-    } else if (state.isGameOver) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Удаляем пули, вышедшие за экран
+      if (bullet.y < 0) {
+        gameState.bullets.splice(i, 1);
+        return;
+      }
       
-      ctx.textAlign = 'center';
+      // Проверяем коллизии с врагами
+      gameState.enemies.forEach((enemy, j) => {
+        const dx = bullet.x - enemy.x;
+        const dy = bullet.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < enemy.size) {
+          // Пуля попала во врага
+          gameState.bullets.splice(i, 1);
+          gameState.enemies.splice(j, 1);
+          gameState.score += 10;
+          
+          // Обновляем UI
+          setScore(gameState.score);
+          onScoreChange(gameState.score);
+        }
+      });
+    });
+  };
+  
+  // Отрисовка игры
+  const drawGame = (ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number) => {
+    const gameState = gameStateRef.current;
+    
+    // Очищаем холст
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Фон
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+    gradient.addColorStop(0, '#1a1a2e');
+    gradient.addColorStop(1, '#16213e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Звезды
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    for (let i = 0; i < 50; i++) {
+      const x = Math.sin(i * 0.5) * canvasWidth;
+      const y = (i * canvasHeight / 50 + Date.now() * 0.01) % canvasHeight;
+      ctx.beginPath();
+      ctx.arc(x, y, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Игрок
+    ctx.fillStyle = '#4cc9f0';
+    ctx.beginPath();
+    ctx.moveTo(gameState.playerX, gameState.playerY - 15);
+    ctx.lineTo(gameState.playerX - 15, gameState.playerY + 15);
+    ctx.lineTo(gameState.playerX + 15, gameState.playerY + 15);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Добавляем свечение к игроку
+    ctx.shadowColor = '#4cc9f0';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#4cc9f0';
+    ctx.beginPath();
+    ctx.arc(gameState.playerX, gameState.playerY, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    // Враги
+    gameState.enemies.forEach(enemy => {
+      // Градиент для врагов
+      const enemyGradient = ctx.createRadialGradient(
+        enemy.x, enemy.y, 0,
+        enemy.x, enemy.y, enemy.size
+      );
+      enemyGradient.addColorStop(0, '#f72585');
+      enemyGradient.addColorStop(1, '#7209b7');
+      
+      ctx.fillStyle = enemyGradient;
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Добавляем свечение к врагам
+      ctx.shadowColor = '#f72585';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#f72585';
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    
+    // Пули
+    ctx.fillStyle = '#fee440';
+    gameState.bullets.forEach(bullet => {
+      ctx.shadowColor = '#fee440';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(bullet.x, bullet.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    
+    // Экран паузы
+    if (gameState.isPaused) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      
+      ctx.font = '30px Arial';
       ctx.fillStyle = 'white';
-      ctx.font = '24px sans-serif';
-      ctx.fillText('Игра окончена', canvas.width / 2, canvas.height / 2 - 30);
-      ctx.fillText(`Счёт: ${state.score}`, canvas.width / 2, canvas.height / 2 + 10);
-      ctx.font = '18px sans-serif';
-      ctx.fillText('Нажмите для новой игры', canvas.width / 2, canvas.height / 2 + 50);
+      ctx.textAlign = 'center';
+      ctx.fillText('ПАУЗА', canvasWidth / 2, canvasHeight / 2);
+    }
+    
+    // Экран начала игры
+    if (!isGameStarted) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      
+      ctx.font = '24px Arial';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.fillText('Нажмите для начала игры', canvasWidth / 2, canvasHeight / 2);
+    }
+    
+    // Экран окончания игры
+    if (isGameOver) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      
+      ctx.font = '30px Arial';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.fillText('ИГРА ОКОНЧЕНА', canvasWidth / 2, canvasHeight / 2 - 30);
+      
+      ctx.font = '24px Arial';
+      ctx.fillText(`Счёт: ${gameState.score}`, canvasWidth / 2, canvasHeight / 2 + 20);
     }
   };
-
-  // Обработчики событий
-  const handleShoot = () => {
-    const player = gameState.objects.find(obj => obj.type === GameObjectType.PLAYER);
-    if (player) {
-      addBullet(gameState, player);
-    }
-  };
-
-  const handlePause = () => {
-    setGameState(prevState => ({
-      ...prevState,
-      isPaused: !prevState.isPaused
-    }));
-  };
-
-  const handleCanvasClick = () => {
-    if (!isStarted) {
-      setIsStarted(true);
-    } else if (gameState.isGameOver) {
-      setGameState(resetGame(gameState));
-      setIsStarted(true);
-    }
-  };
-
+  
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full rounded-2xl touch-none cursor-pointer shadow-lg"
-      onClick={handleCanvasClick}
-    />
+    <div className="w-full h-full">
+      <canvas 
+        ref={canvasRef}
+        className="w-full h-full touch-none"
+        onClick={() => setIsGameStarted(true)}
+      />
+    </div>
   );
 };
 

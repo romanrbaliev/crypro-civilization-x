@@ -1,4 +1,3 @@
-
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -28,6 +27,17 @@ export interface GameState {
   gameTime: number;
   miningParams: MiningParams;
   phase: number;
+  phaseStartTime?: number;
+  phaseBoosts?: PhaseBoosts;
+}
+
+export interface PhaseBoosts {
+  knowledgeRate?: number;
+  conversionRate?: number;
+  computingPower?: number;
+  referralBonus?: number;
+  maxStorage?: number;
+  prestigeMultiplier?: number;
 }
 
 export interface Resource {
@@ -161,6 +171,6 @@ export type GameAction =
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
   | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
-  | { type: "FORCE_RESOURCE_UPDATE" }
-  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } };
-
+  | { type: "FORCE_RESOURCE_UPDATE"; payload?: { phase?: number } }
+  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } }
+  | { type: "SET_PHASE"; payload: { phase: number } };

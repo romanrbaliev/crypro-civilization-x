@@ -18,6 +18,45 @@ async function checkHelperStatusInDB(userId: string): Promise<number> {
   }
 }
 
+// Функция для получения бонусов от текущей фазы игры
+function getPhaseBoosts(phase: number) {
+  const boosts = {
+    knowledgeRate: 0,
+    conversionRate: 0,
+    computingPower: 0,
+    referralBonus: 0,
+    maxStorage: 0,
+    prestigeMultiplier: 0
+  };
+  
+  // Бонусы накапливаются с каждой фазой
+  if (phase >= 1) {
+    boosts.knowledgeRate += 0.1; // +10% к скорости получения знаний
+  }
+  
+  if (phase >= 2) {
+    boosts.conversionRate += 0.15; // +15% к эффективности конвертации знаний
+  }
+  
+  if (phase >= 3) {
+    boosts.computingPower += 0.2; // +20% к вычислительной мощности
+  }
+  
+  if (phase >= 4) {
+    boosts.referralBonus += 0.25; // +25% к бонусам от рефералов
+  }
+  
+  if (phase >= 5) {
+    boosts.maxStorage += 0.3; // +30% к максимальному хранению ресурсов
+  }
+  
+  if (phase >= 6) {
+    boosts.prestigeMultiplier += 0.5; // +50% к множителю престижа
+  }
+  
+  return boosts;
+}
+
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const deltaTime = now - state.lastUpdate;
@@ -100,14 +139,18 @@ export const processResourceUpdate = (state: GameState): GameState => {
       .catch(err => console.error('Ошибка при синхронизации помощников:', err));
   }
   
-  // Рассчитываем производство для всех ресурсов с учетом помощников и рефералов
+  // Получаем бонусы от текущей фазы игры
+  const phaseBoosts = getPhaseBoosts(state.phase || 1);
+  
+  // Рассчитываем производство для всех ресурсов с учетом помощников, рефералов и фазовых бонусов
   let updatedResources = calculateResourceProduction(
     state.resources, 
     state.buildings, 
     state.referralHelpers,
     state.referrals,
     currentUserId, 
-    referralHelperBonus 
+    referralHelperBonus,
+    phaseBoosts
   );
   
   // Обновляем значения ресурсов с учетом времени
@@ -117,6 +160,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     ...state,
     resources: finalResources,
     lastUpdate: now,
-    gameTime: state.gameTime + deltaTime
+    gameTime: state.gameTime + deltaTime,
+    phaseBoosts: phaseBoosts
   };
 };
