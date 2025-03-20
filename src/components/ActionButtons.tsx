@@ -38,47 +38,69 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     btc.value > 0 && 
     usdt.value + (btc.value * currentExchangeRate) <= usdt.max;
   
-  return (
-    <div className="flex flex-wrap gap-2">
+  // Важно: генерируем кнопки в порядке, противоположном их отображению, 
+  // так как они будут располагаться в flex-direction: column-reverse
+  const buttons = [];
+  
+  // Всегда добавляем базовую кнопку Изучить крипту (будет отображаться внизу)
+  buttons.push(
+    <Button
+      key="learn"
+      onClick={handleLearnClick}
+      className="w-full"
+      size="sm"
+    >
+      <Brain className="mr-2 h-4 w-4" />
+      Изучить крипту
+    </Button>
+  );
+  
+  // Добавляем кнопку Применить знания, если она разблокирована
+  if (hasApplyKnowledge) {
+    buttons.push(
       <Button
-        onClick={handleLearnClick}
-        className="flex-1"
+        key="apply"
+        onClick={handleApplyKnowledge}
+        className="w-full"
         size="sm"
+        disabled={knowledge.value < 10}
+        variant={knowledge.value < 10 ? "outline" : "default"}
       >
-        <Brain className="mr-2 h-4 w-4" />
-        Изучить крипту
+        <Coins className="mr-2 h-4 w-4" />
+        Применить знания
       </Button>
-      
-      {hasApplyKnowledge && (
-        <Button
-          onClick={handleApplyKnowledge}
-          className="flex-1"
-          size="sm"
-          disabled={knowledge.value < 10}
-          variant={knowledge.value < 10 ? "outline" : "default"}
-        >
-          <Coins className="mr-2 h-4 w-4" />
-          Применить знания
-        </Button>
-      )}
-      
-      {practiceBuildingExists && practiceIsUnlocked && (
-        <PracticeButton
-          onClick={handlePractice}
-          disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
-          level={practiceCurrentLevel}
-          cost={practiceCurrentCost}
-        />
-      )}
-      
-      {btc.unlocked && (
-        <ExchangeBtcButton 
-          onClick={handleExchangeBtc}
-          disabled={!canExchangeBtc}
-          className="flex-1"
-          currentRate={currentExchangeRate}
-        />
-      )}
+    );
+  }
+  
+  // Добавляем кнопку Практиковаться, если она разблокирована и доступна
+  if (state.unlocks.practice) {
+    buttons.push(
+      <PracticeButton
+        key="practice"
+        onClick={handlePractice}
+        disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
+        level={practiceCurrentLevel}
+        cost={practiceCurrentCost}
+      />
+    );
+  }
+  
+  // Добавляем кнопку обмена BTC, если биткоин разблокирован
+  if (btc.unlocked) {
+    buttons.push(
+      <ExchangeBtcButton 
+        key="exchange"
+        onClick={handleExchangeBtc}
+        disabled={!canExchangeBtc}
+        className="w-full"
+        currentRate={currentExchangeRate}
+      />
+    );
+  }
+  
+  return (
+    <div className="flex flex-col-reverse gap-2">
+      {buttons}
     </div>
   );
 };

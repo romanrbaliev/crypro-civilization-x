@@ -17,8 +17,7 @@ import {
   CollapsibleTrigger
 } from "@/components/ui/collapsible";
 import {
-  ChevronDown,
-  ChevronUp
+  ChevronRight
 } from "lucide-react";
 
 interface BuildingItemProps {
@@ -52,8 +51,13 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       
       const hasEnough = resource.value >= amount;
       return (
-        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
-          {formatNumber(amount)} {resource.name}
+        <div key={resourceId} className="flex justify-between w-full">
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+            {resource.name}
+          </span>
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+            {formatNumber(amount)}
+          </span>
         </div>
       );
     });
@@ -66,11 +70,10 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     
     return Object.entries(building.production).map(([resourceId, amount]) => {
       if (resourceId.includes('Max') || resourceId.includes('Boost')) {
-        // Fix: The formatEffectName function only takes one parameter (effectId), not two
         const formattedEffect = formatEffectName(resourceId);
         return (
-          <div key={resourceId} className="text-blue-600 text-[10px]">
-            +{amount} {formattedEffect}
+          <div key={resourceId} className="text-blue-600 text-[12px]">
+            {formattedEffect}: {amount}
           </div>
         );
       }
@@ -79,8 +82,8 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       if (!resource) return null;
       
       return (
-        <div key={resourceId} className="text-green-600 text-[10px]">
-          +{amount}/сек {resource.name}
+        <div key={resourceId} className="text-green-600 text-[12px]">
+          {resource.name}: +{amount}/сек
         </div>
       );
     });
@@ -96,8 +99,8 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       if (!resource) return null;
       
       return (
-        <div key={resourceId} className="text-red-500 text-[10px]">
-          -{amount}/сек {resource.name}
+        <div key={resourceId} className="text-red-500 text-[12px]">
+          {resource.name}: -{amount}/сек
         </div>
       );
     });
@@ -119,8 +122,13 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       
       const hasEnough = resource.value >= Number(amount);
       return (
-        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px]`}>
-          {formatNumber(Number(amount))} {resource.name}
+        <div key={resourceId} className="flex justify-between w-full">
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+            {resource.name}
+          </span>
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+            {formatNumber(Number(amount))}
+          </span>
         </div>
       );
     });
@@ -135,53 +143,45 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm hover:shadow-md transition-shadow mb-2`}
+      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
     >
-      <div className="p-2">
-        <CollapsibleTrigger asChild>
-          <div className="flex justify-between items-start cursor-pointer">
-            <div className="flex-1">
-              <div className="flex justify-between items-center w-full">
-                <h3 className="text-sm font-medium">{building.name}</h3>
-                <div className="flex items-center space-x-2">
-                  {building.count > 0 && (
-                    <span className="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded-full">
-                      {building.count}
-                    </span>
-                  )}
-                  {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">{building.description}</p>
+      <CollapsibleTrigger asChild>
+        <div className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-50">
+          <div className="flex-1">
+            <div className="flex justify-between items-center w-full">
+              <h3 className="text-sm font-medium">
+                {building.name} {building.count > 0 && `(${building.count})`}
+              </h3>
             </div>
           </div>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <div className="mt-2 pt-2 border-t">
-            <div className="flex justify-between">
+          <ChevronRight className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        </div>
+      </CollapsibleTrigger>
+      
+      <CollapsibleContent>
+        <div className="p-3 pt-0">
+          <p className="text-xs text-gray-500 mt-1 mb-3">{building.description}</p>
+          
+          <div className="space-y-2">
+            {building.count === 0 ? (
               <div className="space-y-1">
-                <h4 className="text-xs font-medium">Производство:</h4>
-                {renderProduction()}
-                {renderConsumption()}
-              </div>
-              
-              <div className="space-y-1 text-right">
                 <h4 className="text-xs font-medium">Стоимость:</h4>
-                {building.count === 0 ? renderCost() : renderNextCost()}
+                {renderCost()}
               </div>
+            ) : (
+              <div className="space-y-1">
+                <h4 className="text-xs font-medium">Стоимость улучшения:</h4>
+                {renderNextCost()}
+              </div>
+            )}
+            
+            <div className="border-t pt-2 mt-2">
+              <h4 className="text-xs font-medium mb-1">Эффекты:</h4>
+              {renderProduction()}
+              {renderConsumption()}
             </div>
             
-            <div className="mt-2 flex justify-between">
-              <Button
-                onClick={() => console.log("Sell functionality not implemented")}
-                disabled={building.count === 0}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-              >
-                Продать
-              </Button>
+            <div className="border-t pt-2 grid grid-cols-2 gap-2 mt-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -191,9 +191,9 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                         disabled={!canAfford() || hasReachedMaxCount()}
                         variant={canAfford() && !hasReachedMaxCount() ? "default" : "outline"}
                         size="sm"
-                        className="text-xs"
+                        className="w-full text-xs"
                       >
-                        {building.count === 0 ? "Купить" : "Улучшить"}
+                        {building.count === 0 ? "Построить" : "Улучшить"}
                       </Button>
                     </div>
                   </TooltipTrigger>
@@ -208,10 +208,20 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                   )}
                 </Tooltip>
               </TooltipProvider>
+              
+              <Button
+                onClick={() => console.log("Sell functionality not implemented")}
+                disabled={building.count === 0}
+                variant="outline"
+                size="sm"
+                className="text-xs w-full"
+              >
+                Продать
+              </Button>
             </div>
           </div>
-        </CollapsibleContent>
-      </div>
+        </div>
+      </CollapsibleContent>
     </Collapsible>
   );
 };

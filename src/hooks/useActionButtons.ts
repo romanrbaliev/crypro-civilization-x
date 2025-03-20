@@ -11,20 +11,27 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
   const [practiceMessageSent, setPracticeMessageSent] = useState(false);
   const [researchMessageSent, setResearchMessageSent] = useState(false);
 
-  // Следим за разблокировкой практики
+  // Отслеживаем прогресс для разблокировки практики
   useEffect(() => {
-    console.log(
-      "practice unlocked =", state.unlocks.practice,
-      "practice building unlocked =", state.buildings.practice ? state.buildings.practice.unlocked : false,
-      "practice building count =", state.buildings.practice ? state.buildings.practice.count : 0
-    );
-  }, [state.unlocks.practice, state.buildings.practice]);
+    // Проверяем, была ли кнопка "Применить знания" использована 2 раза
+    if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2 && !state.unlocks.practice) {
+      console.log("Разблокируем практику после 2 применений знаний");
+      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
+      
+      if (state.buildings.practice && !state.buildings.practice.unlocked) {
+        dispatch({
+          type: "SET_BUILDING_UNLOCKED",
+          payload: { buildingId: "practice", unlocked: true }
+        });
+      }
+    }
+  }, [state.counters.applyKnowledge, state.unlocks.practice, dispatch, state.buildings.practice]);
 
   // Отправляем сообщение когда практика разблокирована
   useEffect(() => {
     if (state.unlocks.practice && !practiceMessageSent) {
       onAddEvent("Функция 'Практика' разблокирована", "info");
-      onAddEvent("Накопите 10 USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
+      onAddEvent("Накопите USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
       setPracticeMessageSent(true);
     }
   }, [state.unlocks.practice, onAddEvent, practiceMessageSent]);
@@ -38,7 +45,7 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     }
   }, [state.unlocks.research, onAddEvent, researchMessageSent]);
 
-  // Обработчики для кнопок
+  // Обработчик для кнопки "Изучить крипту"
   const handleLearnClick = () => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
     
@@ -47,6 +54,7 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     }
   };
 
+  // Обработчик для кнопки "Применить знания"
   const handleApplyKnowledge = () => {
     if (state.resources.knowledge.value < 10) {
       onAddEvent("Недостаточно знаний! Требуется 10 единиц.", "error");
@@ -56,6 +64,7 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     dispatch({ type: "APPLY_KNOWLEDGE" });
   };
 
+  // Обработчик для кнопки "Практиковаться"
   const handlePractice = () => {
     // Проверяем наличие здания practice
     if (!state.buildings.practice) {
@@ -94,9 +103,11 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     
     // Отправляем действие для покупки практики
     dispatch({ type: "PRACTICE_PURCHASE" });
+    onAddEvent(`Практика улучшена до уровня ${practiceBuilding.count + 1}`, "success");
     console.log("Отправлен запрос PRACTICE_PURCHASE");
   };
 
+  // Обработчик для кнопки "Майнинг"
   const handleMineClick = () => {
     if (state.resources.computingPower.value < 50) {
       onAddEvent("Недостаточно вычислительной мощности! Требуется 50 единиц.", "error");
@@ -106,6 +117,7 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     dispatch({ type: "MINE_COMPUTING_POWER" });
   };
 
+  // Обработчик для кнопки "Обменять BTC"
   const handleExchangeBtc = () => {
     if (state.resources.btc.value <= 0) {
       onAddEvent("У вас нет BTC для обмена", "error");

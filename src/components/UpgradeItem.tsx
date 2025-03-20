@@ -12,8 +12,7 @@ import {
 } from "@/components/ui/tooltip";
 import { 
   Sparkles,
-  ChevronDown,
-  ChevronUp
+  ChevronRight
 } from "lucide-react";
 import {
   Collapsible,
@@ -85,8 +84,13 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       const hasEnough = resource.value >= Number(amount);
       
       return (
-        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[10px] w-full`}>
-          {formatNumber(Number(amount))} {resource.name}
+        <div key={resourceId} className="flex justify-between w-full">
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+            {resource.name}
+          </span>
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+            {formatNumber(Number(amount))}
+          </span>
         </div>
       );
     });
@@ -97,21 +101,21 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       if (effectId === 'knowledgeBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px] w-full">
+          <div key={effectId} className="text-blue-600 text-[12px] w-full">
             +{boostPercent}% к скорости накопления Знаний о крипте
           </div>
         );
       } else if (effectId === 'knowledgeMaxBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px] w-full">
+          <div key={effectId} className="text-blue-600 text-[12px] w-full">
             +{boostPercent}% к максимуму Знаний о крипте
           </div>
         );
       } else if (effectId === 'usdtMaxBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px] w-full">
+          <div key={effectId} className="text-blue-600 text-[12px] w-full">
             +{boostPercent}% к максимуму USDT
           </div>
         );
@@ -120,7 +124,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         const boostPercent = Number(amount) * 100;
         const resourceName = state.resources[resourceId]?.name || resourceId;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px] w-full">
+          <div key={effectId} className="text-blue-600 text-[12px] w-full">
             +{boostPercent}% к скорости накопления {resourceName}
           </div>
         );
@@ -128,21 +132,21 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         const resourceId = effectId.replace('Max', '');
         const resourceName = state.resources[resourceId]?.name || resourceId;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px] w-full">
+          <div key={effectId} className="text-blue-600 text-[12px] w-full">
             +{formatNumber(Number(amount))} к максимуму {resourceName}
           </div>
         );
       } else if (effectId === 'conversionRate') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[10px] w-full">
+          <div key={effectId} className="text-blue-600 text-[12px] w-full">
             +{boostPercent}% к конвертации
           </div>
         );
       }
       
       return (
-        <div key={effectId} className="text-blue-600 text-[10px] w-full">
+        <div key={effectId} className="text-blue-600 text-[12px] w-full">
           +{String(amount)} к {effectId}
         </div>
       );
@@ -154,23 +158,22 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
-        className="p-2 border rounded-lg bg-gray-50 shadow-sm mb-2"
+        className="border rounded-lg bg-gray-50 shadow-sm mb-2 overflow-hidden"
       >
         <CollapsibleTrigger asChild>
-          <div className="flex justify-between items-center w-full cursor-pointer">
+          <div className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-100">
             <h3 className="font-semibold text-[12px] flex items-center">
               {name} <Sparkles className="ml-1 h-3 w-3 text-amber-500" />
             </h3>
-            <Button variant="ghost" size="sm" className="p-0 h-6 w-6 min-w-6">
-              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
+            <ChevronRight className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
           </div>
         </CollapsibleTrigger>
         
         <CollapsibleContent>
-          <div className="mt-2">
-            <p className="text-[10px] text-gray-600 mb-1 w-full">{description}</p>
-            <div className="mt-1 text-[10px] w-full">
+          <div className="p-3 pt-0">
+            <p className="text-[12px] text-gray-600 mb-1 w-full">{description}</p>
+            <div className="mt-2 border-t pt-2">
+              <h4 className="text-xs font-medium mb-1">Эффекты:</h4>
               {renderEffects()}
             </div>
           </div>
@@ -183,63 +186,63 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className={`p-2 border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm hover:shadow-md transition-shadow mb-2`}
+      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
     >
       <CollapsibleTrigger asChild>
-        <div className="flex justify-between items-start w-full cursor-pointer">
-          <div className="w-full pr-2">
-            <div className="flex justify-between items-center w-full">
-              <h3 className="font-semibold text-[12px]">{name}</h3>
-              <Button variant="ghost" size="sm" className="p-0 h-6 w-6 min-w-6 ml-auto">
-                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </div>
-            <p className="text-[10px] text-gray-600 mt-0.5">{description}</p>
-          </div>
+        <div className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-50">
+          <h3 className="font-semibold text-[12px]">{name}</h3>
+          <ChevronRight className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
         </div>
       </CollapsibleTrigger>
       
       <CollapsibleContent>
-        <div className="mt-1 pt-2 border-t">
-          <div className="flex flex-col gap-1 w-full">
-            <h4 className="text-xs font-medium">Стоимость:</h4>
-            {renderCost()}
-          </div>
-          <div className="mt-1 w-full">
-            <h4 className="text-xs font-medium">Эффекты:</h4>
-            {renderEffects()}
-          </div>
+        <div className="p-3 pt-0">
+          <p className="text-[12px] text-gray-600 mb-3 w-full">{description}</p>
           
-          <div className="mt-2 flex justify-between">
-            <Button 
-              variant="outline"
-              size="sm"
-              className="text-[10px] h-7 px-2 whitespace-nowrap"
-              disabled={true}
-            >
-              Продать
-            </Button>
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <h4 className="text-xs font-medium">Стоимость:</h4>
+              {renderCost()}
+            </div>
             
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handlePurchase} 
-                    disabled={!canAfford()}
-                    variant={canAfford() ? "default" : "outline"}
-                    size="sm"
-                    className="text-[10px] h-7 px-2 whitespace-nowrap"
-                  >
-                    Исследовать
-                  </Button>
-                </TooltipTrigger>
-                {!canAfford() && (
-                  <TooltipContent side="left">
-                    <p className="text-[10px]">Недостаточно ресурсов</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+            <div className="border-t pt-2">
+              <h4 className="text-xs font-medium mb-1">Эффекты:</h4>
+              {renderEffects()}
+            </div>
+            
+            <div className="border-t pt-2 grid grid-cols-2 gap-2">
+              <Button 
+                variant="outline"
+                size="sm"
+                className="text-[12px] w-full"
+                disabled={true}
+              >
+                Продать
+              </Button>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button 
+                        onClick={handlePurchase} 
+                        disabled={!canAfford()}
+                        variant={canAfford() ? "default" : "outline"}
+                        size="sm"
+                        className="text-[12px] w-full"
+                      >
+                        Исследовать
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {!canAfford() && (
+                    <TooltipContent side="left">
+                      <p className="text-[10px]">Недостаточно ресурсов</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
         </div>
       </CollapsibleContent>
