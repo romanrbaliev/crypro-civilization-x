@@ -210,16 +210,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
               {renderEffects()}
             </div>
             
-            <div className="border-t pt-2 grid grid-cols-2 gap-2">
-              <Button 
-                variant="outline"
-                size="sm"
-                className="text-[12px] w-full"
-                disabled={true}
-              >
-                Продать
-              </Button>
-              
+            <div className="border-t pt-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>

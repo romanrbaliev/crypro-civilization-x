@@ -62,6 +62,17 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     }
     
     dispatch({ type: "APPLY_KNOWLEDGE" });
+    
+    // Увеличиваем счетчик применений знаний
+    dispatch({ 
+      type: "INCREMENT_COUNTER", 
+      payload: { counterId: "applyKnowledge", value: 1 } 
+    });
+    
+    // Проверяем количество применений и разблокируем практику после второго применения
+    if (state.counters.applyKnowledge && state.counters.applyKnowledge.value === 1) {
+      onAddEvent("Еще раз примените знания, чтобы разблокировать новую функцию", "info");
+    }
   };
 
   // Обработчик для кнопки "Практиковаться"

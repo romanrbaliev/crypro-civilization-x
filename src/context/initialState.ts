@@ -25,7 +25,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { electricity: 0.5 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 11 },  // Explicitly set to 11 USDT
+    requirements: { usdt: 11 },  // Явно установлено на 11 USDT
     productionBoost: 0
   },
   homeComputer: {
@@ -43,7 +43,7 @@ export const initialBuildings: { [key: string]: Building } = {
   },
   autoMiner: {
     id: "autoMiner",
-    name: "Майнер",  // Rename from "Автомайнер" to "Майнер"
+    name: "Майнер",
     description: "Автоматически добывает BTC, потребляя вычислительную мощность и электричество",
     cost: { usdt: 50 },
     costMultiplier: 1.5,

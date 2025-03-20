@@ -34,6 +34,12 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     if (onPurchase) onPurchase();
   };
   
+  const handleSell = () => {
+    if (building.count > 0) {
+      dispatch({ type: "SELL_BUILDING", payload: { buildingId: building.id } });
+    }
+  };
+  
   const canAfford = () => {
     for (const [resourceId, amount] of Object.entries(building.cost)) {
       const resource = state.resources[resourceId];
@@ -210,7 +216,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
               </TooltipProvider>
               
               <Button
-                onClick={() => console.log("Sell functionality not implemented")}
+                onClick={handleSell}
                 disabled={building.count === 0}
                 variant="outline"
                 size="sm"

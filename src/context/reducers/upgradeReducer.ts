@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -130,9 +131,9 @@ export const processPurchaseUpgrade = (
     };
   }
   
-  // Если приобретены "Основы блокчейна", разблокируем криптокошелек
+  // Если приобретены "Основы блокчейна", разблокируем только криптокошелек
   if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-    // Разблокируем криптокошелек
+    // Разблокируем только криптокошелек
     const newBuildings = { ...stateAfterPurchase.buildings };
     
     // Проверяем существование криптокошелька перед обновлением
@@ -154,7 +155,7 @@ export const processPurchaseUpgrade = (
       console.warn("Внимание: cryptoWallet не найден в зданиях при обновлении после покупки исследования");
     }
     
-    // Обновляем состояние
+    // Обновляем состояние только с разблокированным криптокошельком
     stateAfterPurchase = {
       ...stateAfterPurchase,
       buildings: newBuildings
@@ -204,9 +205,9 @@ export const processPurchaseUpgrade = (
     console.error("Ошибка при обновлении максимальных значений ресурсов:", error);
   }
   
-  // Проверяем разблокировки после всех изменений
+  // Проверяем разблокировки только тех улучшений, которые имеют зависимость от купленного улучшения
   try {
-    const stateWithNewUnlocks = checkUpgradeUnlocks(stateAfterPurchase);
+    const stateWithNewUnlocks = checkTargetedUpgradeUnlocks(stateAfterPurchase, upgradeId);
     return stateWithNewUnlocks;
   } catch (error) {
     console.error("Ошибка при проверке разблокировок:", error);
@@ -214,7 +215,67 @@ export const processPurchaseUpgrade = (
   }
 };
 
-// Проверка разблокировки улучшений на основе зависимостей
+// Проверка разблокировки улучшений только с зависимостью от конкретного улучшения
+export const checkTargetedUpgradeUnlocks = (state: GameState, purchasedUpgradeId: string): GameState => {
+  const newUpgrades = { ...state.upgrades };
+  let hasChanges = false;
+  
+  Object.values(newUpgrades).forEach(upgrade => {
+    // Пропускаем уже разблокированные или купленные улучшения
+    if (upgrade.unlocked || upgrade.purchased) return;
+    
+    // Проверяем, имеет ли улучшение зависимость от купленного улучшения
+    let dependsOnPurchased = false;
+    
+    // Проверка через requiredUpgrades
+    if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.includes(purchasedUpgradeId)) {
+      dependsOnPurchased = true;
+    }
+    
+    // Проверка через requirements
+    if (upgrade.requirements && upgrade.requirements[purchasedUpgradeId]) {
+      dependsOnPurchased = true;
+    }
+    
+    // Если зависит от купленного улучшения, проверяем все условия
+    if (dependsOnPurchased) {
+      const shouldUnlock = checkUnlockConditions(state, upgrade);
+      
+      if (shouldUnlock) {
+        newUpgrades[upgrade.id] = {
+          ...upgrade,
+          unlocked: true
+        };
+        hasChanges = true;
+        
+        // Отправляем сообщение о разблокировке нового исследования
+        const categoryText = upgrade.category ? ` (${upgrade.specialization || upgrade.category})` : '';
+        safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
+      }
+    }
+  });
+
+  // Специальная обработка для "Основы криптовалют" после "Основы блокчейна"
+  if (purchasedUpgradeId === 'basicBlockchain' && !newUpgrades.cryptoCurrencyBasics.unlocked) {
+    newUpgrades.cryptoCurrencyBasics = {
+      ...newUpgrades.cryptoCurrencyBasics,
+      unlocked: true
+    };
+    hasChanges = true;
+    safeDispatchGameEvent(`Разблокировано новое исследование: Основы криптовалют`, "info");
+  }
+  
+  if (hasChanges) {
+    return {
+      ...state,
+      upgrades: newUpgrades
+    };
+  }
+  
+  return state;
+};
+
+// Оставляем проверку всех разблокировок для других случаев
 export const checkUpgradeUnlocks = (state: GameState): GameState => {
   // Важное изменение: проверяем, разблокировано ли исследование "Основы блокчейна"
   // при этом проверка должна выполниться перед обновлением состояния

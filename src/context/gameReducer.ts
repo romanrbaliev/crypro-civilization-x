@@ -1,9 +1,10 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
-import { processPurchaseBuilding } from './reducers/buildingReducer';
+import { processPurchaseBuilding, processSellBuilding } from './reducers/buildingReducer';
 import { processPurchaseUpgrade, checkUpgradeUnlocks } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { 
@@ -65,6 +66,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // Покупаем здание
       newState = processPurchaseBuilding(state, action.payload);
       // Явно пересчитываем максимумы ресурсов после покупки зданий
+      return updateResourceMaxValues(newState);
+    }
+    
+    case "SELL_BUILDING": {
+      // Продаем здание
+      newState = processSellBuilding(state, action.payload);
+      // Явно пересчитываем максимумы ресурсов после продажи зданий
       return updateResourceMaxValues(newState);
     }
     

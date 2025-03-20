@@ -14,7 +14,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Проверяем состояние флага research в unlocks
   const researchUnlocked = state.unlocks.research === true;
   
-  // Определяем базовые исследования
+  // Определяем базовое исследование
   const isInitialResearch = (upgradeId: string) => {
     return upgradeId === 'basicBlockchain' || 
            upgradeId === 'blockchain_basics' || 
@@ -24,10 +24,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Проверяем, куплены ли "Основы блокчейна"
   const basicBlockchainPurchased = Object.values(state.upgrades)
     .some(upgrade => 
-      (upgrade.id === 'basicBlockchain' || 
-       upgrade.id === 'blockchain_basics' || 
-       upgrade.id === 'blockchainBasics') && 
-      upgrade.purchased
+      isInitialResearch(upgrade.id) && upgrade.purchased
     );
   
   // Фильтруем доступные исследования
@@ -43,15 +40,45 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       // Если "Основы блокчейна" не куплены, скрываем все остальные исследования
       if (!basicBlockchainPurchased) return false;
       
-      // Проверяем, есть ли у исследования требования и выполнены ли они
+      // Проверяем, есть ли у исследования требования к другим исследованиям
       if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
+        // Проверяем, все ли требуемые исследования куплены
         return upgrade.requiredUpgrades.every(
-          (reqId: string) => state.upgrades[reqId] && state.upgrades[reqId].purchased
+          reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
         );
       }
       
-      // Для исследований без требований показываем их после покупки "Основ блокчейна"
-      return true;
+      // Проверяем требования в другом формате
+      if (upgrade.requirements) {
+        const requiredUpgrades = Object.keys(upgrade.requirements)
+                                  .filter(key => !key.includes('Count') && state.upgrades[key]);
+        
+        if (requiredUpgrades.length > 0) {
+          return requiredUpgrades.every(
+            reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
+          );
+        }
+      }
+      
+      // Для исследований без требований, проверяем специальные правила
+      
+      // "Основы криптовалют" должны появиться после покупки "Основы блокчейна"
+      if (upgrade.id === 'cryptoCurrencyBasics') {
+        return basicBlockchainPurchased;
+      }
+      
+      // "Безопасность криптокошельков" появляется после покупки криптокошелька
+      if (upgrade.id === 'walletSecurity') {
+        return state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0;
+      }
+      
+      // "Оптимизация алгоритмов" появляется после покупки автомайнера
+      if (upgrade.id === 'algorithmOptimization') {
+        return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
+      }
+      
+      // По умолчанию не показываем исследования без явных зависимостей
+      return false;
     });
   
   // Купленные исследования

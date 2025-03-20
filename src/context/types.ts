@@ -1,4 +1,3 @@
-
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -43,7 +42,7 @@ export interface Resource {
   perSecond: number;
   max: number;
   icon: string;
-  boosts?: { [key: string]: number }; // Добавляем для хранения бустов
+  boosts?: { [key: string]: number };
 }
 
 export interface Building {
@@ -59,8 +58,8 @@ export interface Building {
   requirements?: { [key: string]: number };
   maxCount?: number;
   productionBoost: number;
-  unlockedBy?: string; // Добавляем для совместимости с resourceUtils.ts
-  resourceProduction?: { [key: string]: number }; // Добавляем для кэшированных значений производства
+  unlockedBy?: string;
+  resourceProduction?: { [key: string]: number };
 }
 
 export interface Upgrade {
@@ -122,7 +121,7 @@ export interface ReferralHelper {
   helperId: string;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: number;
-  employerId?: string; // Добавляем для полной совместимости с resourceUtils.ts
+  employerId?: string;
 }
 
 export interface MiningParams {
@@ -142,6 +141,7 @@ export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
   | { type: "UPDATE_RESOURCES" }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
+  | { type: "SELL_BUILDING"; payload: { buildingId: string } }
   | { type: "PRACTICE_PURCHASE" }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }

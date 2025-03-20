@@ -38,22 +38,35 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     btc.value > 0 && 
     usdt.value + (btc.value * currentExchangeRate) <= usdt.max;
   
-  // Важно: генерируем кнопки в порядке, противоположном их отображению, 
-  // так как они будут располагаться в flex-direction: column-reverse
+  // Формируем массив кнопок в порядке отображения 
+  // (новые кнопки появляются над "Изучить крипту")
   const buttons = [];
   
-  // Всегда добавляем базовую кнопку Изучить крипту (будет отображаться внизу)
-  buttons.push(
-    <Button
-      key="learn"
-      onClick={handleLearnClick}
-      className="w-full"
-      size="sm"
-    >
-      <Brain className="mr-2 h-4 w-4" />
-      Изучить крипту
-    </Button>
-  );
+  // Добавляем кнопку обмена BTC, если биткоин разблокирован
+  if (btc.unlocked) {
+    buttons.push(
+      <ExchangeBtcButton 
+        key="exchange"
+        onClick={handleExchangeBtc}
+        disabled={!canExchangeBtc}
+        className="w-full"
+        currentRate={currentExchangeRate}
+      />
+    );
+  }
+  
+  // Добавляем кнопку Практиковаться, если она разблокирована и доступна
+  if (state.unlocks.practice) {
+    buttons.push(
+      <PracticeButton
+        key="practice"
+        onClick={handlePractice}
+        disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
+        level={practiceCurrentLevel}
+        cost={practiceCurrentCost}
+      />
+    );
+  }
   
   // Добавляем кнопку Применить знания, если она разблокирована
   if (hasApplyKnowledge) {
@@ -72,34 +85,22 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     );
   }
   
-  // Добавляем кнопку Практиковаться, если она разблокирована и доступна
-  if (state.unlocks.practice) {
-    buttons.push(
-      <PracticeButton
-        key="practice"
-        onClick={handlePractice}
-        disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
-        level={practiceCurrentLevel}
-        cost={practiceCurrentCost}
-      />
-    );
-  }
-  
-  // Добавляем кнопку обмена BTC, если биткоин разблокирован
-  if (btc.unlocked) {
-    buttons.push(
-      <ExchangeBtcButton 
-        key="exchange"
-        onClick={handleExchangeBtc}
-        disabled={!canExchangeBtc}
-        className="w-full"
-        currentRate={currentExchangeRate}
-      />
-    );
-  }
+  // Обязательно добавляем кнопку Изучить крипту последней,
+  // чтобы она всегда была внизу
+  buttons.push(
+    <Button
+      key="learn"
+      onClick={handleLearnClick}
+      className="w-full"
+      size="sm"
+    >
+      <Brain className="mr-2 h-4 w-4" />
+      Изучить крипту
+    </Button>
+  );
   
   return (
-    <div className="flex flex-col-reverse gap-2">
+    <div className="flex flex-col gap-2">
       {buttons}
     </div>
   );
