@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +14,32 @@ import DebugCalculator from "@/components/DebugCalculator";
 import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
+import { useToast, toast } from "@/hooks/use-toast";
+import { resetAllGameData } from "@/context/utils/gameStorage";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
+} from "@/components/ui/sheet";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -292,15 +319,15 @@ const GameScreen = () => {
           <div className="flex-1 overflow-auto p-2 flex flex-col">
             <div className="flex-1 overflow-auto">
               {selectedTab === "equipment" && hasUnlockedBuildings && (
-                <EquipmentTab />
+                <EquipmentTab onAddEvent={addEvent} />
               )}
               
               {selectedTab === "research" && hasUnlockedResearch && (
-                <ResearchTab />
+                <ResearchTab onAddEvent={addEvent} />
               )}
               
               {selectedTab === "referrals" && (
-                <ReferralsTab />
+                <ReferralsTab onAddEvent={addEvent} />
               )}
             </div>
             

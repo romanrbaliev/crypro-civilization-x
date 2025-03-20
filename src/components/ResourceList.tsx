@@ -39,8 +39,7 @@ const ResourceList = () => {
             <div className="font-bold">
               {resource.id === 'btc' 
                 ? formatNumber(resource.value, 8) 
-                : formatNumber(resource.value)
-              }
+                : formatNumber(resource.value)}
               {resource.max !== Infinity && (
                 <span className="font-normal text-gray-500"> / {formatNumber(resource.max)}</span>
               )}
