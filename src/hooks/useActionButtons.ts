@@ -13,9 +13,11 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
 
   // Отслеживаем прогресс для разблокировки практики
   useEffect(() => {
-    // Проверяем, была ли кнопка "Применить знания" использована 2 раза
-    if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2 && !state.unlocks.practice) {
-      console.log("Разблокируем практику после 2 применений знаний");
+    // Проверяем, была ли кнопка "Применить знания" использована 2 раза И функция ещё не разблокирована
+    const applyCount = state.counters.applyKnowledge?.value || 0;
+    
+    if (applyCount >= 2 && !state.unlocks.practice) {
+      console.log("Разблокируем практику после 2 применений знаний, текущее значение:", applyCount);
       dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
       
       if (state.buildings.practice && !state.buildings.practice.unlocked) {
@@ -25,12 +27,14 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
         });
       }
       
-      // Отправляем сообщение о разблокировке практики
-      onAddEvent("Функция 'Практика' разблокирована", "info");
-      onAddEvent("Накопите USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
-      setPracticeMessageSent(true);
+      // Отправляем сообщение о разблокировке практики (только один раз)
+      if (!practiceMessageSent) {
+        onAddEvent("Функция 'Практика' разблокирована", "info");
+        onAddEvent("Накопите USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
+        setPracticeMessageSent(true);
+      }
     }
-  }, [state.counters.applyKnowledge, state.unlocks.practice, dispatch, state.buildings.practice, onAddEvent]);
+  }, [state.counters.applyKnowledge?.value, state.unlocks.practice, dispatch, state.buildings.practice, onAddEvent, practiceMessageSent]);
 
   // Отправляем сообщение когда исследования разблокированы
   useEffect(() => {

@@ -92,30 +92,6 @@ export const processPurchaseBuilding = (
     buildings: newBuildings
   };
   
-  // Разблокируем криптобиблиотеку после покупки интернет-канала
-  if (buildingId === "internetConnection" && building.count === 0) {
-    console.log("Проверяем условия для разблокировки криптобиблиотеки");
-    if (state.resources.usdt.value >= 80) {
-      newState.buildings.cryptoLibrary = {
-        ...newState.buildings.cryptoLibrary,
-        unlocked: true
-      };
-      safeDispatchGameEvent("Разблокирована Криптобиблиотека", "info");
-    }
-  }
-
-  // Разблокируем систему охлаждения только после покупки 2+ домашних компьютеров
-  if (buildingId === "homeComputer" && newState.buildings.homeComputer.count >= 2) {
-    console.log(`Проверяем разблокировку системы охлаждения. Количество компьютеров: ${newState.buildings.homeComputer.count}`);
-    if (!newState.buildings.coolingSystem.unlocked) {
-      newState.buildings.coolingSystem = {
-        ...newState.buildings.coolingSystem,
-        unlocked: true
-      };
-      safeDispatchGameEvent("Разблокирована Система охлаждения", "info");
-    }
-  }
-  
   // Разблокировка вкладки исследований при покупке первого генератора
   if (buildingId === "generator" && building.count === 0) {
     console.log("Разблокируем вкладку исследований после покупки первого генератора");
@@ -146,6 +122,14 @@ export const processPurchaseBuilding = (
         unlocked: true
       };
       console.log("Разблокировано исследование 'Основы блокчейна' (blockchain_basics)");
+    }
+    
+    if (upgrades.blockchainBasics) {
+      upgrades.blockchainBasics = {
+        ...upgrades.blockchainBasics,
+        unlocked: true
+      };
+      console.log("Разблокировано исследование 'Основы блокчейна' (blockchainBasics)");
     }
     
     newState = {
@@ -204,7 +188,7 @@ export const processSellBuilding = (
   return newState;
 };
 
-// Добавим новую функцию для проверки условий разблокировки зданий
+// Проверка условий разблокировки зданий
 export const checkBuildingUnlocks = (state: GameState): GameState => {
   const newBuildings = { ...state.buildings };
   let hasChanges = false;
@@ -225,7 +209,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     }
     
     // Домашний компьютер появляется при наличии 10+ электричества
-    if (building.id === "homeComputer" && !building.unlocked) {
+    else if (building.id === "homeComputer" && !building.unlocked) {
       if (state.resources.electricity && state.resources.electricity.unlocked && 
           state.resources.electricity.value >= 10) {
         shouldUnlock = true;
@@ -233,8 +217,16 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       }
     }
 
+    // Система охлаждения разблокируется только при наличии минимум 2-х домашних компьютеров
+    else if (building.id === "coolingSystem" && !building.unlocked) {
+      if (state.buildings.homeComputer && state.buildings.homeComputer.count >= 2) {
+        shouldUnlock = true;
+        safeDispatchGameEvent("Разблокирована Система охлаждения", "info");
+      }
+    }
+
     // Проверяем требования к ресурсам
-    if (building.requirements && !shouldUnlock) {
+    else if (building.requirements && !shouldUnlock) {
       shouldUnlock = true;
       
       for (const [reqId, reqValue] of Object.entries(building.requirements)) {
@@ -258,22 +250,6 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
           shouldUnlock = false;
           break;
         }
-      }
-    }
-
-    // Специальные условия для зданий Фазы 2
-    if (building.id === "autoMiner" && !shouldUnlock) {
-      if (state.resources.computingPower && state.resources.computingPower.unlocked) {
-        shouldUnlock = true;
-      }
-    }
-
-    // Система охлаждения разблокируется только при наличии минимум 2-х домашних компьютеров
-    if (building.id === "coolingSystem" && !shouldUnlock) {
-      if (state.buildings.homeComputer && state.buildings.homeComputer.count >= 2) {
-        shouldUnlock = true;
-      } else {
-        shouldUnlock = false;
       }
     }
 

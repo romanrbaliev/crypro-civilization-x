@@ -1,24 +1,19 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { formatNumber } from "@/utils/helpers";
-import { useGame } from "@/context/hooks/useGame";
 import { Upgrade } from "@/context/types";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
-import { 
-  Sparkles,
-  ChevronRight
-} from "lucide-react";
+import { useGame } from "@/context/hooks/useGame";
+import { formatNumber } from "@/utils/helpers";
+import { formatEffect } from "@/utils/researchUtils";
+import { getSpecializationName } from "@/utils/researchUtils";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger
 } from "@/components/ui/collapsible";
+import {
+  ChevronRight
+} from "lucide-react";
 
 interface UpgradeItemProps {
   upgrade: Upgrade;
@@ -27,51 +22,17 @@ interface UpgradeItemProps {
 
 const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const { state, dispatch } = useGame();
-  const { id, name, description, cost, effects, purchased } = upgrade;
-  // Безопасно получаем объект эффектов с проверкой на null/undefined
-  const effectData = effects || upgrade.effect || {};
   const [isOpen, setIsOpen] = useState(false);
   
-  // Проверка, является ли это исследование "Основы блокчейна"
-  const isBlockchainBasics = id === 'blockchainBasics' || id === 'basicBlockchain' || id === 'blockchain_basics';
-  
-  // Отслеживаем покупку "Основ блокчейна" для активации реферала
-  useEffect(() => {
-    if (purchased && isBlockchainBasics && state.referredBy) {
-      console.log('Исследование "Основы блокчейна" куплено, активируем реферала');
-      const userId = localStorage.getItem('userId');
-      if (userId) {
-        dispatch({ type: "ACTIVATE_REFERRAL", payload: { referralId: userId } });
-      }
-    }
-  }, [purchased, isBlockchainBasics, state.referredBy, dispatch]);
-  
   const handlePurchase = () => {
-    try {
-      console.log(`Покупка исследования ${id} с эффектами:`, effectData);
-      dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: id } });
-      setIsOpen(false); // Сворачиваем карточку после покупки
-      
-      // Если это "Основы блокчейна" и есть referredBy, активируем реферала
-      if (isBlockchainBasics && state.referredBy) {
-        console.log('Приобретены "Основы блокчейна", активируем реферала');
-        const userId = localStorage.getItem('userId');
-        if (userId) {
-          setTimeout(() => {
-            dispatch({ type: "ACTIVATE_REFERRAL", payload: { referralId: userId } });
-          }, 500);
-        }
-      }
-      
-      if (onPurchase) onPurchase();
-    } catch (error) {
-      console.error(`Ошибка при покупке исследования ${id}:`, error);
-    }
+    dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
+    if (onPurchase) onPurchase();
   };
   
   const canAfford = () => {
-    for (const [resourceId, amount] of Object.entries(cost)) {
-      if (state.resources[resourceId].value < Number(amount)) {
+    for (const [resourceId, cost] of Object.entries(upgrade.cost)) {
+      const resource = state.resources[resourceId];
+      if (!resource || resource.value < cost) {
         return false;
       }
     }
@@ -79,17 +40,18 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   };
   
   const renderCost = () => {
-    return Object.entries(cost).map(([resourceId, amount]) => {
+    return Object.entries(upgrade.cost).map(([resourceId, cost]) => {
       const resource = state.resources[resourceId];
-      const hasEnough = resource.value >= Number(amount);
+      if (!resource) return null;
       
+      const hasEnough = resource.value >= cost;
       return (
         <div key={resourceId} className="flex justify-between w-full">
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
             {resource.name}
           </span>
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {formatNumber(Number(amount))}
+            {formatNumber(cost)}
           </span>
         </div>
       );
@@ -97,90 +59,28 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   };
   
   const renderEffects = () => {
-    return Object.entries(effectData).map(([effectId, amount]) => {
-      if (effectId === 'knowledgeBoost') {
-        const boostPercent = Number(amount) * 100;
-        return (
-          <div key={effectId} className="text-blue-600 text-[11px] w-full">
-            +{boostPercent}% к скорости накопления Знаний о крипте
-          </div>
-        );
-      } else if (effectId === 'knowledgeMaxBoost') {
-        const boostPercent = Number(amount) * 100;
-        return (
-          <div key={effectId} className="text-blue-600 text-[11px] w-full">
-            +{boostPercent}% к максимуму Знаний о крипте
-          </div>
-        );
-      } else if (effectId === 'usdtMaxBoost') {
-        const boostPercent = Number(amount) * 100;
-        return (
-          <div key={effectId} className="text-blue-600 text-[11px] w-full">
-            +{boostPercent}% к максимуму USDT
-          </div>
-        );
-      } else if (effectId.includes('Boost')) {
-        const resourceId = effectId.replace('Boost', '');
-        const boostPercent = Number(amount) * 100;
-        const resourceName = state.resources[resourceId]?.name || resourceId;
-        return (
-          <div key={effectId} className="text-blue-600 text-[11px] w-full">
-            +{boostPercent}% к скорости накопления {resourceName}
-          </div>
-        );
-      } else if (effectId.includes('Max')) {
-        const resourceId = effectId.replace('Max', '');
-        const resourceName = state.resources[resourceId]?.name || resourceId;
-        return (
-          <div key={effectId} className="text-blue-600 text-[11px] w-full">
-            +{formatNumber(Number(amount))} к максимуму {resourceName}
-          </div>
-        );
-      } else if (effectId === 'conversionRate') {
-        const boostPercent = Number(amount) * 100;
-        return (
-          <div key={effectId} className="text-blue-600 text-[11px] w-full">
-            +{boostPercent}% к конвертации
-          </div>
-        );
-      }
-      
+    if (!upgrade.effects && !upgrade.effect) return null;
+    
+    const effects = upgrade.effects || upgrade.effect;
+    return Object.entries(effects).map(([effectId, amount]) => {
+      // Форматируем эффект для более понятного отображения
       return (
-        <div key={effectId} className="text-blue-600 text-[11px] w-full">
-          +{String(amount)} к {effectId}
+        <div key={effectId} className="text-blue-600 text-[11px]">
+          {formatEffect(effectId, Number(amount))}
         </div>
       );
     });
   };
   
-  if (purchased) {
+  const renderSpecialization = () => {
+    if (!upgrade.specialization) return null;
+    
     return (
-      <Collapsible
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        className="border rounded-lg bg-gray-50 shadow-sm mb-2 overflow-hidden"
-      >
-        <CollapsibleTrigger asChild>
-          <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-100">
-            <h3 className="font-semibold text-xs flex items-center">
-              {name} <Sparkles className="ml-1 h-3 w-3 text-amber-500" />
-            </h3>
-            <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-          </div>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <div className="p-2 pt-0">
-            <p className="text-[11px] text-gray-600 mb-1 w-full">{description}</p>
-            <div className="mt-2 border-t pt-2">
-              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
-              {renderEffects()}
-            </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+      <div className="mt-1 text-[11px] text-purple-600">
+        Специализация: {getSpecializationName(upgrade.specialization)}
+      </div>
     );
-  }
+  };
   
   return (
     <Collapsible
@@ -190,51 +90,59 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
     >
       <CollapsibleTrigger asChild>
         <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
-          <h3 className="font-medium text-xs">{name}</h3>
+          <div className="flex-1">
+            <div className="flex justify-between items-center w-full">
+              <h3 className="text-xs font-medium">
+                {upgrade.name}
+              </h3>
+            </div>
+          </div>
           <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
         </div>
       </CollapsibleTrigger>
       
       <CollapsibleContent>
         <div className="p-2 pt-0">
-          <p className="text-[11px] text-gray-600 mb-3 w-full">{description}</p>
+          <p className="text-[11px] text-gray-500 mt-1 mb-2">{upgrade.description}</p>
           
-          <div className="space-y-2">
-            <div className="space-y-1">
-              <h4 className="text-[11px] font-medium">Стоимость:</h4>
-              {renderCost()}
+          {upgrade.purchased ? (
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <h4 className="text-[11px] font-medium">Эффекты:</h4>
+                {renderEffects()}
+                {renderSpecialization()}
+              </div>
+              
+              <div className="mt-2 p-1 bg-green-50 border border-green-200 rounded text-[11px] text-green-700 flex justify-center">
+                Исследование завершено
+              </div>
             </div>
-            
-            <div className="border-t pt-2">
-              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
-              {renderEffects()}
+          ) : (
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <h4 className="text-[11px] font-medium">Стоимость:</h4>
+                {renderCost()}
+              </div>
+              
+              <div className="border-t pt-2 mt-2">
+                <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
+                {renderEffects()}
+                {renderSpecialization()}
+              </div>
+              
+              <div className="border-t pt-2 mt-2">
+                <Button
+                  onClick={handlePurchase}
+                  disabled={!canAfford()}
+                  variant={canAfford() ? "default" : "outline"}
+                  size="sm"
+                  className="w-full text-xs"
+                >
+                  Исследовать
+                </Button>
+              </div>
             </div>
-            
-            <div className="border-t pt-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Button 
-                        onClick={handlePurchase} 
-                        disabled={!canAfford()}
-                        variant={canAfford() ? "default" : "outline"}
-                        size="sm"
-                        className="text-[11px] w-full h-7 py-0"
-                      >
-                        Исследовать
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  {!canAfford() && (
-                    <TooltipContent side="left">
-                      <p className="text-[10px]">Недостаточно ресурсов</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
+          )}
         </div>
       </CollapsibleContent>
     </Collapsible>

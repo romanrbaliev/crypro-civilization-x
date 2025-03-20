@@ -38,13 +38,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     btc.value > 0 && 
     usdt.value + (btc.value * currentExchangeRate) <= usdt.max;
   
-  // Формируем массив кнопок в порядке отображения 
-  // (новые кнопки появляются над "Изучить крипту")
-  const buttons = [];
+  // Формируем кнопки в порядке их отображения сверху вниз
+  const buttonComponents = [];
   
-  // Добавляем кнопку обмена BTC, если биткоин разблокирован
+  // Кнопка обмена BTC (если разблокирована)
   if (btc.unlocked) {
-    buttons.push(
+    buttonComponents.push(
       <ExchangeBtcButton 
         key="exchange"
         onClick={handleExchangeBtc}
@@ -55,10 +54,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     );
   }
   
-  // Добавляем кнопку Практиковаться, если она разблокирована
+  // Кнопка Практика (если разблокирована)
   if (practiceIsUnlocked) {
     console.log("Кнопка практики разблокирована, добавляем на экран");
-    buttons.push(
+    buttonComponents.push(
       <PracticeButton
         key="practice"
         onClick={handlePractice}
@@ -73,9 +72,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     console.log("applyKnowledge счетчик:", state.counters.applyKnowledge?.value);
   }
   
-  // Добавляем кнопку Применить знания, если она разблокирована
+  // Кнопка Применить знания (если разблокирована)
   if (hasApplyKnowledge) {
-    buttons.push(
+    buttonComponents.push(
       <Button
         key="apply"
         onClick={handleApplyKnowledge}
@@ -90,9 +89,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     );
   }
   
-  // Обязательно добавляем кнопку Изучить крипту последней,
-  // чтобы она всегда была внизу
-  buttons.push(
+  // Кнопка Изучить крипту (всегда последняя в списке)
+  buttonComponents.push(
     <Button
       key="learn"
       onClick={handleLearnClick}
@@ -106,7 +104,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   return (
     <div className="flex flex-col gap-2">
-      {buttons.reverse()}
+      {buttonComponents}
     </div>
   );
 };
