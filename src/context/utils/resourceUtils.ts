@@ -1,246 +1,7 @@
+import { GameState, Resource, Building } from '../types';
 
-
-import { Resource, ReferralHelper, GameState, PhaseBoosts } from '../types';
-
-// Функция для расчета производства ресурсов
-export const calculateResourceProduction = (
-  resources: { [key: string]: Resource },
-  buildings: any,
-  referralHelpers: ReferralHelper[],
-  referrals: any[],
-  currentUserId?: string | null,
-  referralHelperBonus: number = 0,
-  phaseBoosts?: PhaseBoosts
-): { [key: string]: Resource } => {
-  const updatedResources = { ...resources };
-  
-  // Базовое производство ресурсов
-  const baseProduction: {[key: string]: number} = {};
-  
-  // Итерируем по всем ресурсам
-  Object.keys(updatedResources).forEach(resourceId => {
-    updatedResources[resourceId] = { ...updatedResources[resourceId] };
-    updatedResources[resourceId].production = 0;
-    
-    // Считаем базовую продукцию ресурса (от зданий)
-    baseProduction[resourceId] = 0;
-  });
-  
-  // Собираем базовую продукцию от зданий
-  Object.keys(buildings).forEach(buildingId => {
-    const building = buildings[buildingId];
-    if (building.count > 0) {
-      // Если у здания есть продукция ресурсов
-      if (building.resourceProduction) {
-        Object.keys(building.resourceProduction).forEach(resId => {
-          if (updatedResources[resId]) {
-            const productionPerBuilding = building.resourceProduction[resId];
-            baseProduction[resId] += productionPerBuilding * building.count;
-          }
-        });
-      }
-    }
-  });
-  
-  console.log('Базовое производство ресурсов:', baseProduction);
-  
-  // Подсчитываем количество активных рефералов
-  const activeReferrals = referrals?.filter(r => r.activated === true || r.activated === 'true')?.length || 0;
-  const referralBonus = activeReferrals * 0.05; // 5% за каждого активного реферала
-  
-  console.log(`Активных рефералов: ${activeReferrals}, бонус: +${referralBonus * 100}%`);
-  
-  // Применяем бонусы к ресурсам
-  Object.keys(updatedResources).forEach(resourceId => {
-    let resourceProduction = baseProduction[resourceId] || 0;
-    
-    // Бонус от рефералов-помощников (для всех ресурсов)
-    if (referralHelperBonus > 0) {
-      const helperBoost = resourceProduction * referralHelperBonus;
-      console.log(`Бонус для реферала-помощника (${resourceId}): ${resourceProduction} * ${referralHelperBonus * 100}% = +${helperBoost}/сек`);
-      resourceProduction += helperBoost;
-    }
-    
-    // Бонус от активных рефералов
-    if (referralBonus > 0) {
-      const refBoost = resourceProduction * referralBonus;
-      resourceProduction += refBoost;
-    }
-    
-    // Применяем бонусы от текущей фазы игры
-    if (phaseBoosts) {
-      // Бонус к знаниям
-      if (resourceId === 'knowledge' && phaseBoosts.knowledgeRate) {
-        resourceProduction += resourceProduction * phaseBoosts.knowledgeRate;
-      }
-      
-      // Бонус к вычислительной мощности
-      if (resourceId === 'computingPower' && phaseBoosts.computingPower) {
-        resourceProduction += resourceProduction * phaseBoosts.computingPower;
-      }
-    }
-    
-    // Обновляем окончательную продукцию ресурса
-    updatedResources[resourceId].production = resourceProduction;
-    updatedResources[resourceId].perSecond = resourceProduction;
-  });
-  
-  return updatedResources;
-};
-
-// Функция для применения бонусов к максимуму хранения
-export const applyStorageBoosts = (
-  resources: { [key: string]: Resource },
-  buildings: any,
-  upgrades: any,
-  phaseBoosts?: PhaseBoosts
-): { [key: string]: Resource } => {
-  const updatedResources = { ...resources };
-  
-  // Расчет бонусов хранения от зданий
-  const buildingStorageBoosts: {[key: string]: {flat: number, percent: number}} = {};
-  
-  // Инициализация бонусов хранения
-  Object.keys(updatedResources).forEach(resourceId => {
-    buildingStorageBoosts[resourceId] = { flat: 0, percent: 0 };
-  });
-  
-  // Бонусы от зданий
-  Object.values(buildings).forEach((building: any) => {
-    if (building.count > 0 && building.storageBoost) {
-      Object.keys(building.storageBoost).forEach(resourceId => {
-        if (updatedResources[resourceId]) {
-          // Фиксированное увеличение максимума
-          if (building.storageBoost[resourceId].flat) {
-            buildingStorageBoosts[resourceId].flat += 
-              building.storageBoost[resourceId].flat * building.count;
-          }
-          
-          // Процентное увеличение максимума
-          if (building.storageBoost[resourceId].percent) {
-            buildingStorageBoosts[resourceId].percent += 
-              building.storageBoost[resourceId].percent * building.count;
-          }
-        }
-      });
-    }
-  });
-  
-  // Бонусы от исследований
-  const basicBlockchainUpgrade = upgrades.basicBlockchain || upgrades.blockchain_basics;
-  
-  // Бонус от исследования "Основы блокчейна"
-  if (basicBlockchainUpgrade && basicBlockchainUpgrade.purchased) {
-    console.log('Исследование Основы блокчейна увеличивает макс. знаний на 50%');
-    buildingStorageBoosts.knowledge.percent += 0.5; // +50% к максимуму знаний
-  }
-  
-  // Бонус криптокошелька
-  if (buildings.cryptoWallet && buildings.cryptoWallet.count > 0) {
-    // Проверяем, есть ли свойство storageBoost у криптокошелька
-    if (!buildingStorageBoosts.usdt) {
-      buildingStorageBoosts.usdt = { flat: 0, percent: 0 };
-    }
-    
-    // Увеличиваем максимум USDT на 50 за каждый криптокошелек
-    buildingStorageBoosts.usdt.flat += 50 * buildings.cryptoWallet.count;
-    
-    // Увеличиваем максимум знаний на 25% за каждый криптокошелек
-    buildingStorageBoosts.knowledge.percent += 0.25 * buildings.cryptoWallet.count;
-  }
-  
-  // Применяем бонусы хранения
-  Object.keys(updatedResources).forEach(resourceId => {
-    const resource = updatedResources[resourceId];
-    const boost = buildingStorageBoosts[resourceId] || { flat: 0, percent: 0 };
-    
-    // Базовый максимум из конфигурации ресурса
-    const baseMax = resource.max;
-    
-    // Фиксированный бонус от зданий
-    const buildingFlatBonus = boost.flat;
-    
-    // Процентный бонус от зданий и исследований
-    const buildingPercentBonus = boost.percent;
-    
-    // Бонус к хранению от фазы игры
-    const phaseStorageBonus = phaseBoosts?.maxStorage || 0;
-    
-    // Итоговый максимум
-    const finalMax = baseMax + buildingFlatBonus;
-    
-    // Процентное увеличение (от зданий, исследований и фазы)
-    const percentIncrease = buildingPercentBonus + phaseStorageBonus;
-    
-    // Итоговый максимум с учетом процентного увеличения
-    const maxWithPercent = finalMax * (1 + percentIncrease);
-    
-    // Отладочная информация
-    if (resourceId === 'knowledge') {
-      console.log(`Итоговый максимум знаний: ${maxWithPercent.toFixed(2)} (база: ${baseMax}, от зданий: ${buildingFlatBonus}, от улучшений: 0, процентный бонус: ${percentIncrease.toFixed(2)})`);
-    } else if (resourceId === 'usdt') {
-      console.log(`Итоговый максимум USDT: ${maxWithPercent.toFixed(2)} (база: ${baseMax}, от зданий: ${buildingFlatBonus}, от улучшений: 0, процентный бонус: ${percentIncrease.toFixed(2)})`);
-    } else if (resourceId === 'electricity') {
-      console.log(`Итоговый максимум электричества: ${Math.round(maxWithPercent)}`);
-    } else if (resourceId === 'computingPower') {
-      console.log(`Итоговый максимум вычислительной мощности: ${Math.round(maxWithPercent)}`);
-    }
-    
-    // Обновляем максимальное значение ресурса
-    updatedResources[resourceId].max = maxWithPercent;
-  });
-  
-  return updatedResources;
-};
-
-// Функция для обновления значений ресурсов с учетом времени
-export const updateResourceValues = (
-  resources: { [key: string]: Resource },
-  deltaTime: number
-): { [key: string]: Resource } => {
-  const updatedResources = { ...resources };
-  
-  // Обновляем значение каждого ресурса
-  Object.keys(updatedResources).forEach(resourceId => {
-    const resource = updatedResources[resourceId];
-    
-    // Только для разблокированных ресурсов
-    if (resource.unlocked) {
-      // Расчет увеличения за время
-      const increase = (resource.production * deltaTime) / 1000;
-      
-      // Обновляем значение с ограничением по максимуму
-      updatedResources[resourceId] = {
-        ...resource,
-        value: Math.min(resource.value + increase, resource.max)
-      };
-    }
-  });
-  
-  return updatedResources;
-};
-
-// Обновляет максимальные значения ресурсов при изменении состояния игры
-export const updateResourceMaxValues = (state: GameState): GameState => {
-  // Применяем бонусы хранения к ресурсам
-  const updatedResources = applyStorageBoosts(
-    state.resources, 
-    state.buildings, 
-    state.upgrades,
-    state.phaseBoosts
-  );
-  
-  return {
-    ...state,
-    resources: updatedResources
-  };
-};
-
-// Проверяет, достаточно ли ресурсов для покупки
-export const hasEnoughResources = (
-  state: GameState,
-  cost: { [resourceId: string]: number }
-): boolean => {
+// Функция для проверки, достаточно ли ресурсов для совершения действия
+export const hasEnoughResources = (state: GameState, cost: { [key: string]: number }): boolean => {
   for (const [resourceId, amount] of Object.entries(cost)) {
     if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
       return false;
@@ -249,56 +10,496 @@ export const hasEnoughResources = (
   return true;
 };
 
-// Проверяет и обновляет разблокировки в зависимости от ресурсов
+// Функция для обновления максимальных значений ресурсов на основе эффектов зданий и улучшений
+export const updateResourceMaxValues = (state: GameState): GameState => {
+  // Создаем глубокую копию ресурсов для предотвращения мутаций
+  const newResources = JSON.parse(JSON.stringify(state.resources));
+  
+  try {
+    // Устанавливаем базовые значения максимумов для каждого ресурса
+    // ВАЖНО: Сначала сбрасываем максимумы к базовым значениям, чтобы избежать накопления
+    Object.keys(newResources).forEach(resourceId => {
+      const resource = newResources[resourceId];
+      
+      // Устанавливаем базовые максимальные значения
+      switch (resourceId) {
+        case "knowledge":
+          resource.max = 100; // Базовый максимум для знаний
+          break;
+        case "usdt":
+          resource.max = 50; // Базовый максимум для USDT
+          break;
+        case "electricity":
+        case "electricty":  // Исправление для поддержки обоих вариантов написания
+          resource.max = 100; // Базовый максимум для электричества
+          break;
+        case "computingPower":
+          resource.max = 1000; // Базовый максимум для вычислительной мощности
+          break;
+        case "btc":
+          resource.max = Infinity; // Максимум для BTC неограничен
+          break;
+        default:
+          resource.max = 100; // Базовый максимум для других ресурсов
+      }
+    });
+    
+    // Вычисляем одноразовые бонусы от зданий
+    const buildingBoosts = {
+      knowledgeMax: 0,
+      usdtMax: 0,
+      electricityMax: 0,
+      computingPowerMax: 0
+    };
+    
+    // Проходим по всем зданиям только один раз и считаем все бонусы
+    Object.entries(state.buildings).forEach(([buildingId, building]) => {
+      if (building.count > 0) {
+        // Получаем production с проверкой на null/undefined
+        const production = building.production || {};
+        
+        // Для каждого эффекта здания
+        Object.entries(production).forEach(([effectType, amount]) => {
+          if (effectType.includes('Max')) {
+            const resourceId = effectType.replace('Max', '');
+            // Важно! Умножаем на количество зданий
+            const totalBonus = Number(amount) * building.count;
+            
+            // Суммируем бонусы по типам ресурсов
+            if (resourceId === 'knowledge') {
+              buildingBoosts.knowledgeMax += totalBonus;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. знаний на ${totalBonus}`);
+            } else if (resourceId === 'usdt') {
+              buildingBoosts.usdtMax += totalBonus;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. USDT на ${totalBonus}`);
+            } else if (resourceId === 'electricity' || resourceId === 'electricty') {
+              buildingBoosts.electricityMax += totalBonus;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. электричества на ${totalBonus}`);
+            } else if (resourceId === 'computingPower') {
+              buildingBoosts.computingPowerMax += totalBonus;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. вычислительной мощности на ${totalBonus}`);
+            } else {
+              // Для других ресурсов создаем динамические поля
+              if (!buildingBoosts[resourceId + 'Max']) {
+                buildingBoosts[resourceId + 'Max'] = 0;
+              }
+              buildingBoosts[resourceId + 'Max'] += totalBonus;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. ${resourceId} на ${totalBonus}`);
+            }
+          }
+        });
+      }
+    });
+    
+    // Вычисляем одноразовые бонусы от улучшений
+    const upgradeBoosts = {
+      knowledgeMax: 0,
+      knowledgeMaxPercent: 0,
+      usdtMax: 0,
+      usdtMaxPercent: 0
+    };
+    
+    // Проходим по всем исследованиям только один раз
+    Object.values(state.upgrades).forEach(upgrade => {
+      if (upgrade.purchased) {
+        // Безопасно получаем effects/effect с проверкой на null/undefined
+        const effects = upgrade.effects || upgrade.effect || {};
+        
+        Object.entries(effects).forEach(([effectType, amount]) => {
+          if (effectType.includes('Max') && !effectType.includes('Boost')) {
+            const resourceId = effectType.replace('Max', '');
+            const addedAmount = Number(amount);
+            
+            // Учитываем абсолютные бонусы
+            if (resourceId === 'knowledge') {
+              upgradeBoosts.knowledgeMax += addedAmount;
+              console.log(`Исследование ${upgrade.name} увеличивает макс. знаний на ${addedAmount}`);
+            } else if (resourceId === 'usdt') {
+              upgradeBoosts.usdtMax += addedAmount;
+              console.log(`Исследование ${upgrade.name} увеличивает макс. USDT на ${addedAmount}`);
+            }
+          } 
+          else if (effectType === 'knowledgeMaxBoost') {
+            const boost = Number(amount);
+            upgradeBoosts.knowledgeMaxPercent += boost;
+            console.log(`Исследование ${upgrade.name} увеличивает макс. знаний на ${boost * 100}%`);
+          } 
+          else if (effectType === 'usdtMaxBoost') {
+            const boost = Number(amount);
+            upgradeBoosts.usdtMaxPercent += boost;
+            console.log(`Исследование ${upgrade.name} увел��чивает макс. USDT на ${boost * 100}%`);
+          }
+        });
+      }
+    });
+    
+    // Применяем рассчитанные бонусы к ресурсам
+    if (newResources.knowledge) {
+      const baseKnowledgeMax = 100; // Базовое значение
+      const absoluteBonus = buildingBoosts.knowledgeMax + upgradeBoosts.knowledgeMax; // Абсолютный бонус
+      const percentBonus = baseKnowledgeMax * upgradeBoosts.knowledgeMaxPercent; // Процентный бонус
+      
+      // Финальное значение - база + абсолютный бонус + процентный бонус от базы
+      newResources.knowledge.max = baseKnowledgeMax + absoluteBonus + percentBonus;
+      
+      console.log(`Итоговый максимум знаний: ${newResources.knowledge.max.toFixed(2)} (база: 100, от зданий: ${buildingBoosts.knowledgeMax}, от улучшений: ${upgradeBoosts.knowledgeMax}, процентный бонус: ${percentBonus.toFixed(2)})`);
+    }
+    
+    if (newResources.usdt) {
+      const baseUsdtMax = 50; // Базовое значение
+      const absoluteBonus = buildingBoosts.usdtMax + upgradeBoosts.usdtMax; // Абсолютный бонус
+      const percentBonus = baseUsdtMax * upgradeBoosts.usdtMaxPercent; // Процентный бонус
+      
+      // Финальное значение - база + абсолютный бонус + процентный бонус от базы
+      newResources.usdt.max = baseUsdtMax + absoluteBonus + percentBonus;
+      
+      console.log(`Итоговый максимум USDT: ${newResources.usdt.max.toFixed(2)} (база: 50, от зданий: ${buildingBoosts.usdtMax}, от улучшений: ${upgradeBoosts.usdtMax}, процентный бонус: ${percentBonus.toFixed(2)})`);
+    }
+    
+    if (newResources.electricity) {
+      newResources.electricity.max = 100 + buildingBoosts.electricityMax;
+      console.log(`Итоговый максимум электричества: ${newResources.electricity.max}`);
+    }
+    
+    if (newResources.computingPower) {
+      newResources.computingPower.max = 1000 + buildingBoosts.computingPowerMax;
+      console.log(`Итоговый максимум вычислительной мощности: ${newResources.computingPower.max}`);
+    }
+    
+    // Для других ресурсов применяем собранные бонусы
+    Object.keys(buildingBoosts).forEach(boostKey => {
+      if (boostKey.endsWith('Max')) {
+        const resourceId = boostKey.replace('Max', '');
+        // Применяем только если это не один из основных ресурсов, которые уже обработаны выше
+        if (resourceId !== 'knowledge' && resourceId !== 'usdt' && 
+            resourceId !== 'electricity' && resourceId !== 'computingPower') {
+          if (newResources[resourceId]) {
+            const baseMax = 100; // Предполагаемое базовое значение для других ресурсов
+            newResources[resourceId].max = baseMax + buildingBoosts[boostKey];
+            console.log(`Итоговый максимум ${resourceId}: ${newResources[resourceId].max}`);
+          }
+        }
+      }
+    });
+    
+    // Проверяем, что значения ресурсов не превышают максимум
+    Object.keys(newResources).forEach(resourceId => {
+      const resource = newResources[resourceId];
+      if (resource.value > resource.max && resource.max !== Infinity) {
+        resource.value = resource.max;
+        console.log(`Ресурс ${resourceId} превышал максимум, установлено значение: ${resource.max}`);
+      }
+    });
+  } catch (error) {
+    console.error("Ошибка при обновлении максимальных значений ресурсов:", error);
+  }
+  
+  return {
+    ...state,
+    resources: newResources
+  };
+};
+
+// Функция для проверки условий разблокировки возможностей
 export const checkUnlocks = (state: GameState): GameState => {
-  let updatedState = { ...state };
-  
-  // Проверяем разблокировку генератора при достижении 11 USDT
-  if (state.resources.usdt.value >= 11 && !state.buildingUnlocked.generator) {
-    console.log("Разблокируем генератор при достижении 11 USDT");
-    updatedState = {
-      ...updatedState,
-      buildingUnlocked: {
-        ...updatedState.buildingUnlocked,
-        generator: true
-      }
-    };
+  try {
+    let newState = { ...state };
     
-    if (updatedState.buildings.generator) {
-      updatedState.buildings = {
-        ...updatedState.buildings,
-        generator: {
-          ...updatedState.buildings.generator,
-          unlocked: true
+    // Проверяем условия разблокировки зданий
+    Object.entries(state.buildings).forEach(([buildingId, building]) => {
+      // Если здание уже разблокировано, пропускаем его
+      if (building.unlocked) return;
+      
+      // Проверяем условия на основе количества ресурсов
+      const requirements = building.requirements || {};
+      let shouldUnlock = true;
+      
+      for (const [resourceId, requiredAmount] of Object.entries(requirements)) {
+        const resource = state.resources[resourceId];
+        if (!resource || resource.value < requiredAmount) {
+          shouldUnlock = false;
+          break;
         }
-      };
-    }
-  }
-  
-  // Проверяем разблокировку домашнего компьютера при достижении 10 электричества
-  if (state.resources.electricity && 
-      state.resources.electricity.value >= 10 && 
-      !state.buildingUnlocked.homeComputer) {
-    console.log("Разблокируем домашний компьютер при достижении 10 электричества");
-    updatedState = {
-      ...updatedState,
-      buildingUnlocked: {
-        ...updatedState.buildingUnlocked,
-        homeComputer: true
       }
-    };
-    
-    if (updatedState.buildings.homeComputer) {
-      updatedState.buildings = {
-        ...updatedState.buildings,
-        homeComputer: {
-          ...updatedState.buildings.homeComputer,
-          unlocked: true
+      
+      // Проверяем дополнительные условия, например наличие исследований
+      if (building.unlockedBy && building.unlockedBy.startsWith('upgrade:')) {
+        const upgradeId = building.unlockedBy.replace('upgrade:', '');
+        if (!state.upgrades[upgradeId]?.purchased) {
+          shouldUnlock = false;
         }
-      };
-    }
+      }
+      
+      if (shouldUnlock) {
+        console.log(`Разблокировано здание: ${building.name}`);
+        newState = {
+          ...newState,
+          buildings: {
+            ...newState.buildings,
+            [buildingId]: {
+              ...newState.buildings[buildingId],
+              unlocked: true
+            }
+          }
+        };
+      }
+    });
+    
+    // Аналогично проверяем условия разблокировки исследований
+    Object.entries(state.upgrades).forEach(([upgradeId, upgrade]) => {
+      if (upgrade.unlocked) return;
+      
+      let shouldUnlock = true;
+      
+      // Проверяем требования по ресурсам
+      if (upgrade.unlockCondition?.resources) {
+        for (const [resourceId, requiredAmount] of Object.entries(upgrade.unlockCondition.resources)) {
+          const resource = state.resources[resourceId];
+          if (!resource || resource.value < requiredAmount) {
+            shouldUnlock = false;
+            break;
+          }
+        }
+      }
+      
+      // Проверяем требования по зданиям
+      if (shouldUnlock && upgrade.unlockCondition?.buildings) {
+        for (const [buildingId, requiredCount] of Object.entries(upgrade.unlockCondition.buildings)) {
+          const building = state.buildings[buildingId];
+          if (!building || building.count < requiredCount) {
+            shouldUnlock = false;
+            break;
+          }
+        }
+      }
+      
+      // Проверяем требования по исследованиям
+      if (shouldUnlock && upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
+        for (const requiredUpgradeId of upgrade.requiredUpgrades) {
+          if (!state.upgrades[requiredUpgradeId]?.purchased) {
+            shouldUnlock = false;
+            break;
+          }
+        }
+      }
+      
+      if (shouldUnlock) {
+        console.log(`Разблокировано исследование: ${upgrade.name}`);
+        newState = {
+          ...newState,
+          upgrades: {
+            ...newState.upgrades,
+            [upgradeId]: {
+              ...newState.upgrades[upgradeId],
+              unlocked: true
+            }
+          }
+        };
+      }
+    });
+    
+    return newState;
+  } catch (error) {
+    console.error("Ошибка при проверке разблокирово��:", error);
+    return state;
   }
-  
-  return updatedState;
+};
+
+// Функция для расчета изменений в производстве ресурсов
+export const calculateResourceProduction = (
+  resources: { [key: string]: Resource },
+  buildings: { [key: string]: Building },
+  referralHelpers: any[],
+  referrals: any[],
+  referralCode: string | null,
+  referralHelperBonus: number = 0 
+): { [key: string]: Resource } => {
+  try {
+    const newResources = JSON.parse(JSON.stringify(resources));
+    
+    // Сбрасываем текущее производство для всех ресурсов
+    Object.keys(newResources).forEach(resourceId => {
+      // Сохраняем исходное базовое производство, если его еще нет
+      if (newResources[resourceId].baseProduction === undefined && newResources[resourceId].perSecond > 0) {
+        newResources[resourceId].baseProduction = newResources[resourceId].perSecond;
+      }
+      
+      // Полностью сбрасываем текущее производство и perSecond
+      newResources[resourceId].production = 0;
+      newResources[resourceId].perSecond = 0;
+    });
+    
+    // Считаем активных рефералов для бонусов
+    const activeReferrals = referrals.filter(ref => 
+      ref.status === 'active' || ref.activated === true || ref.activated === 'true'
+    );
+    const activeReferralsCount = activeReferrals.length;
+    
+    const referralBonus = activeReferralsCount * 0.05; // 5% за каждого активного реферала
+    
+    console.log(`Активных рефералов: ${activeReferralsCount}, бонус: +${referralBonus * 100}%`);
+    
+    // Базовое производство ресурсов от зданий
+    const baseProduction: { [key: string]: number } = {};
+    
+    // Сначала рассчитаем базовое производство от всех зданий
+    Object.values(buildings).forEach((building: Building) => {
+      const { count, production = {}, id: buildingId } = building;
+      
+      if (count > 0) {
+        // Для каждого ресурса, который производит здание
+        Object.entries(production).forEach(([productionType, amount]) => {
+          // Пропускаем эффекты влияющие на максимум
+          if (productionType.includes('Max')) return;
+          
+          const resourceId = productionType;
+          if (newResources[resourceId]) {
+            // Устанавливаем или увеличиваем базовое производство ресурса
+            const productionAmount = Number(amount) * count;
+            baseProduction[resourceId] = (baseProduction[resourceId] || 0) + productionAmount;
+            
+            // Сохраняем базовое производство здания для этого ресурса
+            if (!building.resourceProduction) {
+              building.resourceProduction = {};
+            }
+            building.resourceProduction[resourceId] = productionAmount;
+            
+            // Обновляем базовое производство ресурса для дальнейших расчетов
+            newResources[resourceId].baseProduction = baseProduction[resourceId];
+          }
+        });
+      }
+    });
+    
+    // Логируем базовое производство
+    console.log('Базовое производство ресурсов:', baseProduction);
+    
+    // Бонусы от помощников для каждого здания
+    let helperBonuses: { [key: string]: number } = {};
+    
+    // Рассчитываем бонусы от помощников для реферрера (владельца зданий)
+    Object.values(buildings).forEach((building: Building) => {
+      const { id: buildingId, resourceProduction = {} } = building;
+      
+      // Проверяем, есть ли помощники для этого здания
+      const buildingHelpers = referralHelpers.filter(h => 
+        h.buildingId === buildingId && h.status === 'accepted' && h.employerId === referralCode
+      );
+      
+      if (buildingHelpers.length > 0) {
+        // Расчет бонуса от помощников (5% за каждого) для реферрера
+        const helperBonus = buildingHelpers.length * 0.05;
+        
+        // Для каждого ресурса, производимого зданием
+        Object.entries(resourceProduction).forEach(([resourceId, baseAmount]) => {
+          // Добавляем бонус от помощников
+          helperBonuses[resourceId] = (helperBonuses[resourceId] || 0) + (Number(baseAmount) * helperBonus);
+          
+          console.log(`Здание "${building.name}" с ${buildingHelpers.length} помощниками: бонус для реферрера +${helperBonus * 100}% к производству ${resourceId}`);
+        });
+      }
+    });
+    
+    // Применяем базовое производство и бонусы
+    Object.entries(baseProduction).forEach(([resourceId, baseAmount]) => {
+      // Базовое производство
+      newResources[resourceId].production = baseAmount;
+      newResources[resourceId].perSecond = baseAmount;
+      
+      // Бонус от активных рефералов (если пользователь является реферрером)
+      if (referralBonus > 0) {
+        const referralEffect = baseAmount * referralBonus;
+        newResources[resourceId].production += referralEffect;
+        newResources[resourceId].perSecond += referralEffect;
+        console.log(`Бонус от рефералов для ${resourceId}: ${baseAmount} * ${referralBonus * 100}% = +${referralEffect.toFixed(2)}/сек`);
+      }
+      
+      // Бонус от помощников для реферрера (владельца зданий)
+      const helperEffect = helperBonuses[resourceId] || 0;
+      if (helperEffect > 0) {
+        newResources[resourceId].production += helperEffect;
+        newResources[resourceId].perSecond += helperEffect;
+        console.log(`Бонус от помощников для реферрера (${resourceId}): +${helperEffect.toFixed(2)}/сек`);
+      }
+      
+      // Бонус для реферала-помощника (если текущий пользователь является помощником в других зданиях)
+      if (referralHelperBonus > 0) {
+        const referralHelperEffect = baseAmount * referralHelperBonus;
+        newResources[resourceId].production += referralHelperEffect;
+        newResources[resourceId].perSecond += referralHelperEffect;
+        console.log(`Бонус для реферала-помощника (${resourceId}): ${baseAmount} * ${referralHelperBonus * 100}% = +${referralHelperEffect.toFixed(2)}/сек`);
+      }
+    });
+    
+    return newResources;
+  } catch (error) {
+    console.error("Ошибка при расчете производства ресурсов:", error);
+    return resources;
+  }
+};
+
+// Функция для применения бонусов к хранилищам ресурсов
+export const applyStorageBoosts = (
+  resources: { [key: string]: Resource },
+  buildings: { [key: string]: Building }
+): { [key: string]: Resource } => {
+  try {
+    const newResources = { ...resources };
+    
+    // Применяем бонусы к хранилищам от зданий
+    Object.values(buildings).forEach((building: Building) => {
+      const { count, production = {} } = building;
+      
+      if (count > 0) {
+        Object.entries(production).forEach(([productionType, amount]) => {
+          if (productionType.includes('Max')) {
+            const resourceId = productionType.replace('Max', '');
+            if (newResources[resourceId]) {
+              const storageBoost = Number(amount) * count;
+              newResources[resourceId].max += storageBoost;
+            }
+          }
+        });
+      }
+    });
+    
+    return newResources;
+  } catch (error) {
+    console.error("Ошибка при применении бонусов к хранилищам:", error);
+    return resources;
+  }
+};
+
+// Функция для обновления значений ресурсов с учетом производства и времени
+export const updateResourceValues = (
+  resources: { [key: string]: Resource },
+  deltaTime: number
+): { [key: string]: Resource } => {
+  try {
+    const newResources = { ...resources };
+    const deltaSeconds = deltaTime / 1000; // Переводим миллисекунды в секунды
+    
+    // Для каждого ресурса обновляем значение в зависимости от производства
+    Object.keys(newResources).forEach(resourceId => {
+      const resource = newResources[resourceId];
+      const perSecond = resource.perSecond || 0;
+      
+      // Расчет прироста за прошедшее время на основе perSecond
+      const increment = perSecond * deltaSeconds;
+      
+      // Обновляем значение, но не выше максимума
+      let newValue = resource.value + increment;
+      if (resource.max !== Infinity && newValue > resource.max) {
+        newValue = resource.max;
+      }
+      
+      resource.value = newValue;
+    });
+    
+    return newResources;
+  } catch (error) {
+    console.error("Ошибка при обновлении значений ресурсов:", error);
+    return resources;
+  }
 };
 

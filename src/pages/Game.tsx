@@ -107,12 +107,11 @@ const Game = () => {
       </div>
       
       {/* Игровая область */}
-      <div className="flex-1 p-4 overflow-hidden">
+      <div className="flex-1 p-4">
         <GameCanvas
           onScoreChange={handleScoreChange}
           onLivesChange={handleLivesChange}
           onGameOver={handleGameOver}
-          isPaused={isPaused}
         />
       </div>
       

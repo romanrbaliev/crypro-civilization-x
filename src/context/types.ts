@@ -28,17 +28,6 @@ export interface GameState {
   gameTime: number;
   miningParams: MiningParams;
   phase: number;
-  phaseStartTime?: number;
-  phaseBoosts?: PhaseBoosts;
-}
-
-export interface PhaseBoosts {
-  knowledgeRate?: number;
-  conversionRate?: number;
-  computingPower?: number;
-  referralBonus?: number;
-  maxStorage?: number;
-  prestigeMultiplier?: number;
 }
 
 export interface Resource {
@@ -148,7 +137,7 @@ export type Counters = { [key: string]: Counter };
 
 export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
-  | { type: "UPDATE_RESOURCES"; payload?: { deltaTime?: number } }
+  | { type: "UPDATE_RESOURCES" }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "PRACTICE_PURCHASE" }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
@@ -172,6 +161,6 @@ export type GameAction =
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
   | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
-  | { type: "FORCE_RESOURCE_UPDATE"; payload?: { phase?: number } }
-  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } }
-  | { type: "SET_PHASE"; payload: { phase: number } };
+  | { type: "FORCE_RESOURCE_UPDATE" }
+  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } };
+

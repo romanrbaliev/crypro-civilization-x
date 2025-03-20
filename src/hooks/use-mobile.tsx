@@ -37,6 +37,3 @@ export function useMediaQuery(query: string): boolean {
 
   return matches
 }
-
-// Экспортируем isMobile как псевдоним для обратной совместимости
-export const isMobile = useIsMobile;
