@@ -55,7 +55,8 @@ const calculateBuildingProduction = (
     newResources[resourceKey] = {
       ...newResources[resourceKey],
       production: 0,
-      perSecond: 0
+      perSecond: 0,
+      boosts: {} // Важно: сбрасываем бусты при каждом обновлении
     };
   }
   
@@ -85,7 +86,18 @@ const calculateBuildingProduction = (
           // Бусты накапливаются, но добавляются к ресурсу отдельно
           if (!targetResource.boosts) targetResource.boosts = {};
           if (!targetResource.boosts[buildingKey]) targetResource.boosts[buildingKey] = 0;
-          targetResource.boosts[buildingKey] += boostValue;
+          targetResource.boosts[buildingKey] = boostValue; // Важно: присваиваем, а не добавляем
+        }
+      }
+    }
+    
+    // Применяем потребление ресурсов
+    if (building.consumption) {
+      for (const [resourceKey, consumption] of Object.entries(building.consumption)) {
+        const resource = newResources[resourceKey];
+        if (resource) {
+          const consumptionRate = Number(consumption) * building.count;
+          resource.perSecond -= consumptionRate; // Вычитаем потребление из perSecond
         }
       }
     }

@@ -1,4 +1,3 @@
-
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -50,15 +49,14 @@ export interface Building {
   name: string;
   description: string;
   cost: { [key: string]: number };
+  costMultiplier?: number;
   production: { [key: string]: number };
+  consumption?: { [key: string]: number };
   count: number;
   unlocked: boolean;
-  unlockedBy?: string;
-  productionBoost: number;
-  costMultiplier: number;
   requirements?: { [key: string]: number };
   maxCount?: number;
-  resourceProduction?: { [key: string]: number };
+  productionBoost: number;
 }
 
 export interface Upgrade {
@@ -163,4 +161,3 @@ export type GameAction =
   | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
   | { type: "FORCE_RESOURCE_UPDATE" }
   | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } };
-

@@ -25,16 +25,17 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { electricity: 0.5 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 11 },
+    requirements: { usdt: 11 },  // Explicitly set to 11 USDT
     productionBoost: 0
   },
   homeComputer: {
     id: "homeComputer",
     name: "Домашний компьютер",
-    description: "Обеспечивает вычислительную мощность, потребляет 0.5 электричества/сек за каждую единицу",
+    description: "Обеспечивает вычислительную мощность для майнинга",
     cost: { usdt: 30, electricity: 5 },
     costMultiplier: 1.15,
     production: { computingPower: 2 },
+    consumption: { electricity: 1 }, // Явное потребление электричества
     count: 0,
     unlocked: false,
     requirements: { electricity: 10 },
@@ -42,14 +43,15 @@ export const initialBuildings: { [key: string]: Building } = {
   },
   autoMiner: {
     id: "autoMiner",
-    name: "Автомайнер",
+    name: "Майнер",  // Rename from "Автомайнер" to "Майнер"
     description: "Автоматически добывает BTC, потребляя вычислительную мощность и электричество",
     cost: { usdt: 50 },
     costMultiplier: 1.5,
     production: {},
+    consumption: { computingPower: 50, electricity: 2 },  // Добавляем явное потребление ресурсов
     count: 0,
     unlocked: false,
-    requirements: { computingPower: 50 },
+    requirements: { homeComputer: 1, electricity: 20 },  // Требуется компьютер и 20 электричества
     productionBoost: 0
   },
   cryptoWallet: {
@@ -277,7 +279,7 @@ export const initialMiningParams: MiningParams = {
   miningEfficiency: 0.00001,
   networkDifficulty: 1.0,
   energyEfficiency: 0,
-  exchangeRate: 100000,
+  exchangeRate: 20000, // Уменьшаем курс в 5 раз (было 100000)
   exchangeCommission: 0.05,
   volatility: 0.2,
   exchangePeriod: 3600,

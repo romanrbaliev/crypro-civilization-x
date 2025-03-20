@@ -67,12 +67,18 @@ export const processPurchaseUpgrade = (
       if (effectId === 'knowledgeBoost') {
         console.log(`Применяем эффект knowledgeBoost: +${numAmount * 100}%`);
         if (updatedResources.knowledge) {
-          const baseProduction = updatedResources.knowledge.baseProduction || 0;
-          updatedResources.knowledge.production += baseProduction * numAmount;
-          updatedResources.knowledge.perSecond += baseProduction * numAmount;
+          // Важно: здесь был баг. Нужно применять бонус к базовому производству,
+          // а не добавлять к текущему производству
+          const baseRate = 1; // Базовая скорость клика
+          const boost = baseRate * numAmount;
+          updatedResources.knowledge.baseProduction = (updatedResources.knowledge.baseProduction || 0) + boost;
+          updatedResources.knowledge.production += boost;
+          updatedResources.knowledge.perSecond += boost;
           
           console.log(`Увеличение скорости накопления знаний на ${numAmount * 100}%, 
             новая скорость: ${updatedResources.knowledge.perSecond}/сек`);
+          
+          safeDispatchGameEvent(`Увеличена скорость накопления знаний на ${numAmount * 100}%`, "success");
         }
       }
       

@@ -1,98 +1,77 @@
 
 import React from "react";
-import { useActionButtons } from "@/hooks/useActionButtons";
-import LearnButton from "@/components/buttons/LearnButton";
-import ApplyKnowledgeButton from "@/components/buttons/ApplyKnowledgeButton";
-import PracticeButton from "@/components/buttons/PracticeButton";
-import MineButton from "@/components/buttons/MineButton";
-import ExchangeBtcButton from "@/components/buttons/ExchangeBtcButton";
+import { useGame } from "@/context/hooks/useGame";
+import { Button } from "@/components/ui/button";
+import { Brain, Coins, ArrowRightLeft } from "lucide-react";
+import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
 
 interface ActionButtonsProps {
-  onAddEvent?: (message: string, type?: string) => void;
+  onAddEvent: (message: string, type: string) => void;
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent = () => {} }) => {
-  const {
-    state,
-    handleLearnClick,
-    handleApplyKnowledge,
-    handlePractice,
-    handleMineClick,
-    handleExchangeBtc,
-    isButtonEnabled,
-    practiceCurrentCost,
-    practiceCurrentLevel,
-    hasAutoMiner,
-    currentExchangeRate
-  } = useActionButtons({ onAddEvent });
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
+  const { state, dispatch } = useGame();
+  const hasApplyKnowledge = state.unlocks.applyKnowledge;
   
-  // Создаем кнопки в обратном порядке - основная кнопка будет последней в массиве
-  const buttons = [];
+  const handleLearn = () => {
+    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 }});
+    
+    // Увеличиваем счетчик нажатий для разблокировки кнопки "Применить знания"
+    if (!hasApplyKnowledge) {
+      dispatch({ type: "INCREMENT_COUNTER", payload: { counterId: "applyKnowledge", value: 1 }});
+    }
+  };
   
-  // Кнопка обмена BTC (если ресурс разблокирован)
-  if (state.resources.btc && state.resources.btc.unlocked) {
-    buttons.push(
-      <div key="exchange">
-        <ExchangeBtcButton
-          onClick={handleExchangeBtc}
-          disabled={state.resources.btc.value <= 0}
-          currentRate={currentExchangeRate}
-        />
-      </div>
-    );
-  }
+  const handleApplyKnowledge = () => {
+    dispatch({ type: "APPLY_KNOWLEDGE" });
+    onAddEvent("Знания применены! Получено 1 USDT", "success");
+  };
   
-  // Кнопка майнинга (если она доступна и нет автомайнера)
-  if (state.resources.computingPower.unlocked && !hasAutoMiner) {
-    buttons.push(
-      <div key="mine">
-        <MineButton
-          onClick={handleMineClick}
-          disabled={!isButtonEnabled("computingPower", 50)}
-        />
-      </div>
-    );
-  }
+  const handleExchangeBtc = () => {
+    dispatch({ type: "EXCHANGE_BTC" });
+    onAddEvent("Bitcoin продан за USDT", "success");
+  };
   
-  // Кнопка практики (если доступна)
-  if (state.unlocks.practice) {
-    console.log(`Рендерим кнопку Практиковаться: cost=${practiceCurrentCost}`);
-    buttons.push(
-      <div key="practice">
-        <PracticeButton
-          onClick={handlePractice}
-          disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
-          level={practiceCurrentLevel}
-          cost={practiceCurrentCost}
-        />
-      </div>
-    );
-  }
+  // Получаем значения ресурсов для проверки доступности кнопок
+  const { knowledge, usdt, btc } = state.resources;
   
-  // Кнопка применения знаний (если доступна)
-  if (state.unlocks.applyKnowledge) {
-    buttons.push(
-      <div key="apply">
-        <ApplyKnowledgeButton
-          onClick={handleApplyKnowledge}
-          disabled={!isButtonEnabled("knowledge", 10)}
-        />
-      </div>
-    );
-  }
-  
-  // Добавляем основную кнопку в конец, только если скорость накопления знаний меньше 10
-  if (state.resources.knowledge.perSecond < 10) {
-    buttons.push(
-      <div key="learn">
-        <LearnButton onClick={handleLearnClick} />
-      </div>
-    );
-  }
+  // Проверка на возможность обмена BTC
+  const canExchangeBtc = 
+    btc.unlocked && 
+    btc.value > 0 && 
+    usdt.value + (btc.value * state.miningParams.exchangeRate) <= usdt.max;
   
   return (
-    <div className="space-y-2 mt-2">
-      {buttons}
+    <div className="flex flex-wrap gap-2">
+      <Button
+        onClick={handleLearn}
+        className="flex-1"
+        size="sm"
+      >
+        <Brain className="mr-2 h-4 w-4" />
+        Изучить крипту
+      </Button>
+      
+      {hasApplyKnowledge && (
+        <Button
+          onClick={handleApplyKnowledge}
+          className="flex-1"
+          size="sm"
+          disabled={knowledge.value < 10}
+          variant={knowledge.value < 10 ? "outline" : "default"}
+        >
+          <Coins className="mr-2 h-4 w-4" />
+          Применить знания
+        </Button>
+      )}
+      
+      {btc.unlocked && (
+        <ExchangeBtcButton 
+          onClick={handleExchangeBtc}
+          disabled={!canExchangeBtc}
+          className="flex-1"
+        />
+      )}
     </div>
   );
 };
