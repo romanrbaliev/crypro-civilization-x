@@ -1,9 +1,10 @@
+
 import React from "react";
-import { LearnButton } from "@/components/ui/LearnButton";
-import { ApplyKnowledgeButton } from "@/components/ui/ApplyKnowledgeButton";
-import { MineButton } from "@/components/ui/MineButton";
 import { useGame } from "@/context/hooks/useGame";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { LearnButton } from "@/components/buttons/LearnButton";
+import { ApplyKnowledgeButton } from "@/components/buttons/ApplyKnowledgeButton";
+import { MineButton } from "@/components/buttons/MineButton";
 import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
 
 const ActionButtons = () => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -299,7 +300,7 @@ const GameScreen = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={unlockedResources} />
+            <ResourceList />
             <DebugCalculator />
           </div>
           
@@ -318,20 +319,20 @@ const GameScreen = () => {
           <div className="flex-1 overflow-auto p-2 flex flex-col">
             <div className="flex-1 overflow-auto">
               {selectedTab === "equipment" && hasUnlockedBuildings && (
-                <EquipmentTab onAddEvent={addEvent} />
+                <EquipmentTab />
               )}
               
               {selectedTab === "research" && hasUnlockedResearch && (
-                <ResearchTab onAddEvent={addEvent} />
+                <ResearchTab />
               )}
               
               {selectedTab === "referrals" && (
-                <ReferralsTab onAddEvent={addEvent} />
+                <ReferralsTab />
               )}
             </div>
             
             <div className="mt-auto sticky bottom-0 bg-white pb-2 pt-1">
-              <ActionButtons onAddEvent={addEvent} />
+              <ActionButtons />
             </div>
           </div>
         </div>

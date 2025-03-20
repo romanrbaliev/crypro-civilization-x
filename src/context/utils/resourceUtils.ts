@@ -1,5 +1,7 @@
+
 import { GameState, Building } from "@/context/types";
 import { safeDispatchGameEvent } from "./eventBusUtils";
+import { checkUpgradeUnlocks } from "../reducers/upgradeReducer";
 
 // Функция проверки, достаточно ли ресурсов для совершения действия
 export const hasEnoughResources = (state: GameState, cost: { [key: string]: number }): boolean => {
