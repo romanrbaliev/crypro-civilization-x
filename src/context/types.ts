@@ -1,3 +1,4 @@
+
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -147,7 +148,7 @@ export type Counters = { [key: string]: Counter };
 
 export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
-  | { type: "UPDATE_RESOURCES" }
+  | { type: "UPDATE_RESOURCES"; payload?: { deltaTime?: number } }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "PRACTICE_PURCHASE" }
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }

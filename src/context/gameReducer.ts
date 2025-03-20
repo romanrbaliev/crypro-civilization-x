@@ -65,8 +65,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return processIncrementResource(state, action.payload);
     
     case "UPDATE_RESOURCES": {
+      // Обрабатываем deltaTime, если он предоставлен в payload
+      const deltaTime = action.payload?.deltaTime || 1000;
       // Обновляем ресурсы
-      const updatedState = processResourceUpdate(state);
+      const updatedState = processResourceUpdate(state, deltaTime);
       // Пересчитываем максимальные значения ресурсов после каждого обновления
       return updateResourceMaxValues(updatedState);
     }

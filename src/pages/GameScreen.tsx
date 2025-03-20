@@ -10,19 +10,19 @@ import EventLog from '@/components/EventLog';
 import ResearchTab from '@/components/ResearchTab';
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { useGame } from '@/context/hooks/useGame';
-import { Resource } from '@/context/types';
+import { Resource, GameState } from '@/context/types';
 import { Users, Building2, Lightbulb, Clock, BarChart2 } from 'lucide-react';
 import GameLevel from '@/components/GameLevel';
 import { toast } from '@/hooks/use-toast';
-import { isMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { syncHelperDataWithGameState } from '@/api/referral/referralHelpers';
 import { getUserIdentifier } from '@/api/gameDataService';
 
-// Тип для события
+// Тип для события, совместимый с EventLog
 interface GameEvent {
-  id: number;
+  id: string;
+  timestamp: number;
   message: string;
-  timestamp: Date;
   type: 'info' | 'success' | 'warning' | 'error';
 }
 
@@ -32,7 +32,7 @@ const GameScreen = () => {
   const [currentTab, setCurrentTab] = useState("buildings");
   const [userId, setUserId] = useState<string | null>(null);
   const [isHelperSyncRunning, setIsHelperSyncRunning] = useState(false);
-  const mobile = isMobile();
+  const mobile = useIsMobile();
   
   const updateSpeed = useRef<number>(mobile ? 500 : 250);
   const lastUpdateRef = useRef<number>(Date.now());
@@ -41,9 +41,9 @@ const GameScreen = () => {
   // Функция для добавления события в журнал
   const addEvent = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
     const newEvent: GameEvent = {
-      id: eventIdCounter.current++,
+      id: eventIdCounter.current.toString(), // Преобразуем в строку для совместимости
       message,
-      timestamp: new Date(),
+      timestamp: Date.now(),
       type
     };
     
@@ -55,6 +55,8 @@ const GameScreen = () => {
       }
       return updated;
     });
+    
+    eventIdCounter.current += 1;
   };
   
   // Обработка события изменения фазы
@@ -147,7 +149,7 @@ const GameScreen = () => {
   
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-      <Header />
+      <Header prestigePoints={state.prestigePoints || 0} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Отображение ресурсов */}
