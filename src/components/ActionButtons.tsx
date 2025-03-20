@@ -38,8 +38,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     btc.value > 0 && 
     usdt.value + (btc.value * currentExchangeRate) <= usdt.max;
   
-  // Формируем кнопки в порядке их отображения сверху вниз
+  // Массив компонентов кнопок, которые будем рендерить
   const buttonComponents = [];
+  
+  // ВАЖНО: Кнопка "Изучить крипту" всегда должна быть последней
+  // Добавим её в конце, а остальные кнопки в порядке появления
   
   // Кнопка обмена BTC (если разблокирована)
   if (btc.unlocked) {
@@ -89,7 +92,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     );
   }
   
-  // Кнопка Изучить крипту (всегда последняя в списке)
+  // Кнопка Изучить крипту - ВСЕГДА последняя
   buttonComponents.push(
     <Button
       key="learn"

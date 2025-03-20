@@ -1,47 +1,47 @@
-
-// Если этот файл еще не существует, создаем его
-
 import { GameState } from '../types';
-import { updateResourceMaxValues } from '../utils/resourceUtils';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { checkBuildingUnlocks } from './buildingReducer';
-import { checkUpgradeUnlocks } from './upgradeReducer';
+import { checkAllUnlocks } from '@/utils/unlockSystem';
 
+// Обработчик обновления состояния ресурсов и производства
 export const processResourceUpdate = (state: GameState): GameState => {
-  const currentTime = Date.now();
-  const deltaTime = (currentTime - state.lastUpdate) / 1000; // Разница в секундах
+  const now = Date.now();
+  const elapsedSeconds = (now - state.lastUpdate) / 1000;
   
-  if (deltaTime < 0.01) return state; // Слишком малый интервал, не обновляем
+  // Начальные данные
+  const initialResources = { ...state.resources };
+  let eventMessages = { ...state.eventMessages };
+  let miningParams = { ...state.miningParams };
+  const buildings = { ...state.buildings };
   
-  // Копируем ресурсы для безопасного обновления
-  const newResources = { ...state.resources };
-  const newBuildings = { ...state.buildings };
+  // Проверка необходимости запускать обработку
+  if (elapsedSeconds <= 0 || !state.gameStarted) {
+    console.log("⚠️ Не запускаем обновление ресурсов (слишком малый интервал или игра не запущена)");
+    return state;
+  }
   
   // Рассчитываем базовое производство ресурсов от зданий
   // и применяем буст от улучшений
-  calculateBuildingProduction(state, newResources, newBuildings);
+  calculateBuildingProduction(state, initialResources, buildings);
   
   // Обновляем значения ресурсов на основе времени
-  updateResourceValues(state, newResources, deltaTime);
+  updateResourceValues(state, initialResources, elapsedSeconds);
   
   // Если у нас есть автомайнер и вычислительная мощность, добываем BTC
-  processMining(state, newResources, deltaTime);
+  processMining(state, initialResources, elapsedSeconds);
   
   // Создаем новое состояние
   let newState = {
     ...state,
-    resources: newResources,
-    buildings: newBuildings,
-    lastUpdate: currentTime,
-    gameTime: state.gameTime + deltaTime
+    resources: initialResources,
+    lastUpdate: now,
+    eventMessages: eventMessages,
+    gameTime: state.gameTime + elapsedSeconds,
+    miningParams: miningParams
   };
   
-  // Проверяем разблокировку зданий и улучшений
-  newState = checkBuildingUnlocks(newState);
-  newState = checkUpgradeUnlocks(newState);
+  // Используем новую унифицированную систему проверки разблокировок
+  newState = checkAllUnlocks(newState);
   
-  // Обновляем максимальные значения ресурсов
-  return updateResourceMaxValues(newState);
+  return newState;
 };
 
 // Расчет производства ресурсов от зданий

@@ -2,6 +2,7 @@
 import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./components/UpgradeItem";
+import TechTreeNode from "./components/TechTreeNode";
 import { Beaker } from "lucide-react";
 
 interface ResearchTabProps {
@@ -29,56 +30,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.unlocked && !upgrade.purchased)
-    .filter(upgrade => {
-      // Если исследования еще не разблокированы, не показываем ничего
-      if (!researchUnlocked) return false;
-      
-      // Если это "Основы блокчейна", показываем когда разблокировано исследование
-      if (isInitialResearch(upgrade.id)) return true;
-      
-      // Если "Основы блокчейна" не куплены, скрываем все остальные исследования
-      if (!basicBlockchainPurchased) return false;
-      
-      // Проверяем, есть ли у исследования требования к другим исследованиям
-      if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
-        // Проверяем, все ли требуемые исследования куплены
-        return upgrade.requiredUpgrades.every(
-          reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-        );
-      }
-      
-      // Проверка через unlockCondition (альтернативный формат)
-      if (upgrade.unlockCondition) {
-        const requiredUpgrades = Object.keys(upgrade.requirements || {})
-                                  .filter(key => !key.includes('Count') && state.upgrades[key]);
-        
-        if (requiredUpgrades.length > 0) {
-          return requiredUpgrades.every(
-            reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-          );
-        }
-      }
-      
-      // Для исследований без требований, проверяем специальные правила
-      
-      // "Основы криптовалют" должны появиться после покупки "Основы блокчейна"
-      if (upgrade.id === 'cryptoCurrencyBasics') {
-        return basicBlockchainPurchased;
-      }
-      
-      // "Безопасность криптокошельков" появляется после покупки криптокошелька
-      if (upgrade.id === 'walletSecurity') {
-        return state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0;
-      }
-      
-      // "Оптимизация алгоритмов" появляется после покупки автомайнера
-      if (upgrade.id === 'algorithmOptimization') {
-        return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
-      }
-      
-      return upgrade.unlocked;
-    });
+    .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
   
   // Купленные исследования
   const purchasedUpgrades = Object.values(state.upgrades)
@@ -114,10 +66,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
               <h2 className="text-sm font-medium mb-2">Доступные исследования</h2>
               <div className="space-y-1">
                 {unlockedUpgrades.map(upgrade => (
-                  <UpgradeItem 
+                  <TechTreeNode 
                     key={upgrade.id} 
                     upgrade={upgrade} 
-                    onPurchase={() => onAddEvent(`Завершено исследование: ${upgrade.name}`, "success")} 
+                    onAddEvent={onAddEvent} 
                   />
                 ))}
               </div>
@@ -129,9 +81,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
               <h2 className="text-sm font-medium mb-2">Завершенные исследования</h2>
               <div className="space-y-1">
                 {purchasedUpgrades.map(upgrade => (
-                  <UpgradeItem 
+                  <TechTreeNode 
                     key={upgrade.id} 
-                    upgrade={upgrade} 
+                    upgrade={upgrade}
+                    onAddEvent={onAddEvent}
                   />
                 ))}
               </div>

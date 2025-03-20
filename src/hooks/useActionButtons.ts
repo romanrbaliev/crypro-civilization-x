@@ -1,178 +1,108 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
+import { GameState } from '@/context/types';
 
-export interface UseActionButtonsProps {
-  onAddEvent?: (message: string, type?: string) => void;
+interface ActionButtonsHookProps {
+  onAddEvent: (message: string, type: string) => void;
 }
 
-export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProps) {
+// Функция для проверки, разблокирована ли практика на основе счетчика
+const isPracticeUnlocked = (state: GameState): boolean => {
+  // Проверяем наличие счетчика применения знаний
+  const counter = state.counters.applyKnowledge;
+  
+  if (!counter) return false;
+  
+  // Получаем значение счетчика
+  const count = typeof counter === 'object' ? counter.value : counter;
+  
+  // Практика разблокируется после 2-х использований "Применить знания"
+  return count >= 2;
+};
+
+export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const { state, dispatch } = useGame();
-  const [practiceMessageSent, setPracticeMessageSent] = useState(false);
-  const [researchMessageSent, setResearchMessageSent] = useState(false);
-
-  // Отслеживаем прогресс для разблокировки практики
-  useEffect(() => {
-    // Проверяем, была ли кнопка "Применить знания" использована 2 раза И функция ещё не разблокирована
-    const applyCount = state.counters.applyKnowledge?.value || 0;
-    
-    if (applyCount >= 2 && !state.unlocks.practice) {
-      console.log("Разблокируем практику после 2 применений знаний, текущее значение:", applyCount);
-      dispatch({ type: "UNLOCK_FEATURE", payload: { featureId: "practice" } });
-      
-      if (state.buildings.practice && !state.buildings.practice.unlocked) {
-        dispatch({
-          type: "SET_BUILDING_UNLOCKED",
-          payload: { buildingId: "practice", unlocked: true }
-        });
-      }
-      
-      // Отправляем сообщение о разблокировке практики (только один раз)
-      if (!practiceMessageSent) {
-        onAddEvent("Функция 'Практика' разблокирована", "info");
-        onAddEvent("Накопите USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
-        setPracticeMessageSent(true);
-      }
-    }
-  }, [state.counters.applyKnowledge?.value, state.unlocks.practice, dispatch, state.buildings.practice, onAddEvent, practiceMessageSent]);
-
-  // Отправляем сообщение когда исследования разблокированы
-  useEffect(() => {
-    if (state.unlocks.research && !researchMessageSent) {
-      onAddEvent("Вкладка 'Исследования' разблокирована", "success");
-      onAddEvent("Теперь вы можете изучать новые технологии", "info");
-      setResearchMessageSent(true);
-    }
-  }, [state.unlocks.research, onAddEvent, researchMessageSent]);
-
-  // Обработчик для кнопки "Изучить крипту"
-  const handleLearnClick = () => {
+  const [currentExchangeRate, setCurrentExchangeRate] = useState(state.miningParams.exchangeRate || 20000);
+  
+  // Получаем состояние зданий и ресурсов
+  const { buildings, resources, unlocks } = state;
+  
+  // Проверка наличия и разблокировки здания практики
+  const practiceBuildingExists = !!buildings.practice;
+  const practiceBuildingUnlocked = practiceBuildingExists && buildings.practice.unlocked;
+  
+  // Проверка разблокировки флага практики (должно совпадать с зданием)
+  const practiceUnlockFlag = unlocks.practice === true;
+  
+  // Объединенная проверка разблокировки практики
+  const practiceIsUnlocked = practiceBuildingUnlocked && practiceUnlockFlag;
+  
+  // Получение текущей стоимости и уровня практики
+  const practiceCurrentLevel = practiceBuildingExists ? buildings.practice.count : 0;
+  const practiceBaseCost = practiceBuildingExists ? buildings.practice.cost.usdt : 10;
+  const practiceCostMultiplier = practiceBuildingExists ? buildings.practice.costMultiplier || 1.15 : 1.15;
+  const practiceCurrentCost = Math.floor(practiceBaseCost * Math.pow(practiceCostMultiplier, practiceCurrentLevel));
+  
+  // Проверка наличия автомайнера
+  const hasAutoMiner = buildings.autoMiner && buildings.autoMiner.count > 0;
+  
+  // Обработчик нажатия кнопки "Изучить крипту"
+  const handleLearnClick = useCallback(() => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
-    
-    if (state.resources.knowledge.value === 2 && !state.unlocks.applyKnowledge) {
-      onAddEvent("Изучите еще немного, и вы сможете применить свои знания!", "info");
-    }
-  };
-
-  // Обработчик для кнопки "Применить знания"
-  const handleApplyKnowledge = () => {
-    if (state.resources.knowledge.value < 10) {
-      onAddEvent("Недостаточно знаний! Требуется 10 единиц.", "error");
-      return;
-    }
-    
+  }, [dispatch]);
+  
+  // Обработчик нажатия кнопки "Применить знания"
+  const handleApplyKnowledge = useCallback(() => {
     dispatch({ type: "APPLY_KNOWLEDGE" });
-    
     // Увеличиваем счетчик применений знаний
     dispatch({ 
       type: "INCREMENT_COUNTER", 
-      payload: { counterId: "applyKnowledge", value: 1 } 
+      payload: { counterId: "applyKnowledge", value: 1 }
     });
     
-    // Проверяем количество применений и разблокируем практику после второго применения
-    if (state.counters.applyKnowledge && state.counters.applyKnowledge.value === 1) {
-      onAddEvent("Еще раз примените знания, чтобы разблокировать новую функцию", "info");
+    // Показываем уведомление
+    onAddEvent("Знания успешно применены! Получен 1 USDT", "success");
+  }, [dispatch, onAddEvent]);
+  
+  // Обработчик покупки практики
+  const handlePractice = useCallback(() => {
+    if (resources.usdt.value >= practiceCurrentCost) {
+      dispatch({ type: "PRACTICE_PURCHASE" });
+      onAddEvent(`Куплена практика (уровень ${practiceCurrentLevel + 1})`, "success");
+    } else {
+      onAddEvent("Недостаточно USDT для покупки практики", "error");
     }
-  };
-
-  // Обработчик для кнопки "Практиковаться"
-  const handlePractice = () => {
-    // Проверяем наличие здания practice
-    if (!state.buildings.practice) {
-      console.error("Ошибка: здание practice не найдено в state.buildings");
-      onAddEvent("Произошла ошибка при попытке практиковаться", "error");
-      return;
-    }
-    
-    // Проверяем разблокировку функции
-    if (!state.unlocks.practice) {
-      console.error("Функция practice не разблокирована!");
-      return;
-    }
-    
-    // Проверяем разблокировку здания
-    if (!state.buildings.practice.unlocked) {
-      console.log("Разблокируем здание practice, т.к. функция уже разблокирована");
-      dispatch({ 
-        type: "SET_BUILDING_UNLOCKED", 
-        payload: { buildingId: "practice", unlocked: true } 
-      });
-      return;
-    }
-    
-    // Расчет стоимости
-    const practiceBuilding = state.buildings.practice;
-    const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier || 1.1, practiceBuilding.count));
-    
-    console.log(`Нажата кнопка Практиковаться. USDT: ${state.resources.usdt.value}, Требуется: ${currentCost}`);
-    
-    // Проверка ресурсов
-    if (state.resources.usdt.value < currentCost) {
-      onAddEvent(`Недостаточно USDT! Требуется ${currentCost} единиц.`, "error");
-      return;
-    }
-    
-    // Отправляем действие для покупки практики
-    dispatch({ type: "PRACTICE_PURCHASE" });
-    onAddEvent(`Практика улучшена до уровня ${practiceBuilding.count + 1}`, "success");
-    console.log("Отправлен запрос PRACTICE_PURCHASE");
-  };
-
-  // Обработчик для кнопки "Майнинг"
-  const handleMineClick = () => {
-    if (state.resources.computingPower.value < 50) {
-      onAddEvent("Недостаточно вычислительной мощности! Требуется 50 единиц.", "error");
-      return;
-    }
-    
-    dispatch({ type: "MINE_COMPUTING_POWER" });
-  };
-
-  // Обработчик для кнопки "Обменять BTC"
-  const handleExchangeBtc = () => {
-    if (state.resources.btc.value <= 0) {
-      onAddEvent("У вас нет BTC для обмена", "error");
-      return;
-    }
-    
+  }, [dispatch, onAddEvent, resources.usdt.value, practiceCurrentCost, practiceCurrentLevel]);
+  
+  // Обработчик обмена BTC на USDT
+  const handleExchangeBtc = useCallback(() => {
     dispatch({ type: "EXCHANGE_BTC" });
-  };
-
-  // Расчет текущего курса обмена BTC на USDT
-  const currentExchangeRate = useMemo(() => {
-    if (!state.miningParams) return 100000;
-    
-    return state.miningParams.exchangeRate * 
-      (1 + state.miningParams.volatility * Math.sin(state.gameTime / state.miningParams.exchangePeriod));
-  }, [state.miningParams, state.gameTime]);
-
-  // Вспомогательная функция для проверки доступности ресурсов
-  const isButtonEnabled = (requiredResource: string, amount: number): boolean => {
-    return state.resources[requiredResource] && state.resources[requiredResource].value >= amount;
-  };
-
-  // Вычисления для кнопок
-  const practiceBuildingExists = Boolean(state.buildings.practice);
-  const practiceIsUnlocked = state.unlocks.practice === true;
-  const practiceCurrentCost = practiceBuildingExists
-    ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier || 1.1, state.buildings.practice.count))
-    : 10;
-  const practiceCurrentLevel = practiceBuildingExists ? state.buildings.practice.count : 0;
-  const hasAutoMiner = state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
-
+    onAddEvent(`Обменяны BTC на USDT по курсу ${currentExchangeRate}`, "success");
+  }, [dispatch, onAddEvent, currentExchangeRate]);
+  
+  // Функция проверки доступности кнопки
+  const isButtonEnabled = useCallback((resourceId: string, cost: number) => {
+    const resource = resources[resourceId];
+    return resource && resource.value >= cost;
+  }, [resources]);
+  
+  // Обновление курса обмена BTC
+  useEffect(() => {
+    setCurrentExchangeRate(state.miningParams.exchangeRate);
+  }, [state.miningParams.exchangeRate]);
+  
   return {
-    state,
     handleLearnClick,
     handleApplyKnowledge,
     handlePractice,
-    handleMineClick,
     handleExchangeBtc,
     isButtonEnabled,
-    practiceBuildingExists,
     practiceIsUnlocked,
+    practiceBuildingExists,
     practiceCurrentCost,
     practiceCurrentLevel,
     hasAutoMiner,
     currentExchangeRate
   };
-}
+};

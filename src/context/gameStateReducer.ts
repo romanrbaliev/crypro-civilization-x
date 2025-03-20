@@ -1,14 +1,22 @@
+
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
+import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
-  return {
+  let newState = {
     ...state,
     gameStarted: true,
     lastUpdate: Date.now()
   };
+  
+  // Проверяем и применяем все разблокировки при старте игры
+  newState = checkSpecialUnlocks(newState);
+  newState = checkAllUnlocks(newState);
+  
+  return newState;
 };
 
 // Обработка загрузки сохраненной игры
@@ -126,6 +134,10 @@ export const processLoadGame = (
   
   // Обновляем timestamp для правильной работы логики обновления
   loadedState.lastUpdate = Date.now();
+  
+  // Проверяем и применяем все разблокировки при загрузке игры
+  loadedState = checkSpecialUnlocks(loadedState);
+  loadedState = checkAllUnlocks(loadedState);
   
   console.log('✅ Загруженное состояние применено успешно');
   safeDispatchGameEvent('Прогресс успешно восстановлен', 'success');

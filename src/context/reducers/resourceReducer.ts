@@ -2,13 +2,14 @@
 import { GameState } from '../types';
 import { checkUnlocks } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { checkSpecialUnlocks } from '@/utils/unlockSystem';
 
 // Обработка инкремента ресурсов
 export const processIncrementResource = (
   state: GameState,
   payload: { resourceId: string; amount?: number }
 ): GameState => {
-  const { resourceId, amount = 1 } = payload; // Используем default значение 1, если amount не указан
+  const { resourceId, amount = 1 } = payload;
   
   // Если ресурс не существует, возвращаем текущее состояние
   if (!state.resources[resourceId]) {
@@ -43,21 +44,8 @@ export const processIncrementResource = (
     }
   };
   
-  // Разблокировка "Применить знания" после 3-х кликов
-  if (resourceId === 'knowledge' && !state.unlocks.applyKnowledge && newValue >= 3) {
-    safeDispatchGameEvent("Открыта новая функция: Применить знания", "info");
-    
-    return {
-      ...newState,
-      unlocks: {
-        ...newState.unlocks,
-        applyKnowledge: true
-      }
-    };
-  }
-  
-  // Проверяем условия для разблокировки зданий и улучшений
-  return checkUnlocks(newState);
+  // Используем новую систему проверки специальных разблокировок
+  return checkSpecialUnlocks(newState);
 };
 
 // Обработка разблокировки ресурса

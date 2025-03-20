@@ -1,11 +1,10 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
-import { processPurchaseBuilding, processSellBuilding, checkBuildingUnlocks } from './reducers/buildingReducer';
-import { processPurchaseUpgrade, checkUpgradeUnlocks } from './reducers/upgradeReducer';
+import { processPurchaseBuilding, processSellBuilding } from './reducers/buildingReducer';
+import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { 
   processApplyKnowledge, 
@@ -46,6 +45,9 @@ import {
 // Импортируем утилиты для работы с ресурсами
 import { updateResourceMaxValues } from './utils/resourceUtils';
 
+// Импортируем новую систему разблокировок
+import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
+
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
@@ -59,11 +61,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // Обновляем ресурсы
       const updatedState = processResourceUpdate(state);
       
-      // Проверяем условия разблокировки зданий после обновления ресурсов
-      const stateWithNewBuildings = checkBuildingUnlocks(updatedState);
+      // Проверяем условия разблокировки, используя новую систему
+      const checkedState = checkAllUnlocks(updatedState);
       
       // Пересчитываем максимальные значения ресурсов после каждого обновления
-      return updateResourceMaxValues(stateWithNewBuildings);
+      return updateResourceMaxValues(checkedState);
     }
     
     case "PURCHASE_BUILDING": {
@@ -99,8 +101,12 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "SET_BUILDING_UNLOCKED": 
       return processSetBuildingUnlocked(state, action.payload);
     
-    case "INCREMENT_COUNTER": 
-      return processIncrementCounter(state, { counterId: action.payload.counterId, value: action.payload.value });
+    case "INCREMENT_COUNTER": {
+      // Инкрементируем счетчик
+      newState = processIncrementCounter(state, { counterId: action.payload.counterId, value: action.payload.value });
+      // Проверяем специальные разблокировки, зависящие от счетчиков
+      return checkSpecialUnlocks(newState);
+    }
     
     case "CHECK_SYNERGIES":
       return checkSynergies(state);
@@ -120,19 +126,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       newState = initializeReferralSystem(newState);
       
-      // ВАЖНО: Принудительно проверяем состояние системы охлаждения при загрузке игры
-      if (newState.buildings.coolingSystem) {
-        if (!newState.buildings.homeComputer || newState.buildings.homeComputer.count < 2) {
-          console.log('🔒 Принудительно блокируем систему охлаждения при загрузке игры');
-          newState.buildings.coolingSystem.unlocked = false;
-        }
-      }
-      
-      // Проверяем, должен ли генератор быть разблокирован
-      if (newState.resources.usdt.value >= 11 && newState.buildings.generator) {
-        newState.buildings.generator.unlocked = true;
-      }
-      
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
       return newState;
@@ -147,14 +140,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       }
       
       newState = initializeReferralSystem(newState);
-      
-      // ВАЖНО: Принудительно проверяем состояние системы охлаждения при запуске игры
-      if (newState.buildings.coolingSystem) {
-        if (!newState.buildings.homeComputer || newState.buildings.homeComputer.count < 2) {
-          console.log('🔒 Принудительно блокируем систему охлаждения при старте игры');
-          newState.buildings.coolingSystem.unlocked = false;
-        }
-      }
       
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
@@ -204,8 +189,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       console.log("Принудительное обновление ресурсов и бонусов");
       // Сначала обновляем производство ресурсов
       const updatedState = processResourceUpdate(state);
+      // Проверяем разблокировки
+      const checkedState = checkAllUnlocks(updatedState);
       // Затем пересчитываем максимальные значения ресурсов
-      return updateResourceMaxValues(updatedState);
+      return updateResourceMaxValues(checkedState);
     }
       
     case "UPDATE_HELPERS": {
