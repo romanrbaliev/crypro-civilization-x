@@ -4,33 +4,30 @@ import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
 import { Brain, Coins } from "lucide-react";
 import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
+import PracticeButton from "./buttons/PracticeButton";
+import { useActionButtons } from "@/hooks/useActionButtons";
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
-  const { state, dispatch } = useGame();
+  const { state } = useGame();
+  const {
+    handleLearnClick,
+    handleApplyKnowledge,
+    handlePractice,
+    handleExchangeBtc,
+    isButtonEnabled,
+    practiceIsUnlocked,
+    practiceBuildingExists,
+    practiceCurrentCost,
+    practiceCurrentLevel,
+    hasAutoMiner,
+    currentExchangeRate
+  } = useActionButtons({ onAddEvent });
+  
   const hasApplyKnowledge = state.unlocks.applyKnowledge;
-  
-  const handleLearn = () => {
-    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 }});
-    
-    // Увеличиваем счетчик нажатий для разблокировки кнопки "Применить знания"
-    if (!hasApplyKnowledge) {
-      dispatch({ type: "INCREMENT_COUNTER", payload: { counterId: "applyKnowledge", value: 1 }});
-    }
-  };
-  
-  const handleApplyKnowledge = () => {
-    dispatch({ type: "APPLY_KNOWLEDGE" });
-    onAddEvent("Знания применены! Получено 1 USDT", "success");
-  };
-  
-  const handleExchangeBtc = () => {
-    dispatch({ type: "EXCHANGE_BTC" });
-    onAddEvent("Bitcoin продан за USDT", "success");
-  };
   
   // Получаем значения ресурсов для проверки доступности кнопок
   const { knowledge, usdt, btc } = state.resources;
@@ -39,12 +36,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const canExchangeBtc = 
     btc.unlocked && 
     btc.value > 0 && 
-    usdt.value + (btc.value * state.miningParams.exchangeRate) <= usdt.max;
+    usdt.value + (btc.value * currentExchangeRate) <= usdt.max;
   
   return (
     <div className="flex flex-wrap gap-2">
       <Button
-        onClick={handleLearn}
+        onClick={handleLearnClick}
         className="flex-1"
         size="sm"
       >
@@ -65,12 +62,21 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         </Button>
       )}
       
+      {practiceBuildingExists && practiceIsUnlocked && (
+        <PracticeButton
+          onClick={handlePractice}
+          disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
+          level={practiceCurrentLevel}
+          cost={practiceCurrentCost}
+        />
+      )}
+      
       {btc.unlocked && (
         <ExchangeBtcButton 
           onClick={handleExchangeBtc}
           disabled={!canExchangeBtc}
           className="flex-1"
-          currentRate={state.miningParams.exchangeRate}
+          currentRate={currentExchangeRate}
         />
       )}
     </div>

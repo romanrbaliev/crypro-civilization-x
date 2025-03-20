@@ -28,7 +28,7 @@ interface BuildingItemProps {
 
 const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => {
   const { state, dispatch } = useGame();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: building.id } });
@@ -86,7 +86,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     });
   };
   
-  // Добавляем отображение потребления ресурсов
   const renderConsumption = () => {
     if (!building.consumption || Object.keys(building.consumption).length === 0) {
       return null;
@@ -136,29 +135,27 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className="border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow mb-2"
+      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm hover:shadow-md transition-shadow mb-2`}
     >
       <div className="p-2">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <div className="flex justify-between items-center w-full">
-              <h3 className="text-sm font-medium">{building.name}</h3>
-              <div className="flex items-center space-x-2">
-                {building.count > 0 && (
-                  <span className="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded-full">
-                    {building.count}
-                  </span>
-                )}
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
-                </CollapsibleTrigger>
+        <CollapsibleTrigger asChild>
+          <div className="flex justify-between items-start cursor-pointer">
+            <div className="flex-1">
+              <div className="flex justify-between items-center w-full">
+                <h3 className="text-sm font-medium">{building.name}</h3>
+                <div className="flex items-center space-x-2">
+                  {building.count > 0 && (
+                    <span className="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded-full">
+                      {building.count}
+                    </span>
+                  )}
+                  {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </div>
               </div>
+              <p className="text-xs text-gray-500 mt-0.5">{building.description}</p>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">{building.description}</p>
           </div>
-        </div>
+        </CollapsibleTrigger>
         
         <CollapsibleContent>
           <div className="mt-2 pt-2 border-t">
@@ -175,7 +172,16 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
               </div>
             </div>
             
-            <div className="mt-2 flex justify-end">
+            <div className="mt-2 flex justify-between">
+              <Button
+                onClick={() => console.log("Sell functionality not implemented")}
+                disabled={building.count === 0}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Продать
+              </Button>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>

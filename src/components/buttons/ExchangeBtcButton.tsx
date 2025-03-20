@@ -1,26 +1,22 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Bitcoin } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { formatNumber } from "@/utils/helpers";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowRightLeft } from "lucide-react";
 
 interface ExchangeBtcButtonProps {
   onClick: () => void;
   disabled: boolean;
-  className?: string; // Добавил опциональное свойство className
-  currentRate?: number; // Сделал опциональным, так как в ActionButtons.tsx оно не предоставляется
+  currentRate: number;
+  className?: string;
 }
 
-export const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({ 
+const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({ 
   onClick, 
-  disabled,
-  className,
-  currentRate = 20000 // Значение по умолчанию
+  disabled, 
+  currentRate,
+  className = "" 
 }) => {
   return (
     <TooltipProvider>
@@ -28,24 +24,18 @@ export const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
         <TooltipTrigger asChild>
           <Button
             onClick={onClick}
-            className={className || "w-full"}
+            className={className}
             variant={disabled ? "outline" : "default"}
             size="sm"
             disabled={disabled}
           >
-            <Bitcoin className="mr-2 h-4 w-4" />
+            <ArrowRightLeft className="mr-2 h-4 w-4" />
             Обменять BTC
           </Button>
         </TooltipTrigger>
-        {disabled ? (
-          <TooltipContent>
-            <p>У вас нет BTC для обмена</p>
-          </TooltipContent>
-        ) : (
-          <TooltipContent>
-            <p>Курс обмена: 1 BTC = {currentRate.toLocaleString()} USDT</p>
-          </TooltipContent>
-        )}
+        <TooltipContent>
+          <p className="text-xs">Курс: 1 BTC = {formatNumber(currentRate)} USDT</p>
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

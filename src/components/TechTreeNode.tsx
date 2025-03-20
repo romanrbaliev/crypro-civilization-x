@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
 import { formatNumber } from '@/utils/helpers';
@@ -9,8 +9,19 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from '@/components/ui/tooltip';
-import { Sparkles, Lock, AlertCircle } from 'lucide-react';
+import { 
+  Sparkles, 
+  Lock, 
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 import { formatEffectName, formatEffect } from '@/utils/researchUtils';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible';
 
 interface TechTreeNodeProps {
   upgrade: any;
@@ -19,6 +30,7 @@ interface TechTreeNodeProps {
 
 const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
   const { state, dispatch } = useGame();
+  const [isOpen, setIsOpen] = useState(false);
   
   // Проверка доступности исследования
   const canPurchase = () => {
@@ -51,6 +63,7 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
       
       dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
       onAddEvent(`Завершено исследование: ${upgrade.name}`, "success");
+      setIsOpen(false);
     } catch (error) {
       console.error(`Ошибка при покупке исследования ${upgrade.id}:`, error);
       onAddEvent(`Ошибка при покупке исследования: ${upgrade.name}`, "error");
@@ -129,44 +142,68 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={`border rounded-lg p-2 ${getNodeStyle()} relative`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-xs font-medium flex items-center">
-                  {upgrade.name}
-                  {upgrade.purchased && <Sparkles className="ml-1 h-3 w-3 text-amber-500" />}
-                  {!upgrade.unlocked && <Lock className="ml-1 h-3 w-3 text-gray-400" />}
-                  {hasMissingDependencies() && <AlertCircle className="ml-1 h-3 w-3 text-red-400" />}
-                </div>
-                <div className="text-[9px] text-gray-500 mt-0.5 mb-1">{upgrade.description}</div>
-                
-                {upgrade.unlocked && !upgrade.purchased && (
-                  <div className="flex gap-3 mt-1">
-                    <div className="flex flex-col gap-0.5">
-                      {renderCost()}
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      {renderEffects()}
-                    </div>
+          <Collapsible
+            open={isOpen}
+            onOpenChange={setIsOpen}
+            className={`border rounded-lg p-2 ${getNodeStyle()} relative mb-2`}
+          >
+            <CollapsibleTrigger asChild>
+              <div className="flex justify-between items-start cursor-pointer">
+                <div>
+                  <div className="text-xs font-medium flex items-center">
+                    {upgrade.name}
+                    {upgrade.purchased && <Sparkles className="ml-1 h-3 w-3 text-amber-500" />}
+                    {!upgrade.unlocked && <Lock className="ml-1 h-3 w-3 text-gray-400" />}
+                    {hasMissingDependencies() && <AlertCircle className="ml-1 h-3 w-3 text-red-400" />}
                   </div>
-                )}
-                
-                {renderSpecialization()}
+                  <div className="text-[9px] text-gray-500 mt-0.5">{upgrade.description}</div>
+                </div>
+                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </div>
-              
-              {upgrade.unlocked && !upgrade.purchased && (
-                <Button
-                  size="sm"
-                  variant={canPurchase() ? "default" : "outline"}
-                  disabled={!canPurchase()}
-                  onClick={handlePurchase}
-                  className="text-[9px] h-6 px-2 py-0 ml-1"
-                >
-                  Изучить
-                </Button>
-              )}
-            </div>
-          </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="mt-2 pt-2 border-t">
+                {upgrade.unlocked && !upgrade.purchased && (
+                  <>
+                    <div className="flex justify-between mb-2">
+                      <div className="space-y-1">
+                        <h4 className="text-[10px] font-medium">Стоимость:</h4>
+                        {renderCost()}
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-[10px] font-medium">Эффекты:</h4>
+                        {renderEffects()}
+                      </div>
+                    </div>
+                    
+                    {renderSpecialization()}
+                    
+                    <div className="mt-2 flex justify-between">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={true}
+                        className="text-[9px] h-6 px-2 py-0"
+                      >
+                        Продать
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant={canPurchase() ? "default" : "outline"}
+                        disabled={!canPurchase()}
+                        onClick={handlePurchase}
+                        className="text-[9px] h-6 px-2 py-0"
+                      >
+                        Изучить
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
           <div className="text-xs">
@@ -201,24 +238,6 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
                   {!upgrade.unlockCondition && "Продолжайте развиваться для открытия этого исследования."}
                 </div>
               </div>
-            )}
-            
-            {upgrade.unlocked && !upgrade.purchased && (
-              <>
-                <div className="mt-2">
-                  <div className="font-medium">Стоимость:</div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-                    {renderCost()}
-                  </div>
-                </div>
-                
-                <div className="mt-2">
-                  <div className="font-medium">Эффекты:</div>
-                  <div className="flex flex-col gap-1 mt-1">
-                    {renderEffects()}
-                  </div>
-                </div>
-              </>
             )}
             
             {upgrade.specialization && (
