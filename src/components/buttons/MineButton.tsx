@@ -12,11 +12,13 @@ import {
 interface MineButtonProps {
   onClick: () => void;
   disabled: boolean;
+  className?: string;
 }
 
 export const MineButton: React.FC<MineButtonProps> = ({ 
   onClick, 
-  disabled 
+  disabled,
+  className = ""
 }) => {
   return (
     <TooltipProvider>
@@ -24,7 +26,7 @@ export const MineButton: React.FC<MineButtonProps> = ({
         <TooltipTrigger asChild>
           <Button
             onClick={onClick}
-            className="w-full"
+            className={`w-full ${className}`}
             variant={disabled ? "outline" : "default"}
             size="sm"
             disabled={disabled}

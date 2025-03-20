@@ -12,11 +12,13 @@ import {
 interface ApplyKnowledgeButtonProps {
   onClick: () => void;
   disabled: boolean;
+  className?: string;
 }
 
 export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({ 
   onClick, 
-  disabled 
+  disabled,
+  className = ""
 }) => {
   return (
     <TooltipProvider>
@@ -24,7 +26,7 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
         <TooltipTrigger asChild>
           <Button
             onClick={onClick}
-            className="w-full"
+            className={`w-full ${className}`}
             variant={disabled ? "outline" : "default"}
             size="sm"
             disabled={disabled}

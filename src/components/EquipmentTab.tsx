@@ -1,16 +1,22 @@
+
 import React from "react";
 import { Building as BuildingIcon } from "lucide-react";
 import BuildingItem from "@/components/BuildingItem";
 import ResourceForecast from "@/components/ResourceForecast";
 import { useGame } from "@/context/hooks/useGame";
-import { Building, Resource } from "@/context/types";
+import { Resource } from "@/context/types";
 
-interface EquipmentTabProps {
-  onAddEvent: (message: string, type: string) => void;
-}
-
-const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
+const EquipmentTab: React.FC = () => {
   const { state } = useGame();
+  
+  // Функция для отправки событий через глобальную шину событий
+  const addEvent = (message: string, type: string = "info") => {
+    if (window.gameEventBus) {
+      window.gameEventBus.dispatchEvent(
+        new CustomEvent('game-event', { detail: { message, type } })
+      );
+    }
+  };
 
   const unlockedBuildings = Object.values(state.buildings)
     .filter(b => b.unlocked && b.id !== "practice");
@@ -23,7 +29,7 @@ const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
             <BuildingItem 
               key={building.id} 
               building={building} 
-              onPurchase={() => onAddEvent(`Построено оборудование: ${building.name}`, "success")} 
+              onPurchase={() => addEvent(`Построено оборудование: ${building.name}`, "success")} 
             />
           ))}
         </div>

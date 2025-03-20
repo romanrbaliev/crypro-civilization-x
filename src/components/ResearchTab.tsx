@@ -7,13 +7,18 @@ import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import TechTree from "@/components/TechTree";
 import SynergyTab from "@/components/SynergyTab";
 
-interface ResearchTabProps {
-  onAddEvent: (message: string, type: string) => void;
-}
-
-const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
+const ResearchTab: React.FC = () => {
   const { state } = useGame();
   const [currentTab, setCurrentTab] = useState("tree");
+  
+  // Функция для отправки событий через глобальную шину событий
+  const addEvent = (message: string, type: string = "info") => {
+    if (window.gameEventBus) {
+      window.gameEventBus.dispatchEvent(
+        new CustomEvent('game-event', { detail: { message, type } })
+      );
+    }
+  };
   
   // Фильтруем исследования без категории (старые исследования)
   const unlockedUpgrades = Object.values(state.upgrades)
@@ -86,7 +91,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       </TabsList>
       
       <TabsContent value="tree" className="flex-1 overflow-auto mt-0">
-        <TechTree onAddEvent={onAddEvent} />
+        <TechTree onAddEvent={addEvent} />
       </TabsContent>
       
       <TabsContent value="list" className="flex-1 overflow-auto mt-0">
@@ -99,7 +104,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
                   <UpgradeItem 
                     key={upgrade.id} 
                     upgrade={upgrade} 
-                    onPurchase={() => onAddEvent(`Завершено исследование: ${upgrade.name}`, "success")} 
+                    onPurchase={() => addEvent(`Завершено исследование: ${upgrade.name}`, "success")} 
                   />
                 ))}
               </div>
@@ -132,7 +137,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       </TabsContent>
       
       <TabsContent value="synergy" className="flex-1 overflow-auto mt-0">
-        <SynergyTab onAddEvent={onAddEvent} />
+        <SynergyTab onAddEvent={addEvent} />
       </TabsContent>
     </Tabs>
   );

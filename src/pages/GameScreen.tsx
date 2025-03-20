@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -14,32 +13,6 @@ import DebugCalculator from "@/components/DebugCalculator";
 import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { 
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-import { resetAllGameData } from "@/context/utils/gameStorage";
-import { toast } from "@/hooks/use-toast";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
