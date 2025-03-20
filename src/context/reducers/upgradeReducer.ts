@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -166,7 +165,7 @@ export const processPurchaseUpgrade = (
       
       // Асинхронно активируем реферала
       try {
-        // Немедленно отправляем событие о начале активации
+        // Немедленно отправляем событие о начале актив��ции
         safeDispatchGameEvent("Уведомляем вашего реферера о прогрессе...", "info");
         
         // Устанавливаем небольшую задержку, чтобы пользователь увидел сообщение
@@ -209,41 +208,82 @@ export const processPurchaseUpgrade = (
   }
 };
 
-// Проверка разблокировки улучшений на основе зависимостей
+// Функция проверки разблокировки улучшений
 export const checkUpgradeUnlocks = (state: GameState): GameState => {
-  // Важное изменение: проверяем, разблокировано ли исследование "Основы блокчейна"
-  // при этом проверка должна выполниться перед обновлением состояния
-  const isBasicBlockchainUnlockedBefore = isBlockchainBasicsUnlocked(state.upgrades);
-  
   const newUpgrades = { ...state.upgrades };
-  let hasChanges = false;
-  
-  Object.values(newUpgrades).forEach(upgrade => {
-    // Пропускаем уже разблокированные или купленные улучшения
-    if (upgrade.unlocked || upgrade.purchased) return;
-    
-    // Проверяем, выполнены ли условия для разблокировки
-    const shouldUnlock = checkUnlockConditions(state, upgrade);
-    
-    if (shouldUnlock) {
-      newUpgrades[upgrade.id] = {
+  let anyChanged = false;
+
+  // Перебираем все улучшения
+  for (const [upgradeId, upgrade] of Object.entries(newUpgrades)) {
+    // Если улучшение уже разблокировано или куплено, пропускаем его
+    if (upgrade.unlocked || upgrade.purchased) continue;
+
+    let shouldUnlock = false;
+
+    // Проверка требований по исследованиям
+    if (upgrade.requirements) {
+      shouldUnlock = true;
+
+      for (const [reqKey, reqValue] of Object.entries(upgrade.requirements)) {
+        // Специальная обработка для требований по количеству зданий
+        if (reqKey.endsWith('Count')) {
+          const buildingId = reqKey.replace('Count', '');
+          if (!state.buildings[buildingId] || state.buildings[buildingId].count < reqValue) {
+            shouldUnlock = false;
+            break;
+          }
+        }
+        // Проверка требований по другим улучшениям
+        else if (newUpgrades[reqKey]) {
+          if (!newUpgrades[reqKey].purchased) {
+            shouldUnlock = false;
+            break;
+          }
+        }
+        // Проверка требований по ресурсам
+        else if (state.resources[reqKey]) {
+          if (state.resources[reqKey].value < reqValue) {
+            shouldUnlock = false;
+            break;
+          }
+        }
+      }
+    }
+
+    // Специальные проверки для определенных улучшений
+    if (upgradeId === "cryptoCurrencyBasics" && newUpgrades.basicBlockchain.purchased) {
+      shouldUnlock = true;
+    }
+    else if (upgradeId === "algorithmOptimization" && state.buildings.autoMiner.count > 0) {
+      shouldUnlock = true;
+    }
+    else if (upgradeId === "energyEfficiency" && state.buildings.autoMiner.count > 0) {
+      shouldUnlock = true;
+    }
+    else if (upgradeId === "coolingSystem" && newUpgrades.algorithmOptimization.purchased) {
+      shouldUnlock = true;
+    }
+
+    // Если нужно разблокировать, обновляем статус
+    if (shouldUnlock && !upgrade.unlocked) {
+      newUpgrades[upgradeId] = {
         ...upgrade,
         unlocked: true
       };
-      hasChanges = true;
+      anyChanged = true;
       
-      // Отправляем сообщение о разблокировке нового исследования
-      const categoryText = upgrade.category ? ` (${upgrade.specialization || upgrade.category})` : '';
-      safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
+      // Выводим сообщение о разблокировке
+      safeDispatchGameEvent(`Доступно новое исследование: ${upgrade.name}`, "info");
     }
-  });
-  
-  if (hasChanges) {
+  }
+
+  // Если были изменения, возвращаем обновленное состояние
+  if (anyChanged) {
     return {
       ...state,
       upgrades: newUpgrades
     };
   }
-  
+
   return state;
 };

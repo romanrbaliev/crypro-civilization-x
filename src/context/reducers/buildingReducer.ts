@@ -51,7 +51,6 @@ export const processPurchaseBuilding = (
   console.log(`Куплено здание ${building.name}`);
   
   // Разблокируем ресурсы, производимые этим зданием
-  // ИСПРАВЛЕНО: Проверяем именно по ID здания, а не по наличию полей
   if (buildingId === "generator" && !newResources.electricity.unlocked) {
     console.log("Разблокируем ресурс электричества после покупки генератора");
     newResources.electricity = {
@@ -96,7 +95,7 @@ export const processPurchaseBuilding = (
       }
     };
     
-    // Разблокируем "Основы блокчейна" в обоих возможных ID
+    // Разблокируем "Основы блокчейна"
     const upgrades = { ...newState.upgrades };
     
     if (upgrades.basicBlockchain) {
@@ -107,22 +106,6 @@ export const processPurchaseBuilding = (
       console.log("Разблокировано исследование 'Основы блокчейна' (basicBlockchain)");
     }
     
-    if (upgrades.blockchain_basics) {
-      upgrades.blockchain_basics = {
-        ...upgrades.blockchain_basics,
-        unlocked: true
-      };
-      console.log("Разблокировано исследование 'Основы блокчейна' (blockchain_basics)");
-    }
-    
-    if (upgrades.blockchainBasics) {
-      upgrades.blockchainBasics = {
-        ...upgrades.blockchainBasics,
-        unlocked: true
-      };
-      console.log("Разблокировано исследование 'Основы блокчейна' (blockchainBasics)");
-    }
-    
     newState = {
       ...newState,
       upgrades: upgrades
@@ -130,6 +113,43 @@ export const processPurchaseBuilding = (
     
     safeDispatchGameEvent("Разблокирована вкладка исследований", "success");
     safeDispatchGameEvent("Доступно новое исследование: Основы блокчейна", "info");
+  }
+  
+  // Проверяем разблокировку новых зданий
+  if (buildingId === "homeComputer" && building.count === 1) {
+    // После покупки второго домашнего компьютера разблокируем "Систему охлаждения"
+    if (newBuildings.coolingSystem && !newBuildings.coolingSystem.unlocked) {
+      newBuildings.coolingSystem = {
+        ...newBuildings.coolingSystem,
+        unlocked: true
+      };
+      safeDispatchGameEvent("Разблокировано новое здание: Система охлаждения", "info");
+    }
+  }
+  
+  // После покупки первого автомайнера разблокируем соответствующие исследования
+  if (buildingId === "autoMiner" && building.count === 0) {
+    const newUpgrades = { ...newState.upgrades };
+    if (newUpgrades.algorithmOptimization && !newUpgrades.algorithmOptimization.unlocked) {
+      newUpgrades.algorithmOptimization = {
+        ...newUpgrades.algorithmOptimization,
+        unlocked: true
+      };
+      safeDispatchGameEvent("Доступно новое исследование: Оптимизация алгоритмов", "info");
+    }
+    
+    if (newUpgrades.energyEfficiency && !newUpgrades.energyEfficiency.unlocked) {
+      newUpgrades.energyEfficiency = {
+        ...newUpgrades.energyEfficiency,
+        unlocked: true
+      };
+      safeDispatchGameEvent("Доступно новое исследование: Энергоэффективные компоненты", "info");
+    }
+    
+    newState = {
+      ...newState,
+      upgrades: newUpgrades
+    };
   }
   
   // Обновляем максимальные значения ресурсов
