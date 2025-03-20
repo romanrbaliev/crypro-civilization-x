@@ -74,6 +74,12 @@ const calculateBuildingProduction = (
           const production = Number(baseProduction) * building.count * (1 + building.productionBoost);
           resource.production += production;
           resource.perSecond += production;
+          
+          // Добавляем или обновляем кэш производства для здания
+          if (!newBuildings[buildingKey].resourceProduction) {
+            newBuildings[buildingKey].resourceProduction = {};
+          }
+          newBuildings[buildingKey].resourceProduction[resourceKey] = production;
         }
       }
       

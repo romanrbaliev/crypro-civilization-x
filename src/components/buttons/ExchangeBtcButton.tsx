@@ -12,13 +12,15 @@ import {
 interface ExchangeBtcButtonProps {
   onClick: () => void;
   disabled: boolean;
-  currentRate: number;
+  className?: string; // Добавил опциональное свойство className
+  currentRate?: number; // Сделал опциональным, так как в ActionButtons.tsx оно не предоставляется
 }
 
 export const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({ 
   onClick, 
   disabled,
-  currentRate
+  className,
+  currentRate = 20000 // Значение по умолчанию
 }) => {
   return (
     <TooltipProvider>
@@ -26,7 +28,7 @@ export const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
         <TooltipTrigger asChild>
           <Button
             onClick={onClick}
-            className="w-full"
+            className={className || "w-full"}
             variant={disabled ? "outline" : "default"}
             size="sm"
             disabled={disabled}

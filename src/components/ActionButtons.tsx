@@ -2,7 +2,7 @@
 import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
-import { Brain, Coins, ArrowRightLeft } from "lucide-react";
+import { Brain, Coins } from "lucide-react";
 import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
 
 interface ActionButtonsProps {
@@ -70,6 +70,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           onClick={handleExchangeBtc}
           disabled={!canExchangeBtc}
           className="flex-1"
+          currentRate={state.miningParams.exchangeRate}
         />
       )}
     </div>

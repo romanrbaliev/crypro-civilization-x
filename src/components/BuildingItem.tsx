@@ -18,8 +18,7 @@ import {
 } from "@/components/ui/collapsible";
 import {
   ChevronDown,
-  ChevronUp,
-  Settings
+  ChevronUp
 } from "lucide-react";
 
 interface BuildingItemProps {
@@ -192,7 +191,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                     </div>
                   </TooltipTrigger>
                   {(!canAfford() || hasReachedMaxCount()) && (
-                    <TooltipContent side="left">
+                    <TooltipContent>
                       <p className="text-xs">
                         {hasReachedMaxCount() 
                           ? "Достигнуто максимальное количество" 
