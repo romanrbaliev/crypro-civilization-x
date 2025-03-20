@@ -1,3 +1,4 @@
+
 import { GameState, Upgrade } from '@/context/types';
 
 // Проверка наличия исследования "Основы блокчейна"
@@ -16,6 +17,22 @@ export const hasBlockchainBasics = (upgrades: { [key: string]: Upgrade }): boole
     (upgrades.blockchain_basics && upgrades.blockchain_basics.purchased) ||
     (upgrades.blockchainBasics && upgrades.blockchainBasics.purchased)
   );
+};
+
+// Получение названия специализации по ее идентификатору
+export const getSpecializationName = (specializationId: string): string => {
+  const specializationNames: { [key: string]: string } = {
+    'investor': 'Инвестор',
+    'trader': 'Трейдер',
+    'miner': 'Майнер',
+    'influencer': 'Инфлюенсер',
+    'analyst': 'Аналитик',
+    'founder': 'Фаундер',
+    'arbitrage': 'Арбитражник',
+    'general': 'Общее'
+  };
+  
+  return specializationNames[specializationId] || specializationId;
 };
 
 // Проверка условий разблокировки для улучшения
