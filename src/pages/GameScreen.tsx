@@ -49,8 +49,8 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
-  const hasUnlockedBuildings = Object.values(state.buildings)
-    .some(b => b.unlocked && b.id !== "practice");
+  // Изменено: Теперь проверяем разблокировку генератора, а не любое здание кроме практики
+  const hasUnlockedBuildings = state.buildings.generator && state.buildings.generator.unlocked;
     
   const hasUnlockedResearch = state.unlocks.research === true;
   
@@ -116,10 +116,14 @@ const GameScreen = () => {
   }, []);
   
   useEffect(() => {
+    // Выбираем правильную вкладку по умолчанию
     if (hasUnlockedBuildings) {
       setSelectedTab("equipment");
     } else if (hasUnlockedResearch) {
       setSelectedTab("research");
+    } else {
+      // Если ничего не разблокировано, по умолчанию показываем рефералы
+      setSelectedTab("referrals");
     }
     
     console.log("Обновление выбранной вкладки:", {
@@ -310,6 +314,7 @@ const GameScreen = () => {
           
           <div className="border-t mt-auto">
             <div className="flex flex-col">
+              {/* Показываем вкладку оборудования только если разблокирован генератор */}
               {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
               
               {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}

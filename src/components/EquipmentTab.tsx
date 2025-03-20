@@ -13,7 +13,7 @@ interface EquipmentTabProps {
 const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
-  // Изменение: Добавляем дополнительную фильтрацию для зданий
+  // Фильтрация зданий
   const unlockedBuildings = Object.values(state.buildings)
     .filter(b => b.unlocked && b.id !== "practice")
     // Дополнительная проверка для системы охлаждения - должна быть разблокирована и соответствовать требованиям
