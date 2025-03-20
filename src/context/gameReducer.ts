@@ -108,6 +108,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       newState = initializeReferralSystem(newState);
       
+      // ВАЖНО: Принудительно проверяем состояние системы охлаждения при загрузке игры
+      if (newState.buildings.coolingSystem) {
+        if (!newState.buildings.homeComputer || newState.buildings.homeComputer.count < 2) {
+          console.log('🔒 Принудительно блокируем систему охлаждения при загрузке игры');
+          newState.buildings.coolingSystem.unlocked = false;
+        }
+      }
+      
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
       return newState;
@@ -122,6 +130,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       }
       
       newState = initializeReferralSystem(newState);
+      
+      // ВАЖНО: Принудительно проверяем состояние системы охлаждения при запуске игры
+      if (newState.buildings.coolingSystem) {
+        if (!newState.buildings.homeComputer || newState.buildings.homeComputer.count < 2) {
+          console.log('🔒 Принудительно блокируем систему охлаждения при старте игры');
+          newState.buildings.coolingSystem.unlocked = false;
+        }
+      }
       
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
