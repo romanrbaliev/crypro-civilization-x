@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -20,7 +21,7 @@ export const processPurchaseBuilding = (
   // Проверяем, достаточно ли ресурсов для покупки
   const calculatedCost: { [key: string]: number } = {};
   for (const [resourceId, baseCost] of Object.entries(building.cost)) {
-    const currentCost = Number(baseCost) * Math.pow(Number(building.costMultiplier), building.count);
+    const currentCost = Number(baseCost) * Math.pow(Number(building.costMultiplier || 1.1), building.count);
     calculatedCost[resourceId] = currentCost;
   }
   
@@ -191,13 +192,9 @@ export const processSellBuilding = (
   console.log(`Продано здание ${building.name}`);
   safeDispatchGameEvent(`Здание ${building.name} продано`, "info");
   
-  // Обновляем ресурсы
-  const newResources = { ...state.resources };
-  
-  // Обновляем состояние
+  // Создаем новое состояние (не возвращаем ресурсы при продаже)
   let newState = {
     ...state,
-    resources: newResources,
     buildings: newBuildings
   };
   
@@ -219,8 +216,25 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
 
     let shouldUnlock = false;
 
+    // Генератор появляется только после накопления 11 USDT
+    if (building.id === "generator" && !building.unlocked) {
+      if (state.resources.usdt.value >= 11) {
+        shouldUnlock = true;
+        safeDispatchGameEvent("Разблокирован Генератор", "info");
+      }
+    }
+    
+    // Домашний компьютер появляется при наличии 10+ электричества
+    if (building.id === "homeComputer" && !building.unlocked) {
+      if (state.resources.electricity && state.resources.electricity.unlocked && 
+          state.resources.electricity.value >= 10) {
+        shouldUnlock = true;
+        safeDispatchGameEvent("Разблокирован Домашний компьютер", "info");
+      }
+    }
+
     // Проверяем требования к ресурсам
-    if (building.requirements) {
+    if (building.requirements && !shouldUnlock) {
       shouldUnlock = true;
       
       for (const [reqId, reqValue] of Object.entries(building.requirements)) {

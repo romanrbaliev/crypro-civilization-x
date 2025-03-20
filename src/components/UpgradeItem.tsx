@@ -85,10 +85,10 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       
       return (
         <div key={resourceId} className="flex justify-between w-full">
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
             {resource.name}
           </span>
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[12px]`}>
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
             {formatNumber(Number(amount))}
           </span>
         </div>
@@ -101,21 +101,21 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       if (effectId === 'knowledgeBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[12px] w-full">
+          <div key={effectId} className="text-blue-600 text-[11px] w-full">
             +{boostPercent}% к скорости накопления Знаний о крипте
           </div>
         );
       } else if (effectId === 'knowledgeMaxBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[12px] w-full">
+          <div key={effectId} className="text-blue-600 text-[11px] w-full">
             +{boostPercent}% к максимуму Знаний о крипте
           </div>
         );
       } else if (effectId === 'usdtMaxBoost') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[12px] w-full">
+          <div key={effectId} className="text-blue-600 text-[11px] w-full">
             +{boostPercent}% к максимуму USDT
           </div>
         );
@@ -124,7 +124,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         const boostPercent = Number(amount) * 100;
         const resourceName = state.resources[resourceId]?.name || resourceId;
         return (
-          <div key={effectId} className="text-blue-600 text-[12px] w-full">
+          <div key={effectId} className="text-blue-600 text-[11px] w-full">
             +{boostPercent}% к скорости накопления {resourceName}
           </div>
         );
@@ -132,21 +132,21 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         const resourceId = effectId.replace('Max', '');
         const resourceName = state.resources[resourceId]?.name || resourceId;
         return (
-          <div key={effectId} className="text-blue-600 text-[12px] w-full">
+          <div key={effectId} className="text-blue-600 text-[11px] w-full">
             +{formatNumber(Number(amount))} к максимуму {resourceName}
           </div>
         );
       } else if (effectId === 'conversionRate') {
         const boostPercent = Number(amount) * 100;
         return (
-          <div key={effectId} className="text-blue-600 text-[12px] w-full">
+          <div key={effectId} className="text-blue-600 text-[11px] w-full">
             +{boostPercent}% к конвертации
           </div>
         );
       }
       
       return (
-        <div key={effectId} className="text-blue-600 text-[12px] w-full">
+        <div key={effectId} className="text-blue-600 text-[11px] w-full">
           +{String(amount)} к {effectId}
         </div>
       );
@@ -161,19 +161,19 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
         className="border rounded-lg bg-gray-50 shadow-sm mb-2 overflow-hidden"
       >
         <CollapsibleTrigger asChild>
-          <div className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-100">
-            <h3 className="font-semibold text-[12px] flex items-center">
+          <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-100">
+            <h3 className="font-semibold text-xs flex items-center">
               {name} <Sparkles className="ml-1 h-3 w-3 text-amber-500" />
             </h3>
-            <ChevronRight className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+            <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
           </div>
         </CollapsibleTrigger>
         
         <CollapsibleContent>
-          <div className="p-3 pt-0">
-            <p className="text-[12px] text-gray-600 mb-1 w-full">{description}</p>
+          <div className="p-2 pt-0">
+            <p className="text-[11px] text-gray-600 mb-1 w-full">{description}</p>
             <div className="mt-2 border-t pt-2">
-              <h4 className="text-xs font-medium mb-1">Эффекты:</h4>
+              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
               {renderEffects()}
             </div>
           </div>
@@ -189,24 +189,24 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
     >
       <CollapsibleTrigger asChild>
-        <div className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-50">
-          <h3 className="font-semibold text-[12px]">{name}</h3>
-          <ChevronRight className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
+          <h3 className="font-medium text-xs">{name}</h3>
+          <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
         </div>
       </CollapsibleTrigger>
       
       <CollapsibleContent>
-        <div className="p-3 pt-0">
-          <p className="text-[12px] text-gray-600 mb-3 w-full">{description}</p>
+        <div className="p-2 pt-0">
+          <p className="text-[11px] text-gray-600 mb-3 w-full">{description}</p>
           
           <div className="space-y-2">
             <div className="space-y-1">
-              <h4 className="text-xs font-medium">Стоимость:</h4>
+              <h4 className="text-[11px] font-medium">Стоимость:</h4>
               {renderCost()}
             </div>
             
             <div className="border-t pt-2">
-              <h4 className="text-xs font-medium mb-1">Эффекты:</h4>
+              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
               {renderEffects()}
             </div>
             
@@ -220,7 +220,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
                         disabled={!canAfford()}
                         variant={canAfford() ? "default" : "outline"}
                         size="sm"
-                        className="text-[12px] w-full"
+                        className="text-[11px] w-full h-7 py-0"
                       >
                         Исследовать
                       </Button>

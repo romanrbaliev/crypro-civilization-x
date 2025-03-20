@@ -24,18 +24,14 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
           payload: { buildingId: "practice", unlocked: true }
         });
       }
-    }
-  }, [state.counters.applyKnowledge, state.unlocks.practice, dispatch, state.buildings.practice]);
-
-  // Отправляем сообщение когда практика разблокирована
-  useEffect(() => {
-    if (state.unlocks.practice && !practiceMessageSent) {
+      
+      // Отправляем сообщение о разблокировке практики
       onAddEvent("Функция 'Практика' разблокирована", "info");
       onAddEvent("Накопите USDT, чтобы начать практиковаться и включить фоновое накопление знаний", "info");
       setPracticeMessageSent(true);
     }
-  }, [state.unlocks.practice, onAddEvent, practiceMessageSent]);
-  
+  }, [state.counters.applyKnowledge, state.unlocks.practice, dispatch, state.buildings.practice, onAddEvent]);
+
   // Отправляем сообщение когда исследования разблокированы
   useEffect(() => {
     if (state.unlocks.research && !researchMessageSent) {
@@ -102,7 +98,7 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
     
     // Расчет стоимости
     const practiceBuilding = state.buildings.practice;
-    const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier, practiceBuilding.count));
+    const currentCost = Math.floor(practiceBuilding.cost.usdt * Math.pow(practiceBuilding.costMultiplier || 1.1, practiceBuilding.count));
     
     console.log(`Нажата кнопка Практиковаться. USDT: ${state.resources.usdt.value}, Требуется: ${currentCost}`);
     
@@ -153,9 +149,9 @@ export function useActionButtons({ onAddEvent = () => {} }: UseActionButtonsProp
 
   // Вычисления для кнопок
   const practiceBuildingExists = Boolean(state.buildings.practice);
-  const practiceIsUnlocked = practiceBuildingExists && state.buildings.practice.unlocked;
+  const practiceIsUnlocked = state.unlocks.practice === true;
   const practiceCurrentCost = practiceBuildingExists
-    ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier, state.buildings.practice.count))
+    ? Math.floor(state.buildings.practice.cost.usdt * Math.pow(state.buildings.practice.costMultiplier || 1.1, state.buildings.practice.count))
     : 10;
   const practiceCurrentLevel = practiceBuildingExists ? state.buildings.practice.count : 0;
   const hasAutoMiner = state.buildings.autoMiner && state.buildings.autoMiner.count > 0;

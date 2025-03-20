@@ -4,7 +4,7 @@ import { initialState } from './initialState';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
-import { processPurchaseBuilding, processSellBuilding } from './reducers/buildingReducer';
+import { processPurchaseBuilding, processSellBuilding, checkBuildingUnlocks } from './reducers/buildingReducer';
 import { processPurchaseUpgrade, checkUpgradeUnlocks } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { 
@@ -58,8 +58,12 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "UPDATE_RESOURCES": {
       // Обновляем ресурсы
       const updatedState = processResourceUpdate(state);
+      
+      // Проверяем условия разблокировки зданий после обновления ресурсов
+      const stateWithNewBuildings = checkBuildingUnlocks(updatedState);
+      
       // Пересчитываем максимальные значения ресурсов после каждого обновления
-      return updateResourceMaxValues(updatedState);
+      return updateResourceMaxValues(stateWithNewBuildings);
     }
     
     case "PURCHASE_BUILDING": {
@@ -122,6 +126,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           console.log('🔒 Принудительно блокируем систему охлаждения при загрузке игры');
           newState.buildings.coolingSystem.unlocked = false;
         }
+      }
+      
+      // Проверяем, должен ли генератор быть разблокирован
+      if (newState.resources.usdt.value >= 11 && newState.buildings.generator) {
+        newState.buildings.generator.unlocked = true;
       }
       
       // Принудительно пересчитываем максимальные значения ресурсов

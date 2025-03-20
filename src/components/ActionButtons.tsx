@@ -55,8 +55,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     );
   }
   
-  // Добавляем кнопку Практиковаться, если она разблокирована и доступна
-  if (state.unlocks.practice) {
+  // Добавляем кнопку Практиковаться, если она разблокирована
+  if (practiceIsUnlocked) {
+    console.log("Кнопка практики разблокирована, добавляем на экран");
     buttons.push(
       <PracticeButton
         key="practice"
@@ -66,6 +67,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         cost={practiceCurrentCost}
       />
     );
+  } else {
+    console.log("Кнопка практики не разблокирована. practiceIsUnlocked:", practiceIsUnlocked);
+    console.log("state.unlocks.practice:", state.unlocks.practice);
+    console.log("applyKnowledge счетчик:", state.counters.applyKnowledge?.value);
   }
   
   // Добавляем кнопку Применить знания, если она разблокирована
@@ -101,7 +106,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   return (
     <div className="flex flex-col gap-2">
-      {buttons}
+      {buttons.reverse()}
     </div>
   );
 };

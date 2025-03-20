@@ -77,7 +77,6 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
       }
       
-      // По умолчанию не показываем исследования без явных зависимостей
       return false;
     });
   

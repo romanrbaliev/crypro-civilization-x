@@ -132,7 +132,7 @@ export const processPurchaseUpgrade = (
   }
   
   // Если приобретены "Основы блокчейна", разблокируем только криптокошелек
-  if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
+  if (upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics' || upgradeId === 'blockchainBasics') {
     // Разблокируем только криптокошелек
     const newBuildings = { ...stateAfterPurchase.buildings };
     
@@ -161,6 +161,21 @@ export const processPurchaseUpgrade = (
       buildings: newBuildings
     };
     
+    // ВАЖНО: Отдельно разблокируем исследование "Основы криптовалют"
+    stateAfterPurchase = {
+      ...stateAfterPurchase,
+      upgrades: {
+        ...stateAfterPurchase.upgrades,
+        cryptoCurrencyBasics: {
+          ...stateAfterPurchase.upgrades.cryptoCurrencyBasics,
+          unlocked: true
+        }
+      }
+    };
+    
+    // Отправляем сообщение о разблокировке нового исследования
+    safeDispatchGameEvent("Разблокировано новое исследование: Основы криптовалют", "info");
+    
     // Активируем реферала при покупке исследования "Основы блокчейна"
     if (state.referredBy) {
       console.log('***Активируем реферала при ПОКУПКЕ "Основы блокчейна"***');
@@ -172,7 +187,7 @@ export const processPurchaseUpgrade = (
       
       // Асинхронно активируем реферала
       try {
-        // Немедленно отправляем событие о начале актив��ции
+        // Немедленно отправляем событие о начале активации
         safeDispatchGameEvent("Уведомляем вашего реферера о прогрессе...", "info");
         
         // Устанавливаем небольшую задержку, чтобы пользователь увидел сообщение
@@ -205,7 +220,7 @@ export const processPurchaseUpgrade = (
     console.error("Ошибка при обновлении максимальных значений ресурсов:", error);
   }
   
-  // Проверяем разблокировки только тех улучшений, которые имеют зависимость от купленного улучшения
+  // После покупки исследования проверяем разблокировку только определенных зависимых исследований
   try {
     const stateWithNewUnlocks = checkTargetedUpgradeUnlocks(stateAfterPurchase, upgradeId);
     return stateWithNewUnlocks;
@@ -220,6 +235,31 @@ export const checkTargetedUpgradeUnlocks = (state: GameState, purchasedUpgradeId
   const newUpgrades = { ...state.upgrades };
   let hasChanges = false;
   
+  // Проверка специальных исследований, разблокируемых через явные правила
+  if (purchasedUpgradeId === 'walletSecurity' && state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0) {
+    if (!newUpgrades.walletSecurity.unlocked) {
+      newUpgrades.walletSecurity = {
+        ...newUpgrades.walletSecurity,
+        unlocked: true
+      };
+      hasChanges = true;
+      safeDispatchGameEvent("Разблокировано новое исследование: Безопасность криптокошельков", "info");
+    }
+  }
+  
+  // "Оптимизация алгоритмов" после покупки автомайнера
+  if (purchasedUpgradeId === 'autoMiner' && state.buildings.autoMiner && state.buildings.autoMiner.count > 0) {
+    if (newUpgrades.algorithmOptimization && !newUpgrades.algorithmOptimization.unlocked) {
+      newUpgrades.algorithmOptimization = {
+        ...newUpgrades.algorithmOptimization,
+        unlocked: true
+      };
+      hasChanges = true;
+      safeDispatchGameEvent("Разблокировано новое исследование: Оптимизация алгоритмов", "info");
+    }
+  }
+  
+  // Для других улучшений проверяем только зависимости от купленного улучшения
   Object.values(newUpgrades).forEach(upgrade => {
     // Пропускаем уже разблокированные или купленные улучшения
     if (upgrade.unlocked || upgrade.purchased) return;
@@ -254,16 +294,6 @@ export const checkTargetedUpgradeUnlocks = (state: GameState, purchasedUpgradeId
       }
     }
   });
-
-  // Специальная обработка для "Основы криптовалют" после "Основы блокчейна"
-  if (purchasedUpgradeId === 'basicBlockchain' && !newUpgrades.cryptoCurrencyBasics.unlocked) {
-    newUpgrades.cryptoCurrencyBasics = {
-      ...newUpgrades.cryptoCurrencyBasics,
-      unlocked: true
-    };
-    hasChanges = true;
-    safeDispatchGameEvent(`Разблокировано новое исследование: Основы криптовалют`, "info");
-  }
   
   if (hasChanges) {
     return {
@@ -275,7 +305,7 @@ export const checkTargetedUpgradeUnlocks = (state: GameState, purchasedUpgradeId
   return state;
 };
 
-// Оставляем проверку всех разблокировок для других случаев
+// Проверка всех разблокировок для других случаев
 export const checkUpgradeUnlocks = (state: GameState): GameState => {
   // Важное изменение: проверяем, разблокировано ли исследование "Основы блокчейна"
   // при этом проверка должна выполниться перед обновлением состояния
@@ -284,37 +314,60 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
   const newUpgrades = { ...state.upgrades };
   let hasChanges = false;
   
-  Object.values(newUpgrades).forEach(upgrade => {
-    // Пропускаем уже разблокированные или купленные улучшения
-    if (upgrade.unlocked || upgrade.purchased) return;
-    
-    // Проверяем, выполнены ли условия для разблокировки
-    const shouldUnlock = checkUnlockConditions(state, upgrade);
-    
-    if (shouldUnlock) {
-      newUpgrades[upgrade.id] = {
-        ...upgrade,
+  // Разблокируем "Основы блокчейна" только если есть генератор
+  if (state.buildings.generator && state.buildings.generator.count > 0) {
+    if (newUpgrades.basicBlockchain && !newUpgrades.basicBlockchain.unlocked) {
+      newUpgrades.basicBlockchain = {
+        ...newUpgrades.basicBlockchain,
         unlocked: true
       };
       hasChanges = true;
-      
-      // Отправляем сообщение о разблокировке нового исследования
-      const categoryText = upgrade.category ? ` (${upgrade.specialization || upgrade.category})` : '';
-      safeDispatchGameEvent(`Разблокировано новое исследование: ${upgrade.name}${categoryText}`, "info");
+      safeDispatchGameEvent("Разблокировано новое исследование: Основы блокчейна", "info");
     }
-  });
+    
+    if (newUpgrades.blockchain_basics && !newUpgrades.blockchain_basics.unlocked) {
+      newUpgrades.blockchain_basics = {
+        ...newUpgrades.blockchain_basics,
+        unlocked: true
+      };
+      hasChanges = true;
+    }
+  }
   
-  // Дополнительные условия для Фазы 2
-  // Разблокировка "Основы криптовалют" после покупки "Основы блокчейна"
-  if (state.upgrades.basicBlockchain?.purchased && !newUpgrades.cryptoCurrencyBasics.unlocked) {
+  // "Безопасность криптокошельков" появляется после покупки криптокошелька
+  if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0) {
+    if (newUpgrades.walletSecurity && !newUpgrades.walletSecurity.unlocked) {
+      newUpgrades.walletSecurity = {
+        ...newUpgrades.walletSecurity,
+        unlocked: true
+      };
+      hasChanges = true;
+      safeDispatchGameEvent("Разблокировано новое исследование: Безопасность криптокошельков", "info");
+    }
+  }
+  
+  // "Оптимизация алгоритмов" появляется после покупки автомайнера
+  if (state.buildings.autoMiner && state.buildings.autoMiner.count > 0) {
+    if (newUpgrades.algorithmOptimization && !newUpgrades.algorithmOptimization.unlocked) {
+      newUpgrades.algorithmOptimization = {
+        ...newUpgrades.algorithmOptimization,
+        unlocked: true
+      };
+      hasChanges = true;
+      safeDispatchGameEvent("Разблокировано новое исследование: Оптимизация алгоритмов", "info");
+    }
+  }
+  
+  // Основы криптовалют разблокируются только после покупки Основ блокчейна
+  if (hasBlockchainBasics(state.upgrades) && newUpgrades.cryptoCurrencyBasics && !newUpgrades.cryptoCurrencyBasics.unlocked) {
     newUpgrades.cryptoCurrencyBasics = {
       ...newUpgrades.cryptoCurrencyBasics,
       unlocked: true
     };
     hasChanges = true;
-    safeDispatchGameEvent(`Разблокировано новое исследование: Основы криптовалют`, "info");
+    safeDispatchGameEvent("Разблокировано новое исследование: Основы криптовалют", "info");
   }
-
+  
   // Разблокировка "Proof of Work" после покупки "Основы криптовалют" и наличия 3+ компьютеров
   if (state.upgrades.cryptoCurrencyBasics?.purchased && 
       state.buildings.homeComputer?.count >= 3 && 
@@ -324,7 +377,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       unlocked: true
     };
     hasChanges = true;
-    safeDispatchGameEvent(`Разблокировано новое исследование: Proof of Work`, "info");
+    safeDispatchGameEvent("Разблокировано новое исследование: Proof of Work", "info");
   }
   
   if (hasChanges) {

@@ -145,10 +145,10 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
           <Collapsible
             open={isOpen}
             onOpenChange={setIsOpen}
-            className={`border rounded-lg p-2 ${getNodeStyle()} relative mb-2`}
+            className={`border rounded-lg ${getNodeStyle()} relative mb-2 overflow-hidden`}
           >
             <CollapsibleTrigger asChild>
-              <div className="flex justify-between items-start cursor-pointer">
+              <div className="flex justify-between items-center cursor-pointer p-2">
                 <div>
                   <div className="text-xs font-medium flex items-center">
                     {upgrade.name}
@@ -156,14 +156,15 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
                     {!upgrade.unlocked && <Lock className="ml-1 h-3 w-3 text-gray-400" />}
                     {hasMissingDependencies() && <AlertCircle className="ml-1 h-3 w-3 text-red-400" />}
                   </div>
-                  <div className="text-[9px] text-gray-500 mt-0.5">{upgrade.description}</div>
                 </div>
                 {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </div>
             </CollapsibleTrigger>
             
             <CollapsibleContent>
-              <div className="mt-2 pt-2 border-t">
+              <div className="p-2 pt-0">
+                <div className="text-[9px] text-gray-500 mb-2">{upgrade.description}</div>
+                
                 {upgrade.unlocked && !upgrade.purchased && (
                   <>
                     <div className="flex justify-between mb-2">
@@ -179,27 +180,24 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
                     
                     {renderSpecialization()}
                     
-                    <div className="mt-2 flex justify-between">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={true}
-                        className="text-[9px] h-6 px-2 py-0"
-                      >
-                        Продать
-                      </Button>
-                      
+                    <div className="mt-2">
                       <Button
                         size="sm"
                         variant={canPurchase() ? "default" : "outline"}
                         disabled={!canPurchase()}
                         onClick={handlePurchase}
-                        className="text-[9px] h-6 px-2 py-0"
+                        className="text-[9px] h-6 px-2 py-0 w-full"
                       >
-                        Изучить
+                        Исследовать
                       </Button>
                     </div>
                   </>
+                )}
+                
+                {upgrade.purchased && (
+                  <div className="text-[9px] text-green-600 font-medium">
+                    Исследование завершено
+                  </div>
                 )}
               </div>
             </CollapsibleContent>
