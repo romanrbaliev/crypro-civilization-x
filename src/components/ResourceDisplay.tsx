@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Resource } from "@/context/types";
-import { formatNumber } from "@/utils/helpers";
+import { formatResourceValue } from "@/utils/resourceFormatConfig";
+import { useResourceAnimation } from "@/hooks/useResourceAnimation";
 
 interface ResourceDisplayProps {
   resource: Resource;
@@ -10,11 +11,14 @@ interface ResourceDisplayProps {
 const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   const { id, name, value, max, perSecond } = resource;
   
+  // Используем хук анимации для плавного изменения отображаемого значения
+  const animatedValue = useResourceAnimation(value, id);
+  
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
   // Расчет процента заполнения
-  const fillPercentage = max === Infinity ? 0 : Math.min(100, (value / max) * 100);
+  const fillPercentage = max === Infinity ? 0 : Math.min(100, (animatedValue / max) * 100);
   
   // Определяем классы для отображения прогресса
   const progressColorClass = fillPercentage > 90 
@@ -23,29 +27,22 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       ? "bg-yellow-500" 
       : "bg-blue-500";
   
-  // Форматирование чисел с десятичными знаками для отображения в интерфейсе
-  const formatDecimal = (num: number): string => {
-    if (num === Infinity) return "∞";
-    if (Math.abs(num) < 0.001) return "0";
-    if (Math.abs(num) % 1 === 0) return Math.floor(Math.abs(num)).toString();
-    return Math.abs(num).toFixed(3);
-  };
+  // Форматирование значений с учетом типа ресурса
+  const formattedValue = formatResourceValue(animatedValue, id);
+  const formattedMax = max === Infinity ? "∞" : formatResourceValue(max, id);
   
-  // Специальное форматирование для BTC
-  const formatValue = (resourceId: string, val: number): string => {
-    if (resourceId === 'btc') {
-      return val.toFixed(5);
-    }
-    return formatNumber(val);
-  };
+  // Форматирование скорости производства
+  const formattedPerSecond = isNegativeRate 
+    ? `-${formatResourceValue(Math.abs(perSecond), id)}`
+    : formatResourceValue(perSecond, id);
   
   return (
     <div className="w-full text-xs">
       <div className="flex justify-between items-center mb-0.5">
         <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{name}</div>
         <div className="text-gray-600 text-[10px] whitespace-nowrap">
-          {formatValue(id, value)}
-          {max !== Infinity && ` / ${formatValue(id, max)}`}
+          {formattedValue}
+          {max !== Infinity && ` / ${formattedMax}`}
         </div>
       </div>
       
@@ -62,7 +59,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       {perSecond !== 0 && (
         <div className="flex items-center justify-end">
           <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
-            {isNegativeRate ? "-" : "+"}{id === 'btc' ? perSecond.toFixed(5) : formatDecimal(Math.abs(perSecond))}/сек
+            {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
           </div>
         </div>
       )}

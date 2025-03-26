@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { Resource } from "@/context/types";
 import ResourceDisplay from "./ResourceDisplay";
 import { Separator } from "@/components/ui/separator";
@@ -8,7 +8,8 @@ interface ResourceListProps {
   resources: Resource[];
 }
 
-const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
+// Используем memo для предотвращения лишних перерисовок
+const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   if (resources.length === 0) {
     return (
       <div className="text-center py-4 text-sm text-gray-500">
@@ -31,6 +32,9 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
       ))}
     </div>
   );
-};
+});
+
+// Добавляем отображаемое имя для отладки
+ResourceList.displayName = "ResourceList";
 
 export default ResourceList;

@@ -1,11 +1,17 @@
 import { Building, Resource } from '@/context/types';
+import { formatResourceValue } from './resourceFormatConfig';
 
 export const generateId = (): string => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
-export const formatNumber = (number: number): string => {
+export const formatNumber = (number: number, resourceId?: string): string => {
   if (number === Infinity) return "∞";
+  
+  if (resourceId) {
+    return formatResourceValue(number, resourceId);
+  }
+  
   if (number >= 1000000) {
     return (number / 1000000).toFixed(1) + "M";
   } else if (number >= 1000) {
@@ -45,9 +51,7 @@ export const canAffordCost = (
 export const calculateReferralBonus = (referrals: any[] = []): number => {
   if (!referrals || referrals.length === 0) return 0;
   
-  // Фильтруем только активных рефералов и считаем общий бонус (5% за каждого)
   const activeReferrals = referrals.filter(referral => {
-    // Строгая проверка на активацию: должен быть boolean true или строка "true"
     if (typeof referral.activated === 'boolean') {
       return referral.activated === true;
     } else if (typeof referral.activated === 'string') {
@@ -56,12 +60,10 @@ export const calculateReferralBonus = (referrals: any[] = []): number => {
     return false;
   });
   
-  // Подробное логирование для отладки
   console.log(`[calculateReferralBonus] Проверка на активированные рефералы:`);
   console.log(`- Всего рефералов: ${referrals.length}`);
   console.log(`- Активировано: ${activeReferrals.length}`);
   
-  // Возвращаем бонус: 5% (0.05) за каждого активного реферала
   const bonus = activeReferrals.length * 0.05;
   console.log(`[calculateReferralBonus] Итоговый бонус: +${(bonus * 100).toFixed(0)}%`);
   return bonus; 
@@ -76,12 +78,10 @@ export const calculateBuildingBoostFromHelpers = (
 ): number => {
   if (!helpers || helpers.length === 0) return 0;
   
-  // Ищем только активных помощников для указанного здания
   const activeHelpers = helpers.filter(
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   );
   
-  // Более подробное логирование для отладки
   console.log(`[calculateBuildingBoostFromHelpers] Здание ${buildingId}:`);
   console.log(`- Всего помощников: ${helpers.length}`);
   console.log(`- Активных для этого здания: ${activeHelpers.length}`);
@@ -91,7 +91,6 @@ export const calculateBuildingBoostFromHelpers = (
       activeHelpers.map(h => ({id: h.id, helperId: h.helperId}))
     );
     
-    // Оповещение для пользователя о бонусе
     try {
       const helperIds = activeHelpers.map(h => h.helperId);
       const boostPercentage = activeHelpers.length * 10;
@@ -112,7 +111,6 @@ export const calculateBuildingBoostFromHelpers = (
     }
   }
   
-  // Каждый помощник дает бонус +10% (0.1) к производительности здания
   const boost = activeHelpers.length * 0.1;
   console.log(`[calculateBuildingBoostFromHelpers] Итоговый бонус для здания ${buildingId}: +${(boost * 100).toFixed(0)}%`);
   return boost;
@@ -127,18 +125,15 @@ export const calculateHelperBoost = (
 ): number => {
   if (!helpers || helpers.length === 0) return 0;
   
-  // Ищем только активные запросы, где реферал является помощником
   const activeHelperRequests = helpers.filter(
     helper => helper.helperId === referralId && helper.status === 'accepted'
   );
   
-  // Подробное логирование для отладки
   if (activeHelperRequests.length > 0) {
     console.log(`Реферал ${referralId} ЯВЛЯЕТСЯ помощником для ${activeHelperRequests.length} зданий:`,
       activeHelperRequests.map(h => h.buildingId)
     );
     
-    // Оповещение для пользователя-помощника
     try {
       const buildingIds = activeHelperRequests.map(h => h.buildingId);
       const boostPercentage = activeHelperRequests.length * 10;
@@ -159,7 +154,6 @@ export const calculateHelperBoost = (
     }
   }
   
-  // Каждый активный запрос дает бонус +10% (0.1)
   return activeHelperRequests.length * 0.1;
 };
 
@@ -280,7 +274,6 @@ export const getActiveHelperBoosts = (
   
   if (!helpers || helpers.length === 0) return boosts;
   
-  // Группируем помощников по зданиям
   helpers.filter(h => h.status === 'accepted').forEach(helper => {
     if (!boosts[helper.buildingId]) {
       boosts[helper.buildingId] = { boost: 0.1, helperIds: [helper.helperId] };
@@ -290,7 +283,6 @@ export const getActiveHelperBoosts = (
     }
   });
   
-  // Логирование для отладки
   if (Object.keys(boosts).length > 0) {
     console.log('Активные бонусы от помощников:');
     Object.entries(boosts).forEach(([buildingId, data]) => {
