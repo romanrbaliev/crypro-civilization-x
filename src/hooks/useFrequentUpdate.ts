@@ -21,7 +21,7 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
     const { updateFrequency } = getResourceFormat(resourceId);
     
     // Используем короткий интервал для более плавного обновления
-    const interval = Math.min(updateFrequency, 50); // 50 мс для более частого обновления
+    const interval = Math.min(updateFrequency, 25); // 25 мс для более частого обновления (было 50)
     
     // Интервал обновления модели
     const updateInterval = setInterval(() => {

@@ -41,28 +41,40 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const canAfford = () => {
-    for (const [resourceId, amount] of Object.entries(building.cost)) {
+    const nextCost = getNextCost();
+    for (const [resourceId, amount] of Object.entries(nextCost)) {
       const resource = state.resources[resourceId];
-      if (!resource || resource.value < amount) {
+      if (!resource || resource.value < Number(amount)) {
         return false;
       }
     }
     return true;
   };
   
+  const getNextCost = () => {
+    const nextCost = {};
+    for (const [resourceId, baseAmount] of Object.entries(building.cost)) {
+      const multiplier = building.costMultiplier || 1.15;
+      const calculatedCost = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
+      nextCost[resourceId] = calculatedCost;
+    }
+    return nextCost;
+  };
+  
   const renderCost = () => {
-    return Object.entries(building.cost).map(([resourceId, amount]) => {
+    const costs = building.count === 0 ? building.cost : getNextCost();
+    return Object.entries(costs).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
       if (!resource) return null;
       
-      const hasEnough = resource.value >= amount;
+      const hasEnough = resource.value >= Number(amount);
       return (
         <div key={resourceId} className="flex justify-between w-full">
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
             {resource.name}
           </span>
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {formatNumber(amount)}
+            {formatNumber(Number(amount))}
           </span>
         </div>
       );
@@ -112,34 +124,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     });
   };
   
-  const getNextCost = () => {
-    const nextCost = {};
-    for (const [resourceId, amount] of Object.entries(building.cost)) {
-      nextCost[resourceId] = Math.floor(amount * Math.pow(building.costMultiplier || 1.15, building.count));
-    }
-    return nextCost;
-  };
-  
-  const renderNextCost = () => {
-    const nextCost = getNextCost();
-    return Object.entries(nextCost).map(([resourceId, amount]) => {
-      const resource = state.resources[resourceId];
-      if (!resource) return null;
-      
-      const hasEnough = resource.value >= Number(amount);
-      return (
-        <div key={resourceId} className="flex justify-between w-full">
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {resource.name}
-          </span>
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {formatNumber(Number(amount))}
-          </span>
-        </div>
-      );
-    });
-  };
-  
   const hasReachedMaxCount = () => {
     if (building.maxCount === undefined) return false;
     return building.count >= building.maxCount;
@@ -177,7 +161,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
             ) : (
               <div className="space-y-1">
                 <h4 className="text-[11px] font-medium">Стоимость улучшения:</h4>
-                {renderNextCost()}
+                {renderCost()}
               </div>
             )}
             

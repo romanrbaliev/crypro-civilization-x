@@ -82,14 +82,22 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return updateResourceMaxValues(newState);
     }
     
-    case "PRACTICE_PURCHASE": 
-      return processPracticePurchase(state);
+    case "PRACTICE_PURCHASE": {
+      // Покупаем практику
+      newState = processPracticePurchase(state);
+      // Явно пересчитываем максимумы ресурсов и производство после покупки практики
+      newState = updateResourceMaxValues(newState);
+      // Принудительно обновляем ресурсы сразу после покупки практики
+      return processResourceUpdate(newState);
+    }
     
     case "PURCHASE_UPGRADE": {
       // Покупаем улучшение
       newState = processPurchaseUpgrade(state, action.payload);
       // Явно пересчитываем максимумы ресурсов после покупки улучшений
-      return updateResourceMaxValues(newState);
+      newState = updateResourceMaxValues(newState);
+      // Принудительно обновляем ресурсы сразу после покупки улучшения
+      return processResourceUpdate(newState);
     }
     
     case "UNLOCK_FEATURE": 

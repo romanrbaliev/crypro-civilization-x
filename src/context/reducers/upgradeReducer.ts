@@ -30,7 +30,7 @@ export const processPurchaseUpgrade = (
   for (const [resourceId, cost] of Object.entries(upgrade.cost)) {
     newResources[resourceId] = {
       ...newResources[resourceId],
-      value: newResources[resourceId].value - cost
+      value: Math.max(0, newResources[resourceId].value - cost) // Предотвращаем отрицательные значения
     };
   }
   
@@ -43,7 +43,8 @@ export const processPurchaseUpgrade = (
     }
   };
   
-  console.log(`Куплено улучшение ${upgrade.name}`);
+  console.log(`Куплено улучшение ${upgrade.name} за:`, upgrade.cost);
+  safeDispatchGameEvent(`Исследование "${upgrade.name}" завершено`, "success");
   
   // Применяем эффекты улучшения
   if (upgrade.effects) {
@@ -53,7 +54,7 @@ export const processPurchaseUpgrade = (
         // Увеличиваем базовый прирост знаний
         newResources.knowledge = {
           ...newResources.knowledge,
-          baseProduction: newResources.knowledge.baseProduction + Number(amount)
+          baseProduction: (newResources.knowledge.baseProduction || 0) + Number(amount)
         };
       }
       
@@ -73,7 +74,7 @@ export const processPurchaseUpgrade = (
         };
       }
       
-      // Другие эффекты...
+      console.log(`Применен эффект ${effectId}: ${amount}`);
     }
   }
   

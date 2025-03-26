@@ -32,7 +32,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
   const canAfford = () => {
     for (const [resourceId, cost] of Object.entries(upgrade.cost)) {
       const resource = state.resources[resourceId];
-      if (!resource || resource.value < cost) {
+      if (!resource || resource.value < Number(cost)) {
         return false;
       }
     }
@@ -44,14 +44,14 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
       const resource = state.resources[resourceId];
       if (!resource) return null;
       
-      const hasEnough = resource.value >= cost;
+      const hasEnough = resource.value >= Number(cost);
       return (
         <div key={resourceId} className="flex justify-between w-full">
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
             {resource.name}
           </span>
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {formatNumber(cost)}
+            {formatNumber(Number(cost))}
           </span>
         </div>
       );

@@ -21,10 +21,12 @@ export const processPurchaseBuilding = (
   // Проверяем, достаточно ли ресурсов для покупки
   const calculatedCost: { [key: string]: number } = {};
   for (const [resourceId, baseCost] of Object.entries(building.cost)) {
-    const currentCost = Number(baseCost) * Math.pow(Number(building.costMultiplier || 1.1), building.count);
+    // Рассчитываем текущую стоимость с учетом множителя и текущего количества
+    const currentCost = Math.floor(Number(baseCost) * Math.pow(Number(building.costMultiplier || 1.15), building.count));
     calculatedCost[resourceId] = currentCost;
   }
   
+  // Проверка достаточности ресурсов
   if (!hasEnoughResources(state, calculatedCost)) {
     console.warn(`Недостаточно ресурсов для покупки ${building.name}`);
     return state;
@@ -35,7 +37,7 @@ export const processPurchaseBuilding = (
   for (const [resourceId, cost] of Object.entries(calculatedCost)) {
     newResources[resourceId] = {
       ...newResources[resourceId],
-      value: newResources[resourceId].value - cost
+      value: Math.max(0, newResources[resourceId].value - cost) // Предотвращаем отрицательные значения
     };
   }
   
@@ -48,7 +50,7 @@ export const processPurchaseBuilding = (
     }
   };
   
-  console.log(`Куплено здание ${building.name}`);
+  console.log(`Куплено здание ${building.name} за:`, calculatedCost);
   
   // Разблокируем ресурсы, производимые этим зданием
   if (buildingId === "generator" && !newResources.electricity.unlocked) {

@@ -32,7 +32,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   const formattedValue = formatResourceValue(animatedValue, id);
   const formattedMax = max === Infinity ? "∞" : formatResourceValue(max, id);
   
-  // Форматирование скорости производства (всегда с двумя знаками после запятой для 'knowledge')
+  // Форматирование скорости производства
   const formattedPerSecond = id === 'knowledge' 
     ? (isNegativeRate ? `-${Math.abs(perSecond).toFixed(2)}` : perSecond.toFixed(2))
     : (isNegativeRate ? `-${formatResourceValue(Math.abs(perSecond), id)}` : formatResourceValue(perSecond, id));
