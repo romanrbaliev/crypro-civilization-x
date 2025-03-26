@@ -35,9 +35,9 @@ export const processIncrementResource = (
   
   // Отправляем событие для возможного отображения в интерфейсе
   if (amount > 0) {
-    safeDispatchGameEvent(`Получено ${amount} ${state.resources[resourceId].name}`, "resource");
+    safeDispatchGameEvent(`Получено ${amount} ${state.resources[resourceId].name}`, "info");
   } else if (amount < 0) {
-    safeDispatchGameEvent(`Потрачено ${Math.abs(amount)} ${state.resources[resourceId].name}`, "resource");
+    safeDispatchGameEvent(`Потрачено ${Math.abs(amount)} ${state.resources[resourceId].name}`, "info");
   }
   
   const newState = {
