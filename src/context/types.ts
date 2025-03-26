@@ -1,3 +1,4 @@
+
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -136,6 +137,9 @@ export interface MiningParams {
 }
 
 export type Counters = { [key: string]: Counter };
+
+// Добавляем тип GameDispatch для определения типа dispatch функции
+export type GameDispatch = React.Dispatch<GameAction>;
 
 export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
