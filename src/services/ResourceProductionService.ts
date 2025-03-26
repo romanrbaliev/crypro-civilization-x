@@ -1,6 +1,6 @@
 
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
-import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { safeDispatchGameEvent } from '../context/utils/eventBusUtils';
 
 /**
  * Централизованный сервис для расчета производства ресурсов

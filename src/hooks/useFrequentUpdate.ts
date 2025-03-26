@@ -20,16 +20,19 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
     // Получаем конфигурацию обновления для выбранного ресурса
     const { updateFrequency } = getResourceFormat(resourceId);
     
+    // Используем более короткий интервал для более плавного обновления
+    const interval = Math.min(updateFrequency, 100);
+    
     // Интервал обновления модели
-    const interval = setInterval(() => {
+    const updateInterval = setInterval(() => {
       if (isActive && state.gameStarted) {
         // Отправляем запрос на обновление ресурсов
         dispatch({ type: 'UPDATE_RESOURCES' });
       }
-    }, updateFrequency);
+    }, interval);
     
     // Очистка при размонтировании
-    return () => clearInterval(interval);
+    return () => clearInterval(updateInterval);
   }, [dispatch, resourceId, isActive, state.gameStarted]);
   
   // Возвращаем функцию для управления состоянием активности

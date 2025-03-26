@@ -33,6 +33,13 @@ export const processIncrementResource = (
   // Выводим сообщение в консоль для отладки
   console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue}`);
   
+  // Отправляем событие для возможного отображения в интерфейсе
+  if (amount > 0) {
+    safeDispatchGameEvent(`Получено ${amount} ${state.resources[resourceId].name}`, "resource");
+  } else if (amount < 0) {
+    safeDispatchGameEvent(`Потрачено ${Math.abs(amount)} ${state.resources[resourceId].name}`, "resource");
+  }
+  
   const newState = {
     ...state,
     resources: {
@@ -41,7 +48,9 @@ export const processIncrementResource = (
         ...state.resources[resourceId],
         value: newValue
       }
-    }
+    },
+    // Обновляем lastUpdate, чтобы не было двойного обновления
+    lastUpdate: Date.now()
   };
   
   // Используем новую систему проверки специальных разблокировок

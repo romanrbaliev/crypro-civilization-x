@@ -26,6 +26,16 @@ export const useResourceAnimation = (
     if (actualValue === prevValueRef.current) {
       return;
     }
+
+    // Если это прямое действие пользователя (большое изменение), сразу обновляем значение
+    const diff = Math.abs(actualValue - prevValueRef.current);
+    const isUserAction = diff > 1; // Предполагаем, что большие изменения - это действия пользователя
+    
+    if (isUserAction) {
+      setDisplayValue(actualValue);
+      prevValueRef.current = actualValue;
+      return;
+    }
     
     // Текущее отображаемое значение
     let currentDisplayValue = prevValueRef.current;
@@ -36,7 +46,7 @@ export const useResourceAnimation = (
       // Чем больше разница, тем быстрее будет изменяться значение
       const diff = actualValue - currentDisplayValue;
       // Минимальное изменение за шаг анимации
-      const minStep = Math.max(Math.abs(diff) * 0.1, 0.001);
+      const minStep = Math.max(Math.abs(diff) * 0.2, 0.001);
       // Определяем размер шага
       const step = Math.sign(diff) * minStep;
       
@@ -51,7 +61,7 @@ export const useResourceAnimation = (
         currentDisplayValue += step;
         setDisplayValue(currentDisplayValue);
       }
-    }, updateFrequency);
+    }, updateFrequency / 2); // Ускоряем обновление для более плавной анимации
     
     // Обновляем предыдущее значение
     prevValueRef.current = actualValue;

@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { checkAllUnlocks } from '@/utils/unlockSystem';
 import { ResourceProductionService } from '@/services/ResourceProductionService';
@@ -63,7 +64,7 @@ const updateResourceValues = (
     }
     
     // Обновляем значение ресурса
-    resource.value = newValue;
+    resource.value = Math.max(0, newValue); // Предотвращаем отрицательные значения
   }
 };
 
