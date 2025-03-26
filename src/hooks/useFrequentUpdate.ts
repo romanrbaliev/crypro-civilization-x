@@ -1,14 +1,19 @@
 
 import { useEffect, useState } from 'react';
-import { useGame } from '@/context/hooks/useGame';
+import { GameState, GameDispatch } from '@/context/types';
 import { getResourceFormat } from '@/utils/resourceFormatConfig';
+
+interface FrequentUpdateProps {
+  state: GameState;
+  dispatch: GameDispatch;
+  resourceId?: string;
+}
 
 /**
  * Хук для частого обновления модели игры для создания эффекта непрерывного роста ресурсов
- * @param resourceId - Идентификатор ресурса для определения частоты обновления
+ * @param props - Объект с состоянием, диспетчером и идентификатором ресурса
  */
-export const useFrequentUpdate = (resourceId: string = 'default') => {
-  const { state, dispatch } = useGame();
+export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: FrequentUpdateProps) => {
   const [isActive, setIsActive] = useState(true);
   
   useEffect(() => {
