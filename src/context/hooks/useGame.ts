@@ -1,5 +1,5 @@
 
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { GameContext } from '../GameContext';
 import { ReferralHelper } from '../types';
 import { useFrequentUpdate } from '@/hooks/useFrequentUpdate';
@@ -16,14 +16,17 @@ export const useGame = () => {
 
   // Используем хук частого обновления для основного ресурса, 
   // передавая контекст напрямую вместо получения его заново
-  const { setActive } = useFrequentUpdate({ 
+  const { setActive, isActive } = useFrequentUpdate({ 
     state: context.state, 
     dispatch: context.dispatch,
     resourceId: 'knowledge'
   });
   
   // Активируем/деактивируем частые обновления в зависимости от видимости страницы
-  setActive(isPageVisible);
+  // Используем useEffect, чтобы избежать бесконечного цикла ререндеринга
+  useEffect(() => {
+    setActive(isPageVisible);
+  }, [isPageVisible, setActive]);
   
   // Добавим удобную функцию для принудительного обновления состояния игры
   const forceUpdate = () => {
@@ -42,6 +45,7 @@ export const useGame = () => {
     ...context,
     forceUpdate,
     updateHelpers,
-    isPageVisible
+    isPageVisible,
+    resourceUpdateActive: isActive
   };
 };
