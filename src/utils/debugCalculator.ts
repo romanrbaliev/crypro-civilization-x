@@ -120,7 +120,7 @@ export async function debugKnowledgeProduction(state: any): Promise<{ steps: str
         
         if (building && building.production && building.production.knowledge) {
           const buildingProduction = building.production.knowledge * building.count;
-          const helperBonus = helpers.length * 0.05; // 5% за каждого помощника
+          const helperBonus = helpers.length * 0.1; // 10% за каждого помощника
           const helperBoostAmount = buildingProduction * helperBonus;
           
           totalHelperBonus += helperBoostAmount;

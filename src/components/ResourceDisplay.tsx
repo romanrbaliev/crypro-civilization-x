@@ -32,10 +32,10 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   const formattedValue = formatResourceValue(animatedValue, id);
   const formattedMax = max === Infinity ? "∞" : formatResourceValue(max, id);
   
-  // Форматирование скорости производства
-  const formattedPerSecond = isNegativeRate 
-    ? `-${formatResourceValue(Math.abs(perSecond), id)}`
-    : formatResourceValue(perSecond, id);
+  // Форматирование скорости производства (всегда с двумя знаками после запятой для 'knowledge')
+  const formattedPerSecond = id === 'knowledge' 
+    ? (isNegativeRate ? `-${Math.abs(perSecond).toFixed(2)}` : perSecond.toFixed(2))
+    : (isNegativeRate ? `-${formatResourceValue(Math.abs(perSecond), id)}` : formatResourceValue(perSecond, id));
   
   // Эффект для выделения изменений
   useEffect(() => {
@@ -75,7 +75,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       {/* Отображаем скорость только если она не равна нулю */}
       {perSecond !== 0 && (
         <div className="flex items-center justify-end">
-          <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-gray-500'}`}>
+          <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
             {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
           </div>
         </div>

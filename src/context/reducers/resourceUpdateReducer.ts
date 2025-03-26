@@ -2,6 +2,7 @@
 import { GameState } from '../types';
 import { checkAllUnlocks } from '@/utils/unlockSystem';
 import { ResourceProductionService } from '@/services/ResourceProductionService';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработчик обновления состояния ресурсов и производства
 export const processResourceUpdate = (state: GameState): GameState => {
@@ -28,6 +29,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Если у нас есть автомайнер и вычислительная мощность, добываем BTC
   processMining(state, newResources, elapsedSeconds);
+  
+  // Проверяем, были ли проблемы с ресурсами (остановка оборудования)
+  checkResourcesForAlerts(state, newResources);
   
   // Создаем новое состояние
   let newState = {
@@ -63,8 +67,38 @@ const updateResourceValues = (
       newValue = Math.min(newValue, resource.max);
     }
     
-    // Обновляем значение ресурса
-    resource.value = Math.max(0, newValue); // Предотвращаем отрицательные значения
+    // Обновляем значение ресурса (не позволяем опуститься ниже нуля)
+    resource.value = Math.max(0, newValue);
+    
+    // Если ресурс достиг максимума, и это важно для игрока - уведомляем
+    if (resource.perSecond > 0 && newValue >= resource.max && resource.max !== Infinity) {
+      console.log(`Ресурс ${resource.name} достиг максимума (${resource.max})!`);
+    }
+  }
+};
+
+// Проверка ресурсов для уведомлений и остановки оборудования
+const checkResourcesForAlerts = (
+  state: GameState,
+  newResources: { [key: string]: any }
+) => {
+  // Проверяем критические ресурсы для оборудования
+  const criticalResources = ['electricity', 'computingPower'];
+  
+  for (const resourceKey of criticalResources) {
+    const resource = newResources[resourceKey];
+    if (!resource || !resource.unlocked) continue;
+    
+    // Предупреждение о низком уровне ресурса (менее 10%)
+    if (resource.perSecond < 0 && resource.value > 0 && resource.value / resource.max < 0.1) {
+      safeDispatchGameEvent(`Низкий уровень ${resource.name}! Оборудование может остановиться!`, "warning");
+    }
+    
+    // Если ресурс закончился, останавливаем оборудование
+    if (resource.value <= 0 && resource.perSecond < 0) {
+      safeDispatchGameEvent(`${resource.name} закончился! Оборудование остановлено!`, "error");
+      // Здесь можно добавить механику остановки оборудования
+    }
   }
 };
 
@@ -116,6 +150,6 @@ const processMining = (
   // Добавляем добытые BTC
   btc.value += minedBtc;
   
-  // Обновляем перСекунд для BTC
+  // Обновляем perСекунд для BTC
   btc.perSecond = computingPowerConsumption * miningEfficiency;
 };

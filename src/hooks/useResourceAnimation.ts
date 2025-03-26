@@ -40,6 +40,9 @@ export const useResourceAnimation = (
     // Текущее отображаемое значение
     let currentDisplayValue = prevValueRef.current;
     
+    // Ускоряем интервал обновления для более плавной анимации
+    const animationInterval = Math.min(updateFrequency / 4, 25); // Максимум 25мс для плавности
+    
     // Запускаем интервал для анимации
     animationRef.current = window.setInterval(() => {
       // Получаем инкремент для плавного обновления
@@ -61,7 +64,7 @@ export const useResourceAnimation = (
         currentDisplayValue += step;
         setDisplayValue(currentDisplayValue);
       }
-    }, updateFrequency / 2); // Ускоряем обновление для более плавной анимации
+    }, animationInterval);
     
     // Обновляем предыдущее значение
     prevValueRef.current = actualValue;

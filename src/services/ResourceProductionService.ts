@@ -66,7 +66,7 @@ export class ResourceProductionService {
     buildings: { [key: string]: Building }
   ): void {
     Object.values(buildings).forEach(building => {
-      if (building.count <= 0) return;
+      if (building.count <= 0 || !building.unlocked) return;
       
       const { production = {}, id: buildingId } = building;
       
@@ -79,9 +79,9 @@ export class ResourceProductionService {
         const resourceId = productionType;
         const resource = resources[resourceId];
         
-        if (resource) {
-          // Рассчитываем базовое производство
-          const productionAmount = Number(amount) * building.count * (1 + building.productionBoost);
+        if (resource && resource.unlocked) {
+          // Рассчитываем базовое производство с учетом множителя здания
+          const productionAmount = Number(amount) * building.count * (1 + (building.productionBoost || 0));
           
           // Обновляем значения производства
           resource.production += productionAmount;
@@ -94,7 +94,6 @@ export class ResourceProductionService {
           
           building.resourceProduction[resourceId] = productionAmount;
           
-          // Более подробное логирование для отладки
           console.log(`Здание ${building.name} (${building.count} шт.) производит ${productionAmount.toFixed(3)} ${resource.name}/сек`);
         }
       });
@@ -115,12 +114,32 @@ export class ResourceProductionService {
       
       // Обрабатываем каждый эффект улучшения
       Object.entries(effects).forEach(([effectType, value]) => {
-        // Прямое увеличение производства ресурса
-        if (effectType.endsWith('ProductionBoost') && !effectType.includes('Max')) {
+        // Прямое увеличение производства ресурса (например, knowledgeBoost)
+        if (effectType.endsWith('Boost') && !effectType.includes('Max')) {
+          const resourceId = effectType.replace('Boost', '');
+          const resource = resources[resourceId];
+          
+          if (resource && resource.unlocked) {
+            const boostValue = Number(value);
+            const productionBoost = resource.production * boostValue;
+            
+            // Добавляем буст от улучшения
+            if (!resource.boosts) resource.boosts = {};
+            if (!resource.boosts[upgrade.id]) resource.boosts[upgrade.id] = 0;
+            
+            resource.boosts[upgrade.id] = productionBoost;
+            resource.perSecond += productionBoost;
+            
+            console.log(`Улучшение ${upgrade.name} увеличивает производство ${resource.name} на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
+          }
+        }
+        
+        // Проверяем на прямые типы ресурсов с ProductionBoost
+        if (effectType.endsWith('ProductionBoost')) {
           const resourceId = effectType.replace('ProductionBoost', '');
           const resource = resources[resourceId];
           
-          if (resource) {
+          if (resource && resource.unlocked) {
             const boostValue = Number(value);
             const productionBoost = resource.production * boostValue;
             
@@ -163,7 +182,7 @@ export class ResourceProductionService {
       Object.keys(resources).forEach(resourceId => {
         const resource = resources[resourceId];
         
-        if (resource.production > 0) {
+        if (resource.unlocked && resource.production > 0) {
           const bonusAmount = resource.production * referralBonus;
           
           // Добавляем буст от рефералов
@@ -211,7 +230,7 @@ export class ResourceProductionService {
           Object.entries(building.resourceProduction).forEach(([resourceId, baseProduction]) => {
             const resource = resources[resourceId];
             
-            if (resource) {
+            if (resource && resource.unlocked) {
               const bonusAmount = Number(baseProduction) * helperBonus;
               
               // Добавляем буст от помощников
@@ -228,10 +247,43 @@ export class ResourceProductionService {
       });
     }
     
-    // Бонус для реферала-помощника
-    // (Если пользователь является помощником в других зданиях)
-    // Эта логика должна быть реализована в зависимости от того, как хранится информация о том,
-    // что пользователь является помощником в других зданиях
+    // Бонус для самого игрока, если он является помощником в других зданиях
+    try {
+      const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
+      if (currentUserId) {
+        // Проверяем, где текущий пользователь выступает в роли помощника
+        const whereIAmHelper = referralHelpers.filter(h => 
+          h.helperId === currentUserId && h.status === 'accepted'
+        );
+        
+        const helperBuildingsCount = whereIAmHelper.length;
+        
+        if (helperBuildingsCount > 0) {
+          // Базовое производство знаний получает бонус от статуса помощника
+          const helperBonus = helperBuildingsCount * 0.1; // 10% за каждое здание
+          
+          // Проходим по всем ресурсам
+          Object.keys(resources).forEach(resourceId => {
+            const resource = resources[resourceId];
+            
+            if (resource.unlocked && resource.production > 0) {
+              const bonusAmount = resource.production * helperBonus;
+              
+              // Добавляем буст от статуса помощника
+              if (!resource.boosts) resource.boosts = {};
+              if (!resource.boosts['helper_status']) resource.boosts['helper_status'] = 0;
+              
+              resource.boosts['helper_status'] = bonusAmount;
+              resource.perSecond += bonusAmount;
+              
+              console.log(`Статус помощника (${helperBuildingsCount} зданий) даёт бонус +${(helperBonus * 100).toFixed(0)}% к производству ${resource.name} (+${bonusAmount.toFixed(3)}/сек)`);
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Ошибка при расчете бонусов помощника:", error);
+    }
   }
   
   /**
@@ -242,7 +294,7 @@ export class ResourceProductionService {
     state: GameState
   ): void {
     // Получаем активные синергии специализации
-    const activeSynergies = Object.values(state.specializationSynergies).filter(
+    const activeSynergies = Object.values(state.specializationSynergies || {}).filter(
       synergy => synergy.active
     );
     
@@ -257,7 +309,7 @@ export class ResourceProductionService {
           const resourceId = bonusType.replace('ProductionBoost', '');
           const resource = resources[resourceId];
           
-          if (resource) {
+          if (resource && resource.unlocked) {
             const boostValue = Number(value);
             const productionBoost = resource.production * boostValue;
             
@@ -283,13 +335,13 @@ export class ResourceProductionService {
     buildings: { [key: string]: Building }
   ): void {
     Object.values(buildings).forEach(building => {
-      if (building.count <= 0 || !building.consumption) return;
+      if (building.count <= 0 || !building.consumption || !building.unlocked) return;
       
       // Обрабатываем каждый тип потребляемого ресурса
       Object.entries(building.consumption).forEach(([resourceId, amount]) => {
         const resource = resources[resourceId];
         
-        if (resource) {
+        if (resource && resource.unlocked) {
           // Рассчитываем общее потребление
           const consumptionAmount = Number(amount) * building.count;
           
