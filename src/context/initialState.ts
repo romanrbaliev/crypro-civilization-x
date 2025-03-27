@@ -182,7 +182,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
 export const initialResources: { [key: string]: Resource } = {
   knowledge: {
     id: "knowledge",
-    name: "Знания о крипте",
+    name: "Знания",
     description: "Базовые знания о криптовалютах",
     baseProduction: 0,
     production: 0,

@@ -19,7 +19,7 @@ export const useResourceAnimation = (
     
     // Останавливаем предыдущую анимацию, если она есть
     if (animationRef.current !== null) {
-      clearInterval(animationRef.current);
+      cancelAnimationFrame(animationRef.current);
     }
     
     // Если значение не изменилось, не запускаем анимацию
@@ -39,32 +39,42 @@ export const useResourceAnimation = (
     
     // Текущее отображаемое значение
     let currentDisplayValue = prevValueRef.current;
+    let lastTimestamp = performance.now();
     
-    // Ускоряем интервал обновления для более плавной анимации
-    const animationInterval = Math.min(updateFrequency / 4, 25); // Максимум 25мс для плавности
-    
-    // Запускаем интервал для анимации
-    animationRef.current = window.setInterval(() => {
-      // Получаем инкремент для плавного обновления
-      // Чем больше разница, тем быстрее будет изменяться значение
-      const diff = actualValue - currentDisplayValue;
-      // Минимальное изменение за шаг анимации
-      const minStep = Math.max(Math.abs(diff) * 0.2, 0.001);
-      // Определяем размер шага
-      const step = Math.sign(diff) * minStep;
+    // Функция анимации
+    const animate = (timestamp: number) => {
+      // Вычисляем прошедшее время с последнего кадра
+      const deltaTime = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
       
-      // Если мы почти достигли целевого значения, устанавливаем его точно
-      if (Math.abs(diff) < minStep) {
+      // Получаем разницу между текущим и целевым значением
+      const diff = actualValue - currentDisplayValue;
+      
+      // Скорость изменения пропорциональна разнице и прошедшему времени
+      // Чем больше разница, тем быстрее изменение
+      const speed = Math.max(Math.abs(diff) * 0.1, 0.001);
+      
+      // Определяем шаг с учетом направления изменения и прошедшего времени
+      const step = Math.sign(diff) * speed * (deltaTime / 16); // Нормализуем по 60fps
+      
+      // Если мы почти достигли целевого значения или перешагнули его, устанавливаем точное значение
+      if (Math.abs(diff) < Math.abs(step) || 
+          (diff > 0 && currentDisplayValue + step > actualValue) || 
+          (diff < 0 && currentDisplayValue + step < actualValue)) {
         currentDisplayValue = actualValue;
         setDisplayValue(actualValue);
-        clearInterval(animationRef.current!);
         animationRef.current = null;
       } else {
-        // Иначе приближаемся к цели постепенно
+        // Иначе делаем шаг к целевому значению
         currentDisplayValue += step;
         setDisplayValue(currentDisplayValue);
+        // Продолжаем анимацию
+        animationRef.current = requestAnimationFrame(animate);
       }
-    }, animationInterval);
+    };
+    
+    // Запускаем анимацию
+    animationRef.current = requestAnimationFrame(animate);
     
     // Обновляем предыдущее значение
     prevValueRef.current = actualValue;
@@ -72,7 +82,7 @@ export const useResourceAnimation = (
     // Очистка при размонтировании
     return () => {
       if (animationRef.current !== null) {
-        clearInterval(animationRef.current);
+        cancelAnimationFrame(animationRef.current);
       }
     };
   }, [actualValue, resourceId]);

@@ -27,8 +27,10 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Обновляем значения ресурсов на основе времени
   updateResourceValues(newResources, elapsedSeconds);
   
-  // Если у нас есть автомайнер и вычислительная мощность, добываем BTC
-  processMining(state, newResources, elapsedSeconds);
+  // Обрабатываем майнинг Bitcoin, если есть автомайнеры
+  if (state.buildings.autoMiner && state.buildings.autoMiner.count > 0) {
+    processMining(state, newResources, elapsedSeconds);
+  }
   
   // Проверяем, были ли проблемы с ресурсами (остановка оборудования)
   checkResourcesForAlerts(state, newResources);
@@ -108,48 +110,44 @@ const processMining = (
   newResources: { [key: string]: any },
   deltaTime: number
 ) => {
-  // Проверяем, есть ли у нас автомайнер и доступны ли необходимые ресурсы
-  const autoMiner = state.buildings.autoMiner;
-  if (!autoMiner || autoMiner.count <= 0 || !state.resources.btc.unlocked) return;
+  // Проверяем наличие необходимых ресурсов для майнинга
+  const { autoMiner } = state.buildings;
+  const { electricity, computingPower, btc } = newResources;
   
-  const computingPower = newResources.computingPower;
-  const electricity = newResources.electricity;
-  const btc = newResources.btc;
+  // Если нет необходимых ресурсов или они не разблокированы, пропускаем
+  if (!autoMiner || autoMiner.count <= 0 || !electricity || !computingPower || !btc) return;
   
-  // Проверяем наличие всех необходимых ресурсов
-  if (!computingPower || !electricity || !btc) return;
-  
-  // Расчет потребления ресурсов для майнинга
-  const computingPowerConsumption = 10 * autoMiner.count;
-  const electricityConsumption = 2 * autoMiner.count;
-  
-  // Проверяем, хватает ли ресурсов для майнинга
-  if (computingPower.value < computingPowerConsumption || 
-      electricity.value < electricityConsumption) {
-    return; // Недостаточно ресурсов
+  try {
+    // Если ресурсы на нуле, майнинг не происходит
+    if (electricity.value <= 0 || computingPower.value <= 0) return;
+    
+    // Количество автомайнеров
+    const minerCount = autoMiner.count;
+    
+    // Потребление ресурсов майнерами
+    const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
+    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 50) * minerCount;
+    
+    // Проверяем, хватает ли ресурсов для работы майнеров
+    if (electricity.value < electricityConsumption || computingPower.value < computingPowerConsumption) {
+      // Недостаточно ресурсов для полной работы майнеров
+      return;
+    }
+    
+    // Параметры майнинга
+    const { miningEfficiency, networkDifficulty, exchangeRate } = state.miningParams;
+    
+    // Расчет добычи BTC за единицу времени для всех майнеров
+    const btcMined = minerCount * miningEfficiency * (computingPower.value / networkDifficulty) * deltaTime;
+    
+    // Добавляем добытый BTC
+    btc.value += btcMined;
+    btc.perSecond = minerCount * miningEfficiency * (computingPower.value / networkDifficulty);
+    
+    // Логируем для отладки
+    console.log(`Майнинг: добыто ${btcMined.toFixed(8)} BTC (${minerCount} майнеров, эффективность: ${miningEfficiency})`);
+    
+  } catch (error) {
+    console.error("Ошибка при обработке майнинга:", error);
   }
-  
-  // Рассчитываем базовую эффективность майнинга
-  let miningEfficiency = state.miningParams.miningEfficiency;
-  
-  // Применяем бусты к эффективности майнинга
-  const miningEfficiencyBoosts = 
-    Object.values(state.upgrades)
-      .filter(upgrade => upgrade.purchased && upgrade.effects?.miningEfficiencyBoost)
-      .reduce((sum, upgrade) => sum + Number(upgrade.effects.miningEfficiencyBoost), 0);
-  
-  miningEfficiency *= (1 + miningEfficiencyBoosts);
-  
-  // Рассчитываем количество добытых BTC
-  const minedBtc = computingPowerConsumption * miningEfficiency * deltaTime;
-  
-  // Расходуем ресурсы
-  computingPower.value -= computingPowerConsumption * deltaTime;
-  electricity.value -= electricityConsumption * deltaTime;
-  
-  // Добавляем добытые BTC
-  btc.value += minedBtc;
-  
-  // Обновляем perСекунд для BTC
-  btc.perSecond = computingPowerConsumption * miningEfficiency;
 };
