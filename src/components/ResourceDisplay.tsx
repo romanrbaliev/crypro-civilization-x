@@ -19,7 +19,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   const isNegativeRate = perSecond < 0;
   
   // Расчет процента заполнения (исправлен)
-  const fillPercentage = max === Infinity ? 0 : Math.min(100, Math.max(0, (animatedValue / max) * 100));
+  const fillPercentage = max === Infinity ? 0 : Math.min(100, Math.max(0, (value / max) * 100));
   
   // Определяем классы для отображения прогресса
   const progressColorClass = fillPercentage > 90 
@@ -29,7 +29,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       : "bg-blue-500";
   
   // Форматирование значений с учетом типа ресурса
-  const formattedValue = formatResourceValue(animatedValue, id);
+  const formattedValue = formatResourceValue(value, id);
   const formattedMax = max === Infinity ? "∞" : formatResourceValue(max, id);
   
   // Форматирование скорости производства с двумя знаками после запятой для знаний
