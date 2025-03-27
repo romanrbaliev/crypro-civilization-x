@@ -1,3 +1,4 @@
+
 import { Building, Resource } from '@/context/types';
 import { formatResourceValue } from './resourceFormatConfig';
 
@@ -13,9 +14,9 @@ export const formatNumber = (number: number, resourceId?: string): string => {
   }
   
   if (number >= 1000000) {
-    return (number / 1000000).toFixed(1) + "M";
+    return (number / 1000000).toFixed(1).replace('.0', '') + "M";
   } else if (number >= 1000) {
-    return (number / 1000).toFixed(1) + "K";
+    return (number / 1000).toFixed(1).replace('.0', '') + "K";
   } else {
     return number.toFixed(0);
   }

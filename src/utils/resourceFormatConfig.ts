@@ -70,11 +70,18 @@ export const formatResourceValue = (value: number, resourceId: string): string =
   const format = getResourceFormat(resourceId);
   if (Math.abs(value) < format.minValue) return "0";
   
-  const options: Intl.NumberFormatOptions = {
-    minimumFractionDigits: format.decimalPlaces,
-    maximumFractionDigits: format.decimalPlaces,
-    useGrouping: format.useGrouping
-  };
-  
-  return new Intl.NumberFormat('ru-RU', options).format(value);
+  // Используем форматирование с буквами K и M для больших чисел
+  if (value >= 1000000) {
+    return (value / 1000000).toFixed(1).replace('.0', '') + "M";
+  } else if (value >= 1000) {
+    return (value / 1000).toFixed(1).replace('.0', '') + "K";
+  } else {
+    const options: Intl.NumberFormatOptions = {
+      minimumFractionDigits: format.decimalPlaces,
+      maximumFractionDigits: format.decimalPlaces,
+      useGrouping: format.useGrouping
+    };
+    
+    return new Intl.NumberFormat('ru-RU', options).format(value);
+  }
 };

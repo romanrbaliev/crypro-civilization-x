@@ -30,12 +30,23 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   
   // Форматирование значений с учетом типа ресурса
   const formattedValue = formatResourceValue(value, id);
-  const formattedMax = max === Infinity ? "∞" : formatResourceValue(max, id);
   
-  // Форматирование скорости производства с двумя знаками после запятой для знаний
-  const formattedPerSecond = id === 'knowledge' 
-    ? (isNegativeRate ? `-${Math.abs(perSecond).toFixed(2)}` : perSecond.toFixed(2))
-    : (isNegativeRate ? `-${formatResourceValue(Math.abs(perSecond), id)}` : formatResourceValue(perSecond, id));
+  // Форматируем максимальное значение всегда без десятичных знаков
+  const formattedMax = max === Infinity 
+    ? "∞" 
+    : max >= 1000000 
+      ? Math.floor(max / 1000000) + "M"
+      : max >= 1000 
+        ? Math.floor(max / 1000) + "K" 
+        : Math.floor(max).toString();
+  
+  // Форматирование скорости производства с учетом K и M для тысяч и миллионов
+  const formattedPerSecond = 
+    Math.abs(perSecond) >= 1000000 
+      ? (perSecond / 1000000).toFixed(1).replace('.0', '') + "M" 
+      : Math.abs(perSecond) >= 1000 
+        ? (perSecond / 1000).toFixed(1).replace('.0', '') + "K"
+        : formatResourceValue(perSecond, id);
   
   // Эффект для выделения изменений
   useEffect(() => {
