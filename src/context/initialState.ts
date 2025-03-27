@@ -25,7 +25,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { electricity: 0.5 },
     count: 0,
     unlocked: false,
-    requirements: { usdt: 11 },  // Явно установлено на 11 USDT
+    requirements: { usdt: 11 },
     productionBoost: 0
   },
   homeComputer: {
@@ -35,7 +35,7 @@ export const initialBuildings: { [key: string]: Building } = {
     cost: { usdt: 30, electricity: 5 },
     costMultiplier: 1.15,
     production: { computingPower: 2 },
-    consumption: { electricity: 1 }, // Явное потребление электричества
+    consumption: { electricity: 1 },
     count: 0,
     unlocked: false,
     requirements: { electricity: 10 },
@@ -48,10 +48,10 @@ export const initialBuildings: { [key: string]: Building } = {
     cost: { usdt: 50 },
     costMultiplier: 1.5,
     production: {},
-    consumption: { computingPower: 50, electricity: 2 },  // Добавляем явное потребление ресурсов
+    consumption: { computingPower: 50, electricity: 2 },
     count: 0,
     unlocked: false,
-    requirements: { homeComputer: 1, electricity: 20 },  // Требуется компьютер и 20 электричества
+    requirements: { homeComputer: 1, electricity: 20 },
     productionBoost: 0
   },
   cryptoWallet: {
@@ -279,7 +279,7 @@ export const initialMiningParams: MiningParams = {
   miningEfficiency: 0.00001,
   networkDifficulty: 1.0,
   energyEfficiency: 0,
-  exchangeRate: 20000, // Уменьшаем курс в 5 раз (было 100000)
+  exchangeRate: 20000,
   exchangeCommission: 0.05,
   volatility: 0.2,
   exchangePeriod: 3600,

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Brain } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
 interface LearnButtonProps {
   onClick: () => void;
@@ -10,7 +10,7 @@ interface LearnButtonProps {
 }
 
 export const LearnButton: React.FC<LearnButtonProps> = ({ 
-  onClick,
+  onClick, 
   disabled = false,
   className = ""
 }) => {
@@ -18,12 +18,11 @@ export const LearnButton: React.FC<LearnButtonProps> = ({
     <Button
       onClick={onClick}
       className={`w-full ${className}`}
-      variant="default"
-      size="sm"
       disabled={disabled}
+      size="sm"
     >
-      <Brain className="mr-2 h-4 w-4" />
-      Изучить крипту
+      <BookOpen className="mr-2 h-4 w-4" />
+      Изучать знания
     </Button>
   );
 };
