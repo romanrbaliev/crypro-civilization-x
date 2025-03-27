@@ -38,8 +38,8 @@ export const resourceFormats: { [key: string]: ResourceFormatConfig } = {
   // Криптовалюты
   btc: {
     ...defaultConfig,
-    decimalPlaces: 5,
-    minValue: 0.00001,
+    decimalPlaces: 8,
+    minValue: 0.00000001,
   },
   // Социальные
   reputation: {

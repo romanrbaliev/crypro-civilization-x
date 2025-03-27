@@ -126,7 +126,7 @@ const processMining = (
     
     // Потребление ресурсов майнерами
     const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
-    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 50) * minerCount;
+    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 2) * minerCount;
     
     // Проверяем, хватает ли ресурсов для работы майнеров
     if (electricity.value < electricityConsumption || computingPower.value < computingPowerConsumption) {

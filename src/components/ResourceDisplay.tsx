@@ -64,7 +64,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       </div>
       
       {max !== Infinity && (
-        <div className="w-full h-1 bg-gray-100 rounded-full">
+        <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
           <div 
             className={`h-1 rounded-full ${progressColorClass} transition-all duration-300`} 
             style={{ width: `${fillPercentage}%` }}

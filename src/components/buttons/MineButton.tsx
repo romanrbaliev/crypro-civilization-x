@@ -37,7 +37,7 @@ export const MineButton: React.FC<MineButtonProps> = ({
         </TooltipTrigger>
         {disabled && (
           <TooltipContent>
-            <p>Требуется 50 вычислительной мощности</p>
+            <p>Требуется 2 вычислительной мощности</p>
           </TooltipContent>
         )}
       </Tooltip>
