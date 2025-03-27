@@ -17,9 +17,6 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
   const [isActive, setIsActive] = useState(true);
   
   useEffect(() => {
-    // Получаем конфигурацию обновления для выбранного ресурса
-    const { updateFrequency } = getResourceFormat(resourceId);
-    
     // Используем короткий интервал для более плавного обновления
     const interval = 16; // 16 мс (примерно 60 fps) для максимально плавного обновления
     
