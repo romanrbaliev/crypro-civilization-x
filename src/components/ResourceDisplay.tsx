@@ -12,14 +12,14 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
   const { id, name, value, max, perSecond } = resource;
   const prevValueRef = useRef(value);
   
-  // Используем хук анимации для плавного изменения отображаемого значения
+  // Используем хук анимации для мгновенного обновления отображаемого значения
   const animatedValue = useResourceAnimation(value, id);
   
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
-  // Расчет процента заполнения (исправлен)
-  const fillPercentage = max === Infinity ? 0 : Math.min(100, Math.max(0, (value / max) * 100));
+  // Расчет процента заполнения (мгновенно обновляется)
+  const fillPercentage = max === Infinity ? 0 : Math.min(100, Math.max(0, (animatedValue / max) * 100));
   
   // Определяем классы для отображения прогресса
   const progressColorClass = fillPercentage > 90 
@@ -29,7 +29,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       : "bg-blue-500";
   
   // Форматирование значений с учетом типа ресурса
-  const formattedValue = formatResourceValue(value, id);
+  const formattedValue = formatResourceValue(animatedValue, id);
   
   // Форматируем максимальное значение всегда без десятичных знаков
   const formattedMax = max === Infinity 
@@ -77,7 +77,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       {max !== Infinity && (
         <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
           <div 
-            className={`h-1 rounded-full ${progressColorClass} transition-all duration-300`} 
+            className={`h-1 rounded-full ${progressColorClass}`} 
             style={{ width: `${fillPercentage}%` }}
           ></div>
         </div>

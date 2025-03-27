@@ -1,16 +1,15 @@
 
-import { useState, useEffect, useRef } from 'react';
 import { getResourceFormat } from '@/utils/resourceFormatConfig';
 
 /**
- * Хук для обработки значения ресурса без анимации изменения
- * для мгновенного отображения текущего значения
+ * Хук для мгновенного отображения изменений ресурсов без анимации
+ * для устранения проблемы с задержкой отображения актуального значения
  */
 export const useResourceAnimation = (
   actualValue: number,
   resourceId: string
 ): number => {
-  // Просто возвращаем актуальное значение напрямую без анимации
+  // Просто возвращаем актуальное значение без анимации
   return actualValue;
 };
 
