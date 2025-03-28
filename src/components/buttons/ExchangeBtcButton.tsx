@@ -4,7 +4,19 @@ import { Button } from '@/components/ui/button';
 import { useGame } from '@/context/hooks/useGame';
 import { formatNumber } from '@/utils/helpers';
 
-const ExchangeBtcButton = () => {
+interface ExchangeBtcButtonProps {
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  currentRate?: number;
+}
+
+const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({ 
+  onClick, 
+  disabled: externalDisabled,
+  className = "",
+  currentRate: externalRate
+}) => {
   const { state, dispatch } = useGame();
   const { resources } = state;
   const [isAvailable, setIsAvailable] = useState(false);
@@ -23,7 +35,7 @@ const ExchangeBtcButton = () => {
       setBtcAmount(btcResource.value);
       
       // Расчет получаемого USDT на основе текущего курса и комиссии
-      const btcPrice = state.miningParams.exchangeRate || 30000;
+      const btcPrice = externalRate || state.miningParams.exchangeRate || 30000;
       const commission = state.miningParams.exchangeCommission || 0.05;
       
       const usdtAmountBeforeCommission = btcResource.value * btcPrice;
@@ -35,23 +47,33 @@ const ExchangeBtcButton = () => {
       setBtcAmount(0);
       setUsdtReceived(0);
     }
-  }, [resources, state.miningParams]);
+  }, [resources, state.miningParams, externalRate]);
 
   // Обработчик обмена BTC на USDT
   const handleExchange = () => {
-    dispatch({ type: 'EXCHANGE_BTC' });
+    // Если предоставлен внешний обработчик onClick, используем его
+    if (onClick) {
+      onClick();
+    } else {
+      // Иначе используем локальный обработчик
+      dispatch({ type: 'EXCHANGE_BTC' });
+    }
   };
 
-  // Если BTC не доступен или равен 0, не показываем кнопку
-  if (!isAvailable) return null;
+  // Определяем финальное состояние кнопки (внешнее или внутреннее)
+  const isDisabled = externalDisabled !== undefined ? externalDisabled : !isAvailable;
+  
+  // Если BTC не доступен или равен 0 и нет внешнего управления состоянием, не показываем кнопку
+  if (!isAvailable && externalDisabled === undefined) return null;
 
   return (
     <div className="my-1">
       <Button 
         variant="secondary"
         size="sm"
-        className="w-full border border-orange-300 bg-orange-50 hover:bg-orange-100"
+        className={`w-full border border-orange-300 bg-orange-50 hover:bg-orange-100 ${className}`}
         onClick={handleExchange}
+        disabled={isDisabled}
       >
         <div className="flex flex-col items-center w-full">
           <span className="text-xs font-medium">Обменять BTC</span>
