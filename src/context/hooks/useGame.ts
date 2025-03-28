@@ -7,6 +7,7 @@ import useVisibilityOptimizer from '@/hooks/useVisibilityOptimizer';
 
 export const useGame = () => {
   const context = useContext(GameContext);
+  
   if (!context) {
     throw new Error('useGame must be used within a GameProvider');
   }
@@ -41,11 +42,25 @@ export const useGame = () => {
     });
   };
   
+  // Функция для логирования состояния - добавим для отладки
+  const logGameState = () => {
+    console.log("Текущее состояние игры:", context.state);
+    if (context.state.resources.btc) {
+      console.log("Состояние BTC:", {
+        value: context.state.resources.btc.value,
+        perSecond: context.state.resources.btc.perSecond,
+        max: context.state.resources.btc.max,
+        unlocked: context.state.resources.btc.unlocked
+      });
+    }
+  };
+  
   return {
     ...context,
     forceUpdate,
     updateHelpers,
     isPageVisible,
-    resourceUpdateActive: isActive
+    resourceUpdateActive: isActive,
+    logGameState
   };
 };

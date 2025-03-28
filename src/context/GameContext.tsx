@@ -103,7 +103,7 @@ export function GameProvider({ children }: GameProviderProps) {
         saveGame(state, hasConnection);
       }, 1000);
     }
-  }, [loadedState, isLoading, gameInitialized]);
+  }, [loadedState, isLoading, gameInitialized, hasConnection]);
   
   // Main game update interval
   useEffect(() => {
@@ -182,6 +182,17 @@ export function GameProvider({ children }: GameProviderProps) {
   if (isLoading) {
     return <LoadingScreen message={loadingMessage} />;
   }
+  
+  // Debug log для отслеживания состояния биткоина
+  useEffect(() => {
+    if (state.resources.btc && state.resources.btc.unlocked) {
+      console.log("BTC ресурс:", {
+        value: state.resources.btc.value,
+        perSecond: state.resources.btc.perSecond,
+        max: state.resources.btc.max
+      });
+    }
+  }, [state.resources.btc?.value, state.resources.btc?.perSecond]);
   
   // Render game with context
   return (

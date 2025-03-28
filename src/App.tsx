@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -223,18 +224,21 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GameProvider>
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<StartScreen />} />
-              <Route path="/game" element={<GameScreen />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </GameProvider>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<StartScreen />} />
+            {/* Оборачиваем GameScreen в GameProvider */}
+            <Route path="/game" element={
+              <GameProvider>
+                <GameScreen />
+              </GameProvider>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };

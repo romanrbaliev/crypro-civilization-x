@@ -41,7 +41,7 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
       clearInterval(updateInterval);
       clearInterval(btcCheckInterval);
     };
-  }, [dispatch, resourceId, isActive, state.gameStarted]);
+  }, [dispatch, resourceId, isActive, state.gameStarted, state.resources.btc]);
   
   // Возвращаем функцию для управления состоянием активности
   return {
