@@ -1,4 +1,3 @@
-
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
 import { safeDispatchGameEvent } from '../context/utils/eventBusUtils';
 
@@ -30,6 +29,9 @@ export class ResourceProductionService {
     
     // Применяем бонусы от специализации
     this.applySpecializationBoosts(newResources, state);
+    
+    // Применяем бонусы от интернет-канала и других инфраструктурных зданий
+    this.applyInfrastructureBoosts(newResources, state.buildings);
     
     // Применяем потребление ресурсов
     this.applyResourceConsumption(newResources, state.buildings);
@@ -325,6 +327,54 @@ export class ResourceProductionService {
         }
       });
     });
+  }
+  
+  /**
+   * Применение бонусов от интернет-канала и других инфраструктурных зданий
+   */
+  private static applyInfrastructureBoosts(
+    resources: { [key: string]: Resource },
+    buildings: { [key: string]: Building }
+  ): void {
+    // Проверяем наличие интернет-канала
+    const internetConnection = buildings.internetConnection;
+    if (internetConnection && internetConnection.count > 0 && internetConnection.unlocked) {
+      // Применяем 20% бонус к производству знаний
+      const knowledgeResource = resources.knowledge;
+      if (knowledgeResource && knowledgeResource.unlocked) {
+        // Добавляем буст от интернет-канала
+        const boostValue = 0.2; // 20% бонус
+        const productionBoost = knowledgeResource.production * boostValue;
+        
+        if (!knowledgeResource.boosts) knowledgeResource.boosts = {};
+        if (!knowledgeResource.boosts['internetConnection']) {
+          knowledgeResource.boosts['internetConnection'] = 0;
+        }
+        
+        knowledgeResource.boosts['internetConnection'] = productionBoost;
+        knowledgeResource.perSecond += productionBoost;
+        
+        console.log(`Интернет-канал (${internetConnection.count} шт.) увеличивает производство знаний на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
+      }
+      
+      // Применяем 5% бонус к эффективности вычислительной мощности
+      const computingPowerResource = resources.computingPower;
+      if (computingPowerResource && computingPowerResource.unlocked) {
+        // Добавляем буст к вычислительной мощности
+        const boostValue = 0.05; // 5% бонус
+        const productionBoost = computingPowerResource.production * boostValue;
+        
+        if (!computingPowerResource.boosts) computingPowerResource.boosts = {};
+        if (!computingPowerResource.boosts['internetConnection']) {
+          computingPowerResource.boosts['internetConnection'] = 0;
+        }
+        
+        computingPowerResource.boosts['internetConnection'] = productionBoost;
+        computingPowerResource.perSecond += productionBoost;
+        
+        console.log(`Интернет-канал (${internetConnection.count} шт.) увеличивает эффективность вычислит. мощности на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
+      }
+    }
   }
   
   /**

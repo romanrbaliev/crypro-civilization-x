@@ -61,6 +61,9 @@ const updateResourceValues = (
     const resource = resources[resourceKey];
     if (!resource.unlocked) continue;
     
+    // Пропускаем BTC, так как оно обрабатывается отдельно в processMining
+    if (resourceKey === 'btc') continue;
+    
     // Рассчитываем новое значение
     let newValue = resource.value + resource.perSecond * deltaTime;
     
@@ -156,3 +159,4 @@ const processMining = (
     console.error("Ошибка при обработке майнинга:", error);
   }
 };
+
