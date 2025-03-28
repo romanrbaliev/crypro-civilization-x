@@ -179,7 +179,7 @@ export class ResourceProductionService {
       return false;
     });
     
-    // Базовый бонус: +5% за каждого активного реферала
+    // Базовый бонус: +5% за каждого активного рефера��а
     const referralBonus = activeReferrals.length * 0.05;
     
     if (referralBonus > 0) {
@@ -413,19 +413,32 @@ export class ResourceProductionService {
       return;
     }
     
-    // Параметры майнинга
-    const { miningEfficiency, networkDifficulty } = state.miningParams;
+    // Базовая скорость производства BTC: 0.00005 BTC за секунду на один майнер
+    const baseBtcPerSecond = 0.00005;
     
-    // Расчет скорости добычи BTC для отображения (количество в секунду)
-    // Используем фиксированный коэффициент для предотвращения бесконечного роста
-    const baseHashrate = minerCount * miningEfficiency;
-    const difficultyFactor = Math.max(1, networkDifficulty);
-    const btcPerSecond = baseHashrate / difficultyFactor;
+    // Получаем бонус к майнингу от исследований (например, от "Оптимизация алгоритмов")
+    let miningEfficiencyBonus = 1.0; // Начальный множитель без бонусов
     
-    // Устанавливаем скорость добычи для отображения (не добавляем к предыдущему значению)
+    // Проверяем исследования, влияющие на эффективность майнинга
+    if (state.upgrades.algorithmOptimization && state.upgrades.algorithmOptimization.purchased) {
+      // +15% к эффективности майнинга от "Оптимизация алгоритмов"
+      miningEfficiencyBonus += 0.15;
+      console.log("Применен бонус от исследования 'Оптимизация алгоритмов': +15% к майнингу");
+    }
+    
+    if (state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased) {
+      // +10% к эффективности майнинга от "Основы криптовалют"
+      miningEfficiencyBonus += 0.10;
+      console.log("Применен бонус от исследования 'Основы криптовалют': +10% к майнингу");
+    }
+    
+    // Финальная скорость добычи BTC с учетом количества майнеров и бонусов
+    const btcPerSecond = baseBtcPerSecond * minerCount * miningEfficiencyBonus;
+    
+    // Устанавливаем скорость добычи
     btc.perSecond = btcPerSecond;
     
-    console.log(`Майнинг: расчет скорости добычи ${btcPerSecond.toFixed(8)} BTC/сек (${minerCount} майнеров, эффективность: ${miningEfficiency})`);
+    console.log(`Майнинг: скорость добычи составляет ${btcPerSecond.toFixed(8)} BTC/сек (${minerCount} майнеров, множитель эффективности: ${miningEfficiencyBonus.toFixed(2)})`);
   }
   
   /**

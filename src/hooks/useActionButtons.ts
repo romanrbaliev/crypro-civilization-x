@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -26,7 +25,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const [currentExchangeRate, setCurrentExchangeRate] = useState(state.miningParams.exchangeRate || 20000);
   
   // Получаем состояние зданий и ресурсов
-  const { buildings, resources, unlocks } = state;
+  const { buildings, resources, unlocks, upgrades } = state;
   
   // Проверяем, должна ли кнопка изучения быть скрыта
   // Кнопка скрывается, если скорость производства знаний >= 10/сек
@@ -51,6 +50,10 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Проверка наличия автомайнера
   const hasAutoMiner = buildings.autoMiner && buildings.autoMiner.count > 0;
   
+  // Проверка наличия улучшений для эффективности прим��нения знаний
+  const cryptoCurrencyBasicsPurchased = upgrades.cryptoCurrencyBasics && upgrades.cryptoCurrencyBasics.purchased;
+  const knowledgeEfficiencyBonus = cryptoCurrencyBasicsPurchased ? 0.1 : 0; // +10% если исследование куплено
+  
   // Обработчик нажатия кнопки "Изучить крипту"
   const handleLearnClick = useCallback(() => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
@@ -66,9 +69,17 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       payload: { counterId: "applyKnowledge", value: 1 }
     });
     
-    // Показываем уведомление
-    onAddEvent("Знания успешно применены! Получен 1 USDT", "success");
-  }, [dispatch, onAddEvent]);
+    // Базовая награда за применение знаний
+    let usdtReward = 1;
+    
+    // Применяем бонус если есть исследование "Основы криптовалют"
+    if (cryptoCurrencyBasicsPurchased) {
+      usdtReward = Math.floor(usdtReward * (1 + knowledgeEfficiencyBonus));
+    }
+    
+    // Показываем уведомление с учетом бонуса
+    onAddEvent(`Знания успешно применены! Получено ${usdtReward} USDT`, "success");
+  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus]);
   
   // Обработчик покупки практики
   const handlePractice = useCallback(() => {
@@ -109,6 +120,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     practiceCurrentLevel,
     hasAutoMiner,
     currentExchangeRate,
-    shouldHideLearnButton
+    shouldHideLearnButton,
+    knowledgeEfficiencyBonus
   };
 };

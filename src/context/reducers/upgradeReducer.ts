@@ -46,31 +46,57 @@ export const processPurchaseUpgrade = (
   console.log(`Куплено улучшение ${upgrade.name} за:`, upgrade.cost);
   safeDispatchGameEvent(`Исследование "${upgrade.name}" завершено`, "success");
   
+  let newState = {
+    ...state,
+    resources: newResources,
+    upgrades: newUpgrades
+  };
+  
+  // Применяем специальные эффекты определенных улучшений
+  if (upgradeId === 'algorithmOptimization') {
+    // Явно обновляем параметры майнинга для "Оптимизация алгоритмов"
+    console.log("Применение эффектов 'Оптимизация алгоритмов': +15% к эффективности майнинга");
+    newState = {
+      ...newState,
+      miningParams: {
+        ...newState.miningParams,
+        // Увеличиваем эффективность майнинга на 15%
+        miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
+      }
+    };
+  }
+  
+  if (upgradeId === 'cryptoCurrencyBasics') {
+    // Явно обновляем параметры для "Основы криптовалют"
+    console.log("Применение эффектов 'Основы криптовалют': +10% к эффективности");
+    // Эффекты этого исследования обрабатываются в processApplyKnowledge
+  }
+  
   // Применяем эффекты улучшения
   if (upgrade.effects) {
     // Обработка каждого эффекта улучшения
     for (const [effectId, amount] of Object.entries(upgrade.effects)) {
       if (effectId === 'knowledgeBoost') {
         // Увеличиваем базовый прирост знаний
-        newResources.knowledge = {
-          ...newResources.knowledge,
-          baseProduction: (newResources.knowledge.baseProduction || 0) + Number(amount)
+        newState.resources.knowledge = {
+          ...newState.resources.knowledge,
+          baseProduction: (newState.resources.knowledge.baseProduction || 0) + Number(amount)
         };
       }
       
       if (effectId === 'knowledgeMaxBoost') {
         // Увеличиваем максимум знаний
-        newResources.knowledge = {
-          ...newResources.knowledge,
-          max: newResources.knowledge.max + Number(amount)
+        newState.resources.knowledge = {
+          ...newState.resources.knowledge,
+          max: newState.resources.knowledge.max + Number(amount)
         };
       }
       
       if (effectId === 'usdtMaxBoost') {
         // Увеличиваем максимум USDT
-        newResources.usdt = {
-          ...newResources.usdt,
-          max: newResources.usdt.max + Number(amount)
+        newState.resources.usdt = {
+          ...newState.resources.usdt,
+          max: newState.resources.usdt.max + Number(amount)
         };
       }
       
@@ -78,14 +104,7 @@ export const processPurchaseUpgrade = (
     }
   }
   
-  let newState = {
-    ...state,
-    resources: newResources,
-    upgrades: newUpgrades
-  };
-  
   // После покупки исследования проверяем разблокировки
-  // Используем новую систему вместо хардкодированных проверок
   newState = checkUpgradeUnlocks(newState);
   
   return newState;
