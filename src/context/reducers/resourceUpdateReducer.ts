@@ -27,11 +27,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Обновляем значения ресурсов на основе времени
   updateResourceValues(newResources, elapsedSeconds);
   
-  // Обрабатываем майнинг Bitcoin, если есть автомайнеры
-  if (state.buildings.autoMiner && state.buildings.autoMiner.count > 0) {
-    processMining(state, newResources, elapsedSeconds);
-  }
-  
   // Проверяем, были ли проблемы с ресурсами (остановка оборудования)
   checkResourcesForAlerts(state, newResources);
   
@@ -57,14 +52,11 @@ const updateResourceValues = (
   deltaTime: number
 ) => {
   // Обновляем значения каждого ресурса
-  for (const resourceKey in resources) {
-    const resource = resources[resourceKey];
+  for (const resourceId in resources) {
+    const resource = resources[resourceId];
     if (!resource.unlocked) continue;
     
-    // Пропускаем BTC, так как оно обрабатывается отдельно в processMining
-    if (resourceKey === 'btc') continue;
-    
-    // Рассчитываем новое значение
+    // Рассчитываем новое значение на основе производства за секунду
     let newValue = resource.value + resource.perSecond * deltaTime;
     
     // Ограничиваем максимумом
@@ -104,62 +96,5 @@ const checkResourcesForAlerts = (
       safeDispatchGameEvent(`${resource.name} закончился! Оборудование остановлено!`, "error");
       // Здесь можно добавить механику остановки оборудования
     }
-  }
-};
-
-// Обработка автоматического майнинга BTC
-const processMining = (
-  state: GameState,
-  newResources: { [key: string]: any },
-  deltaTime: number
-) => {
-  // Проверяем наличие необходимых ресурсов для майнинга
-  const { autoMiner } = state.buildings;
-  const { electricity, computingPower, btc } = newResources;
-  
-  // Если нет необходимых ресурсов или они не разблокированы, пропускаем
-  if (!autoMiner || autoMiner.count <= 0 || !electricity || !computingPower || !btc) return;
-  
-  try {
-    // Если ресурсы на нуле, майнинг не происходит
-    if (electricity.value <= 0 || computingPower.value <= 0) return;
-    
-    // Количество автомайнеров
-    const minerCount = autoMiner.count;
-    
-    // Потребление ресурсов майнерами
-    const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
-    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 10) * minerCount;
-    
-    // Проверяем, хватает ли ресурсов для работы майнеров
-    if (electricity.value < electricityConsumption || computingPower.value < computingPowerConsumption) {
-      // Недостаточно ресурсов для полной работы майнеров
-      return;
-    }
-    
-    // Параметры майнинга
-    const { miningEfficiency, networkDifficulty } = state.miningParams;
-    
-    // Расчет скорости добычи BTC для отображения (количество в секунду)
-    const btcPerSecond = minerCount * miningEfficiency * (computingPower.value / networkDifficulty);
-    
-    // Расчет добычи BTC за текущий deltaTime
-    const btcMined = btcPerSecond * deltaTime;
-    
-    // Добавляем добытый BTC
-    btc.value += btcMined;
-    
-    // Устанавливаем скорость добычи для отображения
-    btc.perSecond = btcPerSecond;
-    
-    // Потребляем ресурсы
-    electricity.value -= electricityConsumption * deltaTime;
-    computingPower.value -= computingPowerConsumption * deltaTime;
-    
-    // Логируем для отладки
-    console.log(`Майнинг: добыто ${btcMined.toFixed(8)} BTC (${minerCount} майнеров, эффективность: ${miningEfficiency})`);
-    
-  } catch (error) {
-    console.error("Ошибка при обработке майнинга:", error);
   }
 };

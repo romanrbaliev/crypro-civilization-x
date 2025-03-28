@@ -1,3 +1,4 @@
+
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
 import { safeDispatchGameEvent } from '../context/utils/eventBusUtils';
 
@@ -35,6 +36,9 @@ export class ResourceProductionService {
     
     // Применяем потребление ресурсов
     this.applyResourceConsumption(newResources, state.buildings);
+
+    // Обрабатываем майнинг Bitcoin
+    this.processBitcoinMining(newResources, state);
     
     // Логируем результаты расчета для отладки
     this.logProductionResults(newResources);
@@ -347,10 +351,6 @@ export class ResourceProductionService {
         const productionBoost = knowledgeResource.production * boostValue;
         
         if (!knowledgeResource.boosts) knowledgeResource.boosts = {};
-        if (!knowledgeResource.boosts['internetConnection']) {
-          knowledgeResource.boosts['internetConnection'] = 0;
-        }
-        
         knowledgeResource.boosts['internetConnection'] = productionBoost;
         knowledgeResource.perSecond += productionBoost;
         
@@ -365,16 +365,44 @@ export class ResourceProductionService {
         const productionBoost = computingPowerResource.production * boostValue;
         
         if (!computingPowerResource.boosts) computingPowerResource.boosts = {};
-        if (!computingPowerResource.boosts['internetConnection']) {
-          computingPowerResource.boosts['internetConnection'] = 0;
-        }
-        
         computingPowerResource.boosts['internetConnection'] = productionBoost;
         computingPowerResource.perSecond += productionBoost;
         
         console.log(`Интернет-канал (${internetConnection.count} шт.) увеличивает эффективность вычислит. мощности на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
       }
     }
+  }
+  
+  /**
+   * Обработка майнинга Bitcoin
+   */
+  private static processBitcoinMining(
+    resources: { [key: string]: Resource },
+    state: GameState
+  ): void {
+    const { autoMiner } = state.buildings;
+    const { electricity, computingPower, btc } = resources;
+    
+    // Если нет необходимых ресурсов, майнинг не происходит
+    if (!autoMiner || autoMiner.count <= 0 || !electricity || !computingPower || !btc || !btc.unlocked) return;
+    
+    // Количество автомайнеров
+    const minerCount = autoMiner.count;
+    
+    // Потребление ресурсов майнерами
+    const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
+    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 10) * minerCount;
+    
+    // Параметры майнинга
+    const { miningEfficiency, networkDifficulty } = state.miningParams;
+    
+    // Расчет скорости добычи BTC для отображения (количество в секунду)
+    const btcPerSecond = minerCount * miningEfficiency * (computingPower.value / networkDifficulty);
+    
+    // Устанавливаем скорость добычи для отображения
+    btc.perSecond = btcPerSecond;
+    
+    console.log(`Майнинг: расчет скорости добычи ${btcPerSecond.toFixed(8)} BTC/сек (${minerCount} майнеров, эффективность: ${miningEfficiency})`);
   }
   
   /**
@@ -416,7 +444,7 @@ export class ResourceProductionService {
         const boostedProduction = resource.perSecond;
         const baseProduction = resource.production;
         
-        // Выводим только для ресурсов с производством
+        // Выводим только для ресурсов с производством или потреблением
         if (boostedProduction !== 0 || baseProduction !== 0) {
           if (boostedProduction > baseProduction) {
             console.log(`${resource.name}: ${baseProduction.toFixed(3)}/сек (база) → ${boostedProduction.toFixed(3)}/сек (с бонусами) [+${(boostedProduction - baseProduction).toFixed(3)}]`);
