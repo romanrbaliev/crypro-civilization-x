@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -50,6 +51,13 @@ export const processPurchaseBuilding = (
   };
   
   console.log(`Куплено здание ${building.name} за:`, calculatedCost);
+  
+  // Создаем новое состояние с обновленными ресурсами и зданиями
+  let newState = {
+    ...state,
+    resources: newResources,
+    buildings: newBuildings
+  };
   
   // Разблокируем ресурсы, производимые этим зданием
   if (buildingId === "generator" && !newResources.electricity.unlocked) {
@@ -202,12 +210,28 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       }
     }
     
-    // Домашний компьютер появляется при наличии 10+ электричества
+    // Домашний компьютер появляется при наличии 50+ электричества
     else if (building.id === "homeComputer" && !building.unlocked) {
       if (state.resources.electricity && state.resources.electricity.unlocked && 
-          state.resources.electricity.value >= 10) {
+          state.resources.electricity.value >= 50) {
         shouldUnlock = true;
         safeDispatchGameEvent("Разблокирован Домашний компьютер", "info");
+      }
+    }
+    
+    // Интернет-канал разблокируется только при наличии хотя бы 1 домашнего компьютера
+    else if (building.id === "internetConnection" && !building.unlocked) {
+      if (state.buildings.homeComputer && state.buildings.homeComputer.count >= 1) {
+        shouldUnlock = true;
+        safeDispatchGameEvent("Разблокирован Интернет-канал", "info");
+      }
+    }
+    
+    // Улучшенный кошелек разблокируется только при наличии минимум 10 криптокошельков
+    else if (building.id === "improvedWallet" && !building.unlocked) {
+      if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count >= 10) {
+        shouldUnlock = true;
+        safeDispatchGameEvent("Разблокирован Улучшенный кошелек", "info");
       }
     }
 
