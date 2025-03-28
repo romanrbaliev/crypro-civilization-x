@@ -7,22 +7,14 @@ import { checkSupabaseConnection } from '../connectionUtils';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { SAVES_TABLE } from '../apiTypes';
 
-// Сохранение игры в Supabase
+// Улучшенное сохранение игры в Supabase
 export const saveGameToServer = async (gameState: GameState): Promise<boolean> => {
   try {
     const userId = await getUserIdentifier();
     console.log(`🔄 Сохранение игры для пользователя: ${userId}`);
     
-    // Проверяем подключение к Supabase
+    // Проверяем подключение к Supabase, но даже при проблемах пытаемся сохранить
     const isConnected = await checkSupabaseConnection();
-      
-    if (!isConnected) {
-      safeDispatchGameEvent(
-        "Не удалось сохранить прогресс. Проверьте соединение с интернетом.", 
-        "error"
-      );
-      return false;
-    }
     
     console.log('🔄 Сохранение в Supabase...');
     
@@ -62,13 +54,13 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       updated_at: new Date().toISOString()
     };
     
-    // Обновляем существующую запись
+    // Пробуем сохранить данные даже если проверка соединения не прошла
     const { error } = await supabase
       .from(SAVES_TABLE)
       .upsert(saveData, { onConflict: 'user_id' });
     
     if (error) {
-      console.error('❌ Ошибка при сохранении в Supabase:', error);
+      console.warn('⚠️ Ошибка при сохранении в Supabase:', error);
       
       // Пробуем создать таблицу и повторить попытку если таблица не существует
       if (error.code === 'PGRST116') {
@@ -83,7 +75,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
             .upsert(saveData, { onConflict: 'user_id' });
             
           if (retryError) {
-            console.error('❌ Ошибка при повторном сохранении в Supabase:', retryError);
+            console.warn('⚠️ Ошибка при повторном сохранении в Supabase:', retryError);
             return false;
           }
           
@@ -92,6 +84,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
         }
       }
       
+      // Даже при ошибке продолжаем игру
       return false;
     }
     
@@ -99,7 +92,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     return true;
     
   } catch (error) {
-    console.error('❌ Критическая ошибка при сохранении игры:', error);
+    console.warn('⚠️ Ошибка при сохранении игры, но продолжаем игру:', error);
     return false;
   }
 };

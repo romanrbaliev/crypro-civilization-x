@@ -8,6 +8,7 @@ import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { toast } from "@/hooks/use-toast";
 import { ensureGameEventBus } from './utils/eventBusUtils';
 import { checkSupabaseConnection, createSavesTableIfNotExists } from '@/api/gameDataService';
+import { ERROR_NOTIFICATION_THROTTLE, CHECK_CONNECTION_INTERVAL } from '@/api/apiTypes';
 
 export type { Resource, Building, Upgrade };
 
@@ -56,24 +57,33 @@ export function GameProvider({ children }: GameProviderProps) {
         
         if (isConnected) {
           await createSavesTableIfNotExists();
-        } else if (!connectionErrorShown) {
-          connectionErrorShown = true;
-          toast({
-            title: "Ошибка соединения",
-            description: "Нет соединения с сервером. Игра работает только при наличии подключения к интернету.",
-            variant: "destructive",
-          });
+        } else {
+          // Уменьшаем частоту показа сообщений об ошибке соединения
+          const now = Date.now();
+          const lastErrorTime = window.__lastLoadErrorTime || 0;
+          
+          if (now - lastErrorTime > ERROR_NOTIFICATION_THROTTLE && !connectionErrorShown) {
+            window.__lastLoadErrorTime = now;
+            connectionErrorShown = true;
+            toast({
+              title: "Возможны проблемы с соединением",
+              description: "Игра продолжит работу, но могут быть проблемы с сохранением прогресса.",
+              variant: "warning",
+            });
+          }
         }
       };
       
       checkConnection();
       
+      // Снижаем частоту проверок соединения для уменьшения нагрузки
       const intervalId = setInterval(async () => {
         const isConnected = await checkSupabaseConnection();
         
         if (isConnected !== hasConnection) {
           setHasConnection(isConnected);
           
+          // Показываем уведомления только при значительных изменениях
           if (isConnected) {
             toast({
               title: "Соединение восстановлено",
@@ -83,14 +93,20 @@ export function GameProvider({ children }: GameProviderProps) {
             
             await createSavesTableIfNotExists();
           } else {
-            toast({
-              title: "Соединение потеряно",
-              description: "Соединение с сервером потеряно. Проверьте подключение к интернету.",
-              variant: "destructive",
-            });
+            const now = Date.now();
+            const lastErrorTime = window.__lastLoadErrorTime || 0;
+            
+            if (now - lastErrorTime > ERROR_NOTIFICATION_THROTTLE) {
+              window.__lastLoadErrorTime = now;
+              toast({
+                title: "Возможны проблемы с соединением",
+                description: "Игра продолжит работу, но могут быть проблемы с сохранением прогресса.",
+                variant: "warning",
+              });
+            }
           }
         }
-      }, 30000);
+      }, CHECK_CONNECTION_INTERVAL);
       
       return () => clearInterval(intervalId);
     }
@@ -132,23 +148,13 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   }, []);
   
+  // Улучшаем обработку случая отсутствия соединения - теперь игра продолжит работу
   if (!hasConnection && !isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-red-50 to-white text-center p-6">
-        <div className="w-16 h-16 text-red-500 mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-bold mb-2">Нет соединения с сервером</h1>
-        <p className="mb-6 text-gray-600">Для работы игры требуется подключение к интернету. Пожалуйста, проверьте ваше соединение и обновите страницу.</p>
-        <button 
-          className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          onClick={() => window.location.reload()}
-        >
-          Обновить страницу
-        </button>
-      </div>
+      <GameContext.Provider value={{ state, dispatch }}>
+        <GameEventSystem />
+        {children}
+      </GameContext.Provider>
     );
   }
   
@@ -403,7 +409,7 @@ export function GameProvider({ children }: GameProviderProps) {
       if (!saveMessageShown && process.env.NODE_ENV !== 'development') {
         saveMessageShown = true;
         toast({
-          title: "Соединение по��еряно",
+          title: "Соединение потеряно",
           description: "Соединение с сервером потеряно. Игра может работать некорректно.",
           variant: "destructive",
         });
