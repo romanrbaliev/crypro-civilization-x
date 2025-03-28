@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
+import { initializeTelegram, isTelegramAvailable } from '@/utils/telegramInit';
 import LoadingScreen from '@/components/LoadingScreen';
 import ErrorScreen from '@/components/ErrorScreen';
 
@@ -16,56 +17,65 @@ const AppLoader: React.FC<AppLoaderProps> = ({ children }) => {
   useEffect(() => {
     const initApp = async () => {
       try {
+        console.log('🔄 Инициализация приложения в AppLoader...');
+        
         // Проверяем доступность Telegram WebApp
-        if (isTelegramWebAppAvailable()) {
-          console.log('Telegram WebApp обнаружен, инициализация...');
+        const isTgWebApp = isTelegramWebAppAvailable();
+        console.log(isTgWebApp ? '✅ Telegram WebApp API обнаружен' : '⚠️ Telegram WebApp API не обнаружен');
+        
+        // Если Telegram WebApp API доступен, инициализируем его
+        if (isTgWebApp) {
+          console.log('🔄 Запуск инициализации Telegram WebApp...');
           
           try {
-            const tg = window.Telegram.WebApp;
+            // Вызываем улучшенную функцию инициализации
+            initializeTelegram();
             
-            // Проверка на валидность объекта Telegram
-            if (!tg) {
-              throw new Error('Telegram WebApp объект недоступен');
+            // Проверяем успешность инициализации
+            if (!isTelegramAvailable()) {
+              console.warn('⚠️ Telegram WebApp не был инициализирован корректно');
+              
+              // Увеличиваем счетчик попыток
+              setTelegramInitAttempts(prev => prev + 1);
+              
+              // Если это не последняя попытка, повторяем
+              if (telegramInitAttempts < 2) {
+                console.log(`⚠️ Повторная попытка инициализации Telegram (${telegramInitAttempts + 1}/3)...`);
+                setTimeout(initApp, 500);
+                return;
+              }
+              
+              // Если все попытки исчерпаны, продолжаем без Telegram
+              console.warn('⚠️ Превышено количество попыток инициализации Telegram. Запуск в обычном режиме.');
+            } else {
+              console.log('✅ Telegram WebApp успешно инициализирован');
+              window.__FORCE_TELEGRAM_MODE = true;
             }
-            
-            // Отправляем сигнал готовности
-            if (typeof tg.ready === 'function') {
-              tg.ready();
-              console.log('Telegram WebApp ready отправлен');
-            }
-            
-            // Разворачиваем на весь экран
-            if (typeof tg.expand === 'function') {
-              tg.expand();
-              console.log('Telegram WebApp развернут на весь экран');
-            }
-            
-            // Сохраняем флаг телеграм-режима
-            window.__FORCE_TELEGRAM_MODE = true;
           } catch (telegramError) {
-            console.error('Ошибка при инициализации Telegram:', telegramError);
+            console.error('❌ Ошибка при инициализации Telegram:', telegramError);
             
             // Увеличиваем счетчик попыток
             setTelegramInitAttempts(prev => prev + 1);
             
             // Если это не последняя попытка, повторяем
-            if (telegramInitAttempts < 3) {
+            if (telegramInitAttempts < 2) {
               setTimeout(initApp, 500);
               return;
             } else {
-              // Если исчерпаны все попытки, показываем ошибку, но продолжаем загрузку
-              console.warn('Превышено количество попыток инициализации Telegram');
+              // Если исчерпаны все попытки, продолжаем без Telegram
+              console.warn('⚠️ Превышено количество попыток инициализации Telegram. Запуск в обычном режиме.');
             }
           }
         } else {
-          console.log('Telegram WebApp не обнаружен, стандартный режим');
+          console.log('ℹ️ Telegram WebApp не обнаружен, используем стандартный режим');
+          window.__FORCE_TELEGRAM_MODE = false;
         }
         
         // Завершаем загрузку
         setIsLoading(false);
       } catch (error) {
-        console.error('Критическая ошибка при инициализации приложения:', error);
-        setError(error instanceof Error ? error.message : 'Неизвестная ошибка');
+        console.error('❌ Критическая ошибка при инициализации приложения:', error);
+        setError(error instanceof Error ? error.message : 'Неизвестная ошибка при инициализации');
         setIsLoading(false);
       }
     };
@@ -74,10 +84,12 @@ const AppLoader: React.FC<AppLoaderProps> = ({ children }) => {
     initApp();
   }, [telegramInitAttempts]);
   
+  // Если идет загрузка, показываем экран загрузки
   if (isLoading) {
     return <LoadingScreen message="Инициализация приложения..." />;
   }
   
+  // Если есть ошибка, показываем экран ошибки
   if (error) {
     return (
       <ErrorScreen 
@@ -88,7 +100,9 @@ const AppLoader: React.FC<AppLoaderProps> = ({ children }) => {
     );
   }
   
+  // Если все в порядке, рендерим дочерние компоненты
   return <>{children}</>;
 };
 
 export default AppLoader;
+

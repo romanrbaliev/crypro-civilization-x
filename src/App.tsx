@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,12 +8,12 @@ import GameScreen from "./pages/GameScreen";
 import StartScreen from "./pages/StartScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { checkSupabaseConnection, createSavesTableIfNotExists, getUserIdentifier } from "./api/gameDataService";
 import "./index.css";
 import AppLoader from "./components/AppLoader";
 
+// Создаем клиент React Query с настройками
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,23 +24,17 @@ const queryClient = new QueryClient({
   },
 });
 
-const setTelegramMeta = () => {
-  document.title = "Crypto Civilization";
-  
-  const viewport = document.querySelector('meta[name="viewport"]');
-  if (viewport) {
-    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-  }
-};
-
+// Инициализируем глобальные переменные, если это клиентская сторона
 if (typeof window !== 'undefined') {
   window.__telegramInitialized = window.__telegramInitialized || false;
   window.__telegramNotificationShown = window.__telegramNotificationShown || false;
   window.__supabaseInitialized = window.__supabaseInitialized || false;
-  window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || true;
+  window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || false;
   window.__game_user_id = window.__game_user_id || null;
   window.__cloudflareRetryCount = window.__cloudflareRetryCount || 0;
+  window.__lastLoadErrorTime = window.__lastLoadErrorTime || 0;
   
+  // Инициализируем шину событий
   ensureGameEventBus();
 }
 
@@ -49,6 +44,7 @@ const App = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [cloudflareError, setCloudflareError] = useState(false);
   
+  // Эффект для проверки соединения
   useEffect(() => {
     const handleOnlineStatusChange = () => {
       setIsOnline(navigator.onLine);
@@ -57,6 +53,7 @@ const App = () => {
       }
     };
     
+    // Функция для проверки соединения с Supabase
     const tryConnectToSupabase = async () => {
       try {
         const connected = await checkSupabaseConnection();
@@ -93,6 +90,7 @@ const App = () => {
       setIsInitialized(true);
     };
     
+    // Добавляем обработчики событий и запускаем проверку соединения
     window.addEventListener('online', handleOnlineStatusChange);
     window.addEventListener('offline', handleOnlineStatusChange);
     
@@ -104,42 +102,7 @@ const App = () => {
     };
   }, []);
   
-  useEffect(() => {
-    setTelegramMeta();
-    
-    if (window.__telegramInitialized) {
-      return;
-    }
-    
-    window.__telegramInitialized = true;
-    
-    if (isTelegramWebAppAvailable()) {
-      console.log('🔄 Инициализация Telegram WebApp в App.tsx');
-      
-      try {
-        if (window.Telegram?.WebApp?.ready) {
-          try {
-            window.Telegram.WebApp.ready();
-            console.log('✅ Отправлен сигнал готовности Telegram WebApp');
-          } catch (readyError) {
-            console.error('❌ Ошибка при отправке сигнала готовности:', readyError);
-          }
-        }
-        
-        if (window.Telegram?.WebApp?.expand) {
-          try {
-            window.Telegram.WebApp.expand();
-            console.log('✅ Telegram WebApp развернут на весь экран');
-          } catch (expandError) {
-            console.error('❌ Ошибка при развертывании WebApp:', expandError);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
-      }
-    }
-  }, []);
-  
+  // Синхронизация данных помощников
   useEffect(() => {
     const syncHelperData = async () => {
       try {
@@ -157,7 +120,8 @@ const App = () => {
     
     setTimeout(syncHelperData, 2000);
   }, []);
-  
+
+  // Если обнаружена ошибка Cloudflare
   if (isInitialized && cloudflareError) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-orange-50 to-white p-4">
@@ -199,6 +163,7 @@ const App = () => {
     );
   }
 
+  // Если нет соединения или нет подключения к Supabase
   if (isInitialized && (!isOnline || !isSupabaseConnected)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
@@ -222,6 +187,7 @@ const App = () => {
     );
   }
 
+  // Основной рендер приложения
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
