@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,13 +7,10 @@ import GameScreen from "./pages/GameScreen";
 import StartScreen from "./pages/StartScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
-import { toast } from "@/hooks/use-toast";
-import { checkSupabaseConnection, getUserIdentifier } from "./api/gameDataService";
-import { createSavesTableIfNotExists } from "./api/gameDataService";
-import { syncHelperDataWithGameState } from "./api/referral/referralHelpers";
+import { checkSupabaseConnection, createSavesTableIfNotExists } from "./api/gameDataService";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -54,13 +52,7 @@ const App = () => {
   useEffect(() => {
     const handleOnlineStatusChange = () => {
       setIsOnline(navigator.onLine);
-      if (!navigator.onLine) {
-        toast({
-          title: "Отсутствует подключение к интернету",
-          description: "Для игры требуется стабильное интернет-соединение.",
-          variant: "destructive",
-        });
-      } else {
+      if (navigator.onLine) {
         tryConnectToSupabase();
       }
     };
@@ -72,12 +64,6 @@ const App = () => {
         setCloudflareError(false);
         
         if (connected) {
-          toast({
-            title: "Соединение восстановлено",
-            description: "Подключение к интернету и серверу восстановлено.",
-            variant: "success",
-          });
-          
           try {
             await createSavesTableIfNotExists();
             console.log('✅ Проверка и создание таблиц в Supabase выполнены');
@@ -148,45 +134,9 @@ const App = () => {
             console.error('❌ Ошибка при развертывании WebApp:', expandError);
           }
         }
-        
-        console.log('✅ Telegram WebApp инициализирован:');
-        if (window.Telegram?.WebApp?.platform) {
-          console.log('- Платформа:', window.Telegram.WebApp.platform);
-        }
-        if (window.Telegram?.WebApp?.version) {
-          console.log('- Версия:', window.Telegram.WebApp.version);
-        }
-        if (window.Telegram?.WebApp?.initData) {
-          console.log('- Длина initData:', window.Telegram.WebApp.initData.length || 0);
-        }
-        
-        if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-          console.log('- Данные пользователя:', window.Telegram.WebApp.initDataUnsafe.user);
-          console.log('- Детали пользователя:');
-          const user = window.Telegram.WebApp.initDataUnsafe.user;
-          console.log('  ID:', user.id);
-          console.log('  Username:', user.username);
-          console.log('  First name:', user.first_name);
-          console.log('  Last name:', user.last_name);
-          if (user.language_code) {
-            console.log('  Language code:', user.language_code);
-          }
-        } else {
-          console.warn('⚠️ Объект пользователя Telegram недоступен');
-        }
-        
-        if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
-          console.log('- Start параметр:', window.Telegram.WebApp.initDataUnsafe.start_param);
-        } else {
-          console.log('- Start параметр отсутствует');
-        }
-        
-        console.log('- Полная структура initDataUnsafe:', window.Telegram.WebApp.initDataUnsafe);
       } catch (error) {
         console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
       }
-    } else {
-      console.log('ℹ️ Telegram WebApp не обнаружен, работа в стандартном режиме браузера');
     }
   }, []);
   
@@ -195,12 +145,9 @@ const App = () => {
       try {
         const userId = await getUserIdentifier();
         if (userId && window.__game_user_id) {
-          console.log('🔄 Синхронизация данных помощников при запуске приложения...');
-          
           setTimeout(() => {
             const event = new CustomEvent('refresh-referrals');
             window.dispatchEvent(event);
-            console.log('✅ Отправлен запрос на обновление данных помощников');
           }, 1500);
         }
       } catch (error) {
@@ -293,6 +240,9 @@ const App = () => {
   );
 };
 
+import { useState } from 'react';
+import { getUserIdentifier } from "./api/gameDataService";
+
 declare global {
   interface Window {
     __telegramInitialized?: boolean;
@@ -301,6 +251,7 @@ declare global {
     __FORCE_TELEGRAM_MODE?: boolean;
     __game_user_id?: string | null;
     __cloudflareRetryCount?: number;
+    __lastLoadErrorTime?: number;
   }
 }
 

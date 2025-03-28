@@ -1,8 +1,8 @@
 import * as React from "react"
 import { type ToastActionElement, ToastProps } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 5 // Уменьшаем лимит тостов
-const TOAST_REMOVE_DELAY = 3000 // Увеличиваем время удаления
+const TOAST_LIMIT = 3 // Уменьшаем лимит тостов
+const TOAST_REMOVE_DELAY = 3000
 
 type ToastType = "default" | "destructive" | "success" | "warning" | "info"
 
@@ -83,15 +83,42 @@ const isDuplicateToast = (state: State, toast: ToasterToast): boolean => {
       t.title === toast.title && 
       t.description === toast.description && 
       t.variant === toast.variant &&
-      Date.now() - (t.createdAt || 0) < 3000 // Проверяем, что тост был создан не более 3 секунд назад
+      Date.now() - (t.createdAt || 0) < 5000 // Проверяем, что тост был создан не более 5 секунд назад
   )
 }
+
+// Список типов сообщений, которые следует игнорировать при запуске
+const startupIgnoreMessages = [
+  "Игра успешно загружена из облака",
+  "Новая игра создана",
+  "Игра загружена",
+  "Сохранения не найдены",
+  "Ваш прогресс успешно восстановлен"
+];
+
+// Флаг для отслеживания, находимся ли мы в процессе запуска приложения
+let isStartupPhase = true;
+
+// Через 10 секунд после запуска приложения, считаем что стартовая фаза окончена
+setTimeout(() => {
+  isStartupPhase = false;
+}, 10000);
 
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST": {
       // Проверка на дубликаты
       if (isDuplicateToast(state, action.toast)) {
+        return state;
+      }
+      
+      // Проверка на стартовые сообщения, которые следует игнорировать
+      if (isStartupPhase && action.toast.title && 
+          (startupIgnoreMessages.includes(action.toast.title as string) || 
+           startupIgnoreMessages.some(msg => 
+             action.toast.description && 
+             (action.toast.description as string).includes(msg)
+           ))) {
         return state;
       }
       
@@ -108,7 +135,7 @@ export const reducer = (state: State, action: Action): State => {
             type: "DISMISS_TOAST",
             toastId: newToast.id,
           })
-        }, 5000)
+        }, 3500)
       }
       
       return {
