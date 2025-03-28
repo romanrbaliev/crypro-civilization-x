@@ -24,9 +24,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   // Проверяем, куплены ли "Основы блокчейна"
   const basicBlockchainPurchased = Object.entries(state.upgrades)
-    .some(([_, upgrade]) => 
-      isInitialResearch(upgrade.id) && upgrade.purchased
-    );
+    .some(([_, upgrade]) => {
+      const u = upgrade as Upgrade;
+      return isInitialResearch(u.id) && u.purchased;
+    });
   
   // Фильтруем доступные исследования с явным приведением типов
   const unlockedUpgrades = Object.entries(state.upgrades)
@@ -34,53 +35,55 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       // Если исследования еще не разблокированы, не показываем ничего
       if (!researchUnlocked) return false;
       
+      const u = upgrade as Upgrade;
+      
       // Если это "Основы блокчейна", показываем когда разблокировано исследование
-      if (isInitialResearch(upgrade.id)) return upgrade.unlocked && !upgrade.purchased;
+      if (isInitialResearch(u.id)) return u.unlocked && !u.purchased;
       
       // Если "Основы блокчейна" не куплены, скрываем все остальные исследования
       if (!basicBlockchainPurchased) return false;
       
       // Проверяем, есть ли у исследования требования к другим исследованиям
-      if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
+      if (u.requiredUpgrades && u.requiredUpgrades.length > 0) {
         // Проверяем, все ли требуемые исследования куплены
-        return upgrade.requiredUpgrades.every(
+        return u.requiredUpgrades.every(
           reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-        ) && upgrade.unlocked && !upgrade.purchased;
+        ) && u.unlocked && !u.purchased;
       }
       
       // Проверяем требования в другом формате
-      if (upgrade.requirements) {
-        const requiredUpgrades = Object.keys(upgrade.requirements)
+      if (u.requirements) {
+        const requiredUpgrades = Object.keys(u.requirements)
                                   .filter(key => !key.includes('Count') && state.upgrades[key]);
         
         if (requiredUpgrades.length > 0) {
           return requiredUpgrades.every(
             reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-          ) && upgrade.unlocked && !upgrade.purchased;
+          ) && u.unlocked && !u.purchased;
         }
       }
       
       // Для исследований без требований, проверяем специальные правила
       
       // "Основы криптовалют" должны появиться после покупки "Основы блокчейна"
-      if (upgrade.id === 'cryptoCurrencyBasics') {
-        return basicBlockchainPurchased && upgrade.unlocked && !upgrade.purchased;
+      if (u.id === 'cryptoCurrencyBasics') {
+        return basicBlockchainPurchased && u.unlocked && !u.purchased;
       }
       
       // "Безопасность криптокошельков" появляется после покупки криптокошелька
-      if (upgrade.id === 'walletSecurity') {
+      if (u.id === 'walletSecurity') {
         return state.buildings.cryptoWallet && 
                state.buildings.cryptoWallet.count > 0 && 
-               upgrade.unlocked && 
-               !upgrade.purchased;
+               u.unlocked && 
+               !u.purchased;
       }
       
       // "Оптимизация алгоритмов" появляется после покупки автомайнера
-      if (upgrade.id === 'algorithmOptimization') {
+      if (u.id === 'algorithmOptimization') {
         return state.buildings.autoMiner && 
                state.buildings.autoMiner.count > 0 && 
-               upgrade.unlocked && 
-               !upgrade.purchased;
+               u.unlocked && 
+               !u.purchased;
       }
       
       return false;
@@ -89,7 +92,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   // Купленные исследования с явным приведением типов
   const purchasedUpgrades = Object.entries(state.upgrades)
-    .filter(([_, upgrade]) => upgrade.purchased)
+    .filter(([_, upgrade]) => {
+      const u = upgrade as Upgrade;
+      return u.purchased;
+    })
     .map(([_, upgrade]) => upgrade as Upgrade);
   
   // Если исследования не разблокированы, показываем пустой экран

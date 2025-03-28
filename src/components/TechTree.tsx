@@ -22,8 +22,11 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
     return Object.values(researchCategories)
       .filter(category => {
         const categoryUpgrades = Object.entries(state.upgrades)
-          .filter(([_, u]) => u.category === category.id)
-          .map(([_, u]) => u as Upgrade);
+          .filter(([_, upgrade]) => {
+            const u = upgrade as Upgrade;
+            return u.category === category.id;
+          })
+          .map(([_, upgrade]) => upgrade as Upgrade);
         
         return categoryUpgrades.some(u => u.unlocked || u.purchased);
       }).length;

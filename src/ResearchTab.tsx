@@ -25,18 +25,25 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   // Проверяем, куплены ли "Основы блокчейна" с явным приведением типов
   const basicBlockchainPurchased = Object.entries(state.upgrades)
-    .some(([_, upgrade]) => 
-      isInitialResearch(upgrade.id) && upgrade.purchased
-    );
+    .some(([_, upgrade]) => {
+      const u = upgrade as Upgrade;
+      return isInitialResearch(u.id) && u.purchased;
+    });
   
   // Фильтруем доступные исследования с явным приведением типов
   const unlockedUpgrades = Object.entries(state.upgrades)
-    .filter(([_, upgrade]) => upgrade.unlocked && !upgrade.purchased)
+    .filter(([_, upgrade]) => {
+      const u = upgrade as Upgrade;
+      return u.unlocked && !u.purchased;
+    })
     .map(([_, upgrade]) => upgrade as Upgrade);
   
   // Купленные исследования с явным приведением типов
   const purchasedUpgrades = Object.entries(state.upgrades)
-    .filter(([_, upgrade]) => upgrade.purchased)
+    .filter(([_, upgrade]) => {
+      const u = upgrade as Upgrade;
+      return u.purchased;
+    })
     .map(([_, upgrade]) => upgrade as Upgrade);
   
   // Если исследования не разблокированы, показываем пустой экран

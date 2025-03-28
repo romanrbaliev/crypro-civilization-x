@@ -14,20 +14,29 @@ const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
   
   // Проверяем наличие разблокированных синергий
   const unlockedSynergies = Object.entries(state.specializationSynergies)
-    .filter(([_, s]) => s.unlocked)
-    .map(([_, s]) => s as SpecializationSynergy);
+    .filter(([_, synergy]) => {
+      const s = synergy as SpecializationSynergy;
+      return s.unlocked;
+    })
+    .map(([_, synergy]) => synergy as SpecializationSynergy);
   
   const hasUnlockedSynergies = unlockedSynergies.length > 0;
   
   // Активные синергии
   const activeSynergies = Object.entries(state.specializationSynergies)
-    .filter(([_, s]) => s.active)
-    .map(([_, s]) => s as SpecializationSynergy);
+    .filter(([_, synergy]) => {
+      const s = synergy as SpecializationSynergy;
+      return s.active;
+    })
+    .map(([_, synergy]) => synergy as SpecializationSynergy);
   
   // Неактивные, но разблокированные синергии
   const availableSynergies = Object.entries(state.specializationSynergies)
-    .filter(([_, s]) => s.unlocked && !s.active)
-    .map(([_, s]) => s as SpecializationSynergy);
+    .filter(([_, synergy]) => {
+      const s = synergy as SpecializationSynergy;
+      return s.unlocked && !s.active;
+    })
+    .map(([_, synergy]) => synergy as SpecializationSynergy);
   
   // Обработчик активации синергии
   const handleActivateSynergy = (synergyId: string) => {

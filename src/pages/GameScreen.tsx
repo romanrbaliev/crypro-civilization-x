@@ -132,8 +132,8 @@ const GameScreen = () => {
     }, [hasUnlockedBuildings, hasUnlockedResearch]);
     
     const unlockedResources = Object.entries(state.resources)
-      .filter(([_, r]) => r.unlocked)
-      .map(([_, r]) => r as Resource);
+      .filter(([_, resource]) => (resource as Resource).unlocked)
+      .map(([_, resource]) => resource as Resource);
     
     const handleResetGame = () => {
       dispatch({ type: "RESET_GAME" });

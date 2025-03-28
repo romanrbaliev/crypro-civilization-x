@@ -15,16 +15,20 @@ const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
 
   // Фильтрация зданий с явным приведением типов через Object.entries
   const unlockedBuildings = Object.entries(state.buildings)
-    .filter(([_, b]) => b.unlocked && b.id !== "practice")
+    .filter(([_, building]) => {
+      const b = building as Building;
+      return b.unlocked && b.id !== "practice";
+    })
     // Дополнительная проверка для системы охлаждения - должна быть разблокирована и соответствовать требованиям
-    .filter(([_, b]) => {
+    .filter(([_, building]) => {
+      const b = building as Building;
       // Для системы охлаждения проверяем, что есть как минимум 2 компьютера
       if (b.id === "coolingSystem") {
         return state.buildings.homeComputer && state.buildings.homeComputer.count >= 2;
       }
       return true;
     })
-    .map(([_, b]) => b as Building);
+    .map(([_, building]) => building as Building);
 
   return (
     <div className="building-container">
