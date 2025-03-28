@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SpecializationSynergy } from '@/context/types';
 import { useGame } from '@/context/hooks/useGame';
@@ -5,9 +6,10 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface SynergyCardProps {
   synergy: SpecializationSynergy;
+  onActivate?: (synergyId: string) => void; // Делаем этот проп опциональным
 }
 
-const SynergyCard: React.FC<SynergyCardProps> = ({ synergy }) => {
+const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
   const { dispatch } = useGame();
   const { toast } = useToast();
 
@@ -20,11 +22,17 @@ const SynergyCard: React.FC<SynergyCardProps> = ({ synergy }) => {
   }
 
   const handleActivate = () => {
-    dispatch({ 
-      type: 'ACTIVATE_SYNERGY', 
-      payload: { synergyId: synergy.id } 
-    });
-    onAddEvent(`Активирована синергия: ${synergy.name}`, "success");
+    if (onActivate) {
+      // Используем переданный обработчик, если он есть
+      onActivate(synergy.id);
+    } else {
+      // Иначе используем локальную логику
+      dispatch({ 
+        type: 'ACTIVATE_SYNERGY', 
+        payload: { synergyId: synergy.id } 
+      });
+      onAddEvent(`Активирована синергия: ${synergy.name}`, "default"); // Изменяем "success" на "default"
+    }
   };
 
   return (

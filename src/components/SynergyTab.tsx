@@ -16,7 +16,7 @@ const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
   const hasUnlockedSynergies = unlockedSynergies.length > 0;
   
   // Активные синергии
-  const activeSynergies = Object.values(state.specializationSynergies).filter(s => s.active);
+  const activeSynergies = Object.values(state.specializationSynergies).filter(s => s.unlocked && s.active);
   
   // Неактивные, но разблокированные синергии
   const availableSynergies = Object.values(state.specializationSynergies).filter(s => s.unlocked && !s.active);
@@ -24,7 +24,8 @@ const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
   // Обработчик активации синергии
   const handleActivateSynergy = (synergyId: string) => {
     dispatch({ type: "ACTIVATE_SYNERGY", payload: { synergyId } });
-    onAddEvent(`Активирована синергия: ${state.specializationSynergies[synergyId].name}`, "success");
+    // Используем только допустимые значения для типа
+    onAddEvent(`Активирована синергия: ${state.specializationSynergies[synergyId].name}`, "default");
   };
   
   // Запускаем проверку синергий
@@ -44,7 +45,6 @@ const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
                   <SynergyCard 
                     key={synergy.id} 
                     synergy={synergy}
-                    onActivate={handleActivateSynergy}
                   />
                 ))}
               </div>
