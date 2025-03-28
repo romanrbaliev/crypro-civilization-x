@@ -28,6 +28,10 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Получаем состояние зданий и ресурсов
   const { buildings, resources, unlocks } = state;
   
+  // Проверяем, должна ли кнопка изучения быть скрыта
+  // Кнопка скрывается, если скорость производства знаний >= 10/сек
+  const shouldHideLearnButton = resources.knowledge.perSecond >= 10;
+  
   // Проверка наличия и разблокировки здания практики
   const practiceBuildingExists = !!buildings.practice;
   const practiceBuildingUnlocked = practiceBuildingExists && buildings.practice.unlocked;
@@ -50,6 +54,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Обработчик нажатия кнопки "Изучить крипту"
   const handleLearnClick = useCallback(() => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
+    // Убираем уведомление "Получено 1 знание" - больше не отправляем событие
   }, [dispatch]);
   
   // Обработчик нажатия кнопки "Применить знания"
@@ -103,6 +108,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     practiceCurrentCost,
     practiceCurrentLevel,
     hasAutoMiner,
-    currentExchangeRate
+    currentExchangeRate,
+    shouldHideLearnButton
   };
 };

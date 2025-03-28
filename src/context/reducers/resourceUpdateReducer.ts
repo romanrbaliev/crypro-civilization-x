@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { checkAllUnlocks } from '@/utils/unlockSystem';
 import { ResourceProductionService } from '@/services/ResourceProductionService';
@@ -141,6 +142,8 @@ const processMining = (
     
     // Добавляем добытый BTC
     btc.value += btcMined;
+    
+    // Устанавливаем скорость добычи для отображения (не накопительно)
     btc.perSecond = minerCount * miningEfficiency * (computingPower.value / networkDifficulty);
     
     // Логируем для отладки

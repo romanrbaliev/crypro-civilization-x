@@ -1,4 +1,3 @@
-
 import { Resource, Building, Upgrade, GameState, Counter, MiningParams } from './types';
 import { generateReferralCode } from '@/utils/helpers';
 
@@ -171,7 +170,7 @@ export const initialUpgrades: { [key: string]: Upgrade } = {
   },
   coolingSystem: {
     id: "coolingSystem",
-    name: "Система охлаждения",
+    name: "Продвинутое охлаждение",
     description: "Увеличивает вычислительную мощность на 20% без перегрева",
     cost: { knowledge: 150, usdt: 100 },
     effects: { computingPowerBoost: 0.2 },

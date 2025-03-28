@@ -6,6 +6,7 @@ import { Brain, Coins } from "lucide-react";
 import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
 import PracticeButton from "./buttons/PracticeButton";
 import { useActionButtons } from "@/hooks/useActionButtons";
+import LearnButton from "./buttons/LearnButton";
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
@@ -24,7 +25,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     practiceCurrentCost,
     practiceCurrentLevel,
     hasAutoMiner,
-    currentExchangeRate
+    currentExchangeRate,
+    shouldHideLearnButton
   } = useActionButtons({ onAddEvent });
   
   const hasApplyKnowledge = state.unlocks.applyKnowledge;
@@ -40,9 +42,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   // Массив компонентов кнопок, которые будем рендерить
   const buttonComponents = [];
-  
-  // ВАЖНО: Кнопка "Изучить крипту" всегда должна быть последней
-  // Добавим её в конце, а остальные кнопки в порядке появления
   
   // Кнопка обмена BTC (если разблокирована)
   if (btc.unlocked) {
@@ -92,18 +91,17 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     );
   }
   
-  // Кнопка Изучить крипту - ВСЕГДА последняя
-  buttonComponents.push(
-    <Button
-      key="learn"
-      onClick={handleLearnClick}
-      className="w-full"
-      size="sm"
-    >
-      <Brain className="mr-2 h-4 w-4" />
-      Изучить крипту
-    </Button>
-  );
+  // Кнопка Изучить крипту - добавляем только если не нужно скрывать
+  if (!shouldHideLearnButton) {
+    buttonComponents.push(
+      <LearnButton
+        key="learn"
+        onClick={handleLearnClick}
+        className="w-full"
+        shouldHide={shouldHideLearnButton}
+      />
+    );
+  }
   
   return (
     <div className="flex flex-col gap-2">

@@ -7,13 +7,18 @@ interface LearnButtonProps {
   onClick: () => void;
   disabled?: boolean;
   className?: string;
+  shouldHide?: boolean;
 }
 
 export const LearnButton: React.FC<LearnButtonProps> = ({ 
   onClick, 
   disabled = false,
-  className = ""
+  className = "",
+  shouldHide = false
 }) => {
+  // Если shouldHide = true, не рендерим кнопку вообще
+  if (shouldHide) return null;
+  
   return (
     <Button
       onClick={onClick}
