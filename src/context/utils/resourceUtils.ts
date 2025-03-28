@@ -1,4 +1,3 @@
-
 import { GameState, Resource, Building } from '../types';
 
 // Функция для проверки, достаточно ли ресурсов для совершения действия
@@ -38,7 +37,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
           resource.max = 1000; // Базовый максимум для вычислительной мощности
           break;
         case "btc":
-          resource.max = Infinity; // Максимум для BTC неограничен
+          resource.max = 1; // Устанавливаем базовый максимум для BTC
           break;
         default:
           resource.max = 100; // Базовый максимум для других ресурсов
@@ -50,7 +49,8 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       knowledgeMax: 0,
       usdtMax: 0,
       electricityMax: 0,
-      computingPowerMax: 0
+      computingPowerMax: 0,
+      btcMax: 0
     };
     
     // Проходим по всем зданиям только один раз и считаем все бонусы
@@ -79,6 +79,9 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
             } else if (resourceId === 'computingPower') {
               buildingBoosts.computingPowerMax += totalBonus;
               console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. вычислительной мощности на ${totalBonus}`);
+            } else if (resourceId === 'btc') {
+              buildingBoosts.btcMax += totalBonus;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. BTC на ${totalBonus}`);
             } else {
               // Для других ресурсов создаем динамические поля
               if (!buildingBoosts[resourceId + 'Max']) {
@@ -165,6 +168,22 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
     if (newResources.computingPower) {
       newResources.computingPower.max = 1000 + buildingBoosts.computingPowerMax;
       console.log(`Итоговый максимум вычислительной мощности: ${newResources.computingPower.max}`);
+    }
+    
+    if (newResources.btc) {
+      const baseBtcMax = 1; // Базовое значение
+      const absoluteBonus = buildingBoosts.btcMax || 0; // Абсолютный бонус от зданий
+      
+      // Криптокошелек увеличивает максимальное количество BTC
+      if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0) {
+        const walletCount = state.buildings.cryptoWallet.count;
+        const walletBonus = walletCount * 0.5; // Каждый кошелек добавляет 0.5 BTC максимума
+        newResources.btc.max = baseBtcMax + absoluteBonus + walletBonus;
+      } else {
+        newResources.btc.max = baseBtcMax + absoluteBonus;
+      }
+      
+      console.log(`Итоговый максимум BTC: ${newResources.btc.max.toFixed(4)}`);
     }
     
     // Для других ресурсов применяем собранные бонусы

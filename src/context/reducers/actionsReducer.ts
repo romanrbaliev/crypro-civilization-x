@@ -109,45 +109,60 @@ export const processMiningPower = (state: GameState): GameState => {
 
 // Обработка обмена BTC на USDT
 export const processExchangeBtc = (state: GameState): GameState => {
-  // Получаем параметры майнинга и ресурсы
-  const { exchangeRate, exchangeCommission } = state.miningParams;
-  const { btc, usdt } = state.resources;
+  const { resources, miningParams } = state;
+  const btcResource = resources.btc;
+  const usdtResource = resources.usdt;
   
-  // Проверяем, есть ли BTC для обмена
-  if (btc.value <= 0) {
-    console.log("Нет BTC для обмена");
-    safeDispatchGameEvent("Нет BTC для обмена", "error");
+  // Если BTC не разблокирован, или его количество равно 0, возвращаем исходное состояние
+  if (!btcResource || !btcResource.unlocked || btcResource.value <= 0) {
+    console.log('Невозможно обменять BTC - ресурс недоступен или его количество равно 0');
     return state;
   }
   
-  // Рассчитываем сумму USDT к получению
-  const usdtAmount = btc.value * exchangeRate * (1 - exchangeCommission);
+  // Получаем текущий курс BTC к USDT и комиссию за обмен
+  const exchangeRate = miningParams.exchangeRate || 30000; // Курс по умолчанию 30,000 USDT за 1 BTC
+  const exchangeCommission = miningParams.exchangeCommission || 0.05; // Комиссия по умолчанию 5%
   
-  // Обновляем состояние ресурсов
-  const newResources = { ...state.resources };
+  // Рассчитываем сумму USDT до вычета комиссии
+  const btcAmount = btcResource.value;
+  const usdtBeforeCommission = btcAmount * exchangeRate;
   
-  // Вычитаем BTC
-  newResources.btc = {
-    ...newResources.btc,
-    value: 0
-  };
+  // Рассчитываем комиссию и финальную сумму USDT
+  const commissionAmount = usdtBeforeCommission * exchangeCommission;
+  const finalUsdtAmount = usdtBeforeCommission - commissionAmount;
   
-  // Добавляем USDT, проверяя, чтобы не превысить максимум
-  const maxUsdt = newResources.usdt.max;
-  const newUsdtValue = Math.min(newResources.usdt.value + usdtAmount, maxUsdt);
+  console.log(`Обмен ${btcAmount.toFixed(8)} BTC по курсу ${exchangeRate} USDT за 1 BTC`);
+  console.log(`До вычета комиссии: ${usdtBeforeCommission.toFixed(2)} USDT`);
+  console.log(`Комиссия (${(exchangeCommission * 100).toFixed(1)}%): ${commissionAmount.toFixed(2)} USDT`);
+  console.log(`Итоговая сумма: ${finalUsdtAmount.toFixed(2)} USDT`);
   
-  newResources.usdt = {
-    ...newResources.usdt,
-    value: newUsdtValue
-  };
-  
-  // Логируем обмен
-  console.log(`Обменено ${btc.value.toFixed(8)} BTC на ${usdtAmount.toFixed(2)} USDT (курс: ${exchangeRate}, комиссия: ${(exchangeCommission * 100).toFixed(1)}%)`);
-  
-  // Если достигнут максимум USDT, сообщаем об этом
-  if (newUsdtValue >= maxUsdt) {
-    safeDispatchGameEvent(`Достигнут максимум хранения USDT (${maxUsdt})`, "warning");
+  // Проверяем, что обмен возможен (финальная сумма должна быть больше 0)
+  if (finalUsdtAmount <= 0) {
+    console.log('Невозможно обменять BTC - итоговая сумма USDT после комиссии меньше или равна 0');
+    return state;
   }
+  
+  // Проверяем, что после добавления USDT не будет превышен максимум
+  const newUsdtValue = usdtResource.value + finalUsdtAmount;
+  if (newUsdtValue > usdtResource.max) {
+    console.log(`Невозможно обменять BTC - будет превышен максимум USDT (${usdtResource.max})`);
+    return state;
+  }
+  
+  // Обновляем значения ресурсов
+  const newResources = {
+    ...resources,
+    btc: {
+      ...btcResource,
+      value: 0 // Обнуляем количество BTC после обмена
+    },
+    usdt: {
+      ...usdtResource,
+      value: newUsdtValue
+    }
+  };
+  
+  safeDispatchGameEvent(`Обменяно ${btcAmount.toFixed(6)} BTC на ${finalUsdtAmount.toFixed(2)} USDT`, "success");
   
   return {
     ...state,

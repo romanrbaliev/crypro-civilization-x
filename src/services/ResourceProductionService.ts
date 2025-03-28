@@ -1,3 +1,4 @@
+
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
 import { safeDispatchGameEvent } from '../context/utils/eventBusUtils';
 
@@ -388,6 +389,16 @@ export class ResourceProductionService {
       if (btc && btc.unlocked) {
         btc.perSecond = 0;
       }
+      return;
+    }
+    
+    // Проверяем, достаточно ли ресурсов для работы майнеров
+    const hasEnoughElectricity = electricity.value > 0;
+    const hasEnoughComputingPower = computingPower.value > 0;
+    
+    if (!hasEnoughElectricity || !hasEnoughComputingPower) {
+      // Если недостаточно ресурсов, устанавливаем нулевую скорость майнинга
+      btc.perSecond = 0;
       return;
     }
     

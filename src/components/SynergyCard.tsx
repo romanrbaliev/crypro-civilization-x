@@ -1,125 +1,49 @@
-
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from '@/components/ui/tooltip';
-import { Puzzle, CheckCircle, Lock } from 'lucide-react';
-import { formatEffect } from '@/utils/researchUtils';
-import { useGame } from '@/context/hooks/useGame';
 import { SpecializationSynergy } from '@/context/types';
+import { useGame } from '@/context/hooks/useGame';
+import { useToast } from "@/components/ui/use-toast";
 
 interface SynergyCardProps {
   synergy: SpecializationSynergy;
-  onActivate: (synergyId: string) => void;
 }
 
-const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
-  const { state } = useGame();
-  
-  // Подсчитываем, сколько исследований в каждой категории
-  const getCategoryProgress = (category: string) => {
-    const total = Object.values(state.upgrades)
-      .filter(u => u.purchased && u.category === category).length;
-    
-    return {
-      current: total,
-      required: synergy.requiredCount,
-      complete: total >= synergy.requiredCount
-    };
-  };
-  
-  // Рендеринг прогресса для каждой категории
-  const renderCategoryProgress = () => {
-    return synergy.requiredCategories.map(category => {
-      const progress = getCategoryProgress(category);
-      const categoryInfo = state.upgrades[Object.keys(state.upgrades).find(
-        key => state.upgrades[key].category === category
-      ) || '']?.category;
-      
-      const categoryName = categoryInfo ? 
-        state.upgrades[Object.keys(state.upgrades).find(
-          key => state.upgrades[key].category === category
-        ) || '']?.category : 
-        category;
-      
-      const categoryDisplayName = {
-        'blockchain': 'Блокчейн',
-        'mining': 'Майнинг',
-        'trading': 'Трейдинг',
-        'investment': 'Инвестиции',
-        'defi': 'DeFi',
-        'social': 'Социальное влияние'
-      }[categoryName as string] || categoryName;
-      
-      return (
-        <div key={category} className="flex items-center justify-between text-xs mb-1">
-          <span>{categoryDisplayName}:</span>
-          <div className="flex items-center">
-            <span className={progress.complete ? 'text-green-600' : 'text-gray-600'}>
-              {progress.current}/{progress.required}
-            </span>
-            {progress.complete && <CheckCircle className="h-3 w-3 ml-1 text-green-600" />}
-          </div>
-        </div>
-      );
+const SynergyCard: React.FC<SynergyCardProps> = ({ synergy }) => {
+  const { dispatch } = useGame();
+  const { toast } = useToast();
+
+  const onAddEvent = (description: string, type: "default" | "destructive") => {
+    toast({
+      title: "Системное сообщение",
+      description,
+      variant: type,
+    })
+  }
+
+  const handleActivate = () => {
+    dispatch({ 
+      type: 'ACTIVATE_SYNERGY', 
+      payload: { synergyId: synergy.id } 
     });
+    onAddEvent(`Активирована синергия: ${synergy.name}`, "success");
   };
-  
-  // Рендеринг бонусов
-  const renderBonuses = () => {
-    return Object.entries(synergy.bonus).map(([effectId, value]) => (
-      <div key={effectId} className="text-blue-600 text-xs">
-        {formatEffect(effectId, value)}
-      </div>
-    ));
-  };
-  
+
   return (
-    <div className={`border ${synergy.active ? 'border-green-200 bg-green-50' : synergy.unlocked ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-100'} rounded-lg p-3 shadow-sm`}>
-      <div className="flex items-start justify-between">
-        <div className="flex items-center">
-          <Puzzle className={`h-5 w-5 mr-2 ${synergy.active ? 'text-green-600' : synergy.unlocked ? 'text-blue-600' : 'text-gray-400'}`} />
-          <h3 className="font-medium text-sm">{synergy.name}</h3>
-        </div>
-        
-        {!synergy.unlocked && <Lock className="h-4 w-4 text-gray-400" />}
-        {synergy.active && <CheckCircle className="h-4 w-4 text-green-600" />}
-      </div>
-      
-      <p className="text-xs text-gray-600 mt-1 mb-2">{synergy.description}</p>
-      
-      <div className="bg-white rounded p-2 mb-2">
-        <h4 className="text-xs font-medium mb-1">Требования:</h4>
-        {renderCategoryProgress()}
-      </div>
-      
-      <div className="bg-white rounded p-2 mb-3">
-        <h4 className="text-xs font-medium mb-1">Бонусы:</h4>
-        {renderBonuses()}
-      </div>
-      
-      {synergy.unlocked && !synergy.active && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                onClick={() => onActivate(synergy.id)} 
-                size="sm" 
-                className="w-full text-xs"
-              >
-                Активировать синергию
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Активируйте синергию, чтобы получить бонусы</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
+    <div className="border rounded-md p-4 mb-4">
+      <h3 className="text-lg font-semibold">{synergy.name}</h3>
+      <p className="text-sm">{synergy.description}</p>
+      <ul>
+        {Object.entries(synergy.bonus).map(([key, value]) => (
+          <li key={key} className="text-xs">
+            {key}: {value}
+          </li>
+        ))}
+      </ul>
+      <button
+        onClick={handleActivate}
+        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2"
+      >
+        Активировать
+      </button>
     </div>
   );
 };

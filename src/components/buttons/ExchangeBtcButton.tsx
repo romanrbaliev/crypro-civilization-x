@@ -76,9 +76,9 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
         disabled={isDisabled}
       >
         <div className="flex flex-col items-center w-full">
-          <span className="text-xs font-medium">Обменять BTC</span>
+          <span className="text-xs font-semibold">Обменять BTC</span>
           <span className="text-[10px] opacity-75">
-            {formatNumber(btcAmount)} BTC → {formatNumber(usdtReceived)} USDT
+            {formatNumber(btcAmount, 6)} BTC → {formatNumber(usdtReceived, 2)} USDT
           </span>
         </div>
       </Button>
