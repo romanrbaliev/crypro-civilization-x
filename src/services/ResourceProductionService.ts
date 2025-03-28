@@ -179,7 +179,7 @@ export class ResourceProductionService {
       return false;
     });
     
-    // Базовый бонус: +5% за каждого активного рефера��а
+    // Базовый бонус: +5% за каждого акт��вного рефера��а
     const referralBonus = activeReferrals.length * 0.05;
     
     if (referralBonus > 0) {
