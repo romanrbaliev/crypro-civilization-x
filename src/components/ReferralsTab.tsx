@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Building, ReferralHelper } from '@/context/types';
@@ -352,4 +353,32 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                 <Input 
                   value={referralCode || 'Загрузка...'}
                   readOnly
-                  className="
+                  className="mr-2 bg-gray-50"
+                />
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => {
+                    if (referralCode) {
+                      navigator.clipboard.writeText(referralCode);
+                      setIsReferralCodeCopied(true);
+                      setTimeout(() => setIsReferralCodeCopied(false), 2000);
+                      toast({
+                        title: "Скопировано!",
+                        description: "Реферальный код скопирован в буфер обмена",
+                      });
+                    }
+                  }}
+                >
+                  {isReferralCodeCopied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default ReferralsTab;
