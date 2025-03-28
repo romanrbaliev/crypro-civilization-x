@@ -129,7 +129,7 @@ const processMining = (
     
     // Потребление ресурсов майнерами
     const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
-    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 2) * minerCount;
+    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 10) * minerCount;
     
     // Проверяем, хватает ли ресурсов для работы майнеров
     if (electricity.value < electricityConsumption || computingPower.value < computingPowerConsumption) {
@@ -152,6 +152,10 @@ const processMining = (
     // Устанавливаем скорость добычи для отображения
     btc.perSecond = btcPerSecond;
     
+    // Потребляем ресурсы
+    electricity.value -= electricityConsumption * deltaTime;
+    computingPower.value -= computingPowerConsumption * deltaTime;
+    
     // Логируем для отладки
     console.log(`Майнинг: добыто ${btcMined.toFixed(8)} BTC (${minerCount} майнеров, эффективность: ${miningEfficiency})`);
     
@@ -159,4 +163,3 @@ const processMining = (
     console.error("Ошибка при обработке майнинга:", error);
   }
 };
-

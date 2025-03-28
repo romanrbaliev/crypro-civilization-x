@@ -162,11 +162,11 @@ export const processMiningPower = (state: GameState): GameState => {
   };
 };
 
-// Функция для обмена BTC на USDT
+// Исправляем функцию обмена BTC на USDT
 export const processExchangeBtc = (state: GameState): GameState => {
   // Получаем параметры майнинга и ресурсы
   const { exchangeRate, exchangeCommission } = state.miningParams;
-  const { btc } = state.resources;
+  const { btc, usdt } = state.resources;
   
   // Проверяем, есть ли BTC для обмена
   if (btc.value <= 0) {
@@ -187,13 +187,22 @@ export const processExchangeBtc = (state: GameState): GameState => {
     value: 0
   };
   
-  // Добавляем USDT
+  // Добавляем USDT, проверяя, чтобы не превысить максимум
+  const maxUsdt = newResources.usdt.max;
+  const newUsdtValue = Math.min(newResources.usdt.value + usdtAmount, maxUsdt);
+  
   newResources.usdt = {
     ...newResources.usdt,
-    value: newResources.usdt.value + usdtAmount
+    value: newUsdtValue
   };
   
-  console.log(`Обменено ${btc.value} BTC на ${usdtAmount} USDT`);
+  // Логируем обмен
+  console.log(`Обменено ${btc.value.toFixed(8)} BTC на ${usdtAmount.toFixed(2)} USDT (курс: ${exchangeRate}, комиссия: ${(exchangeCommission * 100).toFixed(1)}%)`);
+  
+  // Если достигнут максимум USDT, сообщаем об этом
+  if (newUsdtValue >= maxUsdt) {
+    safeDispatchGameEvent(`Достигнут максимум хранения USDT (${maxUsdt})`, "warning");
+  }
   
   return {
     ...state,

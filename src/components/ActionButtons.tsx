@@ -2,7 +2,7 @@
 import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
-import { Brain, Coins } from "lucide-react";
+import { Coins } from "lucide-react";
 import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
 import PracticeButton from "./buttons/PracticeButton";
 import { useActionButtons } from "@/hooks/useActionButtons";
@@ -34,11 +34,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   // Получаем значения ресурсов для проверки доступности кнопок
   const { knowledge, usdt, btc } = state.resources;
   
-  // Проверка на возможность обмена BTC
-  const canExchangeBtc = 
-    btc.unlocked && 
-    btc.value > 0 && 
-    usdt.value + (btc.value * currentExchangeRate) <= usdt.max;
+  // Исправленная проверка на возможность обмена BTC - проверяем только наличие BTC
+  const canExchangeBtc = btc.unlocked && btc.value > 0;
   
   // Массив компонентов кнопок, которые будем рендерить
   const buttonComponents = [];
