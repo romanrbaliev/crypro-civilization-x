@@ -1,16 +1,15 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState, useEffect } from 'react';
 import GameScreen from "./pages/GameScreen";
 import StartScreen from "./pages/StartScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { useEffect } from "react";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
-import { checkSupabaseConnection, createSavesTableIfNotExists } from "./api/gameDataService";
+import { checkSupabaseConnection, createSavesTableIfNotExists, getUserIdentifier } from "./api/gameDataService";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -239,9 +238,6 @@ const App = () => {
     </QueryClientProvider>
   );
 };
-
-import { useState } from 'react';
-import { getUserIdentifier } from "./api/gameDataService";
 
 declare global {
   interface Window {
