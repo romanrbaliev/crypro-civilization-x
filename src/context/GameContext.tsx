@@ -1,5 +1,5 @@
 
-import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
+import React, { createContext, useReducer, useEffect, ReactNode, useState, useCallback } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
@@ -35,172 +35,185 @@ interface GameProviderProps {
 }
 
 export function GameProvider({ children }: GameProviderProps) {
-  const [initialGameState, initialDispatch] = useReducer(
-    gameReducer, 
-    { ...initialState, gameStarted: true, lastUpdate: Date.now(), lastSaved: Date.now() }
-  );
-  
-  const {
-    hasConnection,
-    isInitialized,
-    cloudflareError,
-    loadingMessage,
-    setLoadingMessage
-  } = useConnectionStatus();
-  
-  const {
-    loadedState,
-    isLoading,
-    gameInitialized,
-    setGameInitialized
-  } = useGameLoader(hasConnection, setLoadingMessage);
-  
-  const [state, dispatch] = useReducer(
-    gameReducer, 
-    loadedState || initialGameState
-  );
-  
-  const isMountedRef = React.useRef(false);
-  
-  // Initialize event bus
-  useEffect(() => {
-    ensureGameEventBus();
-  }, []);
-  
-  // Initialize Telegram
-  useEffect(() => {
-    if (isMountedRef.current) return;
-    isMountedRef.current = true;
+  try {
+    const [initialGameState, initialDispatch] = useReducer(
+      gameReducer, 
+      { ...initialState, gameStarted: true, lastUpdate: Date.now(), lastSaved: Date.now() }
+    );
     
-    initializeTelegram();
-  }, []);
-  
-  // Sync referral data
-  useEffect(() => {
-    const syncHelperData = async () => {
-      try {
-        const userId = await getUserIdentifier();
-        if (userId && window.__game_user_id) {
-          setTimeout(() => {
-            const event = new CustomEvent('refresh-referrals');
-            window.dispatchEvent(event);
-          }, 1500);
-        }
-      } catch (error) {
-        console.error('❌ Ошибка при синхронизации данных помощников при запуске:', error);
-      }
-    };
+    const {
+      hasConnection,
+      isInitialized,
+      cloudflareError,
+      loadingMessage,
+      setLoadingMessage
+    } = useConnectionStatus();
     
-    setTimeout(syncHelperData, 2000);
-  }, []);
-  
-  // Apply loaded state
-  useEffect(() => {
-    if (loadedState && !isLoading && gameInitialized) {
-      dispatch({ type: 'LOAD_GAME', payload: loadedState });
+    const {
+      loadedState,
+      isLoading,
+      gameInitialized,
+      setGameInitialized
+    } = useGameLoader(hasConnection, setLoadingMessage);
+    
+    const [state, dispatch] = useReducer(
+      gameReducer, 
+      loadedState || initialGameState
+    );
+    
+    const isMountedRef = React.useRef(false);
+    
+    // Initialize event bus
+    useEffect(() => {
+      ensureGameEventBus();
+    }, []);
+    
+    // Initialize Telegram
+    useEffect(() => {
+      if (isMountedRef.current) return;
+      isMountedRef.current = true;
       
-      setTimeout(() => {
-        saveGame(state, hasConnection);
+      initializeTelegram();
+    }, []);
+    
+    // Sync referral data
+    useEffect(() => {
+      const syncHelperData = async () => {
+        try {
+          const userId = await getUserIdentifier();
+          if (userId && window.__game_user_id) {
+            setTimeout(() => {
+              const event = new CustomEvent('refresh-referrals');
+              window.dispatchEvent(event);
+            }, 1500);
+          }
+        } catch (error) {
+          console.error('❌ Ошибка при синхронизации данных помощников при запуске:', error);
+        }
+      };
+      
+      setTimeout(syncHelperData, 2000);
+    }, []);
+    
+    // Apply loaded state
+    useEffect(() => {
+      if (loadedState && !isLoading && gameInitialized) {
+        dispatch({ type: 'LOAD_GAME', payload: loadedState });
+        
+        setTimeout(() => {
+          saveGame(state, hasConnection);
+        }, 1000);
+      }
+    }, [loadedState, isLoading, gameInitialized, hasConnection]);
+    
+    // Main game update interval
+    useEffect(() => {
+      if (!state.gameStarted || isLoading) return;
+      
+      const intervalId = setInterval(() => {
+        dispatch({ type: 'UPDATE_RESOURCES' });
       }, 1000);
+      
+      return () => clearInterval(intervalId);
+    }, [state.gameStarted, isLoading]);
+    
+    // Auto-save interval
+    useEffect(() => {
+      if (!state.gameStarted || isLoading || !hasConnection || !gameInitialized) return;
+      
+      console.log('🔄 Настройка автосохранения игры');
+      
+      const initialSaveTimeout = setTimeout(() => {
+        saveGame(state, hasConnection);
+      }, 2000);
+      
+      const intervalId = setInterval(() => {
+        saveGame(state, hasConnection);
+      }, SAVE_INTERVAL);
+      
+      return () => {
+        clearTimeout(initialSaveTimeout);
+        clearInterval(intervalId);
+      };
+    }, [state, isLoading, hasConnection, gameInitialized]);
+    
+    // Set up event listeners for save triggers
+    useGameSaveEvents(state, isLoading, hasConnection, gameInitialized);
+    
+    // Set up event listeners for connection changes
+    useConnectionEvents(state, isLoading, hasConnection, (connected) => {
+      // This is a workaround since we can't use the setter from useConnectionStatus
+      // In a real refactor, we might want to further restructure the hooks
+      if (connected !== hasConnection) {
+        window.dispatchEvent(new CustomEvent('connection-changed', { detail: { connected } }));
+      }
+    });
+    
+    // Set up event listeners for referral status updates
+    useReferralEvents(state, dispatch, isLoading);
+    
+    // Debug log для отслеживания состояния биткоина - этот хук всегда присутствует в компоненте
+    useEffect(() => {
+      // Логика внутри условия, но сам хук всегда присутствует
+      if (state.resources.btc && state.resources.btc.unlocked) {
+        console.log("BTC ресурс:", {
+          value: state.resources.btc.value,
+          perSecond: state.resources.btc.perSecond,
+          max: state.resources.btc.max
+        });
+      }
+    }, [state.resources.btc]);
+    
+    // Render error screen if cloudflare error
+    if (isInitialized && cloudflareError) {
+      return (
+        <ErrorScreen 
+          title="Проблема с доступом к серверу"
+          description="Возможно, произошла ошибка Cloudflare или сервер временно недоступен."
+          onRetry={() => {
+            window.__cloudflareRetryCount = 0;
+            setGameInitialized(false);
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          }}
+        />
+      );
     }
-  }, [loadedState, isLoading, gameInitialized, hasConnection]);
-  
-  // Main game update interval
-  useEffect(() => {
-    if (!state.gameStarted || isLoading) return;
-    
-    const intervalId = setInterval(() => {
-      dispatch({ type: 'UPDATE_RESOURCES' });
-    }, 1000);
-    
-    return () => clearInterval(intervalId);
-  }, [state.gameStarted, isLoading]);
-  
-  // Auto-save interval
-  useEffect(() => {
-    if (!state.gameStarted || isLoading || !hasConnection || !gameInitialized) return;
-    
-    console.log('🔄 Настройка автосохранения игры');
-    
-    const initialSaveTimeout = setTimeout(() => {
-      saveGame(state, hasConnection);
-    }, 2000);
-    
-    const intervalId = setInterval(() => {
-      saveGame(state, hasConnection);
-    }, SAVE_INTERVAL);
-    
-    return () => {
-      clearTimeout(initialSaveTimeout);
-      clearInterval(intervalId);
-    };
-  }, [state, isLoading, hasConnection, gameInitialized]);
-  
-  // Set up event listeners for save triggers
-  useGameSaveEvents(state, isLoading, hasConnection, gameInitialized);
-  
-  // Set up event listeners for connection changes
-  useConnectionEvents(state, isLoading, hasConnection, (connected) => {
-    // This is a workaround since we can't use the setter from useConnectionStatus
-    // In a real refactor, we might want to further restructure the hooks
-    if (connected !== hasConnection) {
-      window.dispatchEvent(new CustomEvent('connection-changed', { detail: { connected } }));
+
+    // Render error screen if no connection
+    if (isInitialized && (!hasConnection)) {
+      return (
+        <ErrorScreen 
+          title="Отсутствует соединение"
+          description="Для игры в Crypto Civilization требуется стабильное подключение к интернету."
+        />
+      );
     }
-  });
-  
-  // Set up event listeners for referral status updates
-  useReferralEvents(state, dispatch, isLoading);
-  
-  // Debug log для отслеживания состояния биткоина - переместили сюда, чтобы избежать условного хука
-  useEffect(() => {
-    // Логика внутри условия, но сам хук всегда присутствует
-    if (state.resources.btc && state.resources.btc.unlocked) {
-      console.log("BTC ресурс:", {
-        value: state.resources.btc.value,
-        perSecond: state.resources.btc.perSecond,
-        max: state.resources.btc.max
-      });
+
+    // Render loading screen while loading
+    if (isLoading) {
+      return <LoadingScreen message={loadingMessage} />;
     }
-  }, [state.resources.btc]);
-  
-  // Render error screen if cloudflare error
-  if (isInitialized && cloudflareError) {
+    
+    // Render game with context
+    return (
+      <GameContext.Provider value={{ state, dispatch }}>
+        <GameEventSystem />
+        {children}
+        <Toaster />
+      </GameContext.Provider>
+    );
+  } catch (error) {
+    // Добавляем глобальный обработчик ошибок, чтобы предотвратить белый экран
+    console.error('❌ Критическая ошибка в GameProvider:', error);
+    
     return (
       <ErrorScreen 
-        title="Проблема с доступом к серверу"
-        description="Возможно, произошла ошибка Cloudflare или сервер временно недоступен."
-        onRetry={() => {
-          window.__cloudflareRetryCount = 0;
-          setGameInitialized(false);
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-        }}
+        title="Критическая ошибка приложения"
+        description={`Произошла непредвиденная ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`}
+        onReload={() => window.location.reload()}
       />
     );
   }
-
-  // Render error screen if no connection
-  if (isInitialized && (!hasConnection)) {
-    return (
-      <ErrorScreen 
-        title="Отсутствует соединение"
-        description="Для игры в Crypto Civilization требуется стабильное подключение к интернету."
-      />
-    );
-  }
-
-  // Render loading screen while loading
-  if (isLoading) {
-    return <LoadingScreen message={loadingMessage} />;
-  }
-  
-  // Render game with context
-  return (
-    <GameContext.Provider value={{ state, dispatch }}>
-      <GameEventSystem />
-      {children}
-      <Toaster />
-    </GameContext.Provider>
-  );
 }
