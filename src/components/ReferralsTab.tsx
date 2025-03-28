@@ -207,28 +207,28 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [isReferralHelperRequestAcceptedLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestHiredLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestAcceptedLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
@@ -262,33 +262,33 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
   const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet, setIsReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
-  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet, setIsReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
@@ -302,4 +302,54 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingMessageSet] = useState(false);
   const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
   const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
-  const [
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingErrorMessageSet] = useState(false);
+  const [isReferralHelperRequestAcceptedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestRejectedLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+  const [isReferralHelperRequestHiredLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingLoadingSuccessMessageSet] = useState(false);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getReferrals()
+      .then(data => {
+        setReferrals(data);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setIsLoading(false);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить рефералов",
+          variant: "destructive",
+        });
+      });
+
+    if (!referralCode) {
+      const newCode = getUserIdentifier();
+      setReferralCode(newCode);
+    }
+  }, [referralCode]);
+
+  return (
+    <div className="referrals-tab p-2">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold mb-2">Ваша реферальная система</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Приглашайте друзей и получайте бонусы! Каждый приглашенный вами игрок даст вам прирост к эффективности действий.
+        </p>
+
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Ваш реферальный код</CardTitle>
+            <CardDescription>Поделитесь этим кодом с друзьями</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLinkLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
+            ) : (
+              <div className="flex">
+                <Input 
+                  value={referralCode || 'Загрузка...'}
+                  readOnly
+                  className="
