@@ -3,7 +3,6 @@ import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import SynergyCard from './SynergyCard';
 import { Puzzle } from 'lucide-react';
-import { SpecializationSynergy } from '@/context/types';
 
 interface SynergyTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -13,30 +12,14 @@ const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   
   // Проверяем наличие разблокированных синергий
-  const unlockedSynergies = Object.entries(state.specializationSynergies)
-    .filter(([_, synergy]) => {
-      const s = synergy as SpecializationSynergy;
-      return s.unlocked;
-    })
-    .map(([_, synergy]) => synergy as SpecializationSynergy);
-  
+  const unlockedSynergies = Object.values(state.specializationSynergies).filter(s => s.unlocked);
   const hasUnlockedSynergies = unlockedSynergies.length > 0;
   
   // Активные синергии
-  const activeSynergies = Object.entries(state.specializationSynergies)
-    .filter(([_, synergy]) => {
-      const s = synergy as SpecializationSynergy;
-      return s.active;
-    })
-    .map(([_, synergy]) => synergy as SpecializationSynergy);
+  const activeSynergies = Object.values(state.specializationSynergies).filter(s => s.active);
   
   // Неактивные, но разблокированные синергии
-  const availableSynergies = Object.entries(state.specializationSynergies)
-    .filter(([_, synergy]) => {
-      const s = synergy as SpecializationSynergy;
-      return s.unlocked && !s.active;
-    })
-    .map(([_, synergy]) => synergy as SpecializationSynergy);
+  const availableSynergies = Object.values(state.specializationSynergies).filter(s => s.unlocked && !s.active);
   
   // Обработчик активации синергии
   const handleActivateSynergy = (synergyId: string) => {

@@ -1,40 +1,59 @@
 
-// Temporary types file to resolve import errors
-
 /**
- * Referral information
+ * Типы для реферальной системы
  */
-export interface Referral {
+
+export interface ReferralData {
   id: string;
   username: string;
   activated: boolean;
-  hired: boolean;
+  hired?: boolean;
   joinedAt: number;
   assignedBuildingId?: string;
 }
 
-/**
- * Referral status update information
- */
-export interface ReferralStatusUpdate {
-  referralId: string;
-  activated?: boolean;
-  hired?: boolean;
-  buildingId?: string | null;
+export interface ReferralDataWithActivation extends ReferralData {
+  is_activated?: boolean;
 }
 
-/**
- * Referral helper status
- */
-export type ReferralHelperStatus = 'pending' | 'accepted' | 'rejected';
-
-/**
- * Referral helper request
- */
 export interface ReferralHelperRequest {
   id: string;
-  helperId: string;
+  building_id: string; // Используем snake_case как в базе данных
+  helper_id: string;   // Используем snake_case как в базе данных
+  employer_id: string; // Используем snake_case как в базе данных
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: number;
+}
+
+export interface ReferralHelpersResponse {
+  helpers: ReferralHelperRequest[];
+  success: boolean;
+}
+
+// Добавляем новый тип для подробной информации о бонусах помощников
+export interface HelperBoostInfo {
   buildingId: string;
-  status: ReferralHelperStatus;
-  createdAt: number;
+  buildingName: string;
+  boostPercentage: number;
+  helperIds: string[];
+}
+
+// Добавляем новый тип для зданий с помощниками
+export interface HelperBuilding {
+  buildingId: string;
+  helperIds: string[];
+  boostPercentage: number;
+}
+
+export interface EmployerHelperBuildingsResponse {
+  helperBuildings: HelperBuilding[];
+  success: boolean;
+}
+
+// Добавим тип для обновления статуса реферала
+export interface ReferralStatusUpdate {
+  referralId: string;
+  activated: boolean;
+  hired?: boolean;
+  buildingId?: string | null;
 }

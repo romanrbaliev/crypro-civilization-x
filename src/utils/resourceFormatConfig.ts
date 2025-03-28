@@ -10,7 +10,7 @@ export interface ResourceFormatConfig {
 
 // Настройки по умолчанию
 const defaultConfig: ResourceFormatConfig = {
-  decimalPlaces: 2,
+  decimalPlaces: 0,
   useGrouping: true,
   minValue: 0.001,
   updateFrequency: 100  // 10 обновлений в секунду
@@ -21,7 +21,7 @@ export const resourceFormats: { [key: string]: ResourceFormatConfig } = {
   // Основные ресурсы
   knowledge: {
     ...defaultConfig,
-    decimalPlaces: 2,
+    decimalPlaces: 1,
   },
   usdt: {
     ...defaultConfig,
@@ -29,26 +29,26 @@ export const resourceFormats: { [key: string]: ResourceFormatConfig } = {
   },
   electricity: {
     ...defaultConfig,
-    decimalPlaces: 2,
+    decimalPlaces: 1,
   },
   computingPower: {
     ...defaultConfig,
-    decimalPlaces: 2,
+    decimalPlaces: 0,
   },
   // Криптовалюты
   btc: {
     ...defaultConfig,
-    decimalPlaces: 6,
-    minValue: 0.000001,
+    decimalPlaces: 8,
+    minValue: 0.00000001,
   },
   // Социальные
   reputation: {
     ...defaultConfig,
-    decimalPlaces: 2,
+    decimalPlaces: 1,
   },
   influence: {
     ...defaultConfig,
-    decimalPlaces: 2,
+    decimalPlaces: 1,
   },
   // Настройка по умолчанию для всех остальных ресурсов
   default: defaultConfig

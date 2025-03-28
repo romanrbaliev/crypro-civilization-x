@@ -3,7 +3,6 @@ import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
-import { Upgrade } from "@/context/types";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -23,80 +22,67 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   };
   
   // Проверяем, куплены ли "Основы блокчейна"
-  const basicBlockchainPurchased = Object.entries(state.upgrades)
-    .some(([_, upgrade]) => {
-      const u = upgrade as Upgrade;
-      return isInitialResearch(u.id) && u.purchased;
-    });
+  const basicBlockchainPurchased = Object.values(state.upgrades)
+    .some(upgrade => 
+      isInitialResearch(upgrade.id) && upgrade.purchased
+    );
   
-  // Фильтруем доступные исследования с явным приведением типов
-  const unlockedUpgrades = Object.entries(state.upgrades)
-    .filter(([_, upgrade]) => {
+  // Фильтруем доступные исследования
+  const unlockedUpgrades = Object.values(state.upgrades)
+    .filter(upgrade => upgrade.unlocked && !upgrade.purchased)
+    .filter(upgrade => {
       // Если исследования еще не разблокированы, не показываем ничего
       if (!researchUnlocked) return false;
       
-      const u = upgrade as Upgrade;
-      
       // Если это "Основы блокчейна", показываем когда разблокировано исследование
-      if (isInitialResearch(u.id)) return u.unlocked && !u.purchased;
+      if (isInitialResearch(upgrade.id)) return true;
       
       // Если "Основы блокчейна" не куплены, скрываем все остальные исследования
       if (!basicBlockchainPurchased) return false;
       
       // Проверяем, есть ли у исследования требования к другим исследованиям
-      if (u.requiredUpgrades && u.requiredUpgrades.length > 0) {
+      if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
         // Проверяем, все ли требуемые исследования куплены
-        return u.requiredUpgrades.every(
+        return upgrade.requiredUpgrades.every(
           reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-        ) && u.unlocked && !u.purchased;
+        );
       }
       
       // Проверяем требования в другом формате
-      if (u.requirements) {
-        const requiredUpgrades = Object.keys(u.requirements)
+      if (upgrade.requirements) {
+        const requiredUpgrades = Object.keys(upgrade.requirements)
                                   .filter(key => !key.includes('Count') && state.upgrades[key]);
         
         if (requiredUpgrades.length > 0) {
           return requiredUpgrades.every(
             reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-          ) && u.unlocked && !u.purchased;
+          );
         }
       }
       
       // Для исследований без требований, проверяем специальные правила
       
       // "Основы криптовалют" должны появиться после покупки "Основы блокчейна"
-      if (u.id === 'cryptoCurrencyBasics') {
-        return basicBlockchainPurchased && u.unlocked && !u.purchased;
+      if (upgrade.id === 'cryptoCurrencyBasics') {
+        return basicBlockchainPurchased;
       }
       
       // "Безопасность криптокошельков" появляется после покупки криптокошелька
-      if (u.id === 'walletSecurity') {
-        return state.buildings.cryptoWallet && 
-               state.buildings.cryptoWallet.count > 0 && 
-               u.unlocked && 
-               !u.purchased;
+      if (upgrade.id === 'walletSecurity') {
+        return state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0;
       }
       
       // "Оптимизация алгоритмов" появляется после покупки автомайнера
-      if (u.id === 'algorithmOptimization') {
-        return state.buildings.autoMiner && 
-               state.buildings.autoMiner.count > 0 && 
-               u.unlocked && 
-               !u.purchased;
+      if (upgrade.id === 'algorithmOptimization') {
+        return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
       }
       
       return false;
-    })
-    .map(([_, upgrade]) => upgrade as Upgrade);
+    });
   
-  // Купленные исследования с явным приведением типов
-  const purchasedUpgrades = Object.entries(state.upgrades)
-    .filter(([_, upgrade]) => {
-      const u = upgrade as Upgrade;
-      return u.purchased;
-    })
-    .map(([_, upgrade]) => upgrade as Upgrade);
+  // Купленные исследования
+  const purchasedUpgrades = Object.values(state.upgrades)
+    .filter(upgrade => upgrade.purchased);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {

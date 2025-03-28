@@ -64,14 +64,6 @@ const updateResourceValues = (
       newValue = Math.min(newValue, resource.max);
     }
     
-    // Дополнительные проверки для BTC
-    if (resourceId === 'btc') {
-      // Проверяем, что значение BTC увеличивается корректно
-      if (resource.perSecond > 0) {
-        console.log(`Обновление BTC: текущее=${resource.value.toFixed(8)}, добавляется=${(resource.perSecond * deltaTime).toFixed(8)}, новое=${newValue.toFixed(8)}`);
-      }
-    }
-    
     // Обновляем значение ресурса (не позволяем опуститься ниже нуля)
     resource.value = Math.max(0, newValue);
     

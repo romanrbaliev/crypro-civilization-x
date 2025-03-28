@@ -4,7 +4,6 @@ import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./components/UpgradeItem";
 import TechTreeNode from "./components/TechTreeNode";
 import { Beaker } from "lucide-react";
-import { Upgrade } from "@/context/types";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -23,28 +22,19 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
            upgradeId === 'blockchainBasics';
   };
   
-  // Проверяем, куплены ли "Основы блокчейна" с явным приведением типов
-  const basicBlockchainPurchased = Object.entries(state.upgrades)
-    .some(([_, upgrade]) => {
-      const u = upgrade as Upgrade;
-      return isInitialResearch(u.id) && u.purchased;
-    });
+  // Проверяем, куплены ли "Основы блокчейна"
+  const basicBlockchainPurchased = Object.values(state.upgrades)
+    .some(upgrade => 
+      isInitialResearch(upgrade.id) && upgrade.purchased
+    );
   
-  // Фильтруем доступные исследования с явным приведением типов
-  const unlockedUpgrades = Object.entries(state.upgrades)
-    .filter(([_, upgrade]) => {
-      const u = upgrade as Upgrade;
-      return u.unlocked && !u.purchased;
-    })
-    .map(([_, upgrade]) => upgrade as Upgrade);
+  // Фильтруем доступные исследования
+  const unlockedUpgrades = Object.values(state.upgrades)
+    .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
   
-  // Купленные исследования с явным приведением типов
-  const purchasedUpgrades = Object.entries(state.upgrades)
-    .filter(([_, upgrade]) => {
-      const u = upgrade as Upgrade;
-      return u.purchased;
-    })
-    .map(([_, upgrade]) => upgrade as Upgrade);
+  // Купленные исследования
+  const purchasedUpgrades = Object.values(state.upgrades)
+    .filter(upgrade => upgrade.purchased);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {
