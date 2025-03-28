@@ -151,6 +151,18 @@ export function GameProvider({ children }: GameProviderProps) {
   // Set up event listeners for referral status updates
   useReferralEvents(state, dispatch, isLoading);
   
+  // Debug log для отслеживания состояния биткоина - переместили сюда, чтобы избежать условного хука
+  useEffect(() => {
+    // Логика внутри условия, но сам хук всегда присутствует
+    if (state.resources.btc && state.resources.btc.unlocked) {
+      console.log("BTC ресурс:", {
+        value: state.resources.btc.value,
+        perSecond: state.resources.btc.perSecond,
+        max: state.resources.btc.max
+      });
+    }
+  }, [state.resources.btc]);
+  
   // Render error screen if cloudflare error
   if (isInitialized && cloudflareError) {
     return (
@@ -182,17 +194,6 @@ export function GameProvider({ children }: GameProviderProps) {
   if (isLoading) {
     return <LoadingScreen message={loadingMessage} />;
   }
-  
-  // Debug log для отслеживания состояния биткоина
-  useEffect(() => {
-    if (state.resources.btc && state.resources.btc.unlocked) {
-      console.log("BTC ресурс:", {
-        value: state.resources.btc.value,
-        perSecond: state.resources.btc.perSecond,
-        max: state.resources.btc.max
-      });
-    }
-  }, [state.resources.btc?.value, state.resources.btc?.perSecond]);
   
   // Render game with context
   return (
