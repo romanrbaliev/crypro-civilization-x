@@ -51,6 +51,7 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
 
   // Обработчик обмена BTC на USDT
   const handleExchange = () => {
+    console.log("ExchangeBtcButton: Нажата кнопка обмена BTC");
     // Если предоставлен внешний обработчик onClick, используем его
     if (onClick) {
       onClick();

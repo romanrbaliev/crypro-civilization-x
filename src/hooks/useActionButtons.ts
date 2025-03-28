@@ -82,7 +82,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     onAddEvent(`Знания успешно применены! Получено ${usdtReward} USDT`, "success");
   }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus]);
   
-  // Новый обработчик для применения всех знаний
+  // Обработчик для применения всех знаний
   const handleApplyAllKnowledge = useCallback(() => {
     dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
     // Увеличиваем счетчик применений знаний
@@ -120,9 +120,32 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Обработчик обмена BTC на USDT
   const handleExchangeBtc = useCallback(() => {
+    // Получаем текущее количество BTC для отображения в сообщении
+    const btcAmount = resources.btc?.value || 0;
+    
+    // Расчет получаемого USDT на основе текущего курса и комиссии
+    const btcPrice = currentExchangeRate;
+    const commission = state.miningParams.exchangeCommission || 0.05;
+    
+    const usdtAmountBeforeCommission = btcAmount * btcPrice;
+    const commissionAmount = usdtAmountBeforeCommission * commission;
+    const finalUsdtAmount = usdtAmountBeforeCommission - commissionAmount;
+    
+    console.log("handleExchangeBtc: Вызов обмена BTC", {
+      btcAmount,
+      btcPrice,
+      commission,
+      finalUsdtAmount
+    });
+    
     dispatch({ type: "EXCHANGE_BTC" });
-    onAddEvent(`Обменяны BTC на USDT по курсу ${currentExchangeRate}`, "success");
-  }, [dispatch, onAddEvent, currentExchangeRate]);
+    
+    // Более детальное сообщение для журнала событий
+    onAddEvent(
+      `Обменяны ${btcAmount.toFixed(8)} BTC на ${finalUsdtAmount.toFixed(2)} USDT по курсу ${btcPrice}`, 
+      "success"
+    );
+  }, [dispatch, onAddEvent, currentExchangeRate, resources.btc?.value, state.miningParams.exchangeCommission]);
   
   // Функция проверки доступности кнопки
   const isButtonEnabled = useCallback((resourceId: string, cost: number) => {
