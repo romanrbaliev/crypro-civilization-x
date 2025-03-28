@@ -5,6 +5,7 @@ import TechTreeCategory from './TechTreeCategory';
 import { Lightbulb } from 'lucide-react';
 import { useGame } from '@/context/hooks/useGame';
 import { isBlockchainBasicsUnlocked } from '@/utils/researchUtils';
+import { Upgrade } from '@/context/types';
 
 interface TechTreeProps {
   onAddEvent: (message: string, type: string) => void;
@@ -16,12 +17,12 @@ const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
   // ИСПРАВЛЕНО: Упрощение проверки разблокированных исследований
   const hasUnlockedResearch = state.unlocks.research === true;
   
-  // Получаем количество активных категорий
+  // Получаем количество активных категорий с явным приведением типов
   const getActiveCategoriesCount = () => {
     return Object.values(researchCategories)
       .filter(category => {
         const categoryUpgrades = Object.values(state.upgrades)
-          .filter(u => u.category === category.id);
+          .filter((u): u is Upgrade => u.category === category.id);
         
         return categoryUpgrades.some(u => u.unlocked || u.purchased);
       }).length;

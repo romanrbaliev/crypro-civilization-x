@@ -22,9 +22,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@/components/ui/collapsible';
+import { Upgrade } from '@/context/types';
 
 interface TechTreeNodeProps {
-  upgrade: any;
+  upgrade: Upgrade;
   onAddEvent: (message: string, type: string) => void;
 }
 

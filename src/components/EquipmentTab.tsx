@@ -13,9 +13,9 @@ interface EquipmentTabProps {
 const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
-  // Фильтрация зданий
+  // Фильтрация зданий с явным приведением типов
   const unlockedBuildings = Object.values(state.buildings)
-    .filter(b => b.unlocked && b.id !== "practice")
+    .filter((b): b is Building => b.unlocked && b.id !== "practice")
     // Дополнительная проверка для системы охлаждения - должна быть разблокирована и соответствовать требованиям
     .filter(b => {
       // Для системы охлаждения проверяем, что есть как минимум 2 компьютера

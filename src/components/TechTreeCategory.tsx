@@ -6,6 +6,7 @@ import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { getSpecializationName } from '@/utils/researchUtils';
+import { Upgrade } from '@/context/types';
 
 interface TechTreeCategoryProps {
   categoryId: string;
@@ -27,9 +28,9 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
   const { state } = useGame();
   const [isOpen, setIsOpen] = useState(initialOpen);
 
-  // Фильтруем исследования, принадлежащие к данной категории
+  // Фильтруем исследования, принадлежащие к данной категории с явным приведением типов
   const categoryUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.category === categoryId)
+    .filter((upgrade): upgrade is Upgrade => upgrade.category === categoryId)
     .sort((a, b) => {
       // Сначала сортируем по tier
       if (a.tier !== b.tier) {

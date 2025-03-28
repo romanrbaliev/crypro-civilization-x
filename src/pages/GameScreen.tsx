@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +16,7 @@ import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import ErrorScreen from "@/components/ErrorScreen";
+import { Resource, Building as BuildingType } from "@/context/types";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +32,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { 
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -130,7 +132,9 @@ const GameScreen = () => {
       });
     }, [hasUnlockedBuildings, hasUnlockedResearch]);
     
-    const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
+    // Добавляем явное приведение типов для TypeScript
+    const unlockedResources = Object.values(state.resources)
+      .filter((r): r is Resource => r.unlocked);
     
     const handleResetGame = () => {
       dispatch({ type: "RESET_GAME" });

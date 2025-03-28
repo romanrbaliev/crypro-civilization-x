@@ -3,6 +3,7 @@ import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
+import { Upgrade } from "@/context/types";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -23,13 +24,13 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   // Проверяем, куплены ли "Основы блокчейна"
   const basicBlockchainPurchased = Object.values(state.upgrades)
-    .some(upgrade => 
+    .some((upgrade): upgrade is Upgrade => 
       isInitialResearch(upgrade.id) && upgrade.purchased
     );
   
-  // Фильтруем доступные исследования
+  // Фильтруем доступные исследования с явным приведением типов
   const unlockedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.unlocked && !upgrade.purchased)
+    .filter((upgrade): upgrade is Upgrade => upgrade.unlocked && !upgrade.purchased)
     .filter(upgrade => {
       // Если исследования еще не разблокированы, не показываем ничего
       if (!researchUnlocked) return false;
@@ -80,9 +81,9 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       return false;
     });
   
-  // Купленные исследования
+  // Купленные исследования с явным приведением типов
   const purchasedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.purchased);
+    .filter((upgrade): upgrade is Upgrade => upgrade.purchased);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {

@@ -4,6 +4,7 @@ import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./components/UpgradeItem";
 import TechTreeNode from "./components/TechTreeNode";
 import { Beaker } from "lucide-react";
+import { Upgrade } from "@/context/types";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -22,19 +23,19 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
            upgradeId === 'blockchainBasics';
   };
   
-  // Проверяем, куплены ли "Основы блокчейна"
+  // Проверяем, куплены ли "Основы блокчейна" с явным приведением типов
   const basicBlockchainPurchased = Object.values(state.upgrades)
-    .some(upgrade => 
+    .some((upgrade): upgrade is Upgrade => 
       isInitialResearch(upgrade.id) && upgrade.purchased
     );
   
-  // Фильтруем доступные исследования
+  // Фильтруем доступные исследования с явным приведением типов
   const unlockedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
+    .filter((upgrade): upgrade is Upgrade => upgrade.unlocked && !upgrade.purchased);
   
-  // Купленные исследования
+  // Купленные исследования с явным приведением типов
   const purchasedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.purchased);
+    .filter((upgrade): upgrade is Upgrade => upgrade.purchased);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {

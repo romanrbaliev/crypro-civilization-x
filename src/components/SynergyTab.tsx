@@ -3,6 +3,7 @@ import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import SynergyCard from './SynergyCard';
 import { Puzzle } from 'lucide-react';
+import { SpecializationSynergy } from '@/context/types';
 
 interface SynergyTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -11,15 +12,18 @@ interface SynergyTabProps {
 const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   
-  // Проверяем наличие разблокированных синергий
-  const unlockedSynergies = Object.values(state.specializationSynergies).filter(s => s.unlocked);
+  // Проверяем наличие разблокированных синергий с явным приведением типов
+  const unlockedSynergies = Object.values(state.specializationSynergies)
+    .filter((s): s is SpecializationSynergy => s.unlocked);
   const hasUnlockedSynergies = unlockedSynergies.length > 0;
   
-  // Активные синергии
-  const activeSynergies = Object.values(state.specializationSynergies).filter(s => s.active);
+  // Активные синергии с явным приведением типов
+  const activeSynergies = Object.values(state.specializationSynergies)
+    .filter((s): s is SpecializationSynergy => s.active);
   
-  // Неактивные, но разблокированные синергии
-  const availableSynergies = Object.values(state.specializationSynergies).filter(s => s.unlocked && !s.active);
+  // Неактивные, но разблокированные синергии с явным приведением типов
+  const availableSynergies = Object.values(state.specializationSynergies)
+    .filter((s): s is SpecializationSynergy => s.unlocked && !s.active);
   
   // Обработчик активации синергии
   const handleActivateSynergy = (synergyId: string) => {
