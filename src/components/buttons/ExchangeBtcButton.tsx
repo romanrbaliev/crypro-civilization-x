@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/context/hooks/useGame';
-import { formatNumber } from '@/utils/helpers';
 
 interface ExchangeBtcButtonProps {
   onClick?: () => void;
@@ -17,11 +16,9 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
   className = "",
   currentRate: externalRate
 }) => {
-  const { state, dispatch } = useGame();
+  const { state } = useGame();
   const { resources } = state;
   const [isAvailable, setIsAvailable] = useState(false);
-  const [btcAmount, setBtcAmount] = useState(0);
-  const [usdtReceived, setUsdtReceived] = useState(0);
 
   // Проверка доступности кнопки обмена BTC
   useEffect(() => {
@@ -29,25 +26,7 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
     const btcResource = resources.btc;
     const hasBtc = btcResource && btcResource.unlocked && btcResource.value > 0;
     setIsAvailable(hasBtc);
-    
-    // Обновляем информацию о количестве BTC и USDT, если ресурс доступен
-    if (hasBtc) {
-      setBtcAmount(btcResource.value);
-      
-      // Расчет получаемого USDT на основе текущего курса и комиссии
-      const btcPrice = externalRate || state.miningParams.exchangeRate || 30000;
-      const commission = state.miningParams.exchangeCommission || 0.05;
-      
-      const usdtAmountBeforeCommission = btcResource.value * btcPrice;
-      const commissionAmount = usdtAmountBeforeCommission * commission;
-      const finalUsdtAmount = usdtAmountBeforeCommission - commissionAmount;
-      
-      setUsdtReceived(finalUsdtAmount);
-    } else {
-      setBtcAmount(0);
-      setUsdtReceived(0);
-    }
-  }, [resources, state.miningParams, externalRate]);
+  }, [resources]);
 
   // Обработчик обмена BTC на USDT
   const handleExchange = () => {
@@ -57,7 +36,7 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
       onClick();
     } else {
       // Иначе используем локальный обработчик
-      dispatch({ type: "EXCHANGE_BTC" });
+      // dispatch({ type: "EXCHANGE_BTC" }); // Закомментировано, так как используется внешний обработчик
     }
   };
 
@@ -78,9 +57,6 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
       >
         <div className="flex flex-col items-center w-full">
           <span className="text-xs font-semibold">Обменять BTC</span>
-          <span className="text-[10px] opacity-75">
-            {formatNumber(btcAmount, "btc")} BTC → {formatNumber(usdtReceived, "usdt")}
-          </span>
         </div>
       </Button>
     </div>

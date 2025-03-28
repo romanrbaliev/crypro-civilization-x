@@ -26,30 +26,14 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
   knowledgeValue = 0,
   applyAll = false
 }) => {
-  // Рассчитываем, сколько USDT будет получено при применении знаний
-  let usdtReward = 1;
-  
-  // Применяем бонус к базовой отдаче (явная установка 1.1 при бонусе 10%)
-  if (knowledgeEfficiencyBonus === 0.1) {
-    usdtReward = 1.1;
-  } else {
-    usdtReward = Math.floor(usdtReward * (1 + knowledgeEfficiencyBonus)) || 1;
-  }
-  
-  // Если используется режим "применить все знания", то рассчитываем общую награду
-  const totalKnowledgeToApply = applyAll ? knowledgeValue : 10;
-  const totalUsdtReward = applyAll ? 
-    Math.floor((knowledgeValue / 10) * usdtReward) : 
-    usdtReward;
+  // Текст кнопки меняется в зависимости от режима, но без информации о количестве
+  const buttonText = applyAll
+    ? "Применить все знания"
+    : "Применить знания";
   
   const bonusText = knowledgeEfficiencyBonus > 0 
     ? `+${knowledgeEfficiencyBonus * 100}% к эффективности`
     : '';
-  
-  // Текст кнопки меняется в зависимости от режима
-  const buttonText = applyAll
-    ? `Применить все знания (${totalKnowledgeToApply} → ${totalUsdtReward} USDT)`
-    : `Обменять 10 знаний на ${usdtReward} USDT`;
   
   return (
     <TooltipProvider>
