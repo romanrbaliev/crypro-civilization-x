@@ -1,3 +1,4 @@
+
 import { Resource, Building, Upgrade, GameState, Counter, MiningParams } from './types';
 import { generateReferralCode } from '@/utils/helpers';
 
@@ -51,7 +52,7 @@ export const initialBuildings: { [key: string]: Building } = {
     consumption: { computingPower: 2, electricity: 2 },
     count: 0,
     unlocked: false,
-    requirements: { homeComputer: 1, electricity: 20 },
+    requirements: { cryptoCurrencyBasics: 1 },
     productionBoost: 0
   },
   cryptoWallet: {
@@ -111,7 +112,7 @@ export const initialBuildings: { [key: string]: Building } = {
     production: { usdtMax: 150, btcMax: 100 },
     count: 0,
     unlocked: false,
-    requirements: { cryptoWallet: 10 },
+    requirements: { cryptoWalletCount: 10 },
     productionBoost: 0
   }
 };

@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -111,11 +110,23 @@ export const UNLOCK_SEQUENCES = {
     return !!basicBlockchainPurchased;
   },
   
+  // Проверка условий для разблокировки интернет-канала
+  INTERNET_CONNECTION: (state: GameState) => {
+    // Интернет-канал разблокируется после покупки домашнего компьютера
+    return state.buildings.homeComputer && state.buildings.homeComputer.count > 0;
+  },
+  
   // Проверка условий для разблокировки автомайнера
   AUTO_MINER: (state: GameState) => {
     // Автомайнер разблокируется после покупки "Основы криптовалют"
     return (state.upgrades.cryptoCurrencyBasics?.purchased === true) || 
            (state.upgrades.cryptocurrency_basics?.purchased === true);
+  },
+  
+  // Проверка условий для разблокировки улучшенного кошелька
+  IMPROVED_WALLET: (state: GameState) => {
+    // Улучшенный кошелек разблокируется после приобретения 10 криптокошельков
+    return state.buildings.cryptoWallet && state.buildings.cryptoWallet.count >= 10;
   },
   
   // Безопасность кошелька разблокируется после покупки криптокошелька
@@ -126,6 +137,16 @@ export const UNLOCK_SEQUENCES = {
   // Оптимизация алгоритмов разблокируется после покупки автомайнера
   ALGORITHM_OPTIMIZATION: (state: GameState) => {
     return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
+  },
+  
+  // Proof of Work разблокируется после покупки автомайнера
+  PROOF_OF_WORK: (state: GameState) => {
+    return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
+  },
+  
+  // Криптовалютный трейдинг разблокируется после покупки Улучшенного кошелька
+  CRYPTO_TRADING: (state: GameState) => {
+    return state.buildings.improvedWallet && state.buildings.improvedWallet.count > 0;
   }
 };
 
@@ -149,10 +170,10 @@ export function checkBuildingUnlocks(state: GameState): GameState {
         break;
         
       case "homeComputer":
-        // Домашний компьютер появляется при наличии 10+ электричества
+        // Домашний компьютер появляется при наличии 50+ электричества
         shouldUnlock = state.resources.electricity && 
                       state.resources.electricity.unlocked && 
-                      state.resources.electricity.value >= 10;
+                      state.resources.electricity.value >= 50;
         break;
         
       case "coolingSystem":
@@ -169,6 +190,16 @@ export function checkBuildingUnlocks(state: GameState): GameState {
       case "cryptoWallet":
         // Кошелек разблокируется после покупки "Основы блокчейна"
         shouldUnlock = UNLOCK_SEQUENCES.CRYPTO_WALLET(state);
+        break;
+        
+      case "internetConnection":
+        // Интернет-канал разблокируется после покупки домашнего компьютера
+        shouldUnlock = UNLOCK_SEQUENCES.INTERNET_CONNECTION(state);
+        break;
+        
+      case "improvedWallet":
+        // Улучшенный кошелек разблокируется после приобретения 10 криптокошельков
+        shouldUnlock = UNLOCK_SEQUENCES.IMPROVED_WALLET(state);
         break;
         
       case "autoMiner":
@@ -251,6 +282,16 @@ export function checkUpgradeUnlocks(state: GameState): GameState {
       case "algorithmOptimization":
         // "Оптимизация алгоритмов" разблокируется после покупки автомайнера
         shouldUnlock = UNLOCK_SEQUENCES.ALGORITHM_OPTIMIZATION(state);
+        break;
+        
+      case "proofOfWork":
+        // "Proof of Work" разблокируется после покупки автомайнера
+        shouldUnlock = UNLOCK_SEQUENCES.PROOF_OF_WORK(state);
+        break;
+      
+      case "cryptoTrading":
+        // "Криптовалютный трейдинг" разблокируется после покупки Улучшенного кошелька
+        shouldUnlock = UNLOCK_SEQUENCES.CRYPTO_TRADING(state);
         break;
         
       default:

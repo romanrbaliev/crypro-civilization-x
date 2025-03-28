@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -86,13 +85,6 @@ export const processPurchaseBuilding = (
   if (buildingId === "practice" && building.count === 0) {
     safeDispatchGameEvent("Теперь знания о крипте накапливаются автоматически", "success");
   }
-  
-  // Создаем новое состояние
-  let newState = {
-    ...state,
-    resources: newResources,
-    buildings: newBuildings
-  };
   
   // Разблокировка вкладки исследований при покупке первого генератора
   if (buildingId === "generator" && building.count === 0) {
