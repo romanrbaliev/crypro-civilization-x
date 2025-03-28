@@ -7,7 +7,8 @@ import { processPurchaseBuilding, processSellBuilding } from './reducers/buildin
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { 
-  processApplyKnowledge, 
+  processApplyKnowledge,
+  processApplyAllKnowledge,
   processMiningPower,
   processExchangeBtc,
   processPracticePurchase 
@@ -171,6 +172,12 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       newState = processApplyKnowledge(state);
       return updateResourceMaxValues(newState);
     }
+    
+    case "APPLY_ALL_KNOWLEDGE": {
+      // После прим��нения всех знаний принудительно пересчитываем максимумы ресурсов
+      newState = processApplyAllKnowledge(state);
+      return updateResourceMaxValues(newState);
+    }
       
     case "EXCHANGE_BTC": 
       return processExchangeBtc(state);
@@ -197,7 +204,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       console.log("Принудительное обновление ресурсов и бонусов");
       // Сначала обновляем производство ресурсов
       const updatedState = processResourceUpdate(state);
-      // Проверяем разблокировки
+      // Проверяем разблокиров��и
       const checkedState = checkAllUnlocks(updatedState);
       // Затем пересчитываем максимальные значения ресурсов
       return updateResourceMaxValues(checkedState);

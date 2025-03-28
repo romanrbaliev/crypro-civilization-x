@@ -161,6 +161,7 @@ export type GameAction =
   | { type: "RESTART_COMPUTERS" }
   | { type: "MINE_COMPUTING_POWER" }
   | { type: "APPLY_KNOWLEDGE" }
+  | { type: "APPLY_ALL_KNOWLEDGE" }
   | { type: "EXCHANGE_BTC" }
   | { type: "SET_REFERRAL_CODE"; payload: { code: string } }
   | { type: "ADD_REFERRAL"; payload: { referral: any } }

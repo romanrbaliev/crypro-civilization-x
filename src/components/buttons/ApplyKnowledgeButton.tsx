@@ -14,13 +14,17 @@ interface ApplyKnowledgeButtonProps {
   disabled: boolean;
   knowledgeEfficiencyBonus?: number;
   className?: string;
+  knowledgeValue?: number;
+  applyAll?: boolean;
 }
 
 export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({ 
   onClick, 
   disabled,
   knowledgeEfficiencyBonus = 0,
-  className = ""
+  className = "",
+  knowledgeValue = 0,
+  applyAll = false
 }) => {
   // Рассчитываем, сколько USDT будет получено при применении знаний
   let usdtReward = 1;
@@ -32,9 +36,20 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
     usdtReward = Math.floor(usdtReward * (1 + knowledgeEfficiencyBonus)) || 1;
   }
   
+  // Если используется режим "применить все знания", то рассчитываем общую награду
+  const totalKnowledgeToApply = applyAll ? knowledgeValue : 10;
+  const totalUsdtReward = applyAll ? 
+    Math.floor((knowledgeValue / 10) * usdtReward) : 
+    usdtReward;
+  
   const bonusText = knowledgeEfficiencyBonus > 0 
     ? `+${knowledgeEfficiencyBonus * 100}% к эффективности`
     : '';
+  
+  // Текст кнопки меняется в зависимости от режима
+  const buttonText = applyAll
+    ? `Применить все знания (${totalKnowledgeToApply} → ${totalUsdtReward} USDT)`
+    : `Обменять 10 знаний на ${usdtReward} USDT`;
   
   return (
     <TooltipProvider>
@@ -48,12 +63,12 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
             disabled={disabled}
           >
             <BrainCircuit className="mr-2 h-4 w-4" />
-            Обменять 10 знаний на {usdtReward} USDT
+            {buttonText}
           </Button>
         </TooltipTrigger>
         {disabled && (
           <TooltipContent>
-            <p>Требуется 10 знаний</p>
+            <p>{applyAll ? "Требуется хотя бы 10 знаний" : "Требуется 10 знаний"}</p>
           </TooltipContent>
         )}
         {!disabled && bonusText && (

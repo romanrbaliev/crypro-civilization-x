@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -47,6 +48,72 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   }
   
   console.log(`Применение знаний: -${knowledgeCost} знаний, +${usdtGain} USDT (бонус эффективности: ${knowledgeEfficiencyBonus * 100}%)`);
+  
+  // Обновляем ресурсы
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      knowledge: {
+        ...knowledge,
+        value: newKnowledgeValue
+      },
+      usdt: {
+        ...usdt,
+        value: newUsdtValue
+      }
+    }
+  };
+};
+
+// Новая функция для обработки применения всех знаний
+export const processApplyAllKnowledge = (state: GameState): GameState => {
+  const { resources, unlocks, upgrades } = state;
+  const knowledge = resources.knowledge;
+  const usdt = resources.usdt;
+  
+  // Для применения всех знаний нужно хотя бы 10 знаний
+  if (!knowledge || !usdt || knowledge.value < 10) {
+    safeDispatchGameEvent("Недостаточно знаний для применения!", "error");
+    return state;
+  }
+  
+  // Базовая отдача от применения знаний (1 USDT за 10 знаний)
+  let usdtRate = 1;
+  
+  // Проверяем наличие бонусов к эффективности применения знаний
+  let knowledgeEfficiencyBonus = 0;
+  
+  // Бонус от исследования "Основы криптовалют"
+  if (upgrades.cryptoCurrencyBasics && upgrades.cryptoCurrencyBasics.purchased) {
+    knowledgeEfficiencyBonus += 0.1; // +10% к эффективности применения знаний
+    console.log("Применен бонус от исследования 'Основы криптовалют': +10% к эффективности применения знаний");
+  }
+  
+  // Применяем бонус к базовой отдаче
+  usdtRate = Math.floor(usdtRate * (1 + knowledgeEfficiencyBonus)) || 1;
+  
+  // Уточним результат при бонусе 10%
+  if (knowledgeEfficiencyBonus === 0.1) {
+    usdtRate = 1.1;
+  }
+  
+  // Расчет количества доступных USDT
+  const appliedKnowledge = knowledge.value;
+  const knowledgeSets = Math.floor(appliedKnowledge / 10);
+  const totalUsdtGain = knowledgeSets * usdtRate;
+  
+  // Новые значения ресурсов
+  let newKnowledgeValue = knowledge.value % 10; // Остаток знаний, которые не были обменяны
+  let newUsdtValue = usdt.value + totalUsdtGain;
+  
+  // Ограничиваем значение USDT максимумом
+  if (newUsdtValue > usdt.max) {
+    newUsdtValue = usdt.max;
+    safeDispatchGameEvent("Достигнут максимум USDT!", "warning");
+  }
+  
+  console.log(`Применение всех знаний: -${appliedKnowledge - newKnowledgeValue} знаний, +${totalUsdtGain} USDT (бонус эффективности: ${knowledgeEfficiencyBonus * 100}%)`);
   
   // Обновляем ресурсы
   return {

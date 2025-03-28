@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -50,7 +51,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Проверка наличия автомайнера
   const hasAutoMiner = buildings.autoMiner && buildings.autoMiner.count > 0;
   
-  // Проверка наличия улучшений для эффективности прим��нения знаний
+  // Проверка наличия улучшений для эффективности применения знаний
   const cryptoCurrencyBasicsPurchased = upgrades.cryptoCurrencyBasics && upgrades.cryptoCurrencyBasics.purchased;
   const knowledgeEfficiencyBonus = cryptoCurrencyBasicsPurchased ? 0.1 : 0; // +10% если исследование куплено
   
@@ -80,6 +81,32 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     // Показываем уведомление с учетом бонуса
     onAddEvent(`Знания успешно применены! Получено ${usdtReward} USDT`, "success");
   }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus]);
+  
+  // Новый обработчик для применения всех знаний
+  const handleApplyAllKnowledge = useCallback(() => {
+    dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
+    // Увеличиваем счетчик применений знаний
+    dispatch({ 
+      type: "INCREMENT_COUNTER", 
+      payload: { counterId: "applyKnowledge", value: 1 }
+    });
+    
+    // Базовая награда за применение знаний
+    let usdtRate = 1;
+    
+    // Применяем бонус если есть исследование "Основы криптовалют"
+    if (cryptoCurrencyBasicsPurchased) {
+      usdtRate = Math.floor(usdtRate * (1 + knowledgeEfficiencyBonus));
+    }
+    
+    // Количество применённых знаний
+    const appliedKnowledge = resources.knowledge.value;
+    // Расчёт полученных USDT
+    const obtainedUsdt = Math.floor((appliedKnowledge / 10) * usdtRate);
+    
+    // Показываем уведомление с учетом бонуса
+    onAddEvent(`Все знания успешно применены! Получено ${obtainedUsdt} USDT`, "success");
+  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge.value]);
   
   // Обработчик покупки практики
   const handlePractice = useCallback(() => {
@@ -111,6 +138,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   return {
     handleLearnClick,
     handleApplyKnowledge,
+    handleApplyAllKnowledge,
     handlePractice,
     handleExchangeBtc,
     isButtonEnabled,

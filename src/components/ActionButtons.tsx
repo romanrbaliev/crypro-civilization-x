@@ -7,6 +7,7 @@ import ExchangeBtcButton from "./buttons/ExchangeBtcButton";
 import PracticeButton from "./buttons/PracticeButton";
 import { useActionButtons } from "@/hooks/useActionButtons";
 import LearnButton from "./buttons/LearnButton";
+import ApplyKnowledgeButton from "./buttons/ApplyKnowledgeButton";
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
@@ -17,6 +18,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const {
     handleLearnClick,
     handleApplyKnowledge,
+    handleApplyAllKnowledge,
     handlePractice,
     handleExchangeBtc,
     isButtonEnabled,
@@ -26,7 +28,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     practiceCurrentLevel,
     hasAutoMiner,
     currentExchangeRate,
-    shouldHideLearnButton
+    shouldHideLearnButton,
+    knowledgeEfficiencyBonus
   } = useActionButtons({ onAddEvent });
   
   const hasApplyKnowledge = state.unlocks.applyKnowledge;
@@ -36,6 +39,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   // Исправленная проверка на возможность обмена BTC - проверяем только наличие BTC
   const canExchangeBtc = btc.unlocked && btc.value > 0;
+  
+  // Флаг для определения, нужно ли использовать режим "применить все знания"
+  const shouldApplyAll = shouldHideLearnButton;
   
   // Массив компонентов кнопок, которые будем рендерить
   const buttonComponents = [];
@@ -73,18 +79,20 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   // Кнопка Применить знания (если разблокирована)
   if (hasApplyKnowledge) {
+    const isDisabled = shouldApplyAll 
+      ? knowledge.value < 10 // В режиме "применить все" нужно хотя бы 10 знаний
+      : knowledge.value < 10;
+      
     buttonComponents.push(
-      <Button
+      <ApplyKnowledgeButton
         key="apply"
-        onClick={handleApplyKnowledge}
+        onClick={shouldApplyAll ? handleApplyAllKnowledge : handleApplyKnowledge}
         className="w-full"
-        size="sm"
-        disabled={knowledge.value < 10}
-        variant={knowledge.value < 10 ? "outline" : "default"}
-      >
-        <Coins className="mr-2 h-4 w-4" />
-        Применить знания
-      </Button>
+        disabled={isDisabled}
+        knowledgeEfficiencyBonus={knowledgeEfficiencyBonus}
+        knowledgeValue={knowledge.value}
+        applyAll={shouldApplyAll}
+      />
     );
   }
   
