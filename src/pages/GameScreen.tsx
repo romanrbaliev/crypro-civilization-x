@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -132,9 +131,9 @@ const GameScreen = () => {
       });
     }, [hasUnlockedBuildings, hasUnlockedResearch]);
     
-    // Добавляем явное приведение типов для TypeScript
-    const unlockedResources = Object.values(state.resources)
-      .filter((r): r is Resource => r.unlocked);
+    const unlockedResources = Object.entries(state.resources)
+      .filter(([_, r]) => r.unlocked)
+      .map(([_, r]) => r as Resource);
     
     const handleResetGame = () => {
       dispatch({ type: "RESET_GAME" });

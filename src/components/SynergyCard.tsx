@@ -10,7 +10,7 @@ import {
 import { Puzzle, CheckCircle, Lock } from 'lucide-react';
 import { formatEffect } from '@/utils/researchUtils';
 import { useGame } from '@/context/hooks/useGame';
-import { SpecializationSynergy } from '@/context/types';
+import { SpecializationSynergy, Upgrade } from '@/context/types';
 
 interface SynergyCardProps {
   synergy: SpecializationSynergy;
@@ -22,8 +22,9 @@ const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
   
   // Подсчитываем, сколько исследований в каждой категории
   const getCategoryProgress = (category: string) => {
-    const total = Object.values(state.upgrades)
-      .filter(u => u.purchased && u.category === category).length;
+    const total = Object.entries(state.upgrades)
+      .filter(([_, u]) => u.purchased && u.category === category)
+      .length;
     
     return {
       current: total,
@@ -36,15 +37,12 @@ const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
   const renderCategoryProgress = () => {
     return synergy.requiredCategories.map(category => {
       const progress = getCategoryProgress(category);
-      const categoryInfo = state.upgrades[Object.keys(state.upgrades).find(
-        key => state.upgrades[key].category === category
-      ) || '']?.category;
       
-      const categoryName = categoryInfo ? 
-        state.upgrades[Object.keys(state.upgrades).find(
-          key => state.upgrades[key].category === category
-        ) || '']?.category : 
-        category;
+      // Ищем первое исследование этой категории для получения имени категории
+      const categoryUpgrade = Object.entries(state.upgrades)
+        .find(([_, u]) => u.category === category);
+      
+      const categoryName = categoryUpgrade ? categoryUpgrade[1].category : category;
       
       const categoryDisplayName = {
         'blockchain': 'Блокчейн',

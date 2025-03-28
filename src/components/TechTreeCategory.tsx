@@ -29,8 +29,9 @@ const TechTreeCategory: React.FC<TechTreeCategoryProps> = ({
   const [isOpen, setIsOpen] = useState(initialOpen);
 
   // Фильтруем исследования, принадлежащие к данной категории с явным приведением типов
-  const categoryUpgrades = Object.values(state.upgrades)
-    .filter((upgrade): upgrade is Upgrade => upgrade.category === categoryId)
+  const categoryUpgrades = Object.entries(state.upgrades)
+    .filter(([_, upgrade]) => upgrade.category === categoryId)
+    .map(([_, upgrade]) => upgrade as Upgrade)
     .sort((a, b) => {
       // Сначала сортируем по tier
       if (a.tier !== b.tier) {

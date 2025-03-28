@@ -12,18 +12,22 @@ interface SynergyTabProps {
 const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   
-  // Проверяем наличие разблокированных синергий с явным приведением типов
-  const unlockedSynergies = Object.values(state.specializationSynergies)
-    .filter((s): s is SpecializationSynergy => s.unlocked);
+  // Проверяем наличие разблокированных синергий
+  const unlockedSynergies = Object.entries(state.specializationSynergies)
+    .filter(([_, s]) => s.unlocked)
+    .map(([_, s]) => s as SpecializationSynergy);
+  
   const hasUnlockedSynergies = unlockedSynergies.length > 0;
   
-  // Активные синергии с явным приведением типов
-  const activeSynergies = Object.values(state.specializationSynergies)
-    .filter((s): s is SpecializationSynergy => s.active);
+  // Активные синергии
+  const activeSynergies = Object.entries(state.specializationSynergies)
+    .filter(([_, s]) => s.active)
+    .map(([_, s]) => s as SpecializationSynergy);
   
-  // Неактивные, но разблокированные синергии с явным приведением типов
-  const availableSynergies = Object.values(state.specializationSynergies)
-    .filter((s): s is SpecializationSynergy => s.unlocked && !s.active);
+  // Неактивные, но разблокированные синергии
+  const availableSynergies = Object.entries(state.specializationSynergies)
+    .filter(([_, s]) => s.unlocked && !s.active)
+    .map(([_, s]) => s as SpecializationSynergy);
   
   // Обработчик активации синергии
   const handleActivateSynergy = (synergyId: string) => {

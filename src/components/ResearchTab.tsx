@@ -23,20 +23,19 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   };
   
   // Проверяем, куплены ли "Основы блокчейна"
-  const basicBlockchainPurchased = Object.values(state.upgrades)
-    .some((upgrade): upgrade is Upgrade => 
+  const basicBlockchainPurchased = Object.entries(state.upgrades)
+    .some(([_, upgrade]) => 
       isInitialResearch(upgrade.id) && upgrade.purchased
     );
   
   // Фильтруем доступные исследования с явным приведением типов
-  const unlockedUpgrades = Object.values(state.upgrades)
-    .filter((upgrade): upgrade is Upgrade => upgrade.unlocked && !upgrade.purchased)
-    .filter(upgrade => {
+  const unlockedUpgrades = Object.entries(state.upgrades)
+    .filter(([_, upgrade]) => {
       // Если исследования еще не разблокированы, не показываем ничего
       if (!researchUnlocked) return false;
       
       // Если это "Основы блокчейна", показываем когда разблокировано исследование
-      if (isInitialResearch(upgrade.id)) return true;
+      if (isInitialResearch(upgrade.id)) return upgrade.unlocked && !upgrade.purchased;
       
       // Если "Основы блокчейна" не куплены, скрываем все остальные исследования
       if (!basicBlockchainPurchased) return false;
@@ -46,7 +45,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         // Проверяем, все ли требуемые исследования куплены
         return upgrade.requiredUpgrades.every(
           reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-        );
+        ) && upgrade.unlocked && !upgrade.purchased;
       }
       
       // Проверяем требования в другом формате
@@ -57,7 +56,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         if (requiredUpgrades.length > 0) {
           return requiredUpgrades.every(
             reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-          );
+          ) && upgrade.unlocked && !upgrade.purchased;
         }
       }
       
@@ -65,25 +64,33 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       
       // "Основы криптовалют" должны появиться после покупки "Основы блокчейна"
       if (upgrade.id === 'cryptoCurrencyBasics') {
-        return basicBlockchainPurchased;
+        return basicBlockchainPurchased && upgrade.unlocked && !upgrade.purchased;
       }
       
       // "Безопасность криптокошельков" появляется после покупки криптокошелька
       if (upgrade.id === 'walletSecurity') {
-        return state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0;
+        return state.buildings.cryptoWallet && 
+               state.buildings.cryptoWallet.count > 0 && 
+               upgrade.unlocked && 
+               !upgrade.purchased;
       }
       
       // "Оптимизация алгоритмов" появляется после покупки автомайнера
       if (upgrade.id === 'algorithmOptimization') {
-        return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
+        return state.buildings.autoMiner && 
+               state.buildings.autoMiner.count > 0 && 
+               upgrade.unlocked && 
+               !upgrade.purchased;
       }
       
       return false;
-    });
+    })
+    .map(([_, upgrade]) => upgrade as Upgrade);
   
   // Купленные исследования с явным приведением типов
-  const purchasedUpgrades = Object.values(state.upgrades)
-    .filter((upgrade): upgrade is Upgrade => upgrade.purchased);
+  const purchasedUpgrades = Object.entries(state.upgrades)
+    .filter(([_, upgrade]) => upgrade.purchased)
+    .map(([_, upgrade]) => upgrade as Upgrade);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {

@@ -13,17 +13,18 @@ interface EquipmentTabProps {
 const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
-  // Фильтрация зданий с явным приведением типов
-  const unlockedBuildings = Object.values(state.buildings)
-    .filter((b): b is Building => b.unlocked && b.id !== "practice")
+  // Фильтрация зданий с явным приведением типов через Object.entries
+  const unlockedBuildings = Object.entries(state.buildings)
+    .filter(([_, b]) => b.unlocked && b.id !== "practice")
     // Дополнительная проверка для системы охлаждения - должна быть разблокирована и соответствовать требованиям
-    .filter(b => {
+    .filter(([_, b]) => {
       // Для системы охлаждения проверяем, что есть как минимум 2 компьютера
       if (b.id === "coolingSystem") {
         return state.buildings.homeComputer && state.buildings.homeComputer.count >= 2;
       }
       return true;
-    });
+    })
+    .map(([_, b]) => b as Building);
 
   return (
     <div className="building-container">
