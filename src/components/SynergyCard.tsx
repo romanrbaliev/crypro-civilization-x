@@ -7,7 +7,7 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from '@/components/ui/tooltip';
-import { Puzzle, CheckCircle, Lock } from 'lucide-react';
+import { Puzzle, CheckCircle } from 'lucide-react';
 import { formatEffect } from '@/utils/researchUtils';
 import { useGame } from '@/context/hooks/useGame';
 import { SpecializationSynergy, Upgrade } from '@/context/types';
