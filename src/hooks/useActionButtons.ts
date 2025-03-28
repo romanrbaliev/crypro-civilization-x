@@ -54,7 +54,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Обработчик нажатия кнопки "Изучить крипту"
   const handleLearnClick = useCallback(() => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
-    // Убираем уведомление "Получено 1 знание" - больше не отправляем событие
+    // Не отправляем событие "Получено 1 знание" в журнал
   }, [dispatch]);
   
   // Обработчик нажатия кнопки "Применить знания"

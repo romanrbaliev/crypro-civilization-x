@@ -135,16 +135,19 @@ const processMining = (
     }
     
     // Параметры майнинга
-    const { miningEfficiency, networkDifficulty, exchangeRate } = state.miningParams;
+    const { miningEfficiency, networkDifficulty } = state.miningParams;
     
-    // Расчет добычи BTC за единицу времени для всех майнеров
-    const btcMined = minerCount * miningEfficiency * (computingPower.value / networkDifficulty) * deltaTime;
+    // Расчет скорости добычи BTC для отображения (количество в секунду)
+    const btcPerSecond = minerCount * miningEfficiency * (computingPower.value / networkDifficulty);
+    
+    // Расчет добычи BTC за текущий deltaTime
+    const btcMined = btcPerSecond * deltaTime;
     
     // Добавляем добытый BTC
     btc.value += btcMined;
     
-    // Устанавливаем скорость добычи для отображения (не накопительно)
-    btc.perSecond = minerCount * miningEfficiency * (computingPower.value / networkDifficulty);
+    // Устанавливаем скорость добычи для отображения
+    btc.perSecond = btcPerSecond;
     
     // Логируем для отладки
     console.log(`Майнинг: добыто ${btcMined.toFixed(8)} BTC (${minerCount} майнеров, эффективность: ${miningEfficiency})`);
