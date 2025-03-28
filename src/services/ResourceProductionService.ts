@@ -444,6 +444,17 @@ export class ResourceProductionService {
     resources: { [key: string]: Resource },
     buildings: { [key: string]: Building }
   ): void {
+    // Проверяем наличие системы охлаждения и её эффект на потребление электричества
+    const coolingSystem = buildings.coolingSystem;
+    const hasCoolingSystem = coolingSystem && coolingSystem.count > 0 && coolingSystem.unlocked;
+    
+    // Коэффициент снижения потребления электричества (20% при наличии системы охлаждения)
+    const electricityEfficiencyBonus = hasCoolingSystem ? 0.2 : 0;
+    
+    if (hasCoolingSystem) {
+      console.log(`Система охлаждения активна: -${electricityEfficiencyBonus * 100}% к потреблению электричества компьютерами`);
+    }
+    
     Object.values(buildings).forEach(building => {
       if (building.count <= 0 || !building.consumption || !building.unlocked) return;
       
@@ -452,8 +463,18 @@ export class ResourceProductionService {
         const resource = resources[resourceId];
         
         if (resource && resource.unlocked) {
-          // Рассчитываем общее потребление
-          const consumptionAmount = Number(amount) * building.count;
+          // Применяем снижение потребления электричества для компьютерного оборудования
+          let consumptionAmount = Number(amount) * building.count;
+          
+          // Снижаем потребление электричества для компьютерного оборудования
+          if (resourceId === 'electricity' && electricityEfficiencyBonus > 0 && 
+              (building.id === 'homeComputer' || building.id === 'autoMiner')) {
+            // Снижаем потребление электричества на процент от эффективности системы охлаждения
+            const reduction = consumptionAmount * electricityEfficiencyBonus;
+            consumptionAmount -= reduction;
+            
+            console.log(`Система охлаждения снижает потребление электричества для ${building.name} на ${reduction.toFixed(3)} (${electricityEfficiencyBonus * 100}%)`);
+          }
           
           // Вычитаем потребление из perSecond
           resource.perSecond -= consumptionAmount;

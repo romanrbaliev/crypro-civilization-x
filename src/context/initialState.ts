@@ -93,7 +93,7 @@ export const initialBuildings: { [key: string]: Building } = {
   coolingSystem: {
     id: "coolingSystem",
     name: "Система охлаждения",
-    description: "Снижает потребление электричества компьютеров на 20%",
+    description: "Снижает потребление электричества компьютерами на 20%",
     cost: { usdt: 200, electricity: 50 },
     costMultiplier: 1.3,
     production: { electricityEfficiencyBoost: 0.2 },

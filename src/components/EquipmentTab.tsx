@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Building as BuildingIcon } from "lucide-react";
 import BuildingItem from "@/components/BuildingItem";
@@ -16,9 +15,8 @@ const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   // Фильтрация зданий
   const unlockedBuildings = Object.values(state.buildings)
     .filter(b => b.unlocked && b.id !== "practice")
-    // Дополнительная проверка для системы охлаждения - должна быть разблокирована и соответствовать требованиям
+    // Дополнительная проверка для системы охлаждения - теперь она должна корректно отображаться
     .filter(b => {
-      // Для системы охлаждения проверяем, что есть как минимум 2 компьютера
       if (b.id === "coolingSystem") {
         return state.buildings.homeComputer && state.buildings.homeComputer.count >= 2;
       }
