@@ -36,9 +36,10 @@ interface GameProviderProps {
 }
 
 export function GameProvider({ children }: GameProviderProps) {
-  useEffect(() => {
-    ensureGameEventBus();
-  }, []);
+  const [initialGameState, initialDispatch] = useReducer(
+    gameReducer, 
+    { ...initialState, gameStarted: true, lastUpdate: Date.now(), lastSaved: Date.now() }
+  );
   
   const [loadedState, setLoadedState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +47,16 @@ export function GameProvider({ children }: GameProviderProps) {
   const [hasConnection, setHasConnection] = useState(true);
   const [gameInitialized, setGameInitialized] = useState(false);
   
+  const [state, dispatch] = useReducer(
+    gameReducer, 
+    loadedState || initialGameState
+  );
+  
   const isMountedRef = React.useRef(false);
+  
+  useEffect(() => {
+    ensureGameEventBus();
+  }, []);
   
   useEffect(() => {
     if (!isMountedRef.current) {
@@ -58,7 +68,6 @@ export function GameProvider({ children }: GameProviderProps) {
         if (isConnected) {
           await createSavesTableIfNotExists();
         } else {
-          // Уменьшаем частоту показа сообщений об ошибке соединения
           const now = Date.now();
           const lastErrorTime = window.__lastLoadErrorTime || 0;
           
@@ -76,14 +85,12 @@ export function GameProvider({ children }: GameProviderProps) {
       
       checkConnection();
       
-      // Снижаем частоту проверок соединения для уменьшения нагрузки
       const intervalId = setInterval(async () => {
         const isConnected = await checkSupabaseConnection();
         
         if (isConnected !== hasConnection) {
           setHasConnection(isConnected);
           
-          // Показываем уведомления только при значительных изменениях
           if (isConnected) {
             toast({
               title: "Соединение восстановлено",
@@ -148,7 +155,6 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   }, []);
   
-  // Улучшаем обработку случая отсутствия соединения - теперь игра продолжит работу
   if (!hasConnection && !isLoading) {
     return (
       <GameContext.Provider value={{ state, dispatch }}>
@@ -315,16 +321,6 @@ export function GameProvider({ children }: GameProviderProps) {
     
     loadSavedGame();
   }, [gameInitialized]);
-  
-  const [initialGameState, initialDispatch] = useReducer(
-    gameReducer, 
-    { ...initialState, gameStarted: true, lastUpdate: Date.now(), lastSaved: Date.now() }
-  );
-  
-  const [state, dispatch] = useReducer(
-    gameReducer, 
-    loadedState || initialGameState
-  );
   
   useEffect(() => {
     if (loadedState && !isLoading && gameInitialized) {
