@@ -30,6 +30,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Проверяем, были ли проблемы с ресурсами (остановка оборудования)
   checkResourcesForAlerts(state, newResources);
   
+  // Обработка майнинга BTC с учетом прошедшего времени
+  processMining(state, newResources, elapsedSeconds, miningParams);
+  
   // Создаем новое состояние
   let newState = {
     ...state,
@@ -46,15 +49,46 @@ export const processResourceUpdate = (state: GameState): GameState => {
   return newState;
 };
 
+// Функция обработки майнинга с учетом прошедшего времени
+const processMining = (
+  state: GameState, 
+  newResources: { [key: string]: any }, 
+  deltaTime: number,
+  miningParams: any
+): void => {
+  const { autoMiner } = state.buildings;
+  const { btc, electricity, computingPower } = newResources;
+  
+  // Проверка необходимых условий для майнинга
+  if (!autoMiner?.count || !btc?.unlocked || !electricity || !computingPower) {
+    return;
+  }
+  
+  // Проверка наличия ресурсов для майнинга
+  if (electricity.value <= 0 || computingPower.value <= 0) {
+    return;
+  }
+  
+  // Расчет объема добытых BTC за прошедшее время
+  const btcPerSecond = btc.perSecond;
+  if (btcPerSecond > 0) {
+    // Добавляем намайненное количество BTC за период
+    const minedBtc = btcPerSecond * deltaTime;
+    btc.value += minedBtc;
+    
+    console.log(`Майнинг: добыто ${minedBtc.toFixed(8)} BTC за ${deltaTime.toFixed(2)} сек.`);
+  }
+};
+
 // Обновление значений ресурсов с учетом времени
 const updateResourceValues = (
   resources: { [key: string]: any },
   deltaTime: number
 ) => {
-  // Обновляем значения каждого ресурса
+  // Обновляем значения каждого ресурса (кроме BTC, который обрабатывается отдельно)
   for (const resourceId in resources) {
     const resource = resources[resourceId];
-    if (!resource.unlocked) continue;
+    if (!resource.unlocked || resourceId === 'btc') continue;
     
     // Рассчитываем новое значение на основе производства за секунду
     let newValue = resource.value + resource.perSecond * deltaTime;

@@ -1,4 +1,3 @@
-
 import { GameState, Resource, Building, Upgrade } from '@/context/types';
 import { safeDispatchGameEvent } from '../context/utils/eventBusUtils';
 
@@ -383,8 +382,20 @@ export class ResourceProductionService {
     const { autoMiner } = state.buildings;
     const { electricity, computingPower, btc } = resources;
     
-    // Если нет необходимых ресурсов, майнинг не происходит
-    if (!autoMiner || autoMiner.count <= 0 || !electricity || !computingPower || !btc || !btc.unlocked) return;
+    // Если нет необходимых ресурсов или майнеров, майнинг не происходит
+    if (!autoMiner || autoMiner.count <= 0 || !electricity || !computingPower || !btc || !btc.unlocked) {
+      // Явно устанавливаем нулевую скорость майнинга, если условия не выполняются
+      if (btc && btc.unlocked) {
+        btc.perSecond = 0;
+      }
+      return;
+    }
+    
+    // Проверка наличия достаточного количества электричества и вычислительной мощности
+    if (electricity.value <= 0 || computingPower.value <= 0) {
+      btc.perSecond = 0;
+      return;
+    }
     
     // Количество автомайнеров
     const minerCount = autoMiner.count;
@@ -393,13 +404,25 @@ export class ResourceProductionService {
     const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
     const computingPowerConsumption = (autoMiner.consumption?.computingPower || 10) * minerCount;
     
+    // Проверка, есть ли достаточно ресурсов для потребления
+    const hasEnoughElectricity = electricity.perSecond >= -electricityConsumption;
+    const hasEnoughComputingPower = computingPower.perSecond >= -computingPowerConsumption;
+    
+    if (!hasEnoughElectricity || !hasEnoughComputingPower) {
+      btc.perSecond = 0;
+      return;
+    }
+    
     // Параметры майнинга
     const { miningEfficiency, networkDifficulty } = state.miningParams;
     
     // Расчет скорости добычи BTC для отображения (количество в секунду)
-    const btcPerSecond = minerCount * miningEfficiency * (computingPower.value / networkDifficulty);
+    // Используем фиксированный коэффициент для предотвращения бесконечного роста
+    const baseHashrate = minerCount * miningEfficiency;
+    const difficultyFactor = Math.max(1, networkDifficulty);
+    const btcPerSecond = baseHashrate / difficultyFactor;
     
-    // Устанавливаем скорость добычи для отображения
+    // Устанавливаем скорость добычи для отображения (не добавляем к предыдущему значению)
     btc.perSecond = btcPerSecond;
     
     console.log(`Майнинг: расчет скорости добычи ${btcPerSecond.toFixed(8)} BTC/сек (${minerCount} майнеров, эффективность: ${miningEfficiency})`);
