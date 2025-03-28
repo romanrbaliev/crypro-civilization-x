@@ -68,6 +68,20 @@ export const useGame = () => {
     };
   } catch (error) {
     console.error('Критическая ошибка в useGame:', error);
-    throw error; // Re-throw для отображения пользователю
+    // В случае критической ошибки возвращаем заглушку, чтобы приложение не упало полностью
+    // Это позволит отобразить сообщение об ошибке вместо белого экрана
+    const errorState = {
+      state: { error: true, message: error instanceof Error ? error.message : 'Неизвестная ошибка' },
+      dispatch: () => console.error('Dispatch недоступен из-за ошибки в useGame')
+    };
+    
+    return {
+      ...errorState,
+      forceUpdate: () => {},
+      updateHelpers: () => {},
+      isPageVisible: true,
+      resourceUpdateActive: false,
+      logGameState: () => {}
+    } as any; // Используем any только для обработки ошибок
   }
 };

@@ -10,22 +10,24 @@ export const initializeTelegram = (): void => {
     return;
   }
   
-  // Устанавливаем флаг принудительного режима по умолчанию
-  window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || false;
-  
-  // Проверяем наличие Telegram WebApp API
-  const isTgAvailable = isTelegramWebAppAvailable();
-  console.log(isTgAvailable ? '✅ Telegram WebApp обнаружен' : '⚠️ Telegram WebApp не обнаружен');
-  
-  if (!isTgAvailable) {
-    console.log('ℹ️ Используем стандартный режим');
-    return;
-  }
-  
   try {
+    // Устанавливаем флаг принудительного режима по умолчанию
+    window.__FORCE_TELEGRAM_MODE = window.__FORCE_TELEGRAM_MODE || false;
+    
+    // Проверяем наличие Telegram WebApp API
+    const isTgAvailable = isTelegramWebAppAvailable();
+    console.log(isTgAvailable ? '✅ Telegram WebApp обнаружен' : '⚠️ Telegram WebApp не обнаружен');
+    
+    if (!isTgAvailable) {
+      console.log('ℹ️ Используем стандартный режим');
+      window.__FORCE_TELEGRAM_MODE = false;
+      return;
+    }
+    
     // Безопасная проверка доступности Telegram объекта
     if (!window.Telegram || !window.Telegram.WebApp) {
       console.warn('⚠️ Объект Telegram.WebApp не доступен или не инициализирован');
+      window.__FORCE_TELEGRAM_MODE = false;
       return;
     }
     
@@ -45,7 +47,7 @@ export const initializeTelegram = (): void => {
       } catch (readyError) {
         console.error('❌ Ошибка при вызове tg.ready():', readyError);
       }
-    }, 50);
+    }, 100);
     
     // Безопасно разворачиваем приложение
     setTimeout(() => {
@@ -57,7 +59,7 @@ export const initializeTelegram = (): void => {
       } catch (expandError) {
         console.error('❌ Ошибка при вызове tg.expand():', expandError);
       }
-    }, 100);
+    }, 200);
     
     // Сохраняем информацию о пользователе, если доступна
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -71,8 +73,14 @@ export const initializeTelegram = (): void => {
     } else {
       console.warn('⚠️ Данные пользователя Telegram отсутствуют или недоступны');
     }
+    
+    // Устанавливаем флаг инициализации
+    window.__telegramInitialized = true;
+    
   } catch (error) {
     console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
+    window.__FORCE_TELEGRAM_MODE = false;
+    window.__telegramInitialized = false;
   }
 };
 
@@ -101,4 +109,3 @@ export const getTelegramWebApp = () => {
     return null;
   }
 };
-
