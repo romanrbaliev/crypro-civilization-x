@@ -1,3 +1,4 @@
+
 import { Resource, Building, Upgrade, GameState, Counter, MiningParams } from './types';
 import { generateReferralCode } from '@/utils/helpers';
 
@@ -275,7 +276,7 @@ export const initialResources: { [key: string]: Resource } = {
     value: 0,
     perSecond: 0,
     unlocked: false,
-    max: 0.001
+    max: 0.1 // Увеличили максимум хранения BTC
   },
   reputation: {
     id: "reputation",

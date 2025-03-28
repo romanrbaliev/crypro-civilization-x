@@ -391,12 +391,23 @@ export class ResourceProductionService {
       return;
     }
     
+    // Проверяем достаточность ресурсов для майнинга
+    const availableElectricity = electricity.value;
+    const availableComputingPower = computingPower.value;
+    
     // Количество автомайнеров
     const minerCount = autoMiner.count;
     
     // Потребление ресурсов майнерами
     const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
-    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 10) * minerCount;
+    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 2) * minerCount;
+    
+    // Проверяем, достаточно ли ресурсов для работы всех майнеров
+    if (availableElectricity < electricityConsumption || availableComputingPower < computingPowerConsumption) {
+      console.log(`⚠️ Недостаточно ресурсов для майнинга: электричество ${availableElectricity}/${electricityConsumption}, вычисл. мощность ${availableComputingPower}/${computingPowerConsumption}`);
+      btc.perSecond = 0;
+      return;
+    }
     
     // Базовая скорость производства BTC: 0.00005 BTC за секунду на один майнер
     const baseBtcPerSecond = 0.00005;

@@ -40,7 +40,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
         ? Math.floor(max / 1000) + "K" 
         : Math.floor(max).toString();
   
-  // Форматирование скорости производства с учетом K и M для тысяч и миллионов
+  // Форматирование скорости производства с учетом типа ресурса и K/M для тысяч/миллионов
   const formattedPerSecond = 
     Math.abs(perSecond) >= 1000000 
       ? (perSecond / 1000000).toFixed(1).replace('.0', '') + "M" 

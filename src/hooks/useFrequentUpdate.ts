@@ -17,20 +17,30 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
   const [isActive, setIsActive] = useState(true);
   
   useEffect(() => {
-    // Используем более редкий интервал, чтобы избежать проблем с накоплением вызовов
-    // и предотвратить экспоненциальный рост значений при множественных обновлениях
-    const interval = 250; // 250 мс (4 раза в секунду) для более стабильного обновления
-    
-    // Интервал обновления модели
+    // Обновление ресурсов каждые 250 мс (4 раза в секунду)
     const updateInterval = setInterval(() => {
       if (isActive && state.gameStarted) {
         // Отправляем запрос на обновление ресурсов
         dispatch({ type: 'UPDATE_RESOURCES' });
       }
-    }, interval);
+    }, 250);
+    
+    // Проверка наличия производства BTC и корректной работы майнинга
+    const btcCheckInterval = setInterval(() => {
+      if (isActive && state.gameStarted && state.resources.btc && state.resources.btc.unlocked) {
+        const btcResource = state.resources.btc;
+        if (btcResource.perSecond > 0 && btcResource.value === 0) {
+          console.log("⚠️ BTC не накапливается, хотя скорость производства положительная. Перезапускаем обновление...");
+          dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+        }
+      }
+    }, 5000); // Проверка каждые 5 секунд
     
     // Очистка при размонтировании
-    return () => clearInterval(updateInterval);
+    return () => {
+      clearInterval(updateInterval);
+      clearInterval(btcCheckInterval);
+    };
   }, [dispatch, resourceId, isActive, state.gameStarted]);
   
   // Возвращаем функцию для управления состоянием активности
