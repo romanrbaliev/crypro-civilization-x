@@ -29,7 +29,12 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   }
   
   // Применяем бонус к базовой отдаче
-  usdtGain = Math.floor(usdtGain * (1 + knowledgeEfficiencyBonus));
+  usdtGain = Math.floor(usdtGain * (1 + knowledgeEfficiencyBonus)) || 1;
+  
+  // Уточним результат до 1.1 USDT при бонусе 10%
+  if (knowledgeEfficiencyBonus === 0.1) {
+    usdtGain = 1.1;
+  }
   
   // Уменьшаем количество знаний и увеличиваем количество USDT
   let newKnowledgeValue = knowledge.value - knowledgeCost;

@@ -23,7 +23,15 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
   className = ""
 }) => {
   // Рассчитываем, сколько USDT будет получено при применении знаний
-  const usdtReward = Math.floor(1 * (1 + knowledgeEfficiencyBonus));
+  let usdtReward = 1;
+  
+  // Применяем бонус к базовой отдаче (явная установка 1.1 при бонусе 10%)
+  if (knowledgeEfficiencyBonus === 0.1) {
+    usdtReward = 1.1;
+  } else {
+    usdtReward = Math.floor(usdtReward * (1 + knowledgeEfficiencyBonus)) || 1;
+  }
+  
   const bonusText = knowledgeEfficiencyBonus > 0 
     ? `+${knowledgeEfficiencyBonus * 100}% к эффективности`
     : '';

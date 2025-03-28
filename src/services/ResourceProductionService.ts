@@ -391,12 +391,6 @@ export class ResourceProductionService {
       return;
     }
     
-    // Проверка наличия достаточного количества электричества и вычислительной мощности
-    if (electricity.value <= 0 || computingPower.value <= 0) {
-      btc.perSecond = 0;
-      return;
-    }
-    
     // Количество автомайнеров
     const minerCount = autoMiner.count;
     
@@ -404,19 +398,10 @@ export class ResourceProductionService {
     const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
     const computingPowerConsumption = (autoMiner.consumption?.computingPower || 10) * minerCount;
     
-    // Проверка, есть ли достаточно ресурсов для потребления
-    const hasEnoughElectricity = electricity.perSecond >= -electricityConsumption;
-    const hasEnoughComputingPower = computingPower.perSecond >= -computingPowerConsumption;
-    
-    if (!hasEnoughElectricity || !hasEnoughComputingPower) {
-      btc.perSecond = 0;
-      return;
-    }
-    
     // Базовая скорость производства BTC: 0.00005 BTC за секунду на один майнер
     const baseBtcPerSecond = 0.00005;
     
-    // Получаем бонус к майнингу от исследований (например, от "Оптимизация алгоритмов")
+    // Получаем бонус к майнингу от исследований
     let miningEfficiencyBonus = 1.0; // Начальный множитель без бонусов
     
     // Проверяем исследования, влияющие на эффективность майнинга
