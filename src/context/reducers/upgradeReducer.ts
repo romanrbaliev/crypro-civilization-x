@@ -1,9 +1,8 @@
-
 import { GameState, Upgrade } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { checkUnlockConditions } from '@/utils/researchUtils';
-import { checkUpgradeUnlocks, UNLOCK_SEQUENCES } from '@/utils/unlockSystem';
+import { checkUpgradeUnlocks } from '@/utils/unlockSystem';
 
 // Обработка покупки улучшений
 export const processPurchaseUpgrade = (
