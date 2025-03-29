@@ -10,7 +10,10 @@ interface ResourceListProps {
 
 // Используем memo для предотвращения лишних перерисовок
 const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
-  if (resources.length === 0) {
+  // Фильтруем только разблокированные ресурсы
+  const unlockedResources = resources.filter(resource => resource.unlocked);
+  
+  if (unlockedResources.length === 0) {
     return (
       <div className="text-center py-4 text-sm text-gray-500">
         Нет доступных ресурсов
@@ -20,12 +23,12 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
 
   return (
     <div className="space-y-0.5 text-xs">
-      {resources.map((resource, index) => (
+      {unlockedResources.map((resource, index) => (
         <React.Fragment key={resource.id}>
           <div className="py-1">
             <ResourceDisplay resource={resource} />
           </div>
-          {index < resources.length - 1 && (
+          {index < unlockedResources.length - 1 && (
             <Separator className="my-0.5" />
           )}
         </React.Fragment>

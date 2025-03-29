@@ -1,3 +1,4 @@
+
 import { Resource, Building, Upgrade, GameState, Counter, MiningParams } from './types';
 import { generateReferralCode } from '@/utils/helpers';
 
@@ -235,7 +236,7 @@ export const initialResources: { [key: string]: Resource } = {
     icon: "",
     value: 0,
     perSecond: 0,
-    unlocked: false,
+    unlocked: false, // Убедимся, что USDT начинается как заблокированный
     max: 50
   },
   electricity: {

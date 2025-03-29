@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -58,13 +59,13 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const handleLearnClick = useCallback(() => {
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
     
-    // ВАЖНОЕ ИСПРАВЛЕНИЕ: Увеличиваем счетчик кликов знаний при каждом клике
+    // Увеличиваем счетчик кликов знаний при каждом клике
     dispatch({ 
       type: "INCREMENT_COUNTER", 
       payload: { counterId: "knowledgeClicks", value: 1 }
     });
     
-    // ИСПРАВЛЕНО: Убираем отправку события в журнал о получении знания
+    // Убираем отправку события в журнал о получении знания
     // Не отправляем событие "Получено 1 знание" в журнал
   }, [dispatch]);
   

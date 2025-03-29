@@ -1,3 +1,4 @@
+
 // Функции для проверки и обработки разблокировок возможностей в игре
 
 import { GameState } from '@/context/types';
@@ -159,7 +160,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
 export const checkResourceUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // ИСПРАВЛЕНИЕ: Ресурс USDT должен разблокироваться только после 2-х применений знаний
+  // USDT разблокируется только после 2-х применений знаний
   if (state.resources.usdt && !state.resources.usdt.unlocked && 
       state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2) {
     console.log("🔓 Разблокирован ресурс 'USDT'");
