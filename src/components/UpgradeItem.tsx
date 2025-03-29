@@ -16,6 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { formatEffectName, formatEffect, getSpecializationName } from '@/utils/researchUtils';
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 
 interface UpgradeItemProps {
   upgrade: any;
@@ -156,34 +157,45 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
     return "bg-gray-100 text-gray-500";
   };
   
+  // Новый стиль карточки, похожий на карточки зданий
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={`border p-2 rounded-lg ${upgrade.purchased ? 'border-green-200 bg-green-50' : 'border-gray-200'} flex justify-between items-center`}>
-            <div className="flex-1">
+          <div className={`rounded-lg overflow-hidden shadow-sm flex flex-col ${upgrade.purchased ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} border`}>
+            <div className="flex items-center justify-between p-2 border-b border-gray-100">
               <div className="flex items-center">
-                <h3 className="text-xs font-medium">
-                  {upgrade.name}
-                  {upgrade.purchased && <Sparkles className="h-3 w-3 text-amber-500 ml-1 inline" />}
-                  {!upgrade.unlocked && <Lock className="h-3 w-3 text-gray-400 ml-1 inline" />}
-                  {hasMissingDependencies() && <AlertCircle className="h-3 w-3 text-red-400 ml-1 inline" />}
-                </h3>
-                {renderSpecialization()}
+                <div>
+                  <h3 className="text-xs font-medium flex items-center">
+                    {upgrade.name}
+                    {upgrade.purchased && <Sparkles className="h-3 w-3 text-amber-500 ml-1" />}
+                    {!upgrade.unlocked && <Lock className="h-3 w-3 text-gray-400 ml-1" />}
+                    {hasMissingDependencies() && <AlertCircle className="h-3 w-3 text-red-400 ml-1" />}
+                    {renderSpecialization()}
+                  </h3>
+                  <p className="text-[8px] text-gray-500 mt-0.5 max-w-[220px] truncate">
+                    {upgrade.description}
+                  </p>
+                </div>
               </div>
-              <div className="mt-1 text-gray-500 text-[8px] truncate max-w-[200px]">
-                {upgrade.description}
-              </div>
-            </div>
-            <div className="flex flex-col items-end space-y-1">
+              
               {!upgrade.purchased && (
-                <div className="text-right">
+                <div className="text-right text-xs">
                   {renderCost()}
                 </div>
               )}
-              <div className="text-right">
+            </div>
+            
+            <div className="p-2 flex justify-between items-center">
+              <div className="text-xs">
+                <div className="text-blue-600">{renderEffects()}</div>
+              </div>
+              
+              <div className="flex justify-end ml-auto">
                 {upgrade.purchased ? (
-                  <span className="text-xs text-green-600">Исследовано</span>
+                  <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded">
+                    Исследовано
+                  </span>
                 ) : (
                   <Button
                     size="sm"
