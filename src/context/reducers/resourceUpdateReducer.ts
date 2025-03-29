@@ -4,6 +4,9 @@ import { checkAllUnlocks } from '@/utils/unlockSystem';
 import { ResourceProductionService } from '@/services/ResourceProductionService';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
+// Создаем экземпляр сервиса для использования
+const resourceProductionService = new ResourceProductionService();
+
 // Обработчик обновления состояния ресурсов и производства
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
@@ -21,8 +24,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
     return state;
   }
   
-  // Используем централизованный сервис для расчета производства ресурсов
-  newResources = ResourceProductionService.calculateResourceProduction(state);
+  // Используем экземпляр сервиса для расчета производства ресурсов
+  newResources = resourceProductionService.calculateResourceProduction(state);
   
   // Обновляем значения ресурсов на основе времени
   updateResourceValues(newResources, elapsedSeconds);
