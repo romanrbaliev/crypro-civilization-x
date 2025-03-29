@@ -7,6 +7,7 @@ import useVisibilityOptimizer from '@/hooks/useVisibilityOptimizer';
 
 export const useGame = () => {
   const context = useContext(GameContext);
+  
   if (!context) {
     throw new Error('useGame must be used within a GameProvider');
   }
@@ -23,7 +24,6 @@ export const useGame = () => {
   });
   
   // Активируем/деактивируем частые обновления в зависимости от видимости страницы
-  // Используем useEffect, чтобы избежать бесконечного цикла ререндеринга
   useEffect(() => {
     setActive(isPageVisible);
   }, [isPageVisible, setActive]);

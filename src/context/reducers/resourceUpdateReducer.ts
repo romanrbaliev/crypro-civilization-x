@@ -27,6 +27,26 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Используем экземпляр сервиса для расчета производства ресурсов
   newResources = resourceProductionService.calculateResourceProduction(state);
   
+  // Проверяем, что критические ресурсы существуют и разблокированы
+  if (!newResources.usdt || !newResources.usdt.unlocked) {
+    console.log("⚠️ Ресурс USDT не найден или не разблокирован, принудительно восстанавливаем");
+    newResources.usdt = {
+      ...state.resources.usdt || {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стейблкоин, универсальная валюта для покупок',
+        type: 'currency',
+        icon: 'coins',
+        value: state.usdtBalance || 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 50,
+        unlocked: true
+      }
+    };
+  }
+  
   // Обновляем значения ресурсов на основе времени
   updateResourceValues(newResources, elapsedSeconds);
   
