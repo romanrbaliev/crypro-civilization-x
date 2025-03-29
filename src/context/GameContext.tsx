@@ -1,3 +1,4 @@
+
 import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
@@ -24,8 +25,6 @@ export interface GameContextProps {
 }
 
 export const GameContext = createContext<GameContextProps | undefined>(undefined);
-
-export { useGame } from './hooks/useGame';
 
 const SAVE_INTERVAL = 15 * 1000;
 
@@ -203,3 +202,9 @@ export function GameProvider({ children }: GameProviderProps) {
     </GameContext.Provider>
   );
 }
+
+// ВАЖНО: Этот хук напрямую экспортируется из файла GameContext
+// Но фактически его реализация находится в useGame.ts
+// Это может вызывать конфликты
+// Удалим эту строку и оставим только чистый экспорт из useGame.ts
+// export { useGame } from './hooks/useGame';

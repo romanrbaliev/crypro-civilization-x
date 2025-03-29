@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useGame } from "@/context/hooks/useGame";
+import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
