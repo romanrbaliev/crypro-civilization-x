@@ -27,11 +27,12 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Используем экземпляр сервиса для расчета производства ресурсов
   newResources = resourceProductionService.calculateResourceProduction(state);
   
-  // Гарантируем, что критические ресурсы всегда существуют
-  const criticalResources = ['knowledge', 'usdt', 'electricity', 'computingPower', 'btc'];
+  // Проверяем наличие только тех критических ресурсов, которые уже разблокированы
+  // Это предотвращает преждевременное появление ресурсов
+  const criticalResources = ['knowledge', 'usdt'];
   for (const resourceId of criticalResources) {
-    if (!newResources[resourceId] || !newResources[resourceId].unlocked) {
-      console.log(`⚠️ Критический ресурс ${resourceId} не найден или не разблокирован, восстанавливаем...`);
+    if (!newResources[resourceId] && state.unlocks[resourceId]) {
+      console.log(`⚠️ Критический ресурс ${resourceId} не найден, но должен быть доступен, восстанавливаем...`);
       
       // Берем значение из state.resources если оно есть, или создаем новый объект
       const baseValue = state.resources[resourceId]?.value || 0;
@@ -42,6 +43,14 @@ export const processResourceUpdate = (state: GameState): GameState => {
         'computingPower': 'Вычислительная мощность для майнинга',
         'btc': 'Биткоин - первая и основная криптовалюта'
       }[resourceId] || 'Ресурс игры';
+      
+      const baseName = {
+        'knowledge': 'Знания',
+        'usdt': 'USDT',
+        'electricity': 'Электричество',
+        'computingPower': 'Вычислительная мощность',
+        'btc': 'BTC'
+      }[resourceId] || resourceId.charAt(0).toUpperCase() + resourceId.slice(1);
       
       const baseIcon = {
         'knowledge': 'book',
@@ -62,7 +71,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
       newResources[resourceId] = {
         ...state.resources[resourceId],
         id: resourceId,
-        name: resourceId === 'usdt' ? 'USDT' : resourceId.charAt(0).toUpperCase() + resourceId.slice(1),
+        name: baseName,
         description: baseDescription,
         type: resourceId === 'usdt' || resourceId === 'btc' ? 'currency' : 'resource',
         icon: baseIcon,
@@ -74,6 +83,56 @@ export const processResourceUpdate = (state: GameState): GameState => {
         unlocked: true
       };
     }
+  }
+  
+  // Добавляем по запросу только те ресурсы, которые должны быть разблокированы
+  // но не были автоматически добавлены
+  if (state.unlocks.electricity && !newResources.electricity) {
+    newResources.electricity = {
+      id: 'electricity',
+      name: 'Электричество',
+      description: 'Электроэнергия для питания устройств',
+      type: 'resource',
+      icon: 'zap',
+      value: 0,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 100,
+      unlocked: true
+    };
+  }
+  
+  if (state.unlocks.computingPower && !newResources.computingPower) {
+    newResources.computingPower = {
+      id: 'computingPower',
+      name: 'Вычислительная мощность',
+      description: 'Вычислительная мощность для майнинга',
+      type: 'resource',
+      icon: 'cpu',
+      value: 0,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 1000,
+      unlocked: true
+    };
+  }
+  
+  if (state.unlocks.btc && !newResources.btc) {
+    newResources.btc = {
+      id: 'btc',
+      name: 'BTC',
+      description: 'Биткоин - первая и основная криптовалюта',
+      type: 'currency',
+      icon: 'bitcoin',
+      value: 0,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 1,
+      unlocked: true
+    };
   }
   
   // Обновляем значения ресурсов на основе времени
