@@ -60,6 +60,23 @@ export class ResourceProductionService {
       }
     }
     
+    // Особая обработка BTC для майнеров
+    if (state.buildings.autoMiner && 
+        state.buildings.autoMiner.count > 0 && 
+        updatedResources.btc && 
+        updatedResources.btc.unlocked) {
+      // Производим BTC в зависимости от количества автомайнеров
+      const btcPerSecond = 0.00005 * state.buildings.autoMiner.count;
+      updatedResources.btc.perSecond = btcPerSecond;
+      
+      // Применяем бонусы майнинга, если есть
+      if (state.miningParams && state.miningParams.miningEfficiency) {
+        updatedResources.btc.perSecond *= state.miningParams.miningEfficiency;
+      }
+      
+      console.log(`Расчет производства BTC: ${btcPerSecond} в секунду от ${state.buildings.autoMiner.count} автомайнеров`);
+    }
+    
     // Рассчитываем производство от зданий
     for (const buildingId in state.buildings) {
       const building = state.buildings[buildingId];
@@ -107,6 +124,9 @@ export class ResourceProductionService {
           case 'miner':
             if (resourceId === 'computingPower') {
               updatedResources[resourceId].perSecond *= 1.25; // +25% к вычислительной мощности
+            }
+            if (resourceId === 'btc') {
+              updatedResources[resourceId].perSecond *= 1.40; // +40% к производству BTC для майнеров
             }
             break;
           case 'trader':

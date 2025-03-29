@@ -290,8 +290,11 @@ export function checkUpgradeUnlocks(state: GameState): GameState {
         break;
       
       case "cryptoTrading":
+      case "cryptoCurrencyTrading": 
         // "Криптовалютный трейдинг" разблокируется после покупки Улучшенного кошелька
         shouldUnlock = UNLOCK_SEQUENCES.CRYPTO_TRADING(state);
+        console.log(`Проверка разблокировки криптотрейдинга: ${shouldUnlock}`);
+        console.log(`Улучшенный кошелек доступен: ${state.buildings.improvedWallet?.count > 0}`);
         break;
         
       default:

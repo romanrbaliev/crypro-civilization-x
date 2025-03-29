@@ -30,6 +30,18 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Обновляем значения ресурсов на основе времени
   updateResourceValues(newResources, elapsedSeconds);
   
+  // Специальная обработка для BTC
+  if (state.buildings.autoMiner?.count > 0 && newResources.btc?.unlocked) {
+    // Убедимся, что BTC правильно обновляется от автомайнеров
+    if (newResources.btc?.perSecond === 0) {
+      console.log("Принудительно устанавливаем производство BTC от автомайнеров");
+      newResources.btc.perSecond = 0.00005 * state.buildings.autoMiner.count;
+      if (state.miningParams?.miningEfficiency) {
+        newResources.btc.perSecond *= state.miningParams.miningEfficiency;
+      }
+    }
+  }
+  
   // Проверяем, были ли проблемы с ресурсами (остановка оборудования)
   checkResourcesForAlerts(state, newResources);
   
