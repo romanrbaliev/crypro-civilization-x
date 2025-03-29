@@ -292,6 +292,23 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     safeDispatchGameEvent("Открыта возможность приобрести «Улучшенный кошелек»", "success");
   }
   
+  // НОВОЕ: Автомайнер разблокируется после изучения основ криптовалют
+  if (state.buildings.autoMiner && !state.buildings.autoMiner.unlocked && 
+      state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased) {
+    console.log("🔓 Разблокировано здание 'Автомайнер' после изучения основ криптовалют");
+    newState = {
+      ...newState,
+      buildings: {
+        ...newState.buildings,
+        autoMiner: {
+          ...newState.buildings.autoMiner,
+          unlocked: true
+        }
+      }
+    };
+    safeDispatchGameEvent("Открыта возможность приобрести «Автомайнер»", "success");
+  }
+  
   return newState;
 };
 

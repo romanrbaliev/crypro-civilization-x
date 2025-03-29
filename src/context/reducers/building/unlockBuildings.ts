@@ -32,6 +32,29 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     }
   }
   
+  // НОВОЕ: Добавляем дополнительную проверку для автомайнера
+  if (state.buildings.autoMiner && !state.buildings.autoMiner.unlocked) {
+    // Проверяем, куплено ли исследование "Основы криптовалют"
+    const isCryptoCurrencyBasicsPurchased = (
+      state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased
+    );
+    
+    if (isCryptoCurrencyBasicsPurchased) {
+      console.log("Принудительная разблокировка автомайнера по наличию исследования 'Основы криптовалют'");
+      state = {
+        ...state,
+        buildings: {
+          ...state.buildings,
+          autoMiner: {
+            ...state.buildings.autoMiner,
+            unlocked: true
+          }
+        }
+      };
+      safeDispatchGameEvent("Разблокирован автомайнер! Теперь вы можете автоматически майнить криптовалюту.", "info");
+    }
+  }
+  
   // Добавим принудительную проверку разблокировки улучшенного кошелька
   if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count >= 10 && 
       state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked) {

@@ -70,6 +70,24 @@ export const processPurchaseUpgrade = (
     // Явно обновляем параметры для "Основы криптовалют"
     console.log("Применение эффектов 'Основы криптовалют': +10% к эффективности");
     // Эффекты этого исследования обрабатываются в processApplyKnowledge
+    
+    // НОВОЕ: Явно разблокируем автомайнер после изучения основ криптовалют
+    if (newState.buildings.autoMiner) {
+      console.log("Разблокируем автомайнер после изучения Основ криптовалют");
+      newState = {
+        ...newState,
+        buildings: {
+          ...newState.buildings,
+          autoMiner: {
+            ...newState.buildings.autoMiner,
+            unlocked: true
+          }
+        }
+      };
+      safeDispatchGameEvent("Открыта возможность приобрести «Автомайнер»", "success");
+    } else {
+      console.warn("Здание autoMiner отсутствует в состоянии!");
+    }
   }
   
   // ЦЕНТРАЛИЗОВАННАЯ ОБРАБОТКА РАЗБЛОКИРОВОК ПО ИССЛЕДОВАНИЯМ
