@@ -341,6 +341,7 @@ export const initialState: GameState = {
   referredBy: null,
   referrals: [],
   referralHelpers: [],
+  specialization: undefined,
   specializationSynergies: {},
   knowledge: 0,
   btcPrice: 0,

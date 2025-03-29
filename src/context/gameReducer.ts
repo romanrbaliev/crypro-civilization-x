@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
@@ -6,7 +5,8 @@ import { initialState } from './initialState';
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
 import { 
   processPurchaseBuilding, 
-  processSellBuilding 
+  processSellBuilding,
+  processChooseSpecialization 
 } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
@@ -178,7 +178,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     }
     
     case "APPLY_ALL_KNOWLEDGE": {
-      // После прим��нения всех знаний принудительно пересчитываем максимумы ресурсов
+      // После применения всех знаний принудительно пересчитываем максимумы ресурсов
       newState = processApplyAllKnowledge(state);
       return updateResourceMaxValues(newState);
     }
@@ -208,7 +208,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       console.log("Принудительное обновление ресурсов и бонусов");
       // Сначала обновляем производство ресурсов
       const updatedState = processResourceUpdate(state);
-      // Проверяем разблокиров��и
+      // Проверяем разблокировки
       const checkedState = checkAllUnlocks(updatedState);
       // Затем пересчитываем максимальные значения ресурсов
       return updateResourceMaxValues(checkedState);
@@ -226,6 +226,9 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       const resourcesUpdated = processResourceUpdate(updatedState);
       return updateResourceMaxValues(resourcesUpdated);
     }
+    
+    case "CHOOSE_SPECIALIZATION": 
+      return processChooseSpecialization(state, action.payload);
     
     default:
       return state;

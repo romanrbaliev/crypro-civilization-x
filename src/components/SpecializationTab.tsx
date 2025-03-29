@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Lightbulb, User, BadgeAlert } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { roles } from "@/utils/gameConfig";
+import { toast } from "@/hooks/use-toast";
 
 interface SpecializationTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -20,7 +21,6 @@ interface SpecializationTabProps {
 
 const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
   
   // Проверяем, доступен ли выбор специализации
   const canChooseSpecialization = state.phase >= 3;
@@ -30,9 +30,20 @@ const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => 
   
   // Обработчик выбора специализации
   const handleChooseSpecialization = (roleId: string) => {
-    // Здесь будет логика выбора специализации
-    // Пока только уведомление
-    setSelectedRole(roleId);
+    if (state.specialization === roleId) {
+      toast({
+        title: "Специализация уже выбрана",
+        description: `Вы уже выбрали специализацию ${roles[roleId].name}`,
+        variant: "default",
+      });
+      return;
+    }
+    
+    dispatch({ 
+      type: "CHOOSE_SPECIALIZATION", 
+      payload: { roleId } 
+    });
+    
     onAddEvent(`Выбрана специализация: ${roles[roleId].name}`, "success");
   };
   
@@ -55,7 +66,7 @@ const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => 
         <SpecializationCard 
           key={role.id}
           role={role}
-          isSelected={selectedRole === role.id}
+          isSelected={state.specialization === role.id}
           onSelect={() => handleChooseSpecialization(role.id)}
         />
       ))}
@@ -90,6 +101,9 @@ const SpecializationCard: React.FC<{
     trader: { icon: <span className="text-lg">📈</span>, color: "bg-blue-100 text-blue-800" },
     miner: { icon: <span className="text-lg">⛏️</span>, color: "bg-stone-100 text-stone-800" },
     influencer: { icon: <span className="text-lg">🌐</span>, color: "bg-purple-100 text-purple-800" },
+    analyst: { icon: <span className="text-lg">📊</span>, color: "bg-green-100 text-green-800" },
+    founder: { icon: <span className="text-lg">🚀</span>, color: "bg-red-100 text-red-800" },
+    arbitrageur: { icon: <span className="text-lg">⚖️</span>, color: "bg-indigo-100 text-indigo-800" },
   };
   
   const spec = specializations[role.id] || { icon: <User size={16} />, color: "bg-gray-100 text-gray-800" };
@@ -166,7 +180,11 @@ const formatBonusName = (key: string, value: string): string => {
     blockFindChance: `${value} к шансу нахождения блока`,
     subscriberGrowth: `${value} к росту подписчиков`,
     reputationEfficiency: `${value} к эффективности репутации`,
-    marketInfluence: `${value} к влиянию на рынок`
+    marketInfluence: `${value} к влиянию на рынок`,
+    fundingEfficiency: `${value} к эффективности сбора средств`,
+    projectDevelopmentSpeed: `${value} к скорости разработки проектов`,
+    arbitrageProfitBoost: `${value} к прибыли от арбитража`,
+    arbitrageOpportunitySpeed: `${value} к скорости обнаружения арбитража`
   };
   
   return bonusNames[key] || `${key}: ${value}`;

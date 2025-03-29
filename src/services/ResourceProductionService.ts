@@ -1,512 +1,161 @@
+import { GameState } from '@/context/types';
+import { Building } from '@/context/types';
+import { Upgrade } from '@/context/types';
 
-import { GameState, Resource, Building, Upgrade } from '@/context/types';
-import { safeDispatchGameEvent } from '../context/utils/eventBusUtils';
+// Добавим импорт ролей
+import { roles } from '@/utils/gameConfig';
 
-/**
- * Централизованный сервис для расчета производства ресурсов
- */
+interface ResourceBonuses {
+  knowledge: number;
+  usdt: number;
+  electricity: number;
+  computingPower: number;
+}
+
 export class ResourceProductionService {
-  /**
-   * Расчет производства ресурсов на основе текущего состояния игры
-   */
-  static calculateResourceProduction(state: GameState): { [key: string]: Resource } {
-    // Создаем копию ресурсов, чтобы не изменять оригинал
-    const newResources = JSON.parse(JSON.stringify(state.resources));
-    
-    // Сбрасываем текущие значения производства
-    this.resetProductionValues(newResources);
-    
-    // Применяем базовое производство от зданий
-    this.applyBuildingProduction(newResources, state.buildings);
-    
-    // Применяем бонусы от улучшений
-    this.applyUpgradeBoosts(newResources, state.upgrades);
-    
-    // Применяем бонусы от рефералов
-    this.applyReferralBoosts(newResources, state);
-    
-    // Применяем бонусы от помощников
-    this.applyHelperBoosts(newResources, state);
-    
-    // Применяем бонусы от специализации
-    this.applySpecializationBoosts(newResources, state);
-    
-    // Применяем бонусы от интернет-канала и других инфраструктурных зданий
-    this.applyInfrastructureBoosts(newResources, state.buildings);
-    
-    // Применяем потребление ресурсов
-    this.applyResourceConsumption(newResources, state.buildings);
+  calculateBuildingProduction(building: Building): { [resourceId: string]: number } {
+    const production: { [resourceId: string]: number } = {};
 
-    // Обрабатываем майнинг Bitcoin
-    this.processBitcoinMining(newResources, state);
-    
-    // Логируем результаты расчета для отладки
-    this.logProductionResults(newResources);
-    
-    return newResources;
-  }
-  
-  /**
-   * Сброс текущих значений производства ресурсов
-   */
-  private static resetProductionValues(resources: { [key: string]: Resource }): void {
-    Object.keys(resources).forEach(resourceId => {
-      resources[resourceId].production = 0;
-      resources[resourceId].perSecond = 0;
-      
-      // Инициализируем объект с бустами, если его нет
-      if (!resources[resourceId].boosts) {
-        resources[resourceId].boosts = {};
-      } else {
-        // Очищаем существующие бусты
-        resources[resourceId].boosts = {};
-      }
-    });
-  }
-  
-  /**
-   * Применение базового производства от зданий
-   */
-  private static applyBuildingProduction(
-    resources: { [key: string]: Resource },
-    buildings: { [key: string]: Building }
-  ): void {
-    Object.values(buildings).forEach(building => {
-      if (building.count <= 0 || !building.unlocked) return;
-      
-      const { production = {}, id: buildingId } = building;
-      
-      // Для каждого ресурса, который производит здание
-      Object.entries(production).forEach(([productionType, amount]) => {
-        // Пропускаем эффекты на максимум и бусты
-        if (productionType.includes('Max') || productionType.includes('Boost')) return;
-        
-        // Получаем ресурс для обновления
-        const resourceId = productionType;
-        const resource = resources[resourceId];
-        
-        if (resource && resource.unlocked) {
-          // Рассчитываем базовое производство с учетом множителя здания
-          const productionAmount = Number(amount) * building.count * (1 + (building.productionBoost || 0));
-          
-          // Обновляем значения производства
-          resource.production += productionAmount;
-          resource.perSecond += productionAmount;
-          
-          // Добавляем информацию о производстве в объект здания
-          if (!building.resourceProduction) {
-            building.resourceProduction = {};
-          }
-          
-          building.resourceProduction[resourceId] = productionAmount;
-          
-          console.log(`Здание ${building.name} (${building.count} шт.) производит ${productionAmount.toFixed(3)} ${resource.name}/сек`);
-        }
-      });
-    });
-  }
-  
-  /**
-   * Применение бонусов от улучшений
-   */
-  private static applyUpgradeBoosts(
-    resources: { [key: string]: Resource },
-    upgrades: { [key: string]: Upgrade }
-  ): void {
-    Object.values(upgrades).forEach(upgrade => {
-      if (!upgrade.purchased) return;
-      
-      const effects = upgrade.effects || {};
-      
-      // Обрабатываем каждый эффект улучшения
-      Object.entries(effects).forEach(([effectType, value]) => {
-        // Прямое увеличение производства ресурса (например, knowledgeBoost)
-        if (effectType.endsWith('Boost') && !effectType.includes('Max')) {
-          const resourceId = effectType.replace('Boost', '');
-          const resource = resources[resourceId];
-          
-          if (resource && resource.unlocked) {
-            const boostValue = Number(value);
-            const productionBoost = resource.production * boostValue;
-            
-            // Добавляем буст от улучшения
-            if (!resource.boosts) resource.boosts = {};
-            if (!resource.boosts[upgrade.id]) resource.boosts[upgrade.id] = 0;
-            
-            resource.boosts[upgrade.id] = productionBoost;
-            resource.perSecond += productionBoost;
-            
-            console.log(`Улучшение ${upgrade.name} увеличивает производство ${resource.name} на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
-          }
-        }
-        
-        // Проверяем на прямые типы ресурсов с ProductionBoost
-        if (effectType.endsWith('ProductionBoost')) {
-          const resourceId = effectType.replace('ProductionBoost', '');
-          const resource = resources[resourceId];
-          
-          if (resource && resource.unlocked) {
-            const boostValue = Number(value);
-            const productionBoost = resource.production * boostValue;
-            
-            // Добавляем буст от улучшения
-            if (!resource.boosts) resource.boosts = {};
-            if (!resource.boosts[upgrade.id]) resource.boosts[upgrade.id] = 0;
-            
-            resource.boosts[upgrade.id] = productionBoost;
-            resource.perSecond += productionBoost;
-            
-            console.log(`Улучшение ${upgrade.name} увеличивает производство ${resource.name} на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
-          }
-        }
-      });
-    });
-  }
-  
-  /**
-   * Применение бонусов от рефералов
-   */
-  private static applyReferralBoosts(
-    resources: { [key: string]: Resource },
-    state: GameState
-  ): void {
-    // Подсчет активных рефералов
-    const activeReferrals = state.referrals.filter(ref => {
-      if (typeof ref.activated === 'boolean') {
-        return ref.activated === true;
-      } else if (typeof ref.activated === 'string') {
-        return ref.activated.toLowerCase() === 'true';
-      }
-      return false;
-    });
-    
-    // Базовый бонус: +5% за каждого акт��вного рефера��а
-    const referralBonus = activeReferrals.length * 0.05;
-    
-    if (referralBonus > 0) {
-      // Применяем бонус ко всем ресурсам
-      Object.keys(resources).forEach(resourceId => {
-        const resource = resources[resourceId];
-        
-        if (resource.unlocked && resource.production > 0) {
-          const bonusAmount = resource.production * referralBonus;
-          
-          // Добавляем буст от рефералов
-          if (!resource.boosts) resource.boosts = {};
-          if (!resource.boosts['referrals']) resource.boosts['referrals'] = 0;
-          
-          resource.boosts['referrals'] = bonusAmount;
-          resource.perSecond += bonusAmount;
-          
-          console.log(`Бонус от ${activeReferrals.length} рефералов: +${(referralBonus * 100).toFixed(0)}% к производству ${resource.name} (+${bonusAmount.toFixed(3)}/сек)`);
-        }
-      });
+    for (const resourceId in building.production) {
+      production[resourceId] = building.production[resourceId] || 0;
     }
+
+    return production;
   }
-  
-  /**
-   * Применение бонусов от помощников
-   */
-  private static applyHelperBoosts(
-    resources: { [key: string]: Resource },
-    state: GameState
-  ): void {
-    const { buildings, referralHelpers, referralCode } = state;
-    
-    // Бонусы от помощников для реферрера (владельца зданий)
-    if (referralHelpers.length > 0 && referralCode) {
-      // Группируем помощников по зданиям
-      const buildingHelperMap: { [buildingId: string]: number } = {};
-      
-      referralHelpers.forEach(helper => {
-        if (helper.status === 'accepted' && helper.employerId === referralCode) {
-          buildingHelperMap[helper.buildingId] = (buildingHelperMap[helper.buildingId] || 0) + 1;
-        }
-      });
-      
-      // Применяем бонусы для каждого здания с помощниками
-      Object.entries(buildingHelperMap).forEach(([buildingId, helperCount]) => {
-        const building = buildings[buildingId];
-        
-        if (building && building.count > 0 && building.resourceProduction) {
-          // Расчет бонуса от помощников: +10% за каждого помощника
-          const helperBonus = helperCount * 0.1;
-          
-          // Для каждого ресурса, производимого зданием
-          Object.entries(building.resourceProduction).forEach(([resourceId, baseProduction]) => {
-            const resource = resources[resourceId];
-            
-            if (resource && resource.unlocked) {
-              const bonusAmount = Number(baseProduction) * helperBonus;
-              
-              // Добавляем буст от помощников
-              if (!resource.boosts) resource.boosts = {};
-              if (!resource.boosts[`helpers_${buildingId}`]) resource.boosts[`helpers_${buildingId}`] = 0;
-              
-              resource.boosts[`helpers_${buildingId}`] = bonusAmount;
-              resource.perSecond += bonusAmount;
-              
-              console.log(`Бонус от ${helperCount} помощников для здания ${building.name}: +${(helperBonus * 100).toFixed(0)}% к производству ${resource.name} (+${bonusAmount.toFixed(3)}/сек)`);
-            }
-          });
-        }
-      });
+
+  calculateBuildingConsumption(building: Building): { [resourceId: string]: number } {
+    const consumption: { [resourceId: string]: number } = {};
+
+    for (const resourceId in building.consumption) {
+      consumption[resourceId] = building.consumption[resourceId] || 0;
     }
-    
-    // Бонус для самого игрока, если он является помощником в других зданиях
-    try {
-      const currentUserId = window.__game_user_id || localStorage.getItem('crypto_civ_user_id');
-      if (currentUserId) {
-        // Проверяем, где текущий пользователь выступает в роли помощника
-        const whereIAmHelper = referralHelpers.filter(h => 
-          h.helperId === currentUserId && h.status === 'accepted'
-        );
-        
-        const helperBuildingsCount = whereIAmHelper.length;
-        
-        if (helperBuildingsCount > 0) {
-          // Базовое производство знаний получает бонус от статуса помощника
-          const helperBonus = helperBuildingsCount * 0.1; // 10% за каждое здание
-          
-          // Проходим по всем ресурсам
-          Object.keys(resources).forEach(resourceId => {
-            const resource = resources[resourceId];
-            
-            if (resource.unlocked && resource.production > 0) {
-              const bonusAmount = resource.production * helperBonus;
-              
-              // Добавляем буст от статуса помощника
-              if (!resource.boosts) resource.boosts = {};
-              if (!resource.boosts['helper_status']) resource.boosts['helper_status'] = 0;
-              
-              resource.boosts['helper_status'] = bonusAmount;
-              resource.perSecond += bonusAmount;
-              
-              console.log(`Статус помощника (${helperBuildingsCount} зданий) даёт бонус +${(helperBonus * 100).toFixed(0)}% к производству ${resource.name} (+${bonusAmount.toFixed(3)}/сек)`);
-            }
-          });
+
+    return consumption;
+  }
+
+  calculateUpgradeEffects(upgrade: Upgrade): { [effectId: string]: number } {
+    return upgrade.effects || {};
+  }
+
+  calculateBuildingBonuses(state: GameState): { [buildingId: string]: number } {
+    const bonuses: { [buildingId: string]: number } = {};
+
+    for (const buildingId in state.buildings) {
+      bonuses[buildingId] = state.buildings[buildingId].productionBoost || 0;
+    }
+
+    return bonuses;
+  }
+
+  calculateResourceProduction(state: GameState): { [resourceId: string]: number } {
+    const production: { [resourceId: string]: number } = {};
+
+    for (const buildingId in state.buildings) {
+      const building = state.buildings[buildingId];
+      if (building.unlocked) {
+        const buildingProduction = this.calculateBuildingProduction(building);
+        for (const resourceId in buildingProduction) {
+          production[resourceId] = (production[resourceId] || 0) + buildingProduction[resourceId] * building.count;
         }
       }
-    } catch (error) {
-      console.error("Ошибка при расчете бонусов помощника:", error);
     }
+
+    return production;
   }
-  
-  /**
-   * Применение бонусов от специализации
-   */
-  private static applySpecializationBoosts(
-    resources: { [key: string]: Resource },
-    state: GameState
-  ): void {
-    // Получаем активные синергии специализации
-    const activeSynergies = Object.values(state.specializationSynergies || {}).filter(
-      synergy => synergy.active
-    );
-    
-    // Применяем бонусы от каждой активной синергии
-    activeSynergies.forEach(synergy => {
-      const { bonus = {}, name } = synergy;
-      
-      // Обрабатываем каждый бонус синергии
-      Object.entries(bonus).forEach(([bonusType, value]) => {
-        // Бонус к производству ресурса
-        if (bonusType.endsWith('ProductionBoost')) {
-          const resourceId = bonusType.replace('ProductionBoost', '');
-          const resource = resources[resourceId];
-          
-          if (resource && resource.unlocked) {
-            const boostValue = Number(value);
-            const productionBoost = resource.production * boostValue;
-            
-            // Добавляем буст от синергии
-            if (!resource.boosts) resource.boosts = {};
-            if (!resource.boosts[`synergy_${synergy.id}`]) resource.boosts[`synergy_${synergy.id}`] = 0;
-            
-            resource.boosts[`synergy_${synergy.id}`] = productionBoost;
-            resource.perSecond += productionBoost;
-            
-            console.log(`Синергия "${name}" увеличивает производство ${resource.name} на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
-          }
+
+  calculateResourceConsumption(state: GameState): { [resourceId: string]: number } {
+    const consumption: { [resourceId: string]: number } = {};
+
+    for (const buildingId in state.buildings) {
+      const building = state.buildings[buildingId];
+      if (building.unlocked) {
+        const buildingConsumption = this.calculateBuildingConsumption(building);
+        for (const resourceId in buildingConsumption) {
+          consumption[resourceId] = (consumption[resourceId] || 0) + buildingConsumption[resourceId] * building.count;
         }
-      });
-    });
-  }
-  
-  /**
-   * Применение бонусов от интернет-канала и других инфраструктурных зданий
-   */
-  private static applyInfrastructureBoosts(
-    resources: { [key: string]: Resource },
-    buildings: { [key: string]: Building }
-  ): void {
-    // Проверяем наличие интернет-канала
-    const internetConnection = buildings.internetConnection;
-    if (internetConnection && internetConnection.count > 0 && internetConnection.unlocked) {
-      // Применяем 20% бонус к производству знаний
-      const knowledgeResource = resources.knowledge;
-      if (knowledgeResource && knowledgeResource.unlocked) {
-        // Добавляем буст от интернет-канала
-        const boostValue = 0.2; // 20% бонус
-        const productionBoost = knowledgeResource.production * boostValue;
-        
-        if (!knowledgeResource.boosts) knowledgeResource.boosts = {};
-        knowledgeResource.boosts['internetConnection'] = productionBoost;
-        knowledgeResource.perSecond += productionBoost;
-        
-        console.log(`Интернет-канал (${internetConnection.count} шт.) увеличивает производство знаний на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
-      }
-      
-      // Применяем 5% бонус к эффективности вычислительной мощности
-      const computingPowerResource = resources.computingPower;
-      if (computingPowerResource && computingPowerResource.unlocked) {
-        // Добавляем буст к вычислительной мощности
-        const boostValue = 0.05; // 5% бонус
-        const productionBoost = computingPowerResource.production * boostValue;
-        
-        if (!computingPowerResource.boosts) computingPowerResource.boosts = {};
-        computingPowerResource.boosts['internetConnection'] = productionBoost;
-        computingPowerResource.perSecond += productionBoost;
-        
-        console.log(`Интернет-канал (${internetConnection.count} шт.) увеличивает эффективность вычислит. мощности на ${(boostValue * 100).toFixed(0)}% (+${productionBoost.toFixed(3)}/сек)`);
       }
     }
+
+    return consumption;
   }
-  
-  /**
-   * Обработка майнинга Bitcoin
-   */
-  private static processBitcoinMining(
-    resources: { [key: string]: Resource },
-    state: GameState
-  ): void {
-    const { autoMiner } = state.buildings;
-    const { electricity, computingPower, btc } = resources;
-    
-    // Если нет необходимых ресурсов или майнеров, майнинг не происходит
-    if (!autoMiner || autoMiner.count <= 0 || !electricity || !computingPower || !btc || !btc.unlocked) {
-      // Явно устанавливаем нулевую скорость майнинга, если условия не выполняются
-      if (btc && btc.unlocked) {
-        btc.perSecond = 0;
+
+  calculateUpgradeBonuses(state: GameState): { [upgradeId: string]: number } {
+    const bonuses: { [upgradeId: string]: number } = {};
+
+    for (const upgradeId in state.upgrades) {
+      if (state.upgrades[upgradeId].purchased) {
+        const upgrade = state.upgrades[upgradeId];
+        const upgradeEffects = this.calculateUpgradeEffects(upgrade);
+
+        for (const effectId in upgradeEffects) {
+          bonuses[effectId] = (bonuses[effectId] || 0) + upgradeEffects[effectId];
+        }
       }
-      return;
     }
-    
-    // Проверяем, достаточно ли ресурсов для работы майнеров
-    const hasEnoughElectricity = electricity.value > 0;
-    const hasEnoughComputingPower = computingPower.value > 0;
-    
-    if (!hasEnoughElectricity || !hasEnoughComputingPower) {
-      // Если недостаточно ресурсов, устанавливаем нулевую скорость майнинга
-      btc.perSecond = 0;
-      return;
-    }
-    
-    // Количество автомайнеров
-    const minerCount = autoMiner.count;
-    
-    // Потребление ресурсов майнерами
-    const electricityConsumption = (autoMiner.consumption?.electricity || 2) * minerCount;
-    const computingPowerConsumption = (autoMiner.consumption?.computingPower || 10) * minerCount;
-    
-    // Базовая скорость производства BTC: 0.00005 BTC за секунду на один майнер
-    const baseBtcPerSecond = 0.00005;
-    
-    // Получаем бонус к майнингу от исследований
-    let miningEfficiencyBonus = 1.0; // Начальный множитель без бонусов
-    
-    // Проверяем исследования, влияющие на эффективность майнинга
-    if (state.upgrades.algorithmOptimization && state.upgrades.algorithmOptimization.purchased) {
-      // +15% к эффективности майнинга от "Оптимизация алгоритмов"
-      miningEfficiencyBonus += 0.15;
-      console.log("Применен бонус от исследования 'Оптимизация алгоритмов': +15% к майнингу");
-    }
-    
-    if (state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased) {
-      // +10% к эффективности майнинга от "Основы криптовалют"
-      miningEfficiencyBonus += 0.10;
-      console.log("Применен бонус от исследования 'Основы криптовалют': +10% к майнингу");
-    }
-    
-    // Финальная скорость добычи BTC с учетом количества майнеров и бонусов
-    const btcPerSecond = baseBtcPerSecond * minerCount * miningEfficiencyBonus;
-    
-    // Устанавливаем скорость добычи
-    btc.perSecond = btcPerSecond;
-    
-    console.log(`Майнинг: скорость добычи составляет ${btcPerSecond.toFixed(8)} BTC/сек (${minerCount} майнеров, множитель эффективности: ${miningEfficiencyBonus.toFixed(2)})`);
+
+    return bonuses;
   }
-  
-  /**
-   * Применение потребления ресурсов
-   */
-  private static applyResourceConsumption(
-    resources: { [key: string]: Resource },
-    buildings: { [key: string]: Building }
-  ): void {
-    // Проверяем наличие системы охлаждения и её эффект на потребление электричества
-    const coolingSystem = buildings.coolingSystem;
-    const hasCoolingSystem = coolingSystem && coolingSystem.count > 0 && coolingSystem.unlocked;
-    
-    // Коэффициент снижения потребления электричества (20% при наличии системы охлаждения)
-    const electricityEfficiencyBonus = hasCoolingSystem ? 0.2 : 0;
-    
-    if (hasCoolingSystem) {
-      console.log(`Система охлаждения активна: -${electricityEfficiencyBonus * 100}% к потреблению электричества компьютерами`);
+
+  // Обновим метод calculateResourceBonuses, чтобы учитывать бонусы специализации
+  calculateResourceBonuses(state: GameState): ResourceBonuses {
+    const bonuses: ResourceBonuses = {
+      knowledge: 0,
+      usdt: 0,
+      electricity: 0,
+      computingPower: 0
+    };
+
+    // Бонусы от зданий
+    for (const buildingId in state.buildings) {
+      const building = state.buildings[buildingId];
+      bonuses[buildingId] = building.productionBoost || 0;
     }
-    
-    Object.values(buildings).forEach(building => {
-      if (building.count <= 0 || !building.consumption || !building.unlocked) return;
+
+    // Бонусы от улучшений
+    const upgradeBonuses = this.calculateUpgradeBonuses(state);
+    for (const bonusType in upgradeBonuses) {
+      bonuses[bonusType] = (bonuses[bonusType] || 0) + upgradeBonuses[bonusType];
+    }
+
+    // Бонусы от специализации
+    if (state.specialization && roles[state.specialization]) {
+      const roleData = roles[state.specialization];
+      const roleBonuses = roleData.bonuses;
       
-      // Обрабатываем каждый тип потребляемого ресурса
-      Object.entries(building.consumption).forEach(([resourceId, amount]) => {
-        const resource = resources[resourceId];
-        
-        if (resource && resource.unlocked) {
-          // Применяем снижение потребления электричества для компьютерного оборудования
-          let consumptionAmount = Number(amount) * building.count;
-          
-          // Снижаем потребление электричества для компьютерного оборудования
-          if (resourceId === 'electricity' && electricityEfficiencyBonus > 0 && 
-              (building.id === 'homeComputer' || building.id === 'autoMiner')) {
-            // Снижаем потребление электричества на процент от эффективности системы охлаждения
-            const reduction = consumptionAmount * electricityEfficiencyBonus;
-            consumptionAmount -= reduction;
-            
-            console.log(`Система охлаждения снижает потребление электричества для ${building.name} на ${reduction.toFixed(3)} (${electricityEfficiencyBonus * 100}%)`);
-          }
-          
-          // Вычитаем потребление из perSecond
-          resource.perSecond -= consumptionAmount;
-          
-          console.log(`Здание ${building.name} (${building.count} шт.) потребляет ${consumptionAmount.toFixed(3)} ${resource.name}/сек`);
-        }
-      });
-    });
-  }
-  
-  /**
-   * Логирование результатов расчета для отладки
-   */
-  private static logProductionResults(resources: { [key: string]: Resource }): void {
-    console.log('=== Итоговое производство ресурсов ===');
-    
-    Object.values(resources)
-      .filter(resource => resource.unlocked)
-      .forEach(resource => {
-        const boostedProduction = resource.perSecond;
-        const baseProduction = resource.production;
-        
-        // Выводим только для ресурсов с производством или потреблением
-        if (boostedProduction !== 0 || baseProduction !== 0) {
-          if (boostedProduction > baseProduction) {
-            console.log(`${resource.name}: ${baseProduction.toFixed(3)}/сек (база) → ${boostedProduction.toFixed(3)}/сек (с бонусами) [+${(boostedProduction - baseProduction).toFixed(3)}]`);
-          } else if (boostedProduction < baseProduction) {
-            console.log(`${resource.name}: ${baseProduction.toFixed(3)}/сек (база) → ${boostedProduction.toFixed(3)}/сек (с потреблением) [${(boostedProduction - baseProduction).toFixed(3)}]`);
-          } else {
-            console.log(`${resource.name}: ${baseProduction.toFixed(3)}/сек (без бонусов и потребления)`);
-          }
-        }
-      });
+      // Применяем соответствующие бонусы специализации
+      if (roleBonuses.hashrateEfficiency) {
+        bonuses.computingPower += roleBonuses.hashrateEfficiency;
+      }
+      
+      // Для каждой специализации добавляем соответствующие бонусы
+      switch (state.specialization) {
+        case 'miner':
+          // Майнер получает бонус к вычислительной мощности
+          bonuses.computingPower += 0.1; // +10% к вычислительной мощности
+          break;
+        case 'trader':
+          // Трейдер получает бонус к получению USDT
+          bonuses.usdt += 0.05; // +5% к получению USDT
+          break;
+        case 'investor':
+          // Инвестор получает общий бонус ко всем ресурсам
+          bonuses.knowledge += 0.03; // +3% к получению знаний
+          bonuses.usdt += 0.03; // +3% к получению USDT
+          bonuses.electricity += 0.03; // +3% к получению электричества
+          bonuses.computingPower += 0.03; // +3% к вычислительной мощности
+          break;
+        case 'analyst':
+          // Аналитик получает бонус к получению знаний
+          bonuses.knowledge += 0.15; // +15% к получению знаний
+          break;
+        case 'influencer':
+          // Инфлюенсер получает небольшой бонус ко всем ресурсам
+          bonuses.knowledge += 0.05; // +5% к получению знаний
+          bonuses.usdt += 0.05; // +5% к получению USDT
+          break;
+      }
+    }
+
+    return bonuses;
   }
 }

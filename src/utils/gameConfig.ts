@@ -76,51 +76,84 @@ export const resources = {
   }
 };
 
-// Роли
+// Определение ролей специализации
 export const roles = {
   investor: {
     id: "investor",
     name: "Инвестор",
-    description: "Фокус на долгосрочные инвестиции и диверсификацию",
+    description: "Фокус на долгосрочных инвестициях и диверсификации портфеля",
+    phase: 3,
     bonuses: {
       stakingIncome: 0.15,
-      maxCrypto: 0.10,
+      maxCrypto: 0.1,
       portfolioVolatility: -0.05
-    },
-    phase: 3
+    }
   },
   trader: {
     id: "trader",
     name: "Трейдер",
-    description: "Фокус на краткосрочную торговлю и использование волатильности",
+    description: "Фокус на краткосрочной торговле и использовании волатильности",
+    phase: 3,
     bonuses: {
-      tradingProfit: 0.20,
+      tradingProfit: 0.2,
       tradeSpeed: 0.15,
-      automationBonus: 0.10
-    },
-    phase: 3
+      automationBonus: 0.1
+    }
   },
   miner: {
     id: "miner",
     name: "Майнер",
-    description: "Фокус на создание инфраструктуры для поддержания сети",
+    description: "Создание инфраструктуры для поддержания сети и майнинга",
+    phase: 3,
     bonuses: {
       hashrateEfficiency: 0.25,
-      energyConsumption: -0.10,
+      energyConsumption: -0.1,
       blockFindChance: 0.15
-    },
-    phase: 3
+    }
   },
   influencer: {
     id: "influencer",
     name: "Инфлюенсер",
-    description: "Фокус на социальное влияние и формирование общественного мнения",
+    description: "Социальное влияние и формирование общественного мнения",
+    phase: 3,
     bonuses: {
-      subscriberGrowth: 0.30,
-      reputationEfficiency: 0.20,
-      marketInfluence: 0.15
-    },
-    phase: 3
+      subscriberGrowth: 0.3,
+      reputationEfficiency: 0.2,
+      marketInfluence: 0.1
+    }
+  },
+  analyst: {
+    id: "analyst",
+    name: "Аналитик",
+    description: "Исследование рынка и прогнозирование трендов",
+    phase: 4,
+    bonuses: {
+      knowledgeBoost: 0.25,
+      projectDiscoveryChance: 0.15,
+      earlyWarningSystem: 0.1
+    }
+  },
+  founder: {
+    id: "founder",
+    name: "Фаундер",
+    description: "Создание и развитие собственных проектов",
+    phase: 4,
+    bonuses: {
+      fundingEfficiency: 0.2,
+      projectDevelopmentSpeed: 0.15,
+      tokenCreation: 0.1
+    }
+  },
+  arbitrageur: {
+    id: "arbitrageur",
+    name: "Арбитражник",
+    description: "Использование ценовых различий между рынками",
+    phase: 4,
+    bonuses: {
+      arbitrageProfitBoost: 0.25,
+      arbitrageOpportunitySpeed: 0.2,
+      transferFeeReduction: 0.1
+    }
   }
 };
 
@@ -351,7 +384,7 @@ export const techTreeUpgrades = {
   cryptoCurrencyBasics: {
     id: "cryptoCurrencyBasics",
     name: "Основы криптовалют",
-    description: "Изучение принципов работы различных криптовалют",
+    description: "Изучение принципов работы ��азличных криптовалют",
     category: "blockchain",
     tier: 1,
     cost: { knowledge: 100 },
