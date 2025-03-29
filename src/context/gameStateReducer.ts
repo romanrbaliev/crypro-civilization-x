@@ -1,4 +1,3 @@
-
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
@@ -7,14 +6,17 @@ import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
   // Обеспечиваем, что USDT заблокирован при старте новой игры
+  const usdtResource = state.resources.usdt || initialState.resources.usdt;
+  
   let newState = {
     ...state,
     gameStarted: true,
     lastUpdate: Date.now(),
     resources: {
       ...state.resources,
+      // Явно создаем usdt ресурс для удовлетворения требований типизации
       usdt: {
-        ...state.resources.usdt,
+        ...usdtResource,
         unlocked: false // Принудительно блокируем USDT при старте новой игры
       }
     },
@@ -53,7 +55,7 @@ export const processLoadGame = (
     console.warn('⚠️ Нет данных для загрузки, используем начальное состояние');
     safeDispatchGameEvent('Нет данных для загрузки, начинаем новую игру', 'warning');
     
-    // Создаем новое состояние на основе initialState
+    // Создаем новое состояние на основе initialState и гарантируем наличие usdt
     const newInitialState: GameState = {
       ...initialState,
       gameStarted: true,
@@ -80,7 +82,7 @@ export const processLoadGame = (
     console.error('❌ Загруженные данные повреждены, используем начальное состояние');
     safeDispatchGameEvent('Загруженные данные повреждены, начинаем новую игру', 'error');
     
-    // Создаем новое состояние на основе initialState
+    // Создаем новое состояние на основе initialState и гарантируем наличие usdt
     const newInitialState: GameState = {
       ...initialState,
       gameStarted: true,
@@ -103,7 +105,7 @@ export const processLoadGame = (
   }
   
   // Клонируем загруженное состояние
-  let loadedState = JSON.parse(JSON.stringify(payload));
+  let loadedState = JSON.parse(JSON.stringify(payload)) as GameState;
   
   // Убеждаемся, что игра отмечена как запущенная
   loadedState.gameStarted = true;
@@ -224,7 +226,7 @@ export const processLoadGame = (
   console.log('✅ Загруженное состояние применено успешно');
   safeDispatchGameEvent('Прогресс успешно восстановлен', 'success');
   
-  return loadedState as GameState;
+  return loadedState;
 };
 
 // Обработка престижа (перезапуск с бонусами)

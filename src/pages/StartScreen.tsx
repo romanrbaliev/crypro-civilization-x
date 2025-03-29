@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/hooks/useGame';
@@ -106,17 +105,14 @@ const StartScreen = () => {
         } else {
           setHasExistingSave(false);
           
-          // Сразу сохраняем реферальную информацию для нового пользователя
+          // Сразу сохраняем реферальную информацию для ��ового пользователя
           if (state.referralCode) {
             await saveReferralInfo(state.referralCode, state.referredBy || null);
           }
           
           // НОВАЯ ИГРА: Перед запуском новой игры очищаем состояние
-          // Исправляем ошибку типизации - используем правильный формат действия
-          const newGameAction = { type: "START_GAME" as const };
-          
-          // Сбрасываем unlocks и убеждаемся, что USDT заблокирован
-          dispatch(newGameAction);
+          // Используем правильный тип для действия START_GAME
+          dispatch({ type: "START_GAME" });
           
           // Автоматически перенаправляем на экран игры
           navigate('/game');
@@ -126,7 +122,7 @@ const StartScreen = () => {
         setHasExistingSave(false);
         
         // Даже при ошибке запускаем новую игру и переходим на игровой экран
-        dispatch({ type: "START_GAME" as const });
+        dispatch({ type: "START_GAME" });
         navigate('/game');
       } finally {
         setIsLoading(false);
