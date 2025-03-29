@@ -54,20 +54,23 @@ export const processLoadGame = (
     safeDispatchGameEvent('Нет данных для загрузки, начинаем новую игру', 'warning');
     
     // Создаем новое состояние на основе initialState
-    const newInitialState = {
+    const newInitialState: GameState = {
       ...initialState,
       gameStarted: true,
       lastUpdate: Date.now(),
-      lastSaved: Date.now()
+      lastSaved: Date.now(),
+      resources: {
+        ...initialState.resources,
+        usdt: {
+          ...initialState.resources.usdt,
+          unlocked: false
+        }
+      },
+      unlocks: {
+        ...initialState.unlocks,
+        usdt: false
+      }
     };
-    
-    // Убеждаемся, что USDT заблокирован в новой игре
-    if (newInitialState.resources && newInitialState.resources.usdt) {
-      newInitialState.resources.usdt.unlocked = false;
-    }
-    if (newInitialState.unlocks) {
-      newInitialState.unlocks.usdt = false;
-    }
     
     return newInitialState;
   }
@@ -78,20 +81,23 @@ export const processLoadGame = (
     safeDispatchGameEvent('Загруженные данные повреждены, начинаем новую игру', 'error');
     
     // Создаем новое состояние на основе initialState
-    const newInitialState = {
+    const newInitialState: GameState = {
       ...initialState,
       gameStarted: true,
       lastUpdate: Date.now(),
-      lastSaved: Date.now()
+      lastSaved: Date.now(),
+      resources: {
+        ...initialState.resources,
+        usdt: {
+          ...initialState.resources.usdt,
+          unlocked: false
+        }
+      },
+      unlocks: {
+        ...initialState.unlocks,
+        usdt: false
+      }
     };
-    
-    // Убеждаемся, что USDT заблокирован в новой игре
-    if (newInitialState.resources && newInitialState.resources.usdt) {
-      newInitialState.resources.usdt.unlocked = false;
-    }
-    if (newInitialState.unlocks) {
-      newInitialState.unlocks.usdt = false;
-    }
     
     return newInitialState;
   }
@@ -129,29 +135,28 @@ export const processLoadGame = (
     if (!loadedState.resources[resourceKey]) {
       console.warn(`⚠️ Ресурс ${resourceKey} не найден в загруженном состоянии! Добавляем из initialState.`);
       loadedState.resources[resourceKey] = { ...initialState.resources[resourceKey] };
+    } else {
+      // Важное исправление: убедимся, что ресурсы имеют правильный статус разблокировки
+      // USDT должен быть заблокирован, если не выполнены условия
+      if (resourceKey === 'usdt') {
+        loadedState.resources.usdt.unlocked = false;
+        
+        if (loadedState.counters && 
+            loadedState.counters.applyKnowledge && 
+            loadedState.counters.applyKnowledge.value >= 2) {
+          // Разблокируем только если условие выполнено
+          loadedState.resources.usdt.unlocked = true;
+          loadedState.unlocks.usdt = true;
+          console.log('✅ USDT разблокирован: счетчик applyKnowledge >=2');
+        } else {
+          // Иначе явно блокируем
+          loadedState.resources.usdt.unlocked = false;
+          loadedState.unlocks.usdt = false;
+          console.log('🔒 USDT заблокирован: счетчик applyKnowledge < 2');
+        }
+      }
     }
   });
-  
-  // ВАЖНО: Проверка статуса разблокировки USDT - явно устанавливаем в зависимости от счетчика
-  if (loadedState.resources.usdt) {
-    // По умолчанию USDT заблокирован
-    loadedState.resources.usdt.unlocked = false;
-    
-    // Проверяем условие для разблокировки USDT
-    if (loadedState.counters && 
-        loadedState.counters.applyKnowledge && 
-        loadedState.counters.applyKnowledge.value >= 2) {
-      // Разблокируем только если условие выполнено
-      loadedState.resources.usdt.unlocked = true;
-      loadedState.unlocks.usdt = true;
-      console.log('✅ USDT разблокирован: счетчик applyKnowledge >=2');
-    } else {
-      // Иначе явно блокируем
-      loadedState.resources.usdt.unlocked = false;
-      loadedState.unlocks.usdt = false;
-      console.log('🔒 USDT заблокирован: счетчик applyKnowledge < 2');
-    }
-  }
   
   // Проверка и добавление новых полей, которые могли отсутствовать в сохранении
   if (!loadedState.specializationSynergies) {
@@ -219,7 +224,7 @@ export const processLoadGame = (
   console.log('✅ Загруженное состояние применено успешно');
   safeDispatchGameEvent('Прогресс успешно восстановлен', 'success');
   
-  return loadedState;
+  return loadedState as GameState;
 };
 
 // Обработка престижа (перезапуск с бонусами)

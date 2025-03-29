@@ -1,3 +1,4 @@
+
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -155,7 +156,7 @@ export type GameAction =
   | { type: "CHECK_SYNERGIES" }
   | { type: "ACTIVATE_SYNERGY"; payload: { synergyId: string } }
   | { type: "LOAD_GAME"; payload: GameState }
-  | { type: "START_GAME" }
+  | { type: "START_GAME" } // Явно указываем, что START_GAME не требует payload
   | { type: "PRESTIGE" }
   | { type: "RESET_GAME" }
   | { type: "RESTART_COMPUTERS" }

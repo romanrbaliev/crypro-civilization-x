@@ -112,7 +112,8 @@ const StartScreen = () => {
           }
           
           // НОВАЯ ИГРА: Перед запуском новой игры очищаем состояние
-          const newGameAction = { type: "START_GAME" };
+          // Исправляем ошибку типизации - используем правильный формат действия
+          const newGameAction = { type: "START_GAME" as const };
           
           // Сбрасываем unlocks и убеждаемся, что USDT заблокирован
           dispatch(newGameAction);
@@ -125,7 +126,7 @@ const StartScreen = () => {
         setHasExistingSave(false);
         
         // Даже при ошибке запускаем новую игру и переходим на игровой экран
-        dispatch({ type: "START_GAME" });
+        dispatch({ type: "START_GAME" as const });
         navigate('/game');
       } finally {
         setIsLoading(false);
