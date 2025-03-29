@@ -44,6 +44,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   // Флаг для определения, нужно ли использовать режим "применить все знания"
   const shouldApplyAll = shouldHideLearnButton;
   
+  // Проверяем условие разблокировки USDT - должно быть 2 и более применений знаний
+  const isUsdtUnlocked = state.resources.usdt.unlocked && 
+                      state.counters.applyKnowledge && 
+                      state.counters.applyKnowledge.value >= 2;
+  
   // Массив компонентов кнопок, которые будем рендерить
   const buttonComponents = [];
   
@@ -52,7 +57,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   console.log("Счетчик кликов знаний:", state.counters.knowledgeClicks?.value);
   
   // Кнопка обмена BTC (если разблокирована)
-  if (btc.unlocked) {
+  if (btc.unlocked && isUsdtUnlocked) {
     buttonComponents.push(
       <ExchangeBtcButton 
         key="exchange"
@@ -65,7 +70,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   }
   
   // Кнопка Практика (если разблокирована)
-  if (practiceIsUnlocked) {
+  if (practiceIsUnlocked && isUsdtUnlocked) {
     console.log("Кнопка практики разблокирована, добавляем на экран");
     buttonComponents.push(
       <PracticeButton

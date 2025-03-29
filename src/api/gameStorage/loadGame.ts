@@ -87,6 +87,21 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
             });
           }
           
+          // Убеждаемся, что USDT имеет правильное состояние разблокировки
+          if (gameState.resources && gameState.resources.usdt) {
+            if (!gameState.counters || 
+                !gameState.counters.applyKnowledge || 
+                gameState.counters.applyKnowledge.value < 2) {
+              gameState.resources.usdt.unlocked = false;
+              
+              if (gameState.unlocks) {
+                gameState.unlocks.usdt = false;
+              }
+              
+              console.log('🔒 USDT заблокирован при загрузке (проверка в loadGameFromServer)');
+            }
+          }
+          
           // Проверяем и восстанавливаем недостающие данные из initialState
           const mergedState = mergeWithInitialState(gameState);
           

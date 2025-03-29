@@ -24,6 +24,17 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     // Убеждаемся, что флаг gameStarted установлен
     gameStateCopy.gameStarted = true;
     
+    // Проверяем условие разблокировки USDT перед сохранением
+    if (gameStateCopy.resources && gameStateCopy.resources.usdt) {
+      if (!gameStateCopy.counters.applyKnowledge || gameStateCopy.counters.applyKnowledge.value < 2) {
+        gameStateCopy.resources.usdt.unlocked = false;
+        gameStateCopy.unlocks.usdt = false;
+      } else {
+        gameStateCopy.resources.usdt.unlocked = true;
+        gameStateCopy.unlocks.usdt = true;
+      }
+    }
+    
     // Обрабатываем корректно поле activated для рефералов
     if (gameStateCopy.referrals && gameStateCopy.referrals.length > 0) {
       gameStateCopy.referrals = gameStateCopy.referrals.map((referral: any) => {

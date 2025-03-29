@@ -81,6 +81,23 @@ export const useGameLoader = (
         
         if (savedState) {
           console.log('👉 Загруженное состояние:', JSON.stringify(savedState).substring(0, 100) + '...');
+          
+          // Проверяем разблокировку USDT
+          if (savedState.resources && savedState.resources.usdt) {
+            if (!savedState.counters || 
+                !savedState.counters.applyKnowledge || 
+                savedState.counters.applyKnowledge.value < 2) {
+              savedState.resources.usdt.unlocked = false;
+              
+              if (savedState.unlocks) {
+                savedState.unlocks.usdt = false;
+              }
+              
+              console.log('🔒 USDT заблокирован при загрузке (проверка в useGameLoader)');
+            } else {
+              console.log('✅ USDT разблокирован: счетчик applyKnowledge >= 2 (проверка в useGameLoader)');
+            }
+          }
         }
         
         setLoadedState(savedState);

@@ -6,15 +6,37 @@ import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
+  // Обеспечиваем, что USDT заблокирован при старте новой игры
   let newState = {
     ...state,
     gameStarted: true,
-    lastUpdate: Date.now()
+    lastUpdate: Date.now(),
+    resources: {
+      ...state.resources,
+      usdt: {
+        ...state.resources.usdt,
+        unlocked: false // Принудительно блокируем USDT при старте новой игры
+      }
+    },
+    unlocks: {
+      ...state.unlocks,
+      usdt: false // Также сбрасываем флаг разблокировки в основной системе
+    }
   };
   
   // Проверяем и применяем все разблокировки при старте игры
   newState = checkSpecialUnlocks(newState);
   newState = checkAllUnlocks(newState);
+  
+  // Дополнительная проверка, что USDT остался заблокированным
+  if (newState.resources.usdt) {
+    // Проверяем условие разблокировки USDT
+    if (!newState.counters.applyKnowledge || newState.counters.applyKnowledge.value < 2) {
+      // Если условие не выполнено, принудительно блокируем USDT
+      newState.resources.usdt.unlocked = false;
+      newState.unlocks.usdt = false;
+    }
+  }
   
   return newState;
 };
@@ -30,12 +52,24 @@ export const processLoadGame = (
   if (!payload) {
     console.warn('⚠️ Нет данных для загрузки, используем начальное состояние');
     safeDispatchGameEvent('Нет данных для загрузки, начинаем новую игру', 'warning');
-    return {
+    
+    // Создаем новое состояние на основе initialState
+    const newInitialState = {
       ...initialState,
       gameStarted: true,
       lastUpdate: Date.now(),
       lastSaved: Date.now()
     };
+    
+    // Убеждаемся, что USDT заблокирован в новой игре
+    if (newInitialState.resources && newInitialState.resources.usdt) {
+      newInitialState.resources.usdt.unlocked = false;
+    }
+    if (newInitialState.unlocks) {
+      newInitialState.unlocks.usdt = false;
+    }
+    
+    return newInitialState;
   }
   
   // Проверяем целостность загруженных данных
@@ -43,12 +77,23 @@ export const processLoadGame = (
     console.error('❌ Загруженные данные повреждены, используем начальное состояние');
     safeDispatchGameEvent('Загруженные данные повреждены, начинаем новую игру', 'error');
     
-    return {
+    // Создаем новое состояние на основе initialState
+    const newInitialState = {
       ...initialState,
       gameStarted: true,
       lastUpdate: Date.now(),
       lastSaved: Date.now()
     };
+    
+    // Убеждаемся, что USDT заблокирован в новой игре
+    if (newInitialState.resources && newInitialState.resources.usdt) {
+      newInitialState.resources.usdt.unlocked = false;
+    }
+    if (newInitialState.unlocks) {
+      newInitialState.unlocks.usdt = false;
+    }
+    
+    return newInitialState;
   }
   
   // Клонируем загруженное состояние
@@ -86,6 +131,27 @@ export const processLoadGame = (
       loadedState.resources[resourceKey] = { ...initialState.resources[resourceKey] };
     }
   });
+  
+  // ВАЖНО: Проверка статуса разблокировки USDT - явно устанавливаем в зависимости от счетчика
+  if (loadedState.resources.usdt) {
+    // По умолчанию USDT заблокирован
+    loadedState.resources.usdt.unlocked = false;
+    
+    // Проверяем условие для разблокировки USDT
+    if (loadedState.counters && 
+        loadedState.counters.applyKnowledge && 
+        loadedState.counters.applyKnowledge.value >= 2) {
+      // Разблокируем только если условие выполнено
+      loadedState.resources.usdt.unlocked = true;
+      loadedState.unlocks.usdt = true;
+      console.log('✅ USDT разблокирован: счетчик applyKnowledge >=2');
+    } else {
+      // Иначе явно блокируем
+      loadedState.resources.usdt.unlocked = false;
+      loadedState.unlocks.usdt = false;
+      console.log('🔒 USDT заблокирован: счетчик applyKnowledge < 2');
+    }
+  }
   
   // Проверка и добавление новых полей, которые могли отсутствовать в сохранении
   if (!loadedState.specializationSynergies) {
@@ -138,6 +204,17 @@ export const processLoadGame = (
   // Проверяем и применяем все разблокировки при загрузке игры
   loadedState = checkSpecialUnlocks(loadedState);
   loadedState = checkAllUnlocks(loadedState);
+  
+  // ВАЖНО: Финальная проверка статуса USDT после всех проверок разблокировок
+  if (loadedState.resources.usdt) {
+    // Проверяем условие для разблокировки USDT
+    if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 2) {
+      // Если условие не выполнено, принудительно блокируем USDT
+      loadedState.resources.usdt.unlocked = false;
+      loadedState.unlocks.usdt = false;
+      console.log('🔒 Финальная блокировка USDT: условие не выполнено');
+    }
+  }
   
   console.log('✅ Загруженное состояние применено успешно');
   safeDispatchGameEvent('Прогресс успешно восстановлен', 'success');

@@ -107,6 +107,16 @@ export function mergeWithInitialState(loadedState: any): GameState {
     if (!loadedState.resources[resourceKey]) {
       loadedState.resources[resourceKey] = { ...baseState.resources[resourceKey] };
       console.log(`✅ Восстановлен отсутствующий ресурс: ${resourceKey}`);
+    } else {
+      // Важное исправление: убедимся, что ресурсы имеют правильный статус разблокировки
+      // USDT должен быть заблокирован, если не выполнены условия
+      if (resourceKey === 'usdt') {
+        loadedState.resources.usdt.unlocked = false;
+        if (loadedState.counters && loadedState.counters.applyKnowledge && loadedState.counters.applyKnowledge.value >= 2) {
+          loadedState.resources.usdt.unlocked = true;
+        }
+        console.log(`🔒 Статус разблокировки USDT установлен: ${loadedState.resources.usdt.unlocked}`);
+      }
     }
   }
   
@@ -130,6 +140,7 @@ export function mergeWithInitialState(loadedState: any): GameState {
   if (loadedState.resources && loadedState.resources.usdt) {
     if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 2) {
       loadedState.resources.usdt.unlocked = false;
+      loadedState.unlocks.usdt = false; // Также сбрасываем флаг разблокировки в основной системе
       console.log('🔒 USDT заблокирован при загрузке: не применены знания дважды');
     }
   }

@@ -1,4 +1,3 @@
-
 // Функции для проверки и обработки разблокировок возможностей в игре
 
 import { GameState } from '@/context/types';
@@ -22,6 +21,20 @@ export const checkAllUnlocks = (state: GameState): GameState => {
   
   // Проверяем специальные разблокировки на основе счетчиков
   newState = checkSpecialUnlocks(newState);
+  
+  // Финальная проверка статуса USDT после всех проверок разблокировок
+  if (newState.resources.usdt) {
+    // Проверяем условие для разблокировки USDT
+    if (!newState.counters.applyKnowledge || newState.counters.applyKnowledge.value < 2) {
+      // Если условие не выполнено, принудительно блокируем USDT
+      newState.resources.usdt.unlocked = false;
+      newState.unlocks.usdt = false;
+    } else {
+      // Если условие выполнено - разблокируем
+      newState.resources.usdt.unlocked = true;
+      newState.unlocks.usdt = true;
+    }
+  }
   
   return newState;
 };
@@ -179,6 +192,24 @@ export const checkResourceUnlocks = (state: GameState): GameState => {
       }
     };
     safeDispatchGameEvent("Открыт ресурс «USDT»", "success");
+  } else if (state.resources.usdt && state.resources.usdt.unlocked &&
+      (!state.counters.applyKnowledge || state.counters.applyKnowledge.value < 2)) {
+    // Если USDT разблокирован, но условие не выполнено - блокируем
+    newState = {
+      ...newState,
+      resources: {
+        ...newState.resources,
+        usdt: {
+          ...newState.resources.usdt,
+          unlocked: false
+        }
+      },
+      unlocks: {
+        ...newState.unlocks,
+        usdt: false
+      }
+    };
+    console.log("🔒 Заблокирован ресурс 'USDT', не выполнено условие разблокировки");
   }
   
   return newState;

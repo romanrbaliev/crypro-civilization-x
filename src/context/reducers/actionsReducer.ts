@@ -23,9 +23,16 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   // Запоминаем старое значение счетчика applyKnowledge перед применением знаний
   const oldCount = state.counters.applyKnowledge?.value || 0;
   
-  // Обновляем ресурсы
+  // Обновляем счетчик применений знаний
   const newState = {
     ...state,
+    counters: {
+      ...state.counters,
+      applyKnowledge: {
+        ...state.counters.applyKnowledge,
+        value: (state.counters.applyKnowledge?.value || 0) + 1
+      }
+    },
     resources: {
       ...state.resources,
       knowledge: {
@@ -34,7 +41,9 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       },
       usdt: {
         ...state.resources.usdt,
-        value: state.resources.usdt.value + usdtReward
+        value: state.resources.usdt.value + usdtReward,
+        // Важно! Не разблокируем USDT сами, это сделает система проверки unlock
+        unlocked: state.resources.usdt.unlocked
       }
     }
   };
@@ -66,9 +75,16 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     usdtReward *= 1.1;
   }
   
-  // Обновляем ресурсы
+  // Обновляем счетчик применений знаний (увеличиваем только на 1, независимо от количества обменов)
   const newState = {
     ...state,
+    counters: {
+      ...state.counters,
+      applyKnowledge: {
+        ...state.counters.applyKnowledge,
+        value: (state.counters.applyKnowledge?.value || 0) + 1 // Увеличиваем счетчик только на 1
+      }
+    },
     resources: {
       ...state.resources,
       knowledge: {
@@ -77,7 +93,9 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
       },
       usdt: {
         ...state.resources.usdt,
-        value: state.resources.usdt.value + usdtReward
+        value: state.resources.usdt.value + usdtReward,
+        // Важно! Не разблокируем USDT сами, это сделает система проверки unlock
+        unlocked: state.resources.usdt.unlocked
       }
     }
   };

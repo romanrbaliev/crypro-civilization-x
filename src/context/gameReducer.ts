@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
@@ -58,6 +59,31 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   
   let newState;
   
+  // Принудительно блокируем USDT, если не выполнены условия его разблокировки
+  // Делаем это в начале каждого вызова редьюсера
+  let stateWithLockedUsdt = { ...state };
+  if (stateWithLockedUsdt.resources.usdt) {
+    if (!stateWithLockedUsdt.counters.applyKnowledge || stateWithLockedUsdt.counters.applyKnowledge.value < 2) {
+      stateWithLockedUsdt = {
+        ...stateWithLockedUsdt,
+        resources: {
+          ...stateWithLockedUsdt.resources,
+          usdt: {
+            ...stateWithLockedUsdt.resources.usdt,
+            unlocked: false
+          }
+        },
+        unlocks: {
+          ...stateWithLockedUsdt.unlocks,
+          usdt: false
+        }
+      };
+    }
+  }
+  
+  // Используем stateWithLockedUsdt вместо state
+  state = stateWithLockedUsdt;
+  
   switch (action.type) {
     case "INCREMENT_RESOURCE": 
       return processIncrementResource(state, action.payload);
@@ -69,8 +95,29 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // Проверяем условия разблокировки, используя новую систему
       const checkedState = checkAllUnlocks(updatedState);
       
+      // Принудительно блокируем USDT, если не выполнены условия разблокировки
+      let finalState = checkedState;
+      if (finalState.resources.usdt) {
+        if (!finalState.counters.applyKnowledge || finalState.counters.applyKnowledge.value < 2) {
+          finalState = {
+            ...finalState,
+            resources: {
+              ...finalState.resources,
+              usdt: {
+                ...finalState.resources.usdt,
+                unlocked: false
+              }
+            },
+            unlocks: {
+              ...finalState.unlocks,
+              usdt: false
+            }
+          };
+        }
+      }
+      
       // Пересчитываем максимальные значения ресурсов после каждого обновления
-      return updateResourceMaxValues(checkedState);
+      return updateResourceMaxValues(finalState);
     }
     
     case "PURCHASE_BUILDING": {
@@ -143,6 +190,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       if (newState.resources.usdt) {
         if (!newState.counters.applyKnowledge || newState.counters.applyKnowledge.value < 2) {
           newState.resources.usdt.unlocked = false;
+          newState.unlocks.usdt = false;
         } else {
           newState.resources.usdt.unlocked = true;
           newState.unlocks.usdt = true;
@@ -167,6 +215,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // Убедимся, что USDT изначально заблокирован
       if (newState.resources.usdt) {
         newState.resources.usdt.unlocked = false;
+        newState.unlocks.usdt = false;
       }
       
       // Принудительно пересчитываем максимальные значения ресурсов

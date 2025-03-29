@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/hooks/useGame';
@@ -70,16 +71,24 @@ const StartScreen = () => {
           // Фиксируем, что игра запущена
           savedGame.gameStarted = true;
           
-          // Обновляем состояние с данными о рефералах
-          setHasExistingSave(true);
-          
-          // Убедимся, что USDT не разблокирован при новой игре
+          // ВАЖНО: Убедимся, что USDT не разблокирован при загрузке
           if (savedGame.resources && savedGame.resources.usdt) {
             savedGame.resources.usdt.unlocked = false;
-            if (savedGame.counters.applyKnowledge && savedGame.counters.applyKnowledge.value >= 2) {
+            // Проверяем условие для разблокировки USDT
+            if (savedGame.counters && 
+                savedGame.counters.applyKnowledge && 
+                savedGame.counters.applyKnowledge.value >= 2) {
               savedGame.resources.usdt.unlocked = true;
+              savedGame.unlocks.usdt = true;
+            } else {
+              // Если условие не выполнено, убедимся что USDT заблокирован
+              savedGame.resources.usdt.unlocked = false;
+              savedGame.unlocks.usdt = false;
             }
           }
+          
+          // Обновляем состояние с данными о рефералах
+          setHasExistingSave(true);
           
           dispatch({ type: "LOAD_GAME", payload: savedGame });
           
@@ -102,8 +111,13 @@ const StartScreen = () => {
             await saveReferralInfo(state.referralCode, state.referredBy || null);
           }
           
-          // Сразу запускаем новую игру и перенаправляем на экран игры
-          dispatch({ type: "START_GAME" });
+          // НОВАЯ ИГРА: Перед запуском новой игры очищаем состояние
+          const newGameAction = { type: "START_GAME" };
+          
+          // Сбрасываем unlocks и убеждаемся, что USDT заблокирован
+          dispatch(newGameAction);
+          
+          // Автоматически перенаправляем на экран игры
           navigate('/game');
         }
       } catch (error) {
