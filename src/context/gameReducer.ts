@@ -21,6 +21,7 @@ import {
 import {
   processUnlockFeature,
   processSetBuildingUnlocked,
+  processSetUpgradeUnlocked,
   processIncrementCounter
 } from './reducers/unlockReducer';
 import {
@@ -153,13 +154,16 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     }
     
     case "UNLOCK_FEATURE": 
-      return processUnlockFeature(state, { featureId: action.payload.featureId });
+      return processUnlockFeature(state, action.payload);
     
     case "UNLOCK_RESOURCE": 
       return processUnlockResource(state, action.payload);
     
     case "SET_BUILDING_UNLOCKED": 
       return processSetBuildingUnlocked(state, action.payload);
+      
+    case "SET_UPGRADE_UNLOCKED": 
+      return processSetUpgradeUnlocked(state, action.payload);
     
     case "INCREMENT_COUNTER": {
       // Инкрементируем счетчик

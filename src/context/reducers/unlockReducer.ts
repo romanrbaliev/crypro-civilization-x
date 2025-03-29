@@ -40,6 +40,29 @@ export const processSetBuildingUnlocked = (
   };
 };
 
+// Обработка разблокировки улучшения
+export const processSetUpgradeUnlocked = (
+  state: GameState,
+  payload: { upgradeId: string; unlocked: boolean }
+): GameState => {
+  const { upgradeId, unlocked } = payload;
+  
+  if (!state.upgrades[upgradeId]) {
+    return state;
+  }
+  
+  return {
+    ...state,
+    upgrades: {
+      ...state.upgrades,
+      [upgradeId]: {
+        ...state.upgrades[upgradeId],
+        unlocked
+      }
+    }
+  };
+};
+
 // Обработка инкремента счетчика
 export const processIncrementCounter = (
   state: GameState,

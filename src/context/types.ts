@@ -152,6 +152,7 @@ export type GameAction =
   | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
   | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }
   | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
+  | { type: "SET_UPGRADE_UNLOCKED"; payload: { upgradeId: string; unlocked: boolean } }
   | { type: "INCREMENT_COUNTER"; payload: { counterId: string; value: number } }
   | { type: "CHECK_SYNERGIES" }
   | { type: "ACTIVATE_SYNERGY"; payload: { synergyId: string } }
