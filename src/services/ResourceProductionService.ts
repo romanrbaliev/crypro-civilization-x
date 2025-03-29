@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { Building } from '@/context/types';
 import { Upgrade } from '@/context/types';
@@ -47,20 +48,90 @@ export class ResourceProductionService {
     return bonuses;
   }
 
-  calculateResourceProduction(state: GameState): { [resourceId: string]: number } {
-    const production: { [resourceId: string]: number } = {};
-
+  // Исправим метод, чтобы он возвращал обновленную копию ресурсов, а не числа
+  calculateResourceProduction(state: GameState): { [key: string]: any } {
+    // Создаем копию ресурсов для изменения
+    const updatedResources = JSON.parse(JSON.stringify(state.resources));
+    
+    // Сбрасываем значения perSecond для всех ресурсов
+    for (const resourceId in updatedResources) {
+      if (updatedResources[resourceId].unlocked) {
+        updatedResources[resourceId].perSecond = 0;
+      }
+    }
+    
+    // Рассчитываем производство от зданий
     for (const buildingId in state.buildings) {
       const building = state.buildings[buildingId];
-      if (building.unlocked) {
+      if (building.unlocked && building.count > 0) {
         const buildingProduction = this.calculateBuildingProduction(building);
+        
         for (const resourceId in buildingProduction) {
-          production[resourceId] = (production[resourceId] || 0) + buildingProduction[resourceId] * building.count;
+          if (updatedResources[resourceId] && updatedResources[resourceId].unlocked) {
+            const productionPerSecond = buildingProduction[resourceId] * building.count;
+            updatedResources[resourceId].perSecond += productionPerSecond;
+          }
         }
       }
     }
-
-    return production;
+    
+    // Рассчитываем потребление от зданий
+    for (const buildingId in state.buildings) {
+      const building = state.buildings[buildingId];
+      if (building.unlocked && building.count > 0 && building.consumption) {
+        for (const resourceId in building.consumption) {
+          if (updatedResources[resourceId] && updatedResources[resourceId].unlocked) {
+            const consumptionPerSecond = building.consumption[resourceId] * building.count;
+            updatedResources[resourceId].perSecond -= consumptionPerSecond;
+          }
+        }
+      }
+    }
+    
+    // Применяем бонусы от специализации, если она выбрана
+    if (state.specialization && roles[state.specialization]) {
+      const roleData = roles[state.specialization];
+      const roleBonuses = roleData.bonuses || {};
+      
+      // Применяем соответствующие бонусы специализации
+      for (const resourceId in updatedResources) {
+        if (!updatedResources[resourceId].unlocked) continue;
+        
+        // Применяем общие бонусы роли
+        if (roleBonuses.resourceProduction) {
+          updatedResources[resourceId].perSecond *= (1 + roleBonuses.resourceProduction);
+        }
+        
+        // Применяем специфичные бонусы для конкретных ресурсов
+        switch (state.specialization) {
+          case 'miner':
+            if (resourceId === 'computingPower') {
+              updatedResources[resourceId].perSecond *= 1.25; // +25% к вычислительной мощности
+            }
+            break;
+          case 'trader':
+            if (resourceId === 'usdt') {
+              updatedResources[resourceId].perSecond *= 1.15; // +15% к USDT
+            }
+            break;
+          case 'investor':
+            // Общий бонус ко всем ресурсам
+            updatedResources[resourceId].perSecond *= 1.05; // +5% ко всем ресурсам
+            break;
+          case 'analyst':
+            if (resourceId === 'knowledge') {
+              updatedResources[resourceId].perSecond *= 1.25; // +25% к знаниям
+            }
+            break;
+          case 'influencer':
+            // Небольшой бонус ко всем ресурсам
+            updatedResources[resourceId].perSecond *= 1.1; // +10% ко всем ресурсам
+            break;
+        }
+      }
+    }
+    
+    return updatedResources;
   }
 
   calculateResourceConsumption(state: GameState): { [resourceId: string]: number } {
