@@ -2,7 +2,6 @@
 import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./components/UpgradeItem";
-import TechTreeNode from "./components/TechTreeNode";
 import { Beaker } from "lucide-react";
 
 interface ResearchTabProps {
@@ -66,10 +65,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
               <h2 className="text-sm font-medium mb-2">Доступные исследования</h2>
               <div className="space-y-1">
                 {unlockedUpgrades.map(upgrade => (
-                  <TechTreeNode 
+                  <UpgradeItem 
                     key={upgrade.id} 
                     upgrade={upgrade} 
-                    onAddEvent={onAddEvent} 
+                    onPurchase={() => onAddEvent(`Завершено исследование: ${upgrade.name}`, "success")} 
                   />
                 ))}
               </div>
@@ -81,10 +80,9 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
               <h2 className="text-sm font-medium mb-2">Завершенные исследования</h2>
               <div className="space-y-1">
                 {purchasedUpgrades.map(upgrade => (
-                  <TechTreeNode 
+                  <UpgradeItem 
                     key={upgrade.id} 
-                    upgrade={upgrade}
-                    onAddEvent={onAddEvent}
+                    upgrade={upgrade} 
                   />
                 ))}
               </div>
