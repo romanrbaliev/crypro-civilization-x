@@ -1,76 +1,10 @@
 
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
-import { checkBuildingUnlocks as checkBuildingUnlocksBase } from '@/utils/unlockSystem';
+import { checkBuildingUnlocks as checkBuildingUnlocksFromUnlockManager } from '@/utils/unlockManager';
 
-// Проверка условий разблокировки зданий (обертка над функцией из unlockSystem)
+// Проверка условий разблокировки зданий (обертка над функцией из unlockManager)
 export const checkBuildingUnlocks = (state: GameState): GameState => {
-  console.log("Проверка разблокировки зданий...");
-  
-  // Добавляем дополнительную проверку для криптокошелька
-  if (state.buildings.cryptoWallet && !state.buildings.cryptoWallet.unlocked) {
-    // Проверяем все возможные ID исследования "Основы блокчейна"
-    const isBlockchainBasicsPurchased = (
-      (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
-      (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased) ||
-      (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased)
-    );
-    
-    if (isBlockchainBasicsPurchased) {
-      console.log("Принудительная разблокировка криптокошелька по наличию исследования 'Основы блокчейна'");
-      state = {
-        ...state,
-        buildings: {
-          ...state.buildings,
-          cryptoWallet: {
-            ...state.buildings.cryptoWallet,
-            unlocked: true
-          }
-        }
-      };
-      safeDispatchGameEvent("Разблокирован криптокошелек! Теперь вы можете хранить больше криптовалюты.", "info");
-    }
-  }
-  
-  // НОВОЕ: Добавляем дополнительную проверку для автомайнера
-  if (state.buildings.autoMiner && !state.buildings.autoMiner.unlocked) {
-    // Проверяем, куплено ли исследование "Основы криптовалют"
-    const isCryptoCurrencyBasicsPurchased = (
-      state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased
-    );
-    
-    if (isCryptoCurrencyBasicsPurchased) {
-      console.log("Принудительная разблокировка автомайнера по наличию исследования 'Основы криптовалют'");
-      state = {
-        ...state,
-        buildings: {
-          ...state.buildings,
-          autoMiner: {
-            ...state.buildings.autoMiner,
-            unlocked: true
-          }
-        }
-      };
-      safeDispatchGameEvent("Разблокирован автомайнер! Теперь вы можете автоматически майнить криптовалюту.", "info");
-    }
-  }
-  
-  // Добавим принудительную проверку разблокировки улучшенного кошелька
-  if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count >= 10 && 
-      state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked) {
-    console.log("Принудительная разблокировка улучшенного кошелька по количеству обычных кошельков");
-    state = {
-      ...state,
-      buildings: {
-        ...state.buildings,
-        improvedWallet: {
-          ...state.buildings.improvedWallet,
-          unlocked: true
-        }
-      }
-    };
-    safeDispatchGameEvent("Разблокирован улучшенный кошелек! Теперь вы можете хранить больше криптовалюты.", "info");
-  }
-  
-  return checkBuildingUnlocksBase(state);
+  console.log("Проверка разблокировки зданий через централизованную систему...");
+  return checkBuildingUnlocksFromUnlockManager(state);
 };

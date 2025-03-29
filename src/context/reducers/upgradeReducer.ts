@@ -2,8 +2,8 @@
 import { GameState, Upgrade } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { checkUnlockConditions, unlockRelatedUpgrades, unlockRelatedBuildings } from '@/utils/researchUtils';
-import { checkUpgradeUnlocks } from '@/utils/unlockSystem';
+import { unlockRelatedUpgrades, unlockRelatedBuildings } from '@/utils/researchUtils';
+import { checkUpgradeUnlocks, checkAllUnlocks } from '@/utils/unlockManager';
 
 // Обработка покупки улучшений
 export const processPurchaseUpgrade = (
@@ -53,46 +53,41 @@ export const processPurchaseUpgrade = (
   };
   
   // Применяем специальные эффекты определенных улучшений
+  newState = applyUpgradeEffects(newState, upgradeId, upgrade);
+  
+  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных исследований
+  newState = unlockRelatedUpgrades(newState, upgradeId);
+  
+  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных зданий
+  newState = unlockRelatedBuildings(newState, upgradeId);
+  
+  // После покупки исследования проверяем все возможные разблокировки в централизованной системе
+  newState = checkAllUnlocks(newState);
+  
+  return newState;
+};
+
+// Выделенная функция для применения эффектов улучшений
+function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgrade): GameState {
+  let newState = { ...state };
+  
+  // Применяем эффекты для конкретных улучшений
   if (upgradeId === 'algorithmOptimization') {
-    // Явно обновляем параметры майнинга для "Оптимизация алгоритмов"
     console.log("Применение эффектов 'Оптимизация алгоритмов': +15% к эффективности майнинга");
     newState = {
       ...newState,
       miningParams: {
         ...newState.miningParams,
-        // Увеличиваем эффективность майнинга на 15%
         miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
       }
     };
   }
   
   if (upgradeId === 'cryptoCurrencyBasics') {
-    // Явно обновляем параметры для "Основы криптовалют"
     console.log("Применение эффектов 'Основы криптовалют': +10% к эффективности");
     // Эффекты этого исследования обрабатываются в processApplyKnowledge
-    
-    // НОВОЕ: Явно разблокируем автомайнер после изучения основ криптовалют
-    if (newState.buildings.autoMiner) {
-      console.log("Разблокируем автомайнер после изучения Основ криптовалют");
-      newState = {
-        ...newState,
-        buildings: {
-          ...newState.buildings,
-          autoMiner: {
-            ...newState.buildings.autoMiner,
-            unlocked: true
-          }
-        }
-      };
-      safeDispatchGameEvent("Открыта возможность приобрести «Автомайнер»", "success");
-    } else {
-      console.warn("Здание autoMiner отсутствует в состоянии!");
-    }
   }
   
-  // ЦЕНТРАЛИЗОВАННАЯ ОБРАБОТКА РАЗБЛОКИРОВОК ПО ИССЛЕДОВАНИЯМ
-  
-  // Проверяем, является ли это улучшение "Основы блокчейна" или другими вариантами имени
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применение эффектов 'Основы блокчейна': +50% к максимуму знаний и +10% к получению знаний");
     
@@ -105,21 +100,9 @@ export const processPurchaseUpgrade = (
     
     console.log(`Новый максимум знаний: ${newState.resources.knowledge.max}`);
     console.log(`Новый базовый прирост знаний: ${newState.resources.knowledge.baseProduction}`);
-    
-    // НОВОЕ: Явно разблокируем криптокошелек после изучения основ блокчейна
-    if (newState.buildings.cryptoWallet) {
-      console.log("Разблокируем криптокошелек после изучения Основ блокчейна");
-      newState.buildings.cryptoWallet = {
-        ...newState.buildings.cryptoWallet,
-        unlocked: true
-      };
-      safeDispatchGameEvent("Открыта возможность приобрести «Криптокошелек»", "success");
-    } else {
-      console.warn("Здание cryptoWallet отсутствует в состоянии!");
-    }
   }
   
-  // Применяем эффекты улучшения
+  // Применяем общие эффекты улучшения
   if (upgrade.effects) {
     // Обработка каждого эффекта улучшения
     for (const [effectId, amount] of Object.entries(upgrade.effects)) {
@@ -200,14 +183,5 @@ export const processPurchaseUpgrade = (
     }
   }
   
-  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных исследований
-  newState = unlockRelatedUpgrades(newState, upgradeId);
-  
-  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных зданий
-  newState = unlockRelatedBuildings(newState, upgradeId);
-  
-  // После покупки исследования проверяем разблокировки
-  newState = checkUpgradeUnlocks(newState);
-  
   return newState;
-};
+}

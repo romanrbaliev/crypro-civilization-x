@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
@@ -53,7 +52,7 @@ import {
 import { updateResourceMaxValues } from './utils/resourceUtils';
 
 // Импортируем новую систему разблокировок
-import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
+import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockManager';
 
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
@@ -203,6 +202,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
+      
+      // После загрузки игры проверяем все разблокировки
+      newState = checkAllUnlocks(newState);
+      
       return newState;
     }
     
@@ -284,7 +287,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       console.log("Принудительное обновление ресурсов и бонусов");
       // Сначала обновляем производство ресурсов
       const updatedState = processResourceUpdate(state);
-      // Проверяем разблокировки
+      // Проверяем разблокировки через централизованную систему
       const checkedState = checkAllUnlocks(updatedState);
       // Затем пересчитываем максимальные значения ресурсов
       return updateResourceMaxValues(checkedState);
