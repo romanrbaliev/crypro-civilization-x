@@ -1,3 +1,4 @@
+
 import { GameState, Upgrade } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -71,35 +72,96 @@ export const processPurchaseUpgrade = (
     // Эффекты этого исследования обрабатываются в processApplyKnowledge
   }
   
+  // ИСПРАВЛЕНИЕ: Проверяем, является ли это улучшение "Основы блокчейна" или другими вариантами имени
+  if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
+    console.log("Применение эффектов 'Основы блокчейна': +50% к максимуму знаний и +10% к получению знаний");
+    
+    // Увеличиваем максимальное количество знаний
+    newState.resources.knowledge = {
+      ...newState.resources.knowledge,
+      max: newState.resources.knowledge.max * 1.5, // Увеличиваем на 50%
+      baseProduction: (newState.resources.knowledge.baseProduction || 0) * 1.1 // Увеличиваем на 10%
+    };
+    
+    console.log(`Новый максимум знаний: ${newState.resources.knowledge.max}`);
+    console.log(`Новый базовый прирост знаний: ${newState.resources.knowledge.baseProduction}`);
+  }
+  
   // Применяем эффекты улучшения
   if (upgrade.effects) {
     // Обработка каждого эффекта улучшения
     for (const [effectId, amount] of Object.entries(upgrade.effects)) {
       if (effectId === 'knowledgeBoost') {
         // Увеличиваем базовый прирост знаний
+        const currentBase = newState.resources.knowledge.baseProduction || 0;
+        const increase = currentBase * Number(amount);
+        
         newState.resources.knowledge = {
           ...newState.resources.knowledge,
-          baseProduction: (newState.resources.knowledge.baseProduction || 0) + Number(amount)
+          baseProduction: currentBase + increase
         };
+        
+        console.log(`Применен эффект knowledgeBoost: увеличение с ${currentBase} до ${newState.resources.knowledge.baseProduction}`);
       }
       
       if (effectId === 'knowledgeMaxBoost') {
         // Увеличиваем максимум знаний
+        const currentMax = newState.resources.knowledge.max;
+        const increase = currentMax * Number(amount);
+        
         newState.resources.knowledge = {
           ...newState.resources.knowledge,
-          max: newState.resources.knowledge.max + Number(amount)
+          max: currentMax + increase
         };
+        
+        console.log(`Применен эффект knowledgeMaxBoost: увеличение с ${currentMax} до ${newState.resources.knowledge.max}`);
       }
       
       if (effectId === 'usdtMaxBoost') {
         // Увеличиваем максимум USDT
+        const currentMax = newState.resources.usdt.max;
+        const increase = currentMax * Number(amount);
+        
         newState.resources.usdt = {
           ...newState.resources.usdt,
-          max: newState.resources.usdt.max + Number(amount)
+          max: currentMax + increase
         };
+        
+        console.log(`Применен эффект usdtMaxBoost: увеличение с ${currentMax} до ${newState.resources.usdt.max}`);
       }
       
-      console.log(`Применен эффект ${effectId}: ${amount}`);
+      if (effectId === 'miningEfficiencyBoost') {
+        // Увеличиваем эффективность майнинга
+        const currentEfficiency = newState.miningParams?.miningEfficiency || 1;
+        const newEfficiency = currentEfficiency * (1 + Number(amount));
+        
+        newState = {
+          ...newState,
+          miningParams: {
+            ...newState.miningParams,
+            miningEfficiency: newEfficiency
+          }
+        };
+        
+        console.log(`Применен эффект miningEfficiencyBoost: увеличение с ${currentEfficiency} до ${newEfficiency}`);
+      }
+      
+      if (effectId === 'electricityEfficiencyBoost') {
+        // Увеличиваем эффективность электричества
+        if (newState.resources.electricity) {
+          const currentEfficiency = newState.resources.electricity.productionEfficiency || 1;
+          const newEfficiency = currentEfficiency * (1 + Number(amount));
+          
+          newState.resources.electricity = {
+            ...newState.resources.electricity,
+            productionEfficiency: newEfficiency
+          };
+          
+          console.log(`Применен эффект electricityEfficiencyBoost: увеличение с ${currentEfficiency} до ${newEfficiency}`);
+        }
+      }
+      
+      console.log(`Обработан эффект ${effectId}: ${amount}`);
     }
   }
   

@@ -89,6 +89,22 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
     // Безопасно получаем объект эффектов
     const effects = upgrade.effects || upgrade.effect || {};
     
+    if (Object.keys(effects).length === 0) {
+      // Проверяем специальные ID улучшений
+      if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
+        return (
+          <>
+            <div className="text-blue-600 text-[9px]">
+              Максимум знаний: +50%
+            </div>
+            <div className="text-blue-600 text-[9px]">
+              Прирост знаний: +10%
+            </div>
+          </>
+        );
+      }
+    }
+    
     return Object.entries(effects).map(([effectId, amount]) => {
       const formattedEffect = formatEffect(effectId, Number(amount));
       return (

@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { Building } from '@/context/types';
 import { Upgrade } from '@/context/types';
@@ -35,7 +34,9 @@ export class ResourceProductionService {
   }
 
   calculateUpgradeEffects(upgrade: Upgrade): { [effectId: string]: number } {
-    return upgrade.effects || {};
+    // Учитываем как effects, так и effect поля
+    const effects = upgrade.effects || upgrade.effect || {};
+    return effects;
   }
 
   calculateBuildingBonuses(state: GameState): { [buildingId: string]: number } {
@@ -75,6 +76,38 @@ export class ResourceProductionService {
     for (const resourceId in updatedResources) {
       if (updatedResources[resourceId].unlocked) {
         updatedResources[resourceId].perSecond = 0;
+      }
+    }
+    
+    // ИСПРАВЛЕНИЕ: Применяем все бонусы от исследований 
+    // Проверка на "Основы блокчейна" и другие исследования, влияющие на базовое производство ресурсов
+    for (const upgradeId in state.upgrades) {
+      const upgrade = state.upgrades[upgradeId];
+      
+      if (upgrade.purchased) {
+        // Обрабатываем особые исследования
+        if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
+          console.log("ResourceProductionService: Применен эффект Основ блокчейна");
+          
+          // Используем базовое производство и применяем к нему бонус
+          if (updatedResources.knowledge) {
+            const baseProduction = updatedResources.knowledge.baseProduction || 0;
+            // Увеличиваем на 10%
+            updatedResources.knowledge.baseProduction = baseProduction * 1.1;
+          }
+        }
+        
+        // Обрабатываем эффекты исследований на базе их полей effects или effect
+        const effects = upgrade.effects || upgrade.effect || {};
+        
+        for (const [effectId, amount] of Object.entries(effects)) {
+          if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
+            const baseProduction = updatedResources.knowledge.baseProduction || 0;
+            const boost = baseProduction * Number(amount);
+            updatedResources.knowledge.baseProduction = baseProduction + boost;
+            console.log(`ResourceProductionService: Применен knowledgeBoost из исследования ${upgrade.name}: ${baseProduction} + ${boost} = ${updatedResources.knowledge.baseProduction}`);
+          }
+        }
       }
     }
     
