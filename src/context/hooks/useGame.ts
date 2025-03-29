@@ -9,6 +9,7 @@ export const useGame = () => {
   const context = useContext(GameContext);
   
   if (!context) {
+    console.error("GameContext не найден. Убедитесь, что компонент находится внутри GameProvider");
     throw new Error('useGame must be used within a GameProvider');
   }
 
@@ -30,6 +31,7 @@ export const useGame = () => {
   
   // Добавим удобную функцию для принудительного обновления состояния игры
   const forceUpdate = () => {
+    console.log("Принудительное обновление ресурсов");
     context.dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
   };
   

@@ -27,24 +27,53 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Используем экземпляр сервиса для расчета производства ресурсов
   newResources = resourceProductionService.calculateResourceProduction(state);
   
-  // Проверяем, что критические ресурсы существуют и разблокированы
-  if (!newResources.usdt || !newResources.usdt.unlocked) {
-    console.log("⚠️ Ресурс USDT не найден или не разблокирован, принудительно восстанавливаем");
-    newResources.usdt = {
-      ...state.resources.usdt || {
-        id: 'usdt',
-        name: 'USDT',
-        description: 'Стейблкоин, универсальная валюта для покупок',
-        type: 'currency',
-        icon: 'coins',
-        value: state.usdtBalance || 0,
+  // Гарантируем, что критические ресурсы всегда существуют
+  const criticalResources = ['knowledge', 'usdt', 'electricity', 'computingPower', 'btc'];
+  for (const resourceId of criticalResources) {
+    if (!newResources[resourceId] || !newResources[resourceId].unlocked) {
+      console.log(`⚠️ Критический ресурс ${resourceId} не найден или не разблокирован, восстанавливаем...`);
+      
+      // Берем значение из state.resources если оно есть, или создаем новый объект
+      const baseValue = state.resources[resourceId]?.value || 0;
+      const baseDescription = {
+        'knowledge': 'Знания о криптовалюте и блокчейне',
+        'usdt': 'Стейблкоин, универсальная валюта для покупок',
+        'electricity': 'Электроэнергия для питания устройств',
+        'computingPower': 'Вычислительная мощность для майнинга',
+        'btc': 'Биткоин - первая и основная криптовалюта'
+      }[resourceId] || 'Ресурс игры';
+      
+      const baseIcon = {
+        'knowledge': 'book',
+        'usdt': 'coins',
+        'electricity': 'zap',
+        'computingPower': 'cpu',
+        'btc': 'bitcoin'
+      }[resourceId] || 'circle';
+      
+      const baseMax = {
+        'knowledge': 100,
+        'usdt': 50,
+        'electricity': 100,
+        'computingPower': 1000,
+        'btc': 1
+      }[resourceId] || 100;
+      
+      newResources[resourceId] = {
+        ...state.resources[resourceId],
+        id: resourceId,
+        name: resourceId === 'usdt' ? 'USDT' : resourceId.charAt(0).toUpperCase() + resourceId.slice(1),
+        description: baseDescription,
+        type: resourceId === 'usdt' || resourceId === 'btc' ? 'currency' : 'resource',
+        icon: baseIcon,
+        value: baseValue,
         baseProduction: 0,
         production: 0,
         perSecond: 0,
-        max: 50,
+        max: baseMax,
         unlocked: true
-      }
-    };
+      };
+    }
   }
   
   // Обновляем значения ресурсов на основе времени

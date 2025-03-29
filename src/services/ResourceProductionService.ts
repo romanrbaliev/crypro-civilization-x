@@ -53,6 +53,24 @@ export class ResourceProductionService {
     // Создаем копию ресурсов для изменения
     const updatedResources = JSON.parse(JSON.stringify(state.resources));
     
+    // Проверяем, что USDT существует и разблокирован
+    if (!updatedResources.usdt || !updatedResources.usdt.unlocked) {
+      console.log("⚠️ В ResourceProductionService: USDT не найден, создаем его");
+      updatedResources.usdt = {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стейблкоин, универсальная валюта для покупок',
+        type: 'currency',
+        icon: 'coins',
+        value: state.usdtBalance || 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 50,
+        unlocked: true
+      };
+    }
+    
     // Сбрасываем значения perSecond для всех ресурсов
     for (const resourceId in updatedResources) {
       if (updatedResources[resourceId].unlocked) {
