@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -65,6 +64,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       payload: { counterId: "knowledgeClicks", value: 1 }
     });
     
+    // ИСПРАВЛЕНО: Убираем отправку события в журнал о получении знания
     // Не отправляем событие "Получено 1 знание" в журнал
   }, [dispatch]);
   
