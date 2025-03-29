@@ -1,9 +1,13 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
-import { processPurchaseBuilding, processSellBuilding } from './reducers/buildingReducer';
+import { 
+  processPurchaseBuilding, 
+  processSellBuilding 
+} from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { 
