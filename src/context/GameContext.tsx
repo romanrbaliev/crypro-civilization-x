@@ -46,10 +46,6 @@ export function GameProvider({ children }: GameProviderProps) {
         knowledge: {
           ...initialState.resources.knowledge,
           unlocked: true
-        },
-        usdt: {
-          ...initialState.resources.usdt,
-          unlocked: true
         }
       }
     }

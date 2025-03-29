@@ -160,19 +160,22 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
 export const checkResourceUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // USDT разблокируется только после 2-х применений знаний
+  // USDT разблокируется СТРОГО только после 2-х применений знаний
   if (state.resources.usdt && !state.resources.usdt.unlocked && 
       state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2) {
-    console.log("🔓 Разблокирован ресурс 'USDT'");
+    console.log("🔓 Разблокирован ресурс 'USDT', счетчик применений знаний:", state.counters.applyKnowledge.value);
     newState = {
       ...newState,
       resources: {
         ...newState.resources,
         usdt: {
           ...newState.resources.usdt,
-          unlocked: true,
-          name: "USDT"
+          unlocked: true
         }
+      },
+      unlocks: {
+        ...newState.unlocks,
+        usdt: true // Добавляем также флаг разблокировки в общие unlocks
       }
     };
     safeDispatchGameEvent("Открыт ресурс «USDT»", "success");
