@@ -3,6 +3,7 @@
 
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { isBlockchainBasicsUnlocked } from './researchUtils';
 
 // Проверяет все возможные разблокировки
 export const checkAllUnlocks = (state: GameState): GameState => {
@@ -256,6 +257,23 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     safeDispatchGameEvent("Открыта возможность приобрести «Домашний компьютер»", "success");
   }
   
+  // Криптокошелек разблокируется после изучения основ блокчейна
+  if (state.buildings.cryptoWallet && !state.buildings.cryptoWallet.unlocked && 
+      isBlockchainBasicsUnlocked(state)) {
+    console.log("🔓 Разблокировано здание 'Криптокошелек' (центральная система)");
+    newState = {
+      ...newState,
+      buildings: {
+        ...newState.buildings,
+        cryptoWallet: {
+          ...newState.buildings.cryptoWallet,
+          unlocked: true
+        }
+      }
+    };
+    safeDispatchGameEvent("Открыта возможность приобрести «Криптокошелек»", "success");
+  }
+  
   // Улучшенный кошелек появляется при наличии 10 обычных кошельков
   if (state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked && 
       state.buildings.cryptoWallet && 
@@ -291,7 +309,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
   if (state.upgrades.blockchainBasics && !state.upgrades.blockchainBasics.unlocked && 
       state.buildings.generator && 
       state.buildings.generator.count > 0) {
-    console.log("🔓 Разблокировано исследование 'Основы блокчейна'");
+    console.log("🔓 Разблокировано исследование 'Основы блокчейна' (blockchainBasics)");
     newState = {
       ...newState,
       upgrades: {
@@ -300,9 +318,74 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
           ...newState.upgrades.blockchainBasics,
           unlocked: true
         }
+      },
+      unlocks: {
+        ...newState.unlocks,
+        research: true // Разблокируем вкладку исследований
       }
     };
     safeDispatchGameEvent("Открыто исследование «Основы блокчейна»", "success");
+  }
+  
+  // Альтернативный ID для основ блокчейна
+  if (state.upgrades.blockchain_basics && !state.upgrades.blockchain_basics.unlocked && 
+      state.buildings.generator && 
+      state.buildings.generator.count > 0) {
+    console.log("🔓 Разблокировано исследование 'Основы блокчейна' (blockchain_basics)");
+    newState = {
+      ...newState,
+      upgrades: {
+        ...newState.upgrades,
+        blockchain_basics: {
+          ...newState.upgrades.blockchain_basics,
+          unlocked: true
+        }
+      },
+      unlocks: {
+        ...newState.unlocks,
+        research: true // Разблокируем вкладку исследований
+      }
+    };
+    safeDispatchGameEvent("Открыто исследование «Основы блокчейна»", "success");
+  }
+  
+  // Ещё один альтернативный ID для основ блокчейна
+  if (state.upgrades.basicBlockchain && !state.upgrades.basicBlockchain.unlocked && 
+      state.buildings.generator && 
+      state.buildings.generator.count > 0) {
+    console.log("🔓 Разблокировано исследование 'Основы блокчейна' (basicBlockchain)");
+    newState = {
+      ...newState,
+      upgrades: {
+        ...newState.upgrades,
+        basicBlockchain: {
+          ...newState.upgrades.basicBlockchain,
+          unlocked: true
+        }
+      },
+      unlocks: {
+        ...newState.unlocks,
+        research: true // Разблокируем вкладку исследований
+      }
+    };
+    safeDispatchGameEvent("Открыто исследование «Основы блокчейна»", "success");
+  }
+  
+  // Основы криптовалют разблокируются после изучения основ блокчейна
+  if (state.upgrades.cryptoCurrencyBasics && !state.upgrades.cryptoCurrencyBasics.unlocked && 
+      isBlockchainBasicsUnlocked(state)) {
+    console.log("🔓 Разблокировано исследование 'Основы криптовалют' после покупки основ блокчейна");
+    newState = {
+      ...newState,
+      upgrades: {
+        ...newState.upgrades,
+        cryptoCurrencyBasics: {
+          ...newState.upgrades.cryptoCurrencyBasics,
+          unlocked: true
+        }
+      }
+    };
+    safeDispatchGameEvent("Открыто исследование «Основы криптовалют»", "success");
   }
   
   // Безопасность криптокошельков разблокируется после покупки криптокошелька
@@ -321,48 +404,6 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       }
     };
     safeDispatchGameEvent("Открыто исследование «Безопасность криптокошельков»", "success");
-  }
-  
-  // Основы криптовалют разблокируются после изучения основ блокчейна
-  if (state.upgrades.cryptoCurrencyBasics && !state.upgrades.cryptoCurrencyBasics.unlocked && 
-      state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) {
-    console.log("🔓 Разблокировано исследование 'Основы криптовалют'");
-    newState = {
-      ...newState,
-      upgrades: {
-        ...newState.upgrades,
-        cryptoCurrencyBasics: {
-          ...newState.upgrades.cryptoCurrencyBasics,
-          unlocked: true
-        }
-      }
-    };
-    safeDispatchGameEvent("Открыто исследование «Основы криптовалют»", "success");
-  }
-  
-  // НОВОЕ: Криптокошелек разблокируется после изучения основ блокчейна
-  if (state.buildings.cryptoWallet && !state.buildings.cryptoWallet.unlocked) {
-    // Проверяем все варианты ID исследования "Основы блокчейна"
-    const isBlockchainBasicsPurchased = (
-      (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
-      (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased) ||
-      (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased)
-    );
-    
-    if (isBlockchainBasicsPurchased) {
-      console.log("🔓 Разблокировано здание 'Криптокошелек' после изучения основ блокчейна");
-      newState = {
-        ...newState,
-        buildings: {
-          ...newState.buildings,
-          cryptoWallet: {
-            ...newState.buildings.cryptoWallet,
-            unlocked: true
-          }
-        }
-      };
-      safeDispatchGameEvent("Открыта возможность приобрести «Криптокошелек»", "success");
-    }
   }
   
   return newState;

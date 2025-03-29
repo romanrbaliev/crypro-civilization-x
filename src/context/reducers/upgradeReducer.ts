@@ -2,7 +2,7 @@
 import { GameState, Upgrade } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { checkUnlockConditions } from '@/utils/researchUtils';
+import { checkUnlockConditions, unlockRelatedUpgrades, unlockRelatedBuildings } from '@/utils/researchUtils';
 import { checkUpgradeUnlocks } from '@/utils/unlockSystem';
 
 // Обработка покупки улучшений
@@ -72,7 +72,9 @@ export const processPurchaseUpgrade = (
     // Эффекты этого исследования обрабатываются в processApplyKnowledge
   }
   
-  // ИСПРАВЛЕНИЕ: Проверяем, является ли это улучшение "Основы блокчейна" или другими вариантами имени
+  // ЦЕНТРАЛИЗОВАННАЯ ОБРАБОТКА РАЗБЛОКИРОВОК ПО ИССЛЕДОВАНИЯМ
+  
+  // Проверяем, является ли это улучшение "Основы блокчейна" или другими вариантами имени
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применение эффектов 'Основы блокчейна': +50% к максимуму знаний и +10% к получению знаний");
     
@@ -179,6 +181,12 @@ export const processPurchaseUpgrade = (
       console.log(`Обработан эффект ${effectId}: ${amount}`);
     }
   }
+  
+  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных исследований
+  newState = unlockRelatedUpgrades(newState, upgradeId);
+  
+  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных зданий
+  newState = unlockRelatedBuildings(newState, upgradeId);
   
   // После покупки исследования проверяем разблокировки
   newState = checkUpgradeUnlocks(newState);
