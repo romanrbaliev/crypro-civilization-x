@@ -11,7 +11,6 @@ import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";
 import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
-import DebugCalculator from "@/components/DebugCalculator";
 import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
@@ -309,7 +308,6 @@ const GameScreen = () => {
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2">
             <ResourceList resources={unlockedResources} />
-            <DebugCalculator />
           </div>
           
           <div className="border-t mt-auto">
