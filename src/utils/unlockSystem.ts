@@ -136,7 +136,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   }
   
   // Проверка для разблокировки улучшения "Криптовалютный трейдинг"
-  if (!state.upgrades.cryptoTrading?.unlocked && 
+  if (state.upgrades.cryptoTrading && !state.upgrades.cryptoTrading.unlocked && 
       state.buildings.improvedWallet && 
       state.buildings.improvedWallet.count > 0) {
     console.log("🔓 Разблокировано исследование 'Криптовалютный трейдинг'");
@@ -168,7 +168,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
   // Генератор появляется при достижении 11 USDT
-  if (!state.buildings.generator.unlocked && 
+  if (state.buildings.generator && !state.buildings.generator.unlocked && 
       state.resources.usdt && 
       state.resources.usdt.value >= 11) {
     console.log("🔓 Разблокировано здание 'Генератор'");
@@ -186,7 +186,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   }
   
   // Домашний компьютер появляется при наличии 10 единиц электричества
-  if (!state.buildings.homeComputer.unlocked && 
+  if (state.buildings.homeComputer && !state.buildings.homeComputer.unlocked && 
       state.resources.electricity && 
       state.resources.electricity.value >= 10) {
     console.log("🔓 Разблокировано здание 'Домашний компьютер'");
@@ -204,7 +204,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   }
   
   // Улучшенный кошелек появляется при наличии 10 обычных кошельков
-  if (!state.buildings.improvedWallet.unlocked && 
+  if (state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked && 
       state.buildings.cryptoWallet && 
       state.buildings.cryptoWallet.count >= 10) {
     console.log("🔓 Разблокировано здание 'Улучшенный кошелек'");
@@ -228,8 +228,14 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
 export const checkUpgradeUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
+  // Проверяем, что state.upgrades и необходимые улучшения существуют
+  if (!state.upgrades) {
+    console.warn("❌ Объект upgrades не найден в состоянии");
+    return state;
+  }
+  
   // Основы блокчейна разблокируются после покупки генератора
-  if (!state.upgrades.blockchainBasics.unlocked && 
+  if (state.upgrades.blockchainBasics && !state.upgrades.blockchainBasics.unlocked && 
       state.buildings.generator && 
       state.buildings.generator.count > 0) {
     console.log("🔓 Разблокировано исследование 'Основы блокчейна'");
@@ -247,7 +253,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
   }
   
   // Безопасность криптокошельков разблокируется после покупки криптокошелька
-  if (!state.upgrades.walletSecurity.unlocked && 
+  if (state.upgrades.walletSecurity && !state.upgrades.walletSecurity.unlocked && 
       state.buildings.cryptoWallet && 
       state.buildings.cryptoWallet.count > 0) {
     console.log("🔓 Разблокировано исследование 'Безопасность криптокошельков'");
@@ -265,8 +271,8 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
   }
   
   // Основы криптовалют разблокируются после изучения основ блокчейна
-  if (!state.upgrades.cryptoCurrencyBasics.unlocked && 
-      state.upgrades.blockchainBasics.purchased) {
+  if (state.upgrades.cryptoCurrencyBasics && !state.upgrades.cryptoCurrencyBasics.unlocked && 
+      state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) {
     console.log("🔓 Разблокировано исследование 'Основы криптовалют'");
     newState = {
       ...newState,
