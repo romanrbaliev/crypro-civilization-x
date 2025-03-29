@@ -1,3 +1,4 @@
+
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
@@ -8,7 +9,9 @@ export const processStartGame = (state: GameState): GameState => {
   // Обеспечиваем, что USDT заблокирован при старте новой игры
   const usdtResource = state.resources.usdt || initialState.resources.usdt;
   
-  let newState = {
+  // Используем явное приведение типа, чтобы TypeScript знал,
+  // что usdt определенно присутствует в resources
+  const newState: GameState = {
     ...state,
     gameStarted: true,
     lastUpdate: Date.now(),
@@ -27,20 +30,20 @@ export const processStartGame = (state: GameState): GameState => {
   };
   
   // Проверяем и применяем все разблокировки при старте игры
-  newState = checkSpecialUnlocks(newState);
-  newState = checkAllUnlocks(newState);
+  let updatedState = checkSpecialUnlocks(newState);
+  updatedState = checkAllUnlocks(updatedState);
   
   // Дополнительная проверка, что USDT остался заблокированным
-  if (newState.resources.usdt) {
+  if (updatedState.resources.usdt) {
     // Проверяем условие разблокировки USDT
-    if (!newState.counters.applyKnowledge || newState.counters.applyKnowledge.value < 2) {
+    if (!updatedState.counters.applyKnowledge || updatedState.counters.applyKnowledge.value < 2) {
       // Если условие не выполнено, принудительно блокируем USDT
-      newState.resources.usdt.unlocked = false;
-      newState.unlocks.usdt = false;
+      updatedState.resources.usdt.unlocked = false;
+      updatedState.unlocks.usdt = false;
     }
   }
   
-  return newState;
+  return updatedState;
 };
 
 // Обработка загрузки сохраненной игры
@@ -56,6 +59,7 @@ export const processLoadGame = (
     safeDispatchGameEvent('Нет данных для загрузки, начинаем новую игру', 'warning');
     
     // Создаем новое состояние на основе initialState и гарантируем наличие usdt
+    // Используем явное приведение типа
     const newInitialState: GameState = {
       ...initialState,
       gameStarted: true,
@@ -83,6 +87,7 @@ export const processLoadGame = (
     safeDispatchGameEvent('Загруженные данные повреждены, начинаем новую игру', 'error');
     
     // Создаем новое состояние на основе initialState и гарантируем наличие usdt
+    // Используем явное приведение типа
     const newInitialState: GameState = {
       ...initialState,
       gameStarted: true,
