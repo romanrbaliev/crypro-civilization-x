@@ -27,75 +27,9 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       isInitialResearch(upgrade.id) && upgrade.purchased
     );
   
-  // Логирование для отладки
-  console.log("Статус разблокировки исследований:", researchUnlocked);
-  console.log("Статус покупки Основ блокчейна:", basicBlockchainPurchased);
-  console.log("Доступные улучшения:", Object.values(state.upgrades).filter(u => u.unlocked));
-  
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.unlocked && !upgrade.purchased)
-    .filter(upgrade => {
-      // Если исследования еще не разблокированы, не показываем ничего
-      if (!researchUnlocked) return false;
-      
-      // Если это "Основы блокчейна", показываем когда разблокировано исследование
-      if (isInitialResearch(upgrade.id)) return true;
-      
-      // Если "Основы блокчейна" не куплены, скрываем все остальные исследования
-      if (!basicBlockchainPurchased) return false;
-      
-      // Проверяем, есть ли у исследования требования к другим исследованиям
-      if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
-        // Проверяем, все ли требуемые исследования куплены
-        return upgrade.requiredUpgrades.every(
-          reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-        );
-      }
-      
-      // Проверяем требования в другом формате
-      if (upgrade.requirements) {
-        const requiredUpgrades = Object.keys(upgrade.requirements)
-                                  .filter(key => !key.includes('Count') && state.upgrades[key]);
-        
-        if (requiredUpgrades.length > 0) {
-          return requiredUpgrades.every(
-            reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-          );
-        }
-      }
-      
-      // Для исследований без требований, проверяем специальные правила
-      
-      // "Основы криптовалют" должны появиться после покупки "Основы блокчейна"
-      if (upgrade.id === 'cryptoCurrencyBasics') {
-        return basicBlockchainPurchased;
-      }
-      
-      // "Безопасность криптокошельков" появляется после покупки криптокошелька
-      if (upgrade.id === 'walletSecurity') {
-        return state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0;
-      }
-      
-      // "Оптимизация алгоритмов" появляется после покупки автомайнера
-      if (upgrade.id === 'algorithmOptimization') {
-        return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
-      }
-      
-      return true; // По умолчанию показываем исследование, если нет явных ограничений
-    });
-  
-  // Сортируем исследования по порядку и значимости
-  const sortedUpgrades = [...unlockedUpgrades].sort((a, b) => {
-    // Основы блокчейна всегда на первом месте
-    if (isInitialResearch(a.id)) return -1;
-    if (isInitialResearch(b.id)) return 1;
-    
-    // Затем по стоимости
-    const aCost = Object.values(a.cost).reduce((sum, val) => sum + Number(val), 0);
-    const bCost = Object.values(b.cost).reduce((sum, val) => sum + Number(val), 0);
-    return aCost - bCost;
-  });
+    .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
   
   // Купленные исследования
   const purchasedUpgrades = Object.values(state.upgrades)
@@ -116,7 +50,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   return (
     <div className="space-y-2">
-      {sortedUpgrades.length === 0 && purchasedUpgrades.length === 0 ? (
+      {unlockedUpgrades.length === 0 && purchasedUpgrades.length === 0 ? (
         <div className="text-center py-6 text-gray-500">
           <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
           <p className="text-xs">
@@ -126,11 +60,11 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         </div>
       ) : (
         <>
-          {sortedUpgrades.length > 0 && (
+          {unlockedUpgrades.length > 0 && (
             <div className="mb-4">
               <h2 className="text-sm font-medium mb-2">Доступные исследования</h2>
               <div className="space-y-1">
-                {sortedUpgrades.map(upgrade => (
+                {unlockedUpgrades.map(upgrade => (
                   <UpgradeItem 
                     key={upgrade.id} 
                     upgrade={upgrade} 
