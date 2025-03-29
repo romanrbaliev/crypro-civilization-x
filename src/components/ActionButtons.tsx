@@ -32,6 +32,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     knowledgeEfficiencyBonus
   } = useActionButtons({ onAddEvent });
   
+  // Получаем состояние разблокировки кнопки "Применить знания"
   const hasApplyKnowledge = state.unlocks.applyKnowledge;
   
   // Получаем значения ресурсов для проверки доступности кнопок
@@ -45,6 +46,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   // Массив компонентов кнопок, которые будем рендерить
   const buttonComponents = [];
+  
+  // Отладочная информация для понимания почему кнопка может не появляться
+  console.log("Состояние разблокировки кнопки 'Применить знания':", hasApplyKnowledge);
+  console.log("Счетчик кликов знаний:", state.counters.knowledgeClicks?.value);
   
   // Кнопка обмена BTC (если разблокирована)
   if (btc.unlocked) {

@@ -136,7 +136,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   }
   
   // Проверка для разблокировки улучшения "Криптовалютный трейдинг"
-  if (state.upgrades.cryptoTrading && !state.upgrades.cryptoTrading.unlocked && 
+  if (state.upgrades && state.upgrades.cryptoTrading && !state.upgrades.cryptoTrading.unlocked && 
       state.buildings.improvedWallet && 
       state.buildings.improvedWallet.count > 0) {
     console.log("🔓 Разблокировано исследование 'Криптовалютный трейдинг'");
@@ -158,9 +158,28 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
 
 // Проверяет разблокировки ресурсов на основе требований
 export const checkResourceUnlocks = (state: GameState): GameState => {
-  // В этом примере мы просто возвращаем исходное состояние
-  // Потому что большинство разблокировок происходит в checkSpecialUnlocks
-  return state;
+  let newState = { ...state };
+  
+  // КРИТИЧЕСКИ ВАЖНОЕ ИСПРАВЛЕНИЕ: USDT должен появляться ТОЛЬКО после действия "Применить знания"
+  // Проверяем, что ресурс USDT еще не разблокирован, но должен быть разблокирован
+  if (state.resources.usdt && !state.resources.usdt.unlocked && 
+      state.counters.applyKnowledge && state.counters.applyKnowledge.value > 0) {
+    console.log("🔓 Разблокирован ресурс 'USDT'");
+    newState = {
+      ...newState,
+      resources: {
+        ...newState.resources,
+        usdt: {
+          ...newState.resources.usdt,
+          unlocked: true,
+          name: "USDT"
+        }
+      }
+    };
+    safeDispatchGameEvent("Открыт ресурс «USDT»", "success");
+  }
+  
+  return newState;
 };
 
 // Проверяет разблокировки зданий на основе требований
@@ -169,7 +188,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   
   // Генератор появляется при достижении 11 USDT
   if (state.buildings.generator && !state.buildings.generator.unlocked && 
-      state.resources.usdt && 
+      state.resources.usdt && state.resources.usdt.unlocked &&
       state.resources.usdt.value >= 11) {
     console.log("🔓 Разблокировано здание 'Генератор'");
     newState = {
@@ -187,7 +206,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   
   // Домашний компьютер появляется при наличии 10 единиц электричества
   if (state.buildings.homeComputer && !state.buildings.homeComputer.unlocked && 
-      state.resources.electricity && 
+      state.resources.electricity && state.resources.electricity.unlocked &&
       state.resources.electricity.value >= 10) {
     console.log("🔓 Разблокировано здание 'Домашний компьютер'");
     newState = {
@@ -228,7 +247,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
 export const checkUpgradeUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // Проверяем, что state.upgrades и необходимые улучшения существуют
+  // Проверяем, что state.upgrades существует
   if (!state.upgrades) {
     console.warn("❌ Объект upgrades не найден в состоянии");
     return state;

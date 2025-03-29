@@ -294,6 +294,11 @@ export const initialResources: { [key: string]: Resource } = {
 
 // Начальные счетчики
 export const initialCounters: { [key: string]: Counter } = {
+  knowledgeClicks: {
+    id: "knowledgeClicks",
+    name: "Изучение криптовалют",
+    value: 0
+  },
   applyKnowledge: {
     id: "applyKnowledge",
     name: "Применение знаний",
