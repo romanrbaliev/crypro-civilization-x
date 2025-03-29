@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/hooks/useGame';
@@ -73,6 +72,15 @@ const StartScreen = () => {
           
           // Обновляем состояние с данными о рефералах
           setHasExistingSave(true);
+          
+          // Убедимся, что USDT не разблокирован при новой игре
+          if (savedGame.resources && savedGame.resources.usdt) {
+            savedGame.resources.usdt.unlocked = false;
+            if (savedGame.counters.applyKnowledge && savedGame.counters.applyKnowledge.value >= 2) {
+              savedGame.resources.usdt.unlocked = true;
+            }
+          }
+          
           dispatch({ type: "LOAD_GAME", payload: savedGame });
           
           // Принудительно обновляем информацию в таблице referral_data

@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { initialState } from '@/context/initialState';
 
@@ -122,6 +123,14 @@ export function mergeWithInitialState(loadedState: any): GameState {
     if (loadedState.buildings.homeComputer && loadedState.buildings.homeComputer.count < 2) {
       loadedState.buildings.coolingSystem.unlocked = false;
       console.log('🔒 Система охлаждения заблокирована при загрузке: недостаточно компьютеров');
+    }
+  }
+  
+  // Убедимся, что USDT заблокирован при загрузке, если не выполнены условия
+  if (loadedState.resources && loadedState.resources.usdt) {
+    if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 2) {
+      loadedState.resources.usdt.unlocked = false;
+      console.log('🔒 USDT заблокирован при загрузке: не применены знания дважды');
     }
   }
   

@@ -139,6 +139,16 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
       newState = initializeReferralSystem(newState);
       
+      // Убедимся, что USDT разблокирован только если применены знания дважды
+      if (newState.resources.usdt) {
+        if (!newState.counters.applyKnowledge || newState.counters.applyKnowledge.value < 2) {
+          newState.resources.usdt.unlocked = false;
+        } else {
+          newState.resources.usdt.unlocked = true;
+          newState.unlocks.usdt = true;
+        }
+      }
+      
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
       return newState;
@@ -153,6 +163,11 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       }
       
       newState = initializeReferralSystem(newState);
+      
+      // Убедимся, что USDT изначально заблокирован
+      if (newState.resources.usdt) {
+        newState.resources.usdt.unlocked = false;
+      }
       
       // Принудительно пересчитываем максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
@@ -174,12 +189,20 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "APPLY_KNOWLEDGE": {
       // После применения знаний принудительно пересчитываем максимумы ресурсов
       newState = processApplyKnowledge(state);
+      
+      // Проверяем разблокировку USDT
+      newState = checkAllUnlocks(newState);
+      
       return updateResourceMaxValues(newState);
     }
     
     case "APPLY_ALL_KNOWLEDGE": {
       // После применения всех знаний принудительно пересчитываем максимумы ресурсов
       newState = processApplyAllKnowledge(state);
+      
+      // Проверяем разблокировку USDT
+      newState = checkAllUnlocks(newState);
+      
       return updateResourceMaxValues(newState);
     }
       
