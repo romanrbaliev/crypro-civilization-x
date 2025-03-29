@@ -85,6 +85,18 @@ export const processPurchaseUpgrade = (
     
     console.log(`Новый максимум знаний: ${newState.resources.knowledge.max}`);
     console.log(`Новый базовый прирост знаний: ${newState.resources.knowledge.baseProduction}`);
+    
+    // НОВОЕ: Явно разблокируем криптокошелек после изучения основ блокчейна
+    if (newState.buildings.cryptoWallet) {
+      console.log("Разблокируем криптокошелек после изучения Основ блокчейна");
+      newState.buildings.cryptoWallet = {
+        ...newState.buildings.cryptoWallet,
+        unlocked: true
+      };
+      safeDispatchGameEvent("Открыта возможность приобрести «Криптокошелек»", "success");
+    } else {
+      console.warn("Здание cryptoWallet отсутствует в состоянии!");
+    }
   }
   
   // Применяем эффекты улучшения

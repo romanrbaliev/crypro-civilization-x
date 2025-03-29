@@ -1,3 +1,4 @@
+
 // Функции для проверки и обработки разблокировок возможностей в игре
 
 import { GameState } from '@/context/types';
@@ -337,6 +338,31 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       }
     };
     safeDispatchGameEvent("Открыто исследование «Основы криптовалют»", "success");
+  }
+  
+  // НОВОЕ: Криптокошелек разблокируется после изучения основ блокчейна
+  if (state.buildings.cryptoWallet && !state.buildings.cryptoWallet.unlocked) {
+    // Проверяем все варианты ID исследования "Основы блокчейна"
+    const isBlockchainBasicsPurchased = (
+      (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
+      (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased) ||
+      (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased)
+    );
+    
+    if (isBlockchainBasicsPurchased) {
+      console.log("🔓 Разблокировано здание 'Криптокошелек' после изучения основ блокчейна");
+      newState = {
+        ...newState,
+        buildings: {
+          ...newState.buildings,
+          cryptoWallet: {
+            ...newState.buildings.cryptoWallet,
+            unlocked: true
+          }
+        }
+      };
+      safeDispatchGameEvent("Открыта возможность приобрести «Криптокошелек»", "success");
+    }
   }
   
   return newState;

@@ -121,3 +121,15 @@ export const getSpecializationName = (specializationId: string): string => {
   
   return specializationMap[specializationId] || specializationId;
 };
+
+// НОВАЯ ФУНКЦИЯ: Проверка разблокировки криптокошелька
+export const isCryptoWalletUnlocked = (state: GameState): boolean => {
+  // Если криптокошелек не существует, возвращаем false
+  if (!state.buildings.cryptoWallet) return false;
+  
+  // Если криптокошелек уже разблокирован, возвращаем true
+  if (state.buildings.cryptoWallet.unlocked) return true;
+  
+  // Проверяем, куплены ли "Основы блокчейна"
+  return isBlockchainBasicsPurchased(state);
+};

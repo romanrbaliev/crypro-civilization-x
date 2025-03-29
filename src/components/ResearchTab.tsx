@@ -27,6 +27,11 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       isInitialResearch(upgrade.id) && upgrade.purchased
     );
   
+  // Логирование для отладки
+  console.log("Статус разблокировки исследований:", researchUnlocked);
+  console.log("Статус покупки Основ блокчейна:", basicBlockchainPurchased);
+  console.log("Доступные улучшения:", Object.values(state.upgrades).filter(u => u.unlocked));
+  
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)
     .filter(upgrade => upgrade.unlocked && !upgrade.purchased)
@@ -77,8 +82,20 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         return state.buildings.autoMiner && state.buildings.autoMiner.count > 0;
       }
       
-      return false;
+      return true; // По умолчанию показываем исследование, если нет явных ограничений
     });
+  
+  // Сортируем исследования по порядку и значимости
+  const sortedUpgrades = [...unlockedUpgrades].sort((a, b) => {
+    // Основы блокчейна всегда на первом месте
+    if (isInitialResearch(a.id)) return -1;
+    if (isInitialResearch(b.id)) return 1;
+    
+    // Затем по стоимости
+    const aCost = Object.values(a.cost).reduce((sum, val) => sum + Number(val), 0);
+    const bCost = Object.values(b.cost).reduce((sum, val) => sum + Number(val), 0);
+    return aCost - bCost;
+  });
   
   // Купленные исследования
   const purchasedUpgrades = Object.values(state.upgrades)
@@ -99,7 +116,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   return (
     <div className="space-y-2">
-      {unlockedUpgrades.length === 0 && purchasedUpgrades.length === 0 ? (
+      {sortedUpgrades.length === 0 && purchasedUpgrades.length === 0 ? (
         <div className="text-center py-6 text-gray-500">
           <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
           <p className="text-xs">
@@ -109,11 +126,11 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         </div>
       ) : (
         <>
-          {unlockedUpgrades.length > 0 && (
+          {sortedUpgrades.length > 0 && (
             <div className="mb-4">
               <h2 className="text-sm font-medium mb-2">Доступные исследования</h2>
               <div className="space-y-1">
-                {unlockedUpgrades.map(upgrade => (
+                {sortedUpgrades.map(upgrade => (
                   <UpgradeItem 
                     key={upgrade.id} 
                     upgrade={upgrade} 
