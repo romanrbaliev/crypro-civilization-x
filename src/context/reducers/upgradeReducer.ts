@@ -149,12 +149,15 @@ export const processPurchaseUpgrade = (
       if (effectId === 'electricityEfficiencyBoost') {
         // Увеличиваем эффективность электричества
         if (newState.resources.electricity) {
-          const currentEfficiency = newState.resources.electricity.productionEfficiency || 1;
+          const currentEfficiency = newState.resources.electricity.boosts?.efficiency || 1;
           const newEfficiency = currentEfficiency * (1 + Number(amount));
           
           newState.resources.electricity = {
             ...newState.resources.electricity,
-            productionEfficiency: newEfficiency
+            boosts: {
+              ...(newState.resources.electricity.boosts || {}),
+              efficiency: newEfficiency
+            }
           };
           
           console.log(`Применен эффект electricityEfficiencyBoost: увеличение с ${currentEfficiency} до ${newEfficiency}`);

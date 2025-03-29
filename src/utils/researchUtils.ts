@@ -105,3 +105,19 @@ export const formatEffect = (effectId: string, amount: number): string => {
     return `${formattedName}: ${sign}${amount}`;
   }
 };
+
+// Получение имени специализации для отображения
+export const getSpecializationName = (specializationId: string): string => {
+  const specializationMap: { [key: string]: string } = {
+    miner: "Майнер",
+    trader: "Трейдер",
+    investor: "Инвестор",
+    influencer: "Инфлюенсер",
+    analyst: "Аналитик",
+    founder: "Фаундер",
+    arbitrageur: "Арбитражник",
+    general: "Общая"
+  };
+  
+  return specializationMap[specializationId] || specializationId;
+};
