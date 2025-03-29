@@ -299,6 +299,40 @@ const unlockConditions: Record<string, UnlockCondition> = {
     type: "success"
   },
   
+  // Новая разблокировка для Оптимизации алгоритмов после покупки автомайнера
+  'algorithmOptimization': {
+    check: (state) => state.buildings.autoMiner?.count > 0,
+    apply: (state) => ({
+      ...state,
+      upgrades: {
+        ...state.upgrades,
+        algorithmOptimization: {
+          ...state.upgrades.algorithmOptimization,
+          unlocked: true
+        }
+      }
+    }),
+    message: "Открыто исследование «Оптимизация алгоритмов»",
+    type: "success"
+  },
+  
+  // Разблокировка Proof of Work после покупки автомайнера
+  'proofOfWork': {
+    check: (state) => state.buildings.autoMiner?.count > 0,
+    apply: (state) => ({
+      ...state,
+      upgrades: {
+        ...state.upgrades,
+        proofOfWork: {
+          ...state.upgrades.proofOfWork,
+          unlocked: true
+        }
+      }
+    }),
+    message: "Открыто исследование «Proof of Work»",
+    type: "success"
+  },
+  
   // === ДЕЙСТВИЯ ===
   'applyKnowledge': {
     check: (state) => state.counters.knowledgeClicks?.value >= 3,
@@ -461,6 +495,12 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
   if (id === 'cryptoTrading') {
     return state.upgrades.cryptoTrading && !state.upgrades.cryptoTrading.unlocked;
   }
+  if (id === 'algorithmOptimization') {
+    return state.upgrades.algorithmOptimization && !state.upgrades.algorithmOptimization.unlocked;
+  }
+  if (id === 'proofOfWork') {
+    return state.upgrades.proofOfWork && !state.upgrades.proofOfWork.unlocked;
+  }
   
   // Проверка для действий
   if (id === 'applyKnowledge') {
@@ -490,7 +530,7 @@ export function checkCategoryUnlocks(state: GameState, category: 'buildings' | '
       case 'resources':
         return ['usdt', 'electricity', 'computingPower', 'btc'].includes(id);
       case 'upgrades':
-        return ['researchTab', 'blockchainBasics', 'cryptoCurrencyBasics', 'walletSecurity', 'cryptoTrading'].includes(id);
+        return ['researchTab', 'blockchainBasics', 'cryptoCurrencyBasics', 'walletSecurity', 'cryptoTrading', 'algorithmOptimization', 'proofOfWork'].includes(id);
       case 'actions':
         return ['applyKnowledge', 'miningPower', 'exchangeBtc'].includes(id);
       default:

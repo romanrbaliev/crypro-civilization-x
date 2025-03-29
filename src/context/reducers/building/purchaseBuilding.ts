@@ -2,7 +2,7 @@
 import { GameState } from '../../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
-import { checkUpgradeUnlocks } from '@/utils/unlockSystem';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 
 // Обработка покупки зданий
 export const processPurchaseBuilding = (
@@ -51,6 +51,7 @@ export const processPurchaseBuilding = (
   };
   
   console.log(`Куплено здание ${building.name} за:`, calculatedCost);
+  safeDispatchGameEvent(`Приобретено здание "${building.name}"`, "success");
   
   // Создаем новое состояние с обновленными ресурсами и зданиями
   let newState = {
@@ -59,115 +60,12 @@ export const processPurchaseBuilding = (
     buildings: newBuildings
   };
   
-  newState = handleResourceUnlocksAfterPurchase(newState, buildingId, building);
+  // После покупки здания проверяем все возможные разблокировки 
+  // через централизованную систему разблокировок
+  newState = checkAllUnlocks(newState);
   
   // Обновляем максимальные значения ресурсов
   newState = updateResourceMaxValues(newState);
-  
-  // Проверяем разблокировку улучшений
-  newState = checkUpgradeUnlocks(newState);
-  
-  return newState;
-};
-
-// Вспомогательная функция для разблокировки ресурсов после покупки здания
-const handleResourceUnlocksAfterPurchase = (
-  state: GameState,
-  buildingId: string,
-  building: any
-): GameState => {
-  let newState = { ...state };
-  const newResources = { ...newState.resources };
-  
-  // Разблокируем ресурсы, производимые этим зданием
-  if (buildingId === "generator" && !newResources.electricity.unlocked) {
-    console.log("Разблокируем ресурс электричества после покупки генератора");
-    newResources.electricity = {
-      ...newResources.electricity,
-      unlocked: true
-    };
-    safeDispatchGameEvent("Разблокирован ресурс: Электричество", "info");
-  }
-  
-  // Если это первый домашний компьютер, разблокируем вычислительную мощность
-  if (buildingId === "homeComputer" && building.count === 0 && !newResources.computingPower.unlocked) {
-    console.log("Разблокируем ресурс вычислительной мощности после покупки первого компьютера");
-    newResources.computingPower = {
-      ...newResources.computingPower,
-      unlocked: true
-    };
-    safeDispatchGameEvent("Разблокирован ресурс: Вычислительная мощность", "info");
-  }
-  
-  // Разблокируем BTC после покупки автомайнера
-  if (buildingId === "autoMiner" && building.count === 0 && !newResources.btc.unlocked) {
-    console.log("Разблокируем ресурс BTC после покупки автомайнера");
-    newResources.btc = {
-      ...newResources.btc,
-      unlocked: true
-    };
-    safeDispatchGameEvent("Разблокирован ресурс: Bitcoin (BTC)", "info");
-  }
-
-  // После покупки практики разблокируем автоматическое получение знаний
-  if (buildingId === "practice" && building.count === 0) {
-    safeDispatchGameEvent("Теперь знания о крипте накапливаются автоматически", "success");
-  }
-  
-  // Обновляем ресурсы в состоянии
-  newState = {
-    ...newState,
-    resources: newResources
-  };
-  
-  // Разблокировка вкладки исследований при покупке первого генератора
-  if (buildingId === "generator" && building.count === 0) {
-    console.log("Разблокируем вкладку исследований после покупки первого генератора");
-    
-    // Разблокируем саму вкладку исследований
-    newState = {
-      ...newState,
-      unlocks: {
-        ...newState.unlocks,
-        research: true
-      }
-    };
-    
-    // Разблокируем "Основы блокчейна" в обоих возможных ID
-    const upgrades = { ...newState.upgrades };
-    
-    if (upgrades.basicBlockchain) {
-      upgrades.basicBlockchain = {
-        ...upgrades.basicBlockchain,
-        unlocked: true
-      };
-      console.log("Разблокировано исследование 'Основы блокчейна' (basicBlockchain)");
-    }
-    
-    if (upgrades.blockchain_basics) {
-      upgrades.blockchain_basics = {
-        ...upgrades.blockchain_basics,
-        unlocked: true
-      };
-      console.log("Разблокировано исследование 'Основы блокчейна' (blockchain_basics)");
-    }
-    
-    if (upgrades.blockchainBasics) {
-      upgrades.blockchainBasics = {
-        ...upgrades.blockchainBasics,
-        unlocked: true
-      };
-      console.log("Разблокировано исследование 'Основы блокчейна' (blockchainBasics)");
-    }
-    
-    newState = {
-      ...newState,
-      upgrades: upgrades
-    };
-    
-    safeDispatchGameEvent("Разблокирована вкладка исследований", "success");
-    safeDispatchGameEvent("Доступно новое исследование: Основы блокчейна", "info");
-  }
   
   return newState;
 };

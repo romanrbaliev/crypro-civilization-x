@@ -127,6 +127,71 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return updateResourceMaxValues(newState);
     }
     
+    case "LOAD_GAME": {
+      console.log('Загрузка сохраненной игры через LOAD_GAME action');
+      
+      newState = processLoadGame(state, action.payload as GameState);
+      
+      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
+        console.log('Инициализируем отсутствующие синергии в gameReducer');
+        newState = initializeSynergies(newState);
+      }
+      
+      newState = initializeReferralSystem(newState);
+      
+      // Убедимся, что USDT разблокирован только если применены знания дважды
+      if (newState.resources.usdt) {
+        if (!newState.counters.applyKnowledge || newState.counters.applyKnowledge.value < 2) {
+          newState.resources.usdt.unlocked = false;
+          newState.unlocks.usdt = false;
+        } else {
+          newState.resources.usdt.unlocked = true;
+          newState.unlocks.usdt = true;
+        }
+      }
+      
+      // Принудительно пересчитываем максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      
+      // После загрузки игры проверяем все разблокировки
+      console.log("Принудительная проверка всех разблокировок после загрузки игры");
+      newState = checkAllUnlocks(newState);
+      
+      return newState;
+    }
+    
+    case "START_GAME": {
+      newState = processStartGame(state);
+      
+      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
+        console.log('Инициализируем отсутствующие синергии в START_GAME');
+        newState = initializeSynergies(newState);
+      }
+      
+      newState = initializeReferralSystem(newState);
+      
+      // Убедимся, что USDT изначально заблокирован
+      if (newState.resources.usdt) {
+        newState.resources.usdt.unlocked = false;
+        newState.unlocks.usdt = false;
+      }
+      
+      // Принудительно пересчитываем максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      return newState;
+    }
+    
+    case "FORCE_RESOURCE_UPDATE": {
+      console.log("Принудительное обновление ресурсов и бонусов");
+      // Сначала обновляем производство ресурсов
+      const updatedState = processResourceUpdate(state);
+      // Проверяем разблокировки через централизованную систему
+      console.log("Принудительная проверка всех разблокировок при FORCE_RESOURCE_UPDATE");
+      const checkedState = checkAllUnlocks(updatedState);
+      // Затем пересчитываем максимальные значения ресурсов
+      return updateResourceMaxValues(checkedState);
+    }
+    
     case "SELL_BUILDING": {
       // Продаем здание
       newState = processSellBuilding(state, action.payload);
@@ -176,59 +241,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "ACTIVATE_SYNERGY":
       return activateSynergy(state, action.payload);
-    
-    case "LOAD_GAME": {
-      console.log('Загрузка сохраненной игры через LOAD_GAME action');
-      
-      newState = processLoadGame(state, action.payload as GameState);
-      
-      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
-        console.log('Инициализируем отсутствующие синергии в gameReducer');
-        newState = initializeSynergies(newState);
-      }
-      
-      newState = initializeReferralSystem(newState);
-      
-      // Убедимся, что USDT разблокирован только если применены знания дважды
-      if (newState.resources.usdt) {
-        if (!newState.counters.applyKnowledge || newState.counters.applyKnowledge.value < 2) {
-          newState.resources.usdt.unlocked = false;
-          newState.unlocks.usdt = false;
-        } else {
-          newState.resources.usdt.unlocked = true;
-          newState.unlocks.usdt = true;
-        }
-      }
-      
-      // Принудительно пересчитываем максимальные значения ресурсов
-      newState = updateResourceMaxValues(newState);
-      
-      // После загрузки игры проверяем все разблокировки
-      newState = checkAllUnlocks(newState);
-      
-      return newState;
-    }
-    
-    case "START_GAME": {
-      newState = processStartGame(state);
-      
-      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
-        console.log('Инициализируем отсутствующие синергии в START_GAME');
-        newState = initializeSynergies(newState);
-      }
-      
-      newState = initializeReferralSystem(newState);
-      
-      // Убедимся, что USDT изначально заблокирован
-      if (newState.resources.usdt) {
-        newState.resources.usdt.unlocked = false;
-        newState.unlocks.usdt = false;
-      }
-      
-      // Принудительно пересчитываем максимальные значения ресурсов
-      newState = updateResourceMaxValues(newState);
-      return newState;
-    }
     
     case "PRESTIGE": 
       return processPrestige(state);
@@ -282,16 +294,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       
     case "UPDATE_REFERRAL_STATUS":
       return processUpdateReferralStatus(state, action.payload);
-      
-    case "FORCE_RESOURCE_UPDATE": {
-      console.log("Принудительное обновление ресурсов и бонусов");
-      // Сначала обновляем производство ресурсов
-      const updatedState = processResourceUpdate(state);
-      // Проверяем разблокировки через централизованную систему
-      const checkedState = checkAllUnlocks(updatedState);
-      // Затем пересчитываем максимальные значения ресурсов
-      return updateResourceMaxValues(checkedState);
-    }
       
     case "UPDATE_HELPERS": {
       // Обработчик события обновления помощников
