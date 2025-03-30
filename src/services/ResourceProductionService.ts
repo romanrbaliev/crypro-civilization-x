@@ -1,4 +1,5 @@
 
+
 import { GameState } from '@/context/types';
 import { Building } from '@/context/types';
 import { Upgrade } from '@/context/types';
@@ -59,7 +60,7 @@ export class ResourceProductionService {
     
     // Особая обработка для практики (она даёт фиксированный прирост знаний)
     if (state.buildings.practice && state.buildings.practice.count > 0 && updatedResources.knowledge) {
-      // Исправлено: Точное значение от практики - 0.63 за уровень (вместо 0.21)
+      // Важно: Точное значение от практики 0.63 за уровень (а не 0.21)
       const baseKnowledgeFromPractice = 0.63 * state.buildings.practice.count;
       
       // Применяем множитель производства знаний от бонусов

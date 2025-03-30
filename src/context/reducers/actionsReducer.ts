@@ -59,7 +59,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     };
   }
   
-  console.log("processApplyKnowledge: Установили счетчик applyKnowledge =", 
+  console.log("🔄 processApplyKnowledge: Установили счетчик applyKnowledge =", 
     newCounters.applyKnowledge?.value);
 
   return {
