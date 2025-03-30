@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -39,6 +38,19 @@ export class GameStateService {
         ...state,
         resources: updatedResources
       };
+      
+      // Принудительная проверка условий для критических разблокировок
+      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2 &&
+          state.buildings.practice && !state.buildings.practice.unlocked) {
+        console.log("GameStateService: Применение принудительной проверки разблокировки практики");
+        state = this.unlockService.checkAllUnlocks(state);
+      }
+      
+      if (state.resources.usdt && state.resources.usdt.value >= 11 &&
+          state.buildings.generator && !state.buildings.generator.unlocked) {
+        console.log("GameStateService: Применение принудительной проверки разблокировки генератора");
+        state = this.unlockService.checkAllUnlocks(state);
+      }
       
       console.log("GameStateService: Обработка обновления состояния завершена успешно");
       return state;
@@ -169,8 +181,12 @@ export class GameStateService {
       
       // Базовый максимум + увеличение от криптокошельков + увеличение от улучшенных кошельков
       const defaultMaxUsdt = 50;
+      const walletBonus = cryptoWalletCount * 25;
+      const improvedWalletBonus = improvedWalletCount * 50;
       const currentMax = updatedResources.usdt.max || defaultMaxUsdt;
-      updatedResources.usdt.max = currentMax + (cryptoWalletCount * 25) + (improvedWalletCount * 50);
+      
+      updatedResources.usdt.max = defaultMaxUsdt + walletBonus + improvedWalletBonus;
+      console.log(`GameStateService: Обновлен максимум USDT: ${updatedResources.usdt.max} (база: ${defaultMaxUsdt}, кошельки: +${walletBonus}, улучшенные: +${improvedWalletBonus})`);
     }
     
     // Обновляем макс. значение знаний на основе криптобиблиотек
@@ -179,8 +195,10 @@ export class GameStateService {
       
       // Базовый максимум + увеличение от криптобиблиотек
       const defaultMaxKnowledge = 100;
-      const currentMax = updatedResources.knowledge.max || defaultMaxKnowledge;
-      updatedResources.knowledge.max = currentMax + (cryptoLibraryCount * 50);
+      const libraryBonus = cryptoLibraryCount * 50;
+      
+      updatedResources.knowledge.max = defaultMaxKnowledge + libraryBonus;
+      console.log(`GameStateService: Обновлен максимум знаний: ${updatedResources.knowledge.max} (база: ${defaultMaxKnowledge}, библиотеки: +${libraryBonus})`);
     }
     
     return {

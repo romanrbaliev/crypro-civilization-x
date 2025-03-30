@@ -1,4 +1,4 @@
-// Единая централизованная система управления разблокировками игровых элементов
+// ��диная централизованная система управления разблокировками игровых элементов
 
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -514,7 +514,7 @@ export function checkAllUnlocks(state: GameState): GameState {
   
   // Проходим по всем условиям разблокировок
   Object.entries(unlockConditions).forEach(([id, condition]) => {
-    // Проверяем, что элемент существует в состоянии и не разблокирован
+    // Проверяем, что элемент существует в состоянии и не разблокиров��н
     const shouldCheck = checkShouldApplyUnlock(newState, id);
     
     if (shouldCheck) {
@@ -608,51 +608,32 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
     const hasPracticeBuilding = state.buildings && state.buildings.practice;
     const isPracticeUnlocked = hasPracticeBuilding && state.buildings.practice.unlocked;
     const isPracticeInUnlocks = state.unlocks && state.unlocks.practice;
+    const applyKnowledgeCount = state.counters.applyKnowledge?.value || 0;
     
-    console.log("Проверка разблокировки практики в checkShouldApplyUnlock:");
+    console.log("unlockManager - Проверка разблокировки практики в checkShouldApplyUnlock:");
     console.log("- practice существует:", hasPracticeBuilding);
     console.log("- practice не разблокирована:", !isPracticeUnlocked);
     console.log("- practice не в unlocks:", !isPracticeInUnlocks);
-    console.log("- counters.applyKnowledge:", state.counters.applyKnowledge?.value);
+    console.log("- counters.applyKnowledge:", applyKnowledgeCount);
+    console.log("- Условие разблокировки практики выполнено:", applyKnowledgeCount >= 2);
     
-    return hasPracticeBuilding && (!isPracticeUnlocked && !isPracticeInUnlocks);
+    return hasPracticeBuilding && (!isPracticeUnlocked && !isPracticeInUnlocks) && applyKnowledgeCount >= 2;
   }
   
   if (id === 'generator') {
     const hasGenerator = state.buildings && state.buildings.generator;
     const isGeneratorUnlocked = hasGenerator && state.buildings.generator.unlocked;
+    const usdtValue = state.resources.usdt?.value || 0;
+    const isUsdtUnlocked = state.resources.usdt?.unlocked || false;
     
-    console.log("Проверка разблокировки генератора в checkShouldApplyUnlock:");
+    console.log("unlockManager - Проверка разблокировки генератора в checkShouldApplyUnlock:");
     console.log("- generator существует:", hasGenerator); 
     console.log("- generator не разблокирован:", !isGeneratorUnlocked);
-    console.log("- USDT.value:", state.resources.usdt?.value);
-    console.log("- USDT.unlocked:", state.resources.usdt?.unlocked);
+    console.log("- USDT.value:", usdtValue);
+    console.log("- USDT.unlocked:", isUsdtUnlocked);
+    console.log("- Условие разблокировки генератора выполнено:", usdtValue >= 11 && isUsdtUnlocked);
     
-    return hasGenerator && !isGeneratorUnlocked;
-  }
-  
-  if (id === 'homeComputer') {
-    return state.buildings.homeComputer && !state.buildings.homeComputer.unlocked;
-  }
-  
-  if (id === 'internetConnection') {
-    return state.buildings.internetConnection && !state.buildings.internetConnection.unlocked;
-  }
-  
-  if (id === 'cryptoWallet') {
-    return state.buildings.cryptoWallet && !state.buildings.cryptoWallet.unlocked;
-  }
-  
-  if (id === 'autoMiner') {
-    return state.buildings.autoMiner && !state.buildings.autoMiner.unlocked;
-  }
-  
-  if (id === 'improvedWallet') {
-    return state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked;
-  }
-  
-  if (id === 'cryptoLibrary') {
-    return state.buildings.cryptoLibrary && !state.buildings.cryptoLibrary.unlocked;
+    return hasGenerator && !isGeneratorUnlocked && usdtValue >= 11 && isUsdtUnlocked;
   }
   
   // Проверка для исследований и вкладки исследований

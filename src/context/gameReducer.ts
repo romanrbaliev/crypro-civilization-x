@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -60,6 +59,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   switch (action.type) {
     case "INCREMENT_RESOURCE": 
       newState = processIncrementResource(state, action.payload);
+      // После каждого клика на кнопку знания проверяем разблокировки
+      if (action.payload.resourceId === "knowledge") {
+        console.log("Обработка клика по знаниям - запуск проверки разблокировок");
+      }
       return gameStateService.processGameStateUpdate(newState);
     
     case "UPDATE_RESOURCES": {
@@ -177,12 +180,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "APPLY_KNOWLEDGE": {
       // После применения знаний обновляем состояние через сервис
       newState = processApplyKnowledge(state);
+      console.log("Обработан APPLY_KNOWLEDGE, проверка разблокировок...");
       return gameStateService.processGameStateUpdate(newState);
     }
     
     case "APPLY_ALL_KNOWLEDGE": {
       // После применения всех знаний обновляем состояние через сервис
       newState = processApplyAllKnowledge(state);
+      console.log("Обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
       return gameStateService.processGameStateUpdate(newState);
     }
       

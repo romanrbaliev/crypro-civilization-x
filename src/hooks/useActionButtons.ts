@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -40,7 +39,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const practiceUnlockFlag = unlocks.practice === true;
   
   // Объединенная проверка разблокировки практики
-  const practiceIsUnlocked = practiceUnlockFlag;
+  const practiceIsUnlocked = practiceUnlockFlag || practiceBuildingUnlocked;
   
   // Получение текущей стоимости и уровня практики
   const practiceCurrentLevel = practiceBuildingExists ? buildings.practice.count : 0;

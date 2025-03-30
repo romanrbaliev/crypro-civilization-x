@@ -300,17 +300,29 @@ export class UnlockService {
     console.log("- practice не в unlocks:", !state.unlocks.practice);
     
     // Строго проверяем, что счетчик применений знаний >= 2
-    return state.counters.applyKnowledge?.value >= 2 && 
+    const result = state.counters.applyKnowledge?.value >= 2 && 
            state.buildings.practice && 
            !state.buildings.practice.unlocked && 
            !state.unlocks.practice;
+           
+    console.log("- Результат проверки разблокировки практики:", result);
+    
+    return result;
   }
 
   private shouldUnlockGenerator(state: GameState): boolean {
-    return state.resources.usdt?.value >= 11 && 
-           state.resources.usdt?.unlocked && 
-           state.buildings.generator && 
-           !state.buildings.generator.unlocked;
+    const usdtValue = state.resources.usdt?.value || 0;
+    const isUsdtUnlocked = state.resources.usdt?.unlocked || false;
+    const isGeneratorUnlocked = state.buildings.generator?.unlocked || false;
+    const result = usdtValue >= 11 && isUsdtUnlocked && !isGeneratorUnlocked;
+    
+    console.log("UnlockService - shouldUnlockGenerator:");
+    console.log("- USDT значение:", usdtValue);
+    console.log("- USDT разблокирован:", isUsdtUnlocked);
+    console.log("- Генератор не разблокирован:", !isGeneratorUnlocked);
+    console.log("- Результат проверки разблокировки генератора:", result);
+    
+    return result;
   }
 
   private shouldUnlockHomeComputer(state: GameState): boolean {
