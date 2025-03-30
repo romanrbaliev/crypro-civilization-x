@@ -176,8 +176,8 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
             costMultiplier: 1.15,
             production: { knowledge: 0.63 },
             unlocked: true,
-            category: "basic",
-            requiredResources: { usdt: 10 }
+            productionBoost: 0,
+            unlockedBy: "applyKnowledge"
           }
         },
         unlocks: {
@@ -224,8 +224,8 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
             costMultiplier: 1.15,
             production: { electricity: 0.5 },
             unlocked: true,
-            category: "basic",
-            requiredResources: { usdt: 25 }
+            productionBoost: 0,
+            unlockedBy: "usdt"
           }
         }
       };
@@ -383,8 +383,8 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
             production: { computingPower: 2 },
             consumption: { electricity: 1 },
             unlocked: true,
-            category: "basic",
-            requiredResources: { usdt: 30, electricity: 1 }
+            productionBoost: 0,
+            unlockedBy: "electricity"
           }),
           unlocked: true
         }
@@ -407,14 +407,10 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
             count: 0,
             cost: { usdt: 15, knowledge: 25 },
             costMultiplier: 1.2,
-            bonuses: {
-              maxStorage: { usdt: 50 },
-              efficiency: { knowledge: 0.05 },
-              maxResources: { knowledge: 25 }
-            },
+            production: {}, // Пустой объект production, т.к. это обязательное поле
+            productionBoost: 0,
             unlocked: true,
-            category: "storage",
-            requiredResources: { usdt: 15, knowledge: 25 }
+            unlockedBy: "blockchainBasics"
           }),
           unlocked: true
         }
@@ -460,10 +456,11 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
             cost: { knowledge: 50 },
             purchased: false,
             unlocked: true,
-            bonuses: {
+            effects: {}, // Пустой объект effects, т.к. это обязательное поле
+            effect: {
               maxResources: { knowledge: 50 }
             },
-            category: "basics"
+            unlockedBy: "generator"
           }),
           unlocked: true
         }
