@@ -1,9 +1,9 @@
 
 import { GameState } from '@/context/types';
 import { UnlockService } from './UnlockService';
-import { EffectService } from './EffectService';
-import { ResourceCalculationService } from './ResourceCalculationService';
+import { ResourceProductionService } from './ResourceProductionService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { BonusCalculationService } from './BonusCalculationService';
 
 /**
  * Централизованный сервис для управления состоянием игры.
@@ -11,34 +11,34 @@ import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
  */
 export class GameStateService {
   private unlockService: UnlockService;
-  private effectService: EffectService;
-  private resourceCalculationService: ResourceCalculationService;
+  private resourceProductionService: ResourceProductionService;
+  private bonusCalculationService: BonusCalculationService;
 
   constructor() {
     this.unlockService = new UnlockService();
-    this.effectService = new EffectService();
-    this.resourceCalculationService = new ResourceCalculationService();
+    this.resourceProductionService = new ResourceProductionService();
+    this.bonusCalculationService = new BonusCalculationService();
   }
 
   /**
    * Обновляет состояние игры после любого игрового действия.
-   * Правильная последовательность: применение эффектов -> проверка разблокировок -> пересчет ресурсов
+   * Правильная последовательность: проверка разблокировок -> расчет бонусов -> пересчет ресурсов
    */
   public processGameStateUpdate(state: GameState): GameState {
     console.log('GameStateService: Начало обработки обновления состояния');
     
     try {
-      // 1. Применяем все эффекты
-      const stateWithEffects = this.effectService.applyAllEffects(state);
+      // 1. Проверяем и применяем все разблокировки
+      let newState = this.unlockService.checkAllUnlocks(state);
       
-      // 2. Проверяем и применяем все разблокировки
-      const stateWithUnlocks = this.unlockService.checkAllUnlocks(stateWithEffects);
+      // 2. Обновляем максимальные значения ресурсов на основе бонусов
+      newState = this.updateResourceMaxValues(newState);
       
       // 3. Пересчитываем все ресурсы и их производство
-      const finalState = this.resourceCalculationService.recalculateAllResources(stateWithUnlocks);
+      newState = this.recalculateAllResources(newState);
       
       console.log('GameStateService: Обработка обновления состояния завершена успешно');
-      return finalState;
+      return newState;
     } catch (error) {
       console.error('GameStateService: Ошибка при обработке состояния:', error);
       safeDispatchGameEvent('Произошла ошибка при обновлении игрового состояния', 'error');
@@ -52,11 +52,8 @@ export class GameStateService {
   public processBuildingPurchase(state: GameState, buildingId: string): GameState {
     console.log(`GameStateService: Обработка покупки здания ${buildingId}`);
     
-    // Применяем эффекты конкретно для этого здания
-    let newState = this.effectService.applyBuildingEffects(state, buildingId);
-    
-    // Затем проводим полное обновление состояния
-    return this.processGameStateUpdate(newState);
+    // Проводим полное обновление состояния
+    return this.processGameStateUpdate(state);
   }
 
   /**
@@ -65,11 +62,8 @@ export class GameStateService {
   public processUpgradePurchase(state: GameState, upgradeId: string): GameState {
     console.log(`GameStateService: Обработка покупки исследования ${upgradeId}`);
     
-    // Применяем эффекты конкретно для этого исследования
-    let newState = this.effectService.applyUpgradeEffects(state, upgradeId);
-    
-    // Затем проводим полное обновление состояния
-    return this.processGameStateUpdate(newState);
+    // Проводим полное обновление состояния
+    return this.processGameStateUpdate(state);
   }
 
   /**
@@ -79,17 +73,141 @@ export class GameStateService {
   public performFullStateSync(state: GameState): GameState {
     console.log('GameStateService: Выполнение полной синхронизации состояния');
     
-    // 1. Сначала применяем все эффекты от всех исследований и зданий
-    let newState = this.effectService.rebuildAllEffects(state);
+    try {
+      // 1. Сначала проверяем все возможные разблокировки
+      let newState = this.unlockService.rebuildAllUnlocks(state);
+      
+      // 2. Обновляем максимальные значения ресурсов на основе бонусов
+      newState = this.updateResourceMaxValues(newState);
+      
+      // 3. Наконец, полностью пересчитываем все ресурсы
+      newState = this.recalculateAllResources(newState);
+      
+      console.log('GameStateService: Полная синхронизация состояния завершена');
+      
+      return newState;
+    } catch (error) {
+      console.error('GameStateService: Ошибка при полной синхронизации:', error);
+      safeDispatchGameEvent('Произошла ошибка при синхронизации состояния игры', 'error');
+      return state;
+    }
+  }
+
+  /**
+   * Пересчитывает значения всех ресурсов
+   */
+  private recalculateAllResources(state: GameState): GameState {
+    console.log('GameStateService: Пересчет всех ресурсов');
     
-    // 2. Затем проверяем все возможные разблокировки
-    newState = this.unlockService.rebuildAllUnlocks(newState);
+    // Используем ResourceProductionService для расчета производства
+    const resources = this.resourceProductionService.calculateResourceProduction(state);
     
-    // 3. Наконец, полностью пересчитываем все ресурсы
-    newState = this.resourceCalculationService.rebuildAllResources(newState);
+    // Обновляем значения ресурсов с учетом прошедшего времени
+    if (state.lastUpdate) {
+      const now = Date.now();
+      const elapsedSeconds = (now - state.lastUpdate) / 1000;
+      
+      if (elapsedSeconds > 0 && state.gameStarted) {
+        // Обновляем значения каждого ресурса
+        for (const resourceId in resources) {
+          const resource = resources[resourceId];
+          if (!resource.unlocked) continue;
+          
+          // Рассчитываем новое значение на основе производства за секунду
+          let newValue = resource.value + resource.perSecond * elapsedSeconds;
+          
+          // Ограничиваем максимумом
+          if (resource.max !== undefined && resource.max !== Infinity) {
+            newValue = Math.min(newValue, resource.max);
+          }
+          
+          // Обновляем значение ресурса (не позволяем опуститься ниже нуля)
+          resource.value = Math.max(0, newValue);
+          
+          // Если ресурс достиг максимума, и это важно для игрока - уведомляем
+          if (resource.perSecond > 0 && newValue >= resource.max && resource.max !== Infinity) {
+            console.log(`Ресурс ${resource.name} достиг максимума (${resource.max})!`);
+          }
+        }
+        
+        return {
+          ...state,
+          resources,
+          lastUpdate: now,
+          gameTime: state.gameTime + elapsedSeconds
+        };
+      }
+    }
     
-    console.log('GameStateService: Полная синхронизация состояния завершена');
+    // Если обновление времени не требуется, просто обновляем ресурсы
+    return {
+      ...state,
+      resources
+    };
+  }
+
+  /**
+   * Обновляет максимальные значения ресурсов на основе бонусов
+   */
+  private updateResourceMaxValues(state: GameState): GameState {
+    console.log('GameStateService: Обновление максимальных значений ресурсов');
     
-    return newState;
+    const resources = { ...state.resources };
+    
+    // Базовые значения для максимума ресурсов
+    const baseMaxValues = {
+      knowledge: 100,
+      usdt: 50,
+      electricity: 100,
+      computingPower: 1000,
+      bitcoin: 0.01,
+      btc: 100 // Legacy reference
+    };
+    
+    // Для каждого ресурса рассчитываем максимальное значение с учетом бонусов
+    for (const resourceId in resources) {
+      if (!resources[resourceId].unlocked) continue;
+      
+      // Базовое значение максимума
+      const baseMax = baseMaxValues[resourceId] || 100;
+      
+      // Дополнительное значение от зданий
+      let buildingAddition = 0;
+      
+      // Особая обработка для криптокошелька
+      if (state.buildings.cryptoWallet?.count > 0) {
+        if (resourceId === 'usdt') {
+          buildingAddition += 50 * state.buildings.cryptoWallet.count;
+        }
+      }
+      
+      // Особая обработка для улучшенного кошелька
+      if (state.buildings.improvedWallet?.count > 0) {
+        if (resourceId === 'usdt') {
+          buildingAddition += 150 * state.buildings.improvedWallet.count;
+        } else if (resourceId === 'bitcoin') {
+          buildingAddition += 0.1 * state.buildings.improvedWallet.count;
+        }
+      }
+      
+      // Рассчитываем процентный бонус от улучшений и зданий
+      const bonuses = this.bonusCalculationService.calculateResourceBonuses(state, resourceId);
+      
+      // Применяем процентный бонус к сумме базового значения и дополнений
+      const maxValue = (baseMax + buildingAddition) * bonuses.storageMultiplier;
+      
+      // Обновляем максимальное значение ресурса
+      resources[resourceId] = {
+        ...resources[resourceId],
+        max: maxValue
+      };
+      
+      console.log(`Итоговый максимум ${resourceId}: ${maxValue.toFixed(2)} (база: ${baseMax}, от зданий: ${buildingAddition}, процентный бонус: ${(bonuses.storageMultiplier - 1).toFixed(2)})`);
+    }
+    
+    return {
+      ...state,
+      resources
+    };
   }
 }

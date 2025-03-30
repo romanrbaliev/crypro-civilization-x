@@ -1,4 +1,3 @@
-
 import { GameState, Upgrade } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -52,9 +51,6 @@ export const processPurchaseUpgrade = (
     upgrades: newUpgrades
   };
   
-  // Применяем специальные эффекты определенных улучшений
-  newState = applyUpgradeEffects(newState, upgradeId, upgrade);
-  
   // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных исследований
   newState = unlockRelatedUpgrades(newState, upgradeId);
   
@@ -64,15 +60,21 @@ export const processPurchaseUpgrade = (
   // После покупки исследования проверяем все возможные разблокировки в централизованной системе
   newState = checkAllUnlocks(newState);
   
-  // Принудительно обновляем ресурсы сразу после покупки исследования
-  // Это необходимо, чтобы эффекты исследования сразу применились к отображаемым значениям
-  const resourceProductionService = new ResourceProductionService();
-  const updatedResources = resourceProductionService.calculateResourceProduction(newState);
-  
-  newState = {
-    ...newState,
-    resources: updatedResources
-  };
+  // Особая обработка для "Основы блокчейна" - сразу применяем эффекты
+  if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
+    console.log("Применяем эффекты Основ блокчейна немедленно");
+    
+    // Обновляем максимум знан��й
+    if (newState.resources.knowledge) {
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        max: newState.resources.knowledge.max * 1.5 // +50% к максимуму
+      };
+    }
+    
+    // Принудительно запускаем пересчет ресурсов через GameStateService
+    // Эта логика будет применена в gameReducer через GameStateService
+  }
   
   return newState;
 };
