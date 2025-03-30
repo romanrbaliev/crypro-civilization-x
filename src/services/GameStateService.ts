@@ -1,8 +1,8 @@
 
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
-import { checkAllUnlocks } from '@/utils/unlockManager';
 import { BonusCalculationService } from './BonusCalculationService';
+import { UnlockService } from './UnlockService';
 
 /**
  * Централизованный сервис для управления состоянием игры
@@ -10,10 +10,12 @@ import { BonusCalculationService } from './BonusCalculationService';
 export class GameStateService {
   private resourceProductionService: ResourceProductionService;
   private bonusCalculationService: BonusCalculationService;
+  private unlockService: UnlockService;
   
   constructor() {
     this.resourceProductionService = new ResourceProductionService();
     this.bonusCalculationService = new BonusCalculationService();
+    this.unlockService = new UnlockService();
   }
 
   /**
@@ -23,8 +25,8 @@ export class GameStateService {
     console.log("GameStateService: Начало обработки обновления состояния");
     
     try {
-      // Проверить разблокировки
-      state = checkAllUnlocks(state);
+      // Проверить разблокировки через UnlockService
+      state = this.unlockService.checkAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);
@@ -53,8 +55,8 @@ export class GameStateService {
     console.log(`GameStateService: Обработка покупки здания ${buildingId}`);
     
     try {
-      // Проверить разблокировки
-      state = checkAllUnlocks(state);
+      // Проверить разблокировки через UnlockService
+      state = this.unlockService.checkAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);
@@ -83,8 +85,8 @@ export class GameStateService {
     console.log(`GameStateService: Обработка покупки улучшения ${upgradeId}`);
     
     try {
-      // Проверить разблокировки
-      state = checkAllUnlocks(state);
+      // Проверить разблокировки через UnlockService
+      state = this.unlockService.checkAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);
@@ -116,8 +118,8 @@ export class GameStateService {
     console.log("GameStateService: Выполнение полной синхронизации состояния");
     
     try {
-      // Перестроить разблокировки с нуля
-      state = checkAllUnlocks(state);
+      // Перестроить разблокировки с нуля через UnlockService
+      state = this.unlockService.rebuildAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);

@@ -14,42 +14,56 @@ interface UnlockCondition {
 const unlockConditions: Record<string, UnlockCondition> = {
   // === РЕСУРСЫ ===
   'usdt': {
-    check: (state) => state.counters.applyKnowledge?.value >= 2,
-    apply: (state) => ({
-      ...state,
-      resources: {
-        ...state.resources,
-        usdt: {
-          ...state.resources.usdt,
-          unlocked: true
+    check: (state) => {
+      const result = state.counters.applyKnowledge?.value >= 2;
+      console.log(`🔍 Проверка разблокировки USDT: ${result}, счетчик applyKnowledge: ${state.counters.applyKnowledge?.value}`);
+      return result;
+    },
+    apply: (state) => {
+      console.log("✅ Применяем разблокировку USDT");
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          usdt: {
+            ...state.resources.usdt,
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...state.unlocks,
+          usdt: true
         }
-      },
-      unlocks: {
-        ...state.unlocks,
-        usdt: true
       }
-    }),
+    },
     message: "Открыт ресурс «USDT»",
     type: "success"
   },
   
   'electricity': {
-    check: (state) => state.buildings.generator?.count > 0,
-    apply: (state) => ({
-      ...state,
-      resources: {
-        ...state.resources,
-        electricity: {
-          ...state.resources.electricity,
-          unlocked: true,
-          name: "Электричество"
+    check: (state) => {
+      const result = state.buildings.generator?.count > 0;
+      console.log(`🔍 Проверка разблокировки электричества: ${result}, генераторов: ${state.buildings.generator?.count}`);
+      return result;
+    },
+    apply: (state) => {
+      console.log("✅ Применяем разблокировку электричества");
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          electricity: {
+            ...state.resources.electricity,
+            unlocked: true,
+            name: "Электричество"
+          }
+        },
+        unlocks: {
+          ...state.unlocks,
+          electricity: true
         }
-      },
-      unlocks: {
-        ...state.unlocks,
-        electricity: true
       }
-    }),
+    },
     message: "Открыт ресурс «Электричество»",
     type: "success"
   },
@@ -127,8 +141,19 @@ const unlockConditions: Record<string, UnlockCondition> = {
   // === ЗДАНИЯ ===
   'practice': {
     check: (state) => {
-      console.log("🧪 Проверка разблокировки практики. applyKnowledge:", state.counters.applyKnowledge?.value);
-      return state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2;
+      const applyCount = state.counters.applyKnowledge?.value || 0;
+      const isPracticeUnlocked = state.buildings.practice?.unlocked || state.unlocks.practice;
+      const result = applyCount >= 2 && !isPracticeUnlocked;
+      
+      console.log(`🔍 Проверка разблокировки практики:`, {
+        result,
+        applyCount,
+        isPracticeUnlocked,
+        counters: state.counters,
+        unlocks: state.unlocks.practice
+      });
+      
+      return result;
     },
     apply: (state) => {
       console.log("🚀 Применяем разблокировку здания практика!");
@@ -153,8 +178,18 @@ const unlockConditions: Record<string, UnlockCondition> = {
   
   'generator': {
     check: (state) => {
-      const result = state.resources.usdt && state.resources.usdt.value >= 11 && state.resources.usdt.unlocked;
-      console.log("🔌 Проверка разблокировки генератора:", result, "USDT:", state.resources.usdt?.value);
+      const usdtValue = state.resources.usdt?.value || 0;
+      const isUsdtUnlocked = state.resources.usdt?.unlocked || false;
+      const isGeneratorUnlocked = state.buildings.generator?.unlocked || false;
+      const result = usdtValue >= 11 && isUsdtUnlocked && !isGeneratorUnlocked;
+      
+      console.log(`🔍 Проверка разблокировки генератора:`, {
+        result,
+        usdtValue,
+        isUsdtUnlocked,
+        isGeneratorUnlocked
+      });
+      
       return result;
     },
     apply: (state) => {
@@ -404,14 +439,29 @@ const unlockConditions: Record<string, UnlockCondition> = {
   },
   
   'applyKnowledge': {
-    check: (state) => state.counters.knowledgeClicks?.value >= 3,
-    apply: (state) => ({
-      ...state,
-      unlocks: {
-        ...state.unlocks,
-        applyKnowledge: true
+    check: (state) => {
+      const knowledgeClicks = state.counters.knowledgeClicks?.value || 0;
+      const isApplyKnowledgeUnlocked = state.unlocks.applyKnowledge || false;
+      const result = knowledgeClicks >= 3 && !isApplyKnowledgeUnlocked;
+      
+      console.log(`🔍 Проверка разблокировки действия "Применить знания":`, {
+        result,
+        knowledgeClicks,
+        isApplyKnowledgeUnlocked
+      });
+      
+      return result;
+    },
+    apply: (state) => {
+      console.log("✅ Применяем разблокировку действия 'Применить знания'");
+      return {
+        ...state,
+        unlocks: {
+          ...state.unlocks,
+          applyKnowledge: true
+        }
       }
-    }),
+    },
     message: "Открыто действие «Применить знания»",
     type: "success"
   },
@@ -490,7 +540,7 @@ export function checkAllUnlocks(state: GameState): GameState {
   // Если были разблокировки, выполняем рекурсивную проверку для обработки каскадных разблокировок
   if (anyUnlockApplied) {
     console.log("♻️ Были применены разблокировки, запускаем повторную проверку");
-    newState = checkAllUnlocks(newState);
+    return checkAllUnlocks(newState);
   }
   
   // Принудительная проверка USDT (особый случай)
@@ -511,6 +561,24 @@ export function checkAllUnlocks(state: GameState): GameState {
           usdt: false
         }
       };
+      console.log("🔒 USDT заблокирован: счетчик applyKnowledge < 2");
+    } else {
+      // Если условие выполнено - разблокируем
+      newState = {
+        ...newState,
+        resources: {
+          ...newState.resources,
+          usdt: {
+            ...newState.resources.usdt,
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...newState.unlocks,
+          usdt: true
+        }
+      };
+      console.log("🔓 USDT разблокирован: счетчик applyKnowledge >= 2");
     }
   }
   
@@ -547,7 +615,7 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
     console.log("- practice не в unlocks:", !isPracticeInUnlocks);
     console.log("- counters.applyKnowledge:", state.counters.applyKnowledge?.value);
     
-    return hasPracticeBuilding && !isPracticeUnlocked && !isPracticeInUnlocks;
+    return hasPracticeBuilding && (!isPracticeUnlocked && !isPracticeInUnlocks);
   }
   
   if (id === 'generator') {
@@ -558,8 +626,33 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
     console.log("- generator существует:", hasGenerator); 
     console.log("- generator не разблокирован:", !isGeneratorUnlocked);
     console.log("- USDT.value:", state.resources.usdt?.value);
+    console.log("- USDT.unlocked:", state.resources.usdt?.unlocked);
     
     return hasGenerator && !isGeneratorUnlocked;
+  }
+  
+  if (id === 'homeComputer') {
+    return state.buildings.homeComputer && !state.buildings.homeComputer.unlocked;
+  }
+  
+  if (id === 'internetConnection') {
+    return state.buildings.internetConnection && !state.buildings.internetConnection.unlocked;
+  }
+  
+  if (id === 'cryptoWallet') {
+    return state.buildings.cryptoWallet && !state.buildings.cryptoWallet.unlocked;
+  }
+  
+  if (id === 'autoMiner') {
+    return state.buildings.autoMiner && !state.buildings.autoMiner.unlocked;
+  }
+  
+  if (id === 'improvedWallet') {
+    return state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked;
+  }
+  
+  if (id === 'cryptoLibrary') {
+    return state.buildings.cryptoLibrary && !state.buildings.cryptoLibrary.unlocked;
   }
   
   // Проверка для исследований и вкладки исследований
