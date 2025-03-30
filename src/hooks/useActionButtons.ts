@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -70,12 +71,8 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Обработчик нажатия кнопки "Применить знания"
   const handleApplyKnowledge = useCallback(() => {
+    console.log("Вызов action APPLY_KNOWLEDGE");
     dispatch({ type: "APPLY_KNOWLEDGE" });
-    // Увеличиваем счетчик применений знаний
-    dispatch({ 
-      type: "INCREMENT_COUNTER", 
-      payload: { counterId: "applyKnowledge", value: 1 }
-    });
     
     // Базовая награда за применение знаний
     let usdtReward = 1;
@@ -91,12 +88,8 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Обработчик для применения всех знаний
   const handleApplyAllKnowledge = useCallback(() => {
+    console.log("Вызов action APPLY_ALL_KNOWLEDGE");
     dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
-    // Увеличиваем счетчик применений знаний
-    dispatch({ 
-      type: "INCREMENT_COUNTER", 
-      payload: { counterId: "applyKnowledge", value: 1 }
-    });
     
     // Базовая награда за применение знаний
     let usdtRate = 1;
@@ -118,6 +111,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Обработчик покупки практики
   const handlePractice = useCallback(() => {
     if (resources.usdt?.value >= practiceCurrentCost) {
+      console.log("Вызов action PRACTICE_PURCHASE");
       dispatch({ type: "PRACTICE_PURCHASE" });
       onAddEvent(`Куплена практика (уровень ${practiceCurrentLevel + 1})`, "success");
     } else {

@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -121,6 +122,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "PRACTICE_PURCHASE": {
       // Покупаем практику
+      console.log("Обработка PRACTICE_PURCHASE");
       newState = processPracticePurchase(state);
       // Пересчитываем состояние
       return gameStateService.processGameStateUpdate(newState);
@@ -151,6 +153,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "INCREMENT_COUNTER": {
       // Инкрементируем счетчик
+      console.log(`Инкремент счетчика: ${action.payload.counterId}, значение: ${action.payload.value}`);
       newState = processIncrementCounter(state, { counterId: action.payload.counterId, value: action.payload.value });
       // Обновляем состояние через сервис
       return gameStateService.processGameStateUpdate(newState);
@@ -179,6 +182,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "APPLY_KNOWLEDGE": {
       // После применения знаний обновляем состояние через сервис
+      console.log("Обработка APPLY_KNOWLEDGE");
       newState = processApplyKnowledge(state);
       console.log("Обработан APPLY_KNOWLEDGE, проверка разблокировок...");
       return gameStateService.processGameStateUpdate(newState);
@@ -186,6 +190,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "APPLY_ALL_KNOWLEDGE": {
       // После применения всех знаний обновляем состояние через сервис
+      console.log("Обработка APPLY_ALL_KNOWLEDGE");
       newState = processApplyAllKnowledge(state);
       console.log("Обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
       return gameStateService.processGameStateUpdate(newState);

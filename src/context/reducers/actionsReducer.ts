@@ -35,7 +35,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   }
 
   // Создаем копию состояния для обновления
-  let newState: GameState = {
+  const newState: GameState = {
     ...state,
     resources: {
       ...state.resources,
@@ -50,12 +50,26 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     }
   };
 
-  console.log(`Применены знания: -${requiredKnowledge} знаний, +${usdtReward} USDT`);
+  // Увеличиваем счетчик применений знаний, если он еще не существует
+  if (!newState.counters.applyKnowledge) {
+    newState.counters = {
+      ...newState.counters,
+      applyKnowledge: { id: "applyKnowledge", name: "Применения знаний", value: 1 }
+    };
+  } else if (typeof newState.counters.applyKnowledge === 'object') {
+    newState.counters = {
+      ...newState.counters,
+      applyKnowledge: {
+        ...newState.counters.applyKnowledge,
+        value: newState.counters.applyKnowledge.value + 1
+      }
+    };
+  }
+
+  console.log(`Применены знания: -${requiredKnowledge} знаний, +${usdtReward} USDT, счетчик: ${newState.counters.applyKnowledge?.value || 1}`);
   
   // Проверяем все разблокировки после применения знаний
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 /**
@@ -111,25 +125,24 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   
   // Убедимся что счетчик applyKnowledge инициализирован
   if (!newState.counters.applyKnowledge) {
-    newState = {
-      ...newState,
-      counters: {
-        ...newState.counters,
-        applyKnowledge: {
-          id: "applyKnowledge",
-          name: "Применения знаний",
-          value: 1
-        }
+    newState.counters = {
+      ...newState.counters,
+      applyKnowledge: { id: "applyKnowledge", name: "Применения знаний", value: 1 }
+    };
+  } else if (typeof newState.counters.applyKnowledge === 'object') {
+    newState.counters = {
+      ...newState.counters,
+      applyKnowledge: {
+        ...newState.counters.applyKnowledge,
+        value: newState.counters.applyKnowledge.value + 1
       }
     };
   }
   
-  console.log(`Применены все знания: -${knowledgeUsed} знаний, +${usdtReward} USDT`);
+  console.log(`Применены все знания: -${knowledgeUsed} знаний, +${usdtReward} USDT, счетчик: ${newState.counters.applyKnowledge?.value || 1}`);
   
   // Проверяем все разблокировки после применения знаний
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 /**
@@ -189,7 +202,7 @@ export const processMiningPower = (state: GameState): GameState => {
   }
   
   // Создаем новое состояние с обновленными ресурсами
-  let newState: GameState = {
+  const newState: GameState = {
     ...state,
     resources: updatedResources
   };
@@ -197,9 +210,7 @@ export const processMiningPower = (state: GameState): GameState => {
   console.log(`Майнинг: -${requiredPower} вычислительной мощности, +${btcReward} BTC`);
   
   // Проверяем все разблокировки после майнинга
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 /**
@@ -232,7 +243,7 @@ export const processExchangeBtc = (state: GameState): GameState => {
   const finalUsdtAmount = usdtAmount - commissionAmount;
   
   // Создаем копию состояния для обновления
-  let newState: GameState = {
+  const newState: GameState = {
     ...state,
     resources: {
       ...state.resources,
@@ -250,9 +261,7 @@ export const processExchangeBtc = (state: GameState): GameState => {
   console.log(`Обмен Bitcoin: -${btcValue} BTC, +${finalUsdtAmount} USDT (курс: ${exchangeRate}, комиссия: ${commission * 100}%)`);
   
   // Проверяем все разблокировки после обмена
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 /**
