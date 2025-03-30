@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { BonusCalculationService } from '@/services/BonusCalculationService';
@@ -53,6 +54,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       ...state.counters,
       applyKnowledge: {
         id: 'applyKnowledge',
+        name: 'Применение знаний',  // Добавляем обязательное свойство name
         value: applyCount
       }
     },
@@ -124,6 +126,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
       ...state.counters,
       applyKnowledge: {
         id: 'applyKnowledge',
+        name: 'Применение знаний',  // Добавляем обязательное свойство name
         value: applyCount
       }
     },
@@ -170,13 +173,11 @@ export const processPracticePurchase = (state: GameState): GameState => {
       id: 'practice',
       name: 'Практика',
       description: 'Автоматически применяет знания для получения новых. +0.21 знаний/сек за уровень.',
-      type: 'production',
       cost: { usdt: baseCost },
       costMultiplier: 1.15,
-      max: -1, // Без ограничения
       count: 1, // Первый уровень
       unlocked: true,
-      requires: {},
+      productionBoost: 0,
       production: { knowledge: 0.21 }
     };
   } else {

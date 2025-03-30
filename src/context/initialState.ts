@@ -45,7 +45,7 @@ export const initialState: GameState = {
     baseConsumption: 1
   },
   counters: {
-    knowledgeClicks: { id: 'knowledgeClicks', value: 0 },
+    knowledgeClicks: { id: 'knowledgeClicks', name: 'Клики знаний', value: 0 },
   },
   specializationSynergies: {},
   referralCode: null,
@@ -53,4 +53,20 @@ export const initialState: GameState = {
   referralHelpers: []
 };
 
-// Это гарантирует, что initialState имеет все необходимые поля с правильными типами
+// Добавляем экспорт начальных зданий для инициализации
+export const initialBuildings = {
+  coolingSystem: {
+    id: 'coolingSystem',
+    name: 'Система охлаждения',
+    description: 'Снижает потребление энергии компьютерами на 20%',
+    cost: { 
+      usdt: 120,
+      electricity: 50 
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0,
+    // другие свойства системы охлаждения
+  }
+  // Здесь могут быть определены другие здания
+};
