@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -294,6 +293,13 @@ export class UnlockService {
   }
 
   private shouldUnlockPractice(state: GameState): boolean {
+    console.log("UnlockService - shouldUnlockPractice:");
+    console.log("- applyKnowledge значение:", state.counters.applyKnowledge?.value);
+    console.log("- practice существует:", !!state.buildings.practice);
+    console.log("- practice не разблокирован:", state.buildings.practice && !state.buildings.practice.unlocked);
+    console.log("- practice не в unlocks:", !state.unlocks.practice);
+    
+    // Строго проверяем, что счетчик применений знаний >= 2
     return state.counters.applyKnowledge?.value >= 2 && 
            state.buildings.practice && 
            !state.buildings.practice.unlocked && 

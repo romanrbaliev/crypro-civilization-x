@@ -1,4 +1,3 @@
-
 // Единая централизованная система управления разблокировками игровых элементов
 
 import { GameState } from '@/context/types';
@@ -127,7 +126,10 @@ const unlockConditions: Record<string, UnlockCondition> = {
   
   // === ЗДАНИЯ ===
   'practice': {
-    check: (state) => state.counters.applyKnowledge?.value >= 2,
+    check: (state) => {
+      console.log("Проверка разблокировки практики. Счетчик:", state.counters.applyKnowledge?.value);
+      return state.counters.applyKnowledge?.value >= 2;
+    },
     apply: (state) => ({
       ...state,
       unlocks: {
@@ -520,8 +522,17 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
   
   // Проверка для зданий
   if (id === 'practice') {
-    return state.buildings.practice && !state.buildings.practice.unlocked && !state.unlocks.practice;
+    console.log("Проверка разблокировки практики в checkShouldApplyUnlock:");
+    console.log("- practice существует:", !!state.buildings.practice);
+    console.log("- practice не разблокирована:", state.buildings.practice && !state.buildings.practice.unlocked);
+    console.log("- unlocks.practice не активирован:", !state.unlocks.practice);
+    console.log("- counters.applyKnowledge:", state.counters.applyKnowledge?.value);
+    
+    return state.buildings.practice && 
+           !state.buildings.practice.unlocked && 
+           !state.unlocks.practice;
   }
+  
   if (id === 'generator') {
     return state.buildings.generator && !state.buildings.generator.unlocked;
   }
