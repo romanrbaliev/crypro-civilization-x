@@ -331,9 +331,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         name: 'Основы блокчейна',
         description: 'Базовые знания о блокчейн-технологиях',
         cost: { knowledge: 50 },
-        effects: {
-          maxStorage: { knowledge: 50 }
-        },
+        effects: { maxStorage: { knowledge: 50 } },
         purchased: false,
         unlocked: true,
         unlockedBy: 'generator'
@@ -448,7 +446,7 @@ export const checkActionUnlocks = (state: GameState): GameState => {
 
   return {
     ...state,
-    unlocks
+    unlocks: updatedUnlocks
   };
 };
 

@@ -1,3 +1,4 @@
+
 import { GameState, Resource } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -255,8 +256,8 @@ export const processMiningPower = (state: GameState): GameState => {
   
   console.log(`Майнинг: -${requiredPower} вычислительной мощности, +${btcReward} BTC`);
   
-  // Проверяем все разблокировки после майнинга
-  return checkAllUnlocks(newState);
+  // Вместо прямого вызова checkAllUnlocks, возвращаем состояние
+  return newState;
 };
 
 /**
@@ -306,8 +307,8 @@ export const processExchangeBtc = (state: GameState): GameState => {
   
   console.log(`Обмен Bitcoin: -${btcValue} BTC, +${finalUsdtAmount} USDT (курс: ${exchangeRate}, комиссия: ${commission * 100}%)`);
   
-  // Проверяем все разблокировки после обмена
-  return checkAllUnlocks(newState);
+  // Вместо прямого вызова checkAllUnlocks, возвращаем состояние
+  return newState;
 };
 
 /**
@@ -355,8 +356,8 @@ export const processPracticePurchase = (state: GameState): GameState => {
   
   console.log(`Куплена практика уровня ${practiceLevel + 1} за ${currentCost} USDT`);
   
-  // После покупки проверяем разблокировки
-  return checkAllUnlocks(newState);
+  // Просто возвращаем обновленное состояние
+  return newState;
 };
 
 // Создаем алиасы для совместимости с существующим кодом
