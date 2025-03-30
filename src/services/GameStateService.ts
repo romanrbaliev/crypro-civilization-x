@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { checkAllUnlocks } from '@/utils/unlockManager';
@@ -165,7 +166,8 @@ export class GameStateService {
       const improvedWalletCount = state.buildings.improvedWallet?.count || 0;
       
       // Базовый максимум + увеличение от криптокошельков + увеличение от улучшенных кошельков
-      updatedResources.usdt.max = updatedResources.usdt.baseMax + (cryptoWalletCount * 25) + (improvedWalletCount * 50);
+      const baseMaxUsdt = updatedResources.usdt.max || 50; // Используем текущее значение max или 50 по умолчанию
+      updatedResources.usdt.max = baseMaxUsdt + (cryptoWalletCount * 25) + (improvedWalletCount * 50);
     }
     
     // Обновляем макс. значение знаний на основе криптобиблиотек
@@ -173,7 +175,8 @@ export class GameStateService {
       const cryptoLibraryCount = state.buildings.cryptoLibrary?.count || 0;
       
       // Базовый максимум + увеличение от криптобиблиотек
-      updatedResources.knowledge.max = updatedResources.knowledge.baseMax + (cryptoLibraryCount * 50);
+      const baseMaxKnowledge = updatedResources.knowledge.max || 100; // Используем текущее значение max или 100 по умолчанию
+      updatedResources.knowledge.max = baseMaxKnowledge + (cryptoLibraryCount * 50);
     }
     
     return {

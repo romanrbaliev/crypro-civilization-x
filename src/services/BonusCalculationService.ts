@@ -176,4 +176,55 @@ export class BonusCalculationService {
     
     return miningEfficiency;
   }
+  
+  /**
+   * Применяет бонусы от улучшения к состоянию игры
+   */
+  applyUpgradeBonuses(state: GameState, upgradeId: string): GameState {
+    console.log(`BonusCalculationService: Применение бонусов от улучшения ${upgradeId}`);
+    
+    // Создаем копию состояния для изменения
+    let newState = { ...state };
+    
+    // Проверяем наличие и статус улучшения
+    const upgrade = state.upgrades[upgradeId];
+    if (!upgrade || !upgrade.purchased) {
+      console.log(`BonusCalculationService: Улучшение ${upgradeId} не найдено или не приобретено`);
+      return state;
+    }
+    
+    // Применяем специфические эффекты в зависимости от ID улучшения
+    switch (upgradeId) {
+      case 'blockchainBasics':
+      case 'basicBlockchain':
+      case 'blockchain_basics':
+        if (newState.resources.knowledge) {
+          console.log(`BonusCalculationService: Применяем эффект от Основ блокчейна`);
+          // Эффект уже учтен в calculateResourceBonuses, но можно добавить дополнительные действия
+        }
+        break;
+      
+      // Добавьте другие специфичные улучшения по необходимости
+    }
+    
+    return newState;
+  }
+  
+  /**
+   * Полностью пересчитывает все бонусы в игре
+   */
+  recalculateAllBonuses(state: GameState): GameState {
+    console.log(`BonusCalculationService: Полный пересчет всех бонусов`);
+    
+    // Создаем копию состояния для изменения
+    let newState = { ...state };
+    
+    // Здесь можно добавить дополнительную логику для пересчета всех бонусов
+    // Например, обновление параметров майнинга
+    if (newState.miningParams) {
+      newState.miningParams.miningEfficiency = this.calculateMiningEfficiency(state);
+    }
+    
+    return newState;
+  }
 }
