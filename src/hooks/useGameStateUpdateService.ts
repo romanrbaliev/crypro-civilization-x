@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { useGameState } from '@/context/GameStateContext';
+import { useGameState } from '../context/GameStateContext';
 import { GameStateService } from '@/services/GameStateService';
 
 /**

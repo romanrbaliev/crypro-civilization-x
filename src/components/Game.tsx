@@ -1,14 +1,14 @@
 
 import { useEffect } from 'react';
-import { useGameState } from '@/context/GameStateContext';
-import { ResourceContainer } from '@/components/ResourceContainer';
-import { BuildingsContainer } from '@/components/BuildingsContainer';
-import { ActionButtons } from '@/components/ActionButtons';
-import { EventLog } from '@/components/EventLog';
-import { GameHeader } from '@/components/GameHeader';
-import { ResearchContainer } from '@/components/ResearchContainer';
-import { useGameSaver } from '@/hooks/useGameSaver';
-import { useGameStateUpdateService } from '@/hooks/useGameStateUpdateService';
+import { useGameState } from '../context/GameStateContext';
+import { ResourceContainer } from './ResourceContainer';
+import { BuildingsContainer } from './BuildingsContainer';
+import ActionButtons from './ActionButtons';
+import EventLog from './EventLog';
+import { GameHeader } from './GameHeader';
+import { ResearchContainer } from './ResearchContainer';
+import { useGameSaver } from '../hooks/useGameSaver';
+import { useGameStateUpdateService } from '../hooks/useGameStateUpdateService';
 
 export function Game() {
   const { state, dispatch } = useGameState();
@@ -38,7 +38,7 @@ export function Game() {
       <div className="w-full md:w-2/3 space-y-4">
         <GameHeader />
         
-        <ActionButtons />
+        <ActionButtons onAddEvent={() => {}} />
         
         <ResourceContainer />
         
@@ -48,7 +48,7 @@ export function Game() {
       </div>
       
       <div className="w-full md:w-1/3 mt-4 md:mt-0">
-        <EventLog />
+        <EventLog events={[]} maxEvents={50} />
       </div>
     </div>
   );
