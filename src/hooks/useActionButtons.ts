@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -89,7 +88,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       return;
     }
     
-    console.log("Вызов action APPLY_KNOWLEDGE");
+    console.log("Вызов action APPLY_KNOWLEDGE с текущими знаниями:", resources.knowledge?.value);
     dispatch({ type: "APPLY_KNOWLEDGE" });
     
     // Базовая награда за применение знаний
@@ -105,6 +104,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Принудительно проверяем разблокировки после применения знаний
     setTimeout(() => {
+      console.log("Принудительное обновление после APPLY_KNOWLEDGE");
       dispatch({ type: "FORCE_RESOURCE_UPDATE" });
     }, 100);
   }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value]);
@@ -117,7 +117,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       return;
     }
     
-    console.log("Вызов action APPLY_ALL_KNOWLEDGE");
+    console.log("Вызов action APPLY_ALL_KNOWLEDGE с текущими знаниями:", resources.knowledge?.value);
     dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
     
     // Базовая награда за применение знаний
@@ -129,15 +129,16 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     }
     
     // Количество применённых знаний
-    const appliedKnowledge = resources.knowledge?.value || 0;
-    // Расчёт полученных USDT
-    const obtainedUsdt = Math.floor((appliedKnowledge / 10) * usdtRate);
+    const knowledgeValue = resources.knowledge?.value || 0;
+    const conversions = Math.floor(knowledgeValue / 10);
+    const obtainedUsdt = Math.floor(conversions * usdtRate);
     
     // Показываем уведомление с учетом бонуса
     onAddEvent(`Все знания успешно применены! Получено ${obtainedUsdt} USDT`, "success");
     
     // Принудительно проверяем разблокировки после применения знаний
     setTimeout(() => {
+      console.log("Принудительное обновление после APPLY_ALL_KNOWLEDGE");
       dispatch({ type: "FORCE_RESOURCE_UPDATE" });
     }, 100);
   }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value]);

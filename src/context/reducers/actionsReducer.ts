@@ -1,4 +1,3 @@
-
 import { GameState, Resource } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -48,13 +47,14 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   };
   
   // Инициализируем или увеличиваем счетчик применений знаний
-  let updatedCounters = { ...state.counters };
+  const updatedCounters = { ...state.counters };
   
   if (!updatedCounters.applyKnowledge) {
     // Если счетчик не существует, создаем его
-    updatedCounters = {
-      ...updatedCounters,
-      applyKnowledge: { id: "applyKnowledge", name: "Применения знаний", value: 1 }
+    updatedCounters.applyKnowledge = { 
+      id: "applyKnowledge", 
+      name: "Применения знаний", 
+      value: 1 
     };
   } else {
     // Если счетчик существует, увеличиваем его значение
@@ -62,36 +62,33 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       ? updatedCounters.applyKnowledge.value 
       : updatedCounters.applyKnowledge;
     
-    updatedCounters = {
-      ...updatedCounters,
-      applyKnowledge: {
-        ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
-        value: currentValue + 1
-      }
+    updatedCounters.applyKnowledge = {
+      ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
+      value: currentValue + 1
     };
   }
 
   console.log(`Применены знания: -${requiredKnowledge} знаний, +${usdtReward} USDT, счетчик:`, updatedCounters.applyKnowledge);
   
-  // Создаем обновленное состояние
-  let newState = {
+  // Создаем обновленное состояние с правильно обновленными флагами разблокировки
+  const newState = {
     ...state,
     resources: updatedResources,
     counters: updatedCounters,
     unlocks: {
       ...state.unlocks,
-      usdt: true // Дополнительно устанавливаем флаг разблокировки USDT
+      usdt: true // Явно устанавливаем флаг разблокировки USDT
     }
   };
   
-  // Проверяем результирующее состояние перед вызовом функции
-  if (!newState.resources.knowledge || !newState.resources.usdt) {
-    console.error("Ошибка: Обязательные ресурсы отсутствуют после обновления состояния");
-    return state; // Возвращаем исходное состояние в случае ошибки
-  }
+  // Выводим отладочную информацию о состоянии после обновления
+  console.log("Состояние после применения знаний:", {
+    knowledgeValue: newState.resources.knowledge?.value,
+    usdtValue: newState.resources.usdt?.value,
+    usdtUnlocked: newState.resources.usdt?.unlocked,
+    counter: newState.counters.applyKnowledge?.value
+  });
   
-  // Вместо прямого вызова checkAllUnlocks, возвращаем состояние и позволяем GameStateService
-  // обработать дальнейшие проверки разблокировок
   return newState;
 };
 
@@ -145,13 +142,14 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   };
   
   // Инициализируем или увеличиваем счетчик применений знаний
-  let updatedCounters = { ...state.counters };
+  const updatedCounters = { ...state.counters };
   
   if (!updatedCounters.applyKnowledge) {
     // Если счетчик не существует, создаем его
-    updatedCounters = {
-      ...updatedCounters,
-      applyKnowledge: { id: "applyKnowledge", name: "Применения знаний", value: 1 }
+    updatedCounters.applyKnowledge = { 
+      id: "applyKnowledge", 
+      name: "Применения знаний", 
+      value: 1 
     };
   } else {
     // Если счетчик существует, увеличиваем его значение
@@ -159,19 +157,16 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
       ? updatedCounters.applyKnowledge.value 
       : updatedCounters.applyKnowledge;
     
-    updatedCounters = {
-      ...updatedCounters,
-      applyKnowledge: {
-        ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
-        value: currentValue + 1
-      }
+    updatedCounters.applyKnowledge = {
+      ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
+      value: currentValue + 1
     };
   }
   
   console.log(`Применены все знания: -${knowledgeUsed} знаний, +${usdtReward} USDT, счетчик: ${updatedCounters.applyKnowledge?.value || 1}`);
   
   // Создаем обновленное состояние
-  let newState = {
+  const newState = {
     ...state,
     resources: updatedResources,
     counters: updatedCounters,
@@ -180,15 +175,15 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
       usdt: true // Дополнительно устанавливаем флаг разблокировки USDT
     }
   };
+
+  // Выводим отладочную информацию о состоянии после обновления
+  console.log("Состояние после применения всех знаний:", {
+    knowledgeValue: newState.resources.knowledge?.value,
+    usdtValue: newState.resources.usdt?.value,
+    usdtUnlocked: newState.resources.usdt?.unlocked,
+    counter: newState.counters.applyKnowledge?.value
+  });
   
-  // Проверяем результирующее состояние перед вызовом функции
-  if (!newState.resources.knowledge || !newState.resources.usdt) {
-    console.error("Ошибка: Обязательные ресурсы отсутствуют после обновления состояния");
-    return state; // Возвращаем исходное состояние в случае ошибки
-  }
-  
-  // Вместо прямого вызова checkAllUnlocks, возвращаем состояние и позволяем GameStateService
-  // обработать дальнейшие проверки разблокировок
   return newState;
 };
 

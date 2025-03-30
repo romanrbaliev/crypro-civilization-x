@@ -130,6 +130,19 @@ export class GameStateService {
     console.log("GameStateService: Выполнение полной синхронизации состояния");
     
     try {
+      // Логируем счетчики перед обработкой
+      console.log("GameStateService: Текущие счетчики:", {
+        applyKnowledge: state.counters.applyKnowledge?.value,
+        knowledgeClicks: state.counters.knowledgeClicks?.value
+      });
+      
+      // Логируем состояние ресурсов перед обработкой
+      console.log("GameStateService: Текущие ресурсы:", {
+        knowledge: state.resources.knowledge?.value,
+        usdt: state.resources.usdt?.value,
+        usdtUnlocked: state.resources.usdt?.unlocked
+      });
+      
       // Перестроить разблокировки с нуля через UnlockService
       state = this.unlockService.rebuildAllUnlocks(state);
       
@@ -147,6 +160,13 @@ export class GameStateService {
         ...state,
         resources: updatedResources
       };
+      
+      // Логируем итоговое состояние после полной синхронизации
+      console.log("GameStateService: Состояние после полной синхронизации:", {
+        applyKnowledge: state.counters.applyKnowledge?.value,
+        usdt: state.resources.usdt?.value,
+        usdtUnlocked: state.resources.usdt?.unlocked
+      });
       
       console.log("GameStateService: Полная синхронизация состояния завершена успешно");
       return state;

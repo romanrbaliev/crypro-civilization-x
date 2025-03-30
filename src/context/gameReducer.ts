@@ -185,7 +185,17 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       console.log("Обработка APPLY_KNOWLEDGE");
       try {
         newState = processApplyKnowledge(state);
-        console.log("Обработан APPLY_KNOWLEDGE, проверка разблокировок...");
+        console.log("Обработан APPLY_KNOWLEDGE, проверка разблокировок...", newState);
+        
+        // Принудительно логируем изменения ресурсов
+        console.log("Изменения после применения знаний:", {
+          knowledgeBefore: state.resources.knowledge?.value,
+          knowledgeAfter: newState.resources.knowledge?.value,
+          usdtBefore: state.resources.usdt?.value,
+          usdtAfter: newState.resources.usdt?.value,
+          applyKnowledgeCounter: newState.counters.applyKnowledge?.value
+        });
+        
         // Принудительно выполняем полный цикл проверки разблокировок
         return gameStateService.performFullStateSync(newState);
       } catch (error) {
@@ -200,6 +210,16 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       try {
         newState = processApplyAllKnowledge(state);
         console.log("Обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
+        
+        // Принудительно логируем изменения ресурсов
+        console.log("Изменения после применения всех знаний:", {
+          knowledgeBefore: state.resources.knowledge?.value,
+          knowledgeAfter: newState.resources.knowledge?.value,
+          usdtBefore: state.resources.usdt?.value,
+          usdtAfter: newState.resources.usdt?.value,
+          applyKnowledgeCounter: newState.counters.applyKnowledge?.value
+        });
+        
         // Принудительно выполняем полный цикл проверки разблокировок
         return gameStateService.performFullStateSync(newState);
       } catch (error) {
