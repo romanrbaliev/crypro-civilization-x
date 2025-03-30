@@ -35,6 +35,12 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       }
     }
     
+    // Убедимся, что Bitcoin имеет достаточное пространство хранения
+    if (gameStateCopy.resources && gameStateCopy.resources.bitcoin && 
+        gameStateCopy.resources.bitcoin.max < 0.01) {
+      gameStateCopy.resources.bitcoin.max = 0.01;
+    }
+    
     // Обрабатываем корректно поле activated для рефералов
     if (gameStateCopy.referrals && gameStateCopy.referrals.length > 0) {
       gameStateCopy.referrals = gameStateCopy.referrals.map((referral: any) => {

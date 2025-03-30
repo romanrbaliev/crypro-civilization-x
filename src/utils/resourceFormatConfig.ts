@@ -36,7 +36,7 @@ export const resourceFormats: { [key: string]: ResourceFormatConfig } = {
     decimalPlaces: 2,
   },
   // Криптовалюты
-  btc: {
+  bitcoin: {
     ...defaultConfig,
     decimalPlaces: 6,
     minValue: 0.000001,

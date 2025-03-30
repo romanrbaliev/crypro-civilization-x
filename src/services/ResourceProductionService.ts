@@ -90,12 +90,20 @@ export class ResourceProductionService {
         if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
           console.log("ResourceProductionService: Применен эффект Основ блокчейна");
           
-          // Используем базовое производство знаний и применяем к нему бонус
+          // Обеспечиваем применение 10% бонуса к производству знаний
           if (updatedResources.knowledge) {
-            // ИСПРАВЛЕНО: не увеличиваем снова на 10%, это уже сделано в upgradeReducer
-            // Просто проверяем что есть базовое производство
             if (!updatedResources.knowledge.baseProduction) {
               updatedResources.knowledge.baseProduction = 0;
+            }
+            
+            // Принудительно устанавливаем базовый бонус, если он еще не был установлен
+            if (upgrade.purchased && upgrade.effects && upgrade.effects.knowledgeBoost) {
+              const bonus = upgrade.effects.knowledgeBoost; // Обычно 0.1 (10%)
+              // Проверим, был ли уже применен бонус
+              if (updatedResources.knowledge.baseProduction < bonus) {
+                console.log("Принудительно применяем бонус производства знаний от Основ блокчейна:", bonus);
+                updatedResources.knowledge.baseProduction += bonus;
+              }
             }
           }
         }
@@ -105,28 +113,28 @@ export class ResourceProductionService {
         
         for (const [effectId, amount] of Object.entries(effects)) {
           if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
-            // ИСПРАВЛЕНО: не добавляем бонус здесь, это уже сделано в upgradeReducer
-            console.log(`ResourceProductionService: Эффект knowledgeBoost из исследования ${upgrade.name} уже применен`);
+            // Принудительно проверяем, что бонус применен
+            console.log(`Проверка эффекта knowledgeBoost (${amount}) из исследования ${upgrade.name}`);
           }
         }
       }
     }
     
-    // Особая обработка BTC для майнеров
+    // Особая обработка Bitcoin для майнеров
     if (state.buildings.autoMiner && 
         state.buildings.autoMiner.count > 0 && 
-        updatedResources.btc && 
-        updatedResources.btc.unlocked) {
-      // Производим BTC в зависимости от количества автомайнеров
-      const btcPerSecond = 0.00005 * state.buildings.autoMiner.count;
-      updatedResources.btc.perSecond = btcPerSecond;
+        updatedResources.bitcoin && 
+        updatedResources.bitcoin.unlocked) {
+      // Производим Bitcoin в зависимости от количества автомайнеров
+      const bitcoinPerSecond = 0.00005 * state.buildings.autoMiner.count;
+      updatedResources.bitcoin.perSecond = bitcoinPerSecond;
       
       // Применяем бонусы майнинга, если есть
       if (state.miningParams && state.miningParams.miningEfficiency) {
-        updatedResources.btc.perSecond *= state.miningParams.miningEfficiency;
+        updatedResources.bitcoin.perSecond *= state.miningParams.miningEfficiency;
       }
       
-      console.log(`Расчет производства BTC: ${updatedResources.btc.perSecond} в секунду от ${state.buildings.autoMiner.count} автомайнеров (эфф. майнинга: ${state.miningParams?.miningEfficiency || 1})`);
+      console.log(`Расчет производства Bitcoin: ${updatedResources.bitcoin.perSecond} в секунду от ${state.buildings.autoMiner.count} автомайнеров (эфф. майнинга: ${state.miningParams?.miningEfficiency || 1})`);
     }
     
     // Рассчитываем производство от зданий
@@ -177,8 +185,8 @@ export class ResourceProductionService {
             if (resourceId === 'computingPower') {
               updatedResources[resourceId].perSecond *= 1.25; // +25% к вычислительной мощности
             }
-            if (resourceId === 'btc') {
-              updatedResources[resourceId].perSecond *= 1.40; // +40% к производству BTC для майнеров
+            if (resourceId === 'bitcoin') {
+              updatedResources[resourceId].perSecond *= 1.40; // +40% к производству Bitcoin для майнеров
             }
             break;
           case 'trader':

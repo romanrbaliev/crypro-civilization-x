@@ -20,17 +20,17 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
   const { resources } = state;
   const [isAvailable, setIsAvailable] = useState(false);
 
-  // Проверка доступности кнопки обмена BTC
+  // Проверка доступности кнопки обмена Bitcoin
   useEffect(() => {
-    // Проверяем наличие и состояние ресурса BTC
-    const btcResource = resources.btc;
-    const hasBtc = btcResource && btcResource.unlocked && btcResource.value > 0;
-    setIsAvailable(hasBtc);
+    // Проверяем наличие и состояние ресурса Bitcoin
+    const bitcoinResource = resources.bitcoin;
+    const hasBitcoin = bitcoinResource && bitcoinResource.unlocked && bitcoinResource.value > 0;
+    setIsAvailable(hasBitcoin);
   }, [resources]);
 
-  // Обработчик обмена BTC на USDT
+  // Обработчик обмена Bitcoin на USDT
   const handleExchange = () => {
-    console.log("ExchangeBtcButton: Нажата кнопка обмена BTC");
+    console.log("ExchangeBtcButton: Нажата кнопка обмена Bitcoin");
     // Если предоставлен внешний обработчик onClick, используем его
     if (onClick) {
       onClick();
@@ -43,7 +43,7 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
   // Определяем финальное состояние кнопки (внешнее или внутреннее)
   const isDisabled = externalDisabled !== undefined ? externalDisabled : !isAvailable;
   
-  // Если BTC не доступен или равен 0 и нет внешнего управления состоянием, не показываем кнопку
+  // Если Bitcoin не доступен или равен 0 и нет внешнего управления состоянием, не показываем кнопку
   if (!isAvailable && externalDisabled === undefined) return null;
 
   return (
@@ -56,7 +56,7 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
         disabled={isDisabled}
       >
         <div className="flex flex-col items-center w-full">
-          <span className="text-xs font-semibold">Обменять BTC</span>
+          <span className="text-xs font-semibold">Обменять Bitcoin</span>
         </div>
       </Button>
     </div>

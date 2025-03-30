@@ -98,7 +98,7 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
         ...newState.resources.knowledge,
         max: newState.resources.knowledge.max * 1.5,
         // Добавляем или увеличиваем базовое производство на 10%
-        baseProduction: (newState.resources.knowledge.baseProduction || 0) * 1.1
+        baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1
       };
     }
     
@@ -113,14 +113,14 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
       if (effectId === 'knowledgeBoost') {
         // Увеличиваем базовый прирост знаний
         const currentBase = newState.resources.knowledge.baseProduction || 0;
-        const increase = currentBase * Number(amount);
+        const increase = Number(amount);
         
         newState.resources.knowledge = {
           ...newState.resources.knowledge,
           baseProduction: currentBase + increase
         };
         
-        console.log(`Применен эффект knowledgeBoost: увеличение с ${currentBase} до ${newState.resources.knowledge.baseProduction}`);
+        console.log(`Применен эффект knowledgeBoost (+${increase}): увеличение с ${currentBase} до ${newState.resources.knowledge.baseProduction}`);
       }
       
       if (effectId === 'knowledgeMaxBoost') {

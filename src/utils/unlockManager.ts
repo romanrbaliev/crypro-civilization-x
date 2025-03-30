@@ -1,4 +1,5 @@
-// ��диная централизованная система управления разблокировками игровых элементов
+
+// Единая централизованная система управления разблокировками игровых элементов
 
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -75,32 +76,32 @@ const unlockConditions: Record<string, UnlockCondition> = {
     type: "success"
   },
   
-  'btc': {
+  'bitcoin': {
     check: (state) => state.buildings.autoMiner?.count > 0,
     apply: (state) => {
-      // Делаем базовую настройку BTC
+      // Делаем базовую настройку Bitcoin
       const newState = {
         ...state,
         resources: {
           ...state.resources,
-          btc: {
-            ...state.resources.btc,
-            id: 'btc',
-            name: "BTC",
-            description: "Биткоин - первая и основная криптовалюта",
+          bitcoin: {
+            ...state.resources.bitcoin,
+            id: 'bitcoin',
+            name: "Bitcoin",
+            description: "Bitcoin - первая и основная криптовалюта",
             type: "currency",
             icon: "bitcoin",
-            value: state.resources.btc?.value || 0,
+            value: state.resources.bitcoin?.value || 0,
             baseProduction: 0,
             production: 0,
             perSecond: 0.00005 * state.buildings.autoMiner.count, // Устанавливаем сразу начальную скорость производства
-            max: 1,
+            max: 0.01,
             unlocked: true
           }
         },
         unlocks: {
           ...state.unlocks,
-          btc: true
+          bitcoin: true
         }
       };
       
@@ -120,7 +121,7 @@ const unlockConditions: Record<string, UnlockCondition> = {
       
       return newState;
     },
-    message: "Открыт ресурс «BTC»",
+    message: "Открыт ресурс «Bitcoin»",
     type: "success"
   },
   
@@ -226,7 +227,7 @@ const unlockConditions: Record<string, UnlockCondition> = {
     type: "success"
   },
   
-  // Изменено условие для улучшенного кошелька - теперь требуется больше кошельков
+  // Изменено условие для улучшенного кошелька - теперь требуется безопасность кошельков
   'improvedWallet': {
     check: (state) => state.buildings.cryptoWallet?.count >= 1 && state.upgrades.walletSecurity?.purchased === true,
     apply: (state) => ({
@@ -422,16 +423,16 @@ const unlockConditions: Record<string, UnlockCondition> = {
     type: "success"
   },
   
-  'exchangeBtc': {
-    check: (state) => state.resources.btc?.unlocked,
+  'exchangeBitcoin': {
+    check: (state) => state.resources.bitcoin?.unlocked,
     apply: (state) => ({
       ...state,
       unlocks: {
         ...state.unlocks,
-        exchangeBtc: true
+        exchangeBitcoin: true
       }
     }),
-    message: "Открыто действие «Обмен BTC»",
+    message: "Открыто действие «Обмен Bitcoin»",
     type: "success"
   }
 };
@@ -513,8 +514,8 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
   if (id === 'computingPower') {
     return state.resources.computingPower && !state.resources.computingPower.unlocked;
   }
-  if (id === 'btc') {
-    return state.resources.btc && !state.resources.btc.unlocked;
+  if (id === 'bitcoin') {
+    return state.resources.bitcoin && !state.resources.bitcoin.unlocked;
   }
   
   // Проверка для зданий
@@ -577,8 +578,8 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
   if (id === 'miningPower') {
     return !state.unlocks.miningPower;
   }
-  if (id === 'exchangeBtc') {
-    return !state.unlocks.exchangeBtc;
+  if (id === 'exchangeBitcoin') {
+    return !state.unlocks.exchangeBitcoin;
   }
   
   return false;

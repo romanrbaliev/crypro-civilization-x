@@ -41,7 +41,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
         'usdt': 'Стейблкоин, универсальная валюта для покупок',
         'electricity': 'Электроэнергия для питания устройств',
         'computingPower': 'Вычислительная мощность для майнинга',
-        'btc': 'Биткоин - первая и основная криптовалюта'
+        'bitcoin': 'Bitcoin - первая и основная криптовалюта'
       }[resourceId] || 'Ресурс игры';
       
       const baseName = {
@@ -49,7 +49,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
         'usdt': 'USDT',
         'electricity': 'Электричество',
         'computingPower': 'Вычислительная мощность',
-        'btc': 'BTC'
+        'bitcoin': 'Bitcoin'
       }[resourceId] || resourceId.charAt(0).toUpperCase() + resourceId.slice(1);
       
       const baseIcon = {
@@ -57,7 +57,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
         'usdt': 'coins',
         'electricity': 'zap',
         'computingPower': 'cpu',
-        'btc': 'bitcoin'
+        'bitcoin': 'bitcoin'
       }[resourceId] || 'circle';
       
       const baseMax = {
@@ -65,7 +65,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
         'usdt': 50,
         'electricity': 100,
         'computingPower': 1000,
-        'btc': 1
+        'bitcoin': 0.01
       }[resourceId] || 100;
       
       newResources[resourceId] = {
@@ -73,7 +73,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
         id: resourceId,
         name: baseName,
         description: baseDescription,
-        type: resourceId === 'usdt' || resourceId === 'btc' ? 'currency' : 'resource',
+        type: resourceId === 'usdt' || resourceId === 'bitcoin' ? 'currency' : 'resource',
         icon: baseIcon,
         value: baseValue,
         baseProduction: 0,
@@ -119,12 +119,12 @@ export const processResourceUpdate = (state: GameState): GameState => {
     };
   }
   
-  // Исправлена проблема с BTC - теперь он правильно инициализируется
-  if (state.unlocks.btc && !newResources.btc) {
-    newResources.btc = {
-      id: 'btc',
-      name: 'BTC',
-      description: 'Биткоин - первая и основная криптовалюта',
+  // Исправлена проблема с Bitcoin - теперь он правильно инициализируется
+  if (state.unlocks.bitcoin && !newResources.bitcoin) {
+    newResources.bitcoin = {
+      id: 'bitcoin',
+      name: 'Bitcoin',
+      description: 'Bitcoin - первая и основная криптовалюта',
       type: 'currency',
       icon: 'bitcoin',
       value: 0,
@@ -132,7 +132,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
       production: 0,
       perSecond: state.buildings.autoMiner?.count > 0 ? 
         0.00005 * state.buildings.autoMiner.count * (state.miningParams?.miningEfficiency || 1) : 0,
-      max: 1,
+      max: 0.01,
       unlocked: true
     };
   }
@@ -140,14 +140,14 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Обновляем значения ресурсов на основе времени
   updateResourceValues(newResources, elapsedSeconds);
   
-  // Специальная обработка для BTC
-  if (state.buildings.autoMiner?.count > 0 && newResources.btc?.unlocked) {
-    // Убедимся, что BTC правильно обновляется от автомайнеров
-    if (newResources.btc?.perSecond === 0) {
-      console.log("Принудительно устанавливаем производство BTC от автомайнеров");
+  // Специальная обработка для Bitcoin
+  if (state.buildings.autoMiner?.count > 0 && newResources.bitcoin?.unlocked) {
+    // Убедимся, что Bitcoin правильно обновляется от автомайнеров
+    if (newResources.bitcoin?.perSecond === 0) {
+      console.log("Принудительно устанавливаем производство Bitcoin от автомайнеров");
       const miningEfficiency = state.miningParams?.miningEfficiency || 1;
-      newResources.btc.perSecond = 0.00005 * state.buildings.autoMiner.count * miningEfficiency;
-      console.log(`Установлено производство BTC: ${newResources.btc.perSecond} (${state.buildings.autoMiner.count} майнеров, коэфф. ${miningEfficiency})`);
+      newResources.bitcoin.perSecond = 0.00005 * state.buildings.autoMiner.count * miningEfficiency;
+      console.log(`Установлено производство Bitcoin: ${newResources.bitcoin.perSecond} (${state.buildings.autoMiner.count} майнеров, коэфф. ${miningEfficiency})`);
     }
   }
   
@@ -175,7 +175,7 @@ const updateResourceValues = (
   resources: { [key: string]: any },
   deltaTime: number
 ) => {
-  // Обновляем значения каждого ресурса (включая BTC)
+  // Обновляем значения каждого ресурса (включая Bitcoin)
   for (const resourceId in resources) {
     const resource = resources[resourceId];
     if (!resource.unlocked) continue;

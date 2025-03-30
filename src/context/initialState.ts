@@ -265,8 +265,8 @@ export const initialResources: { [key: string]: Resource } = {
     unlocked: false,
     max: Infinity
   },
-  btc: {
-    id: "btc",
+  bitcoin: {
+    id: "bitcoin",
     name: "Bitcoin",
     description: "Криптовалюта Bitcoin",
     baseProduction: 0,
@@ -276,7 +276,7 @@ export const initialResources: { [key: string]: Resource } = {
     value: 0,
     perSecond: 0,
     unlocked: false,
-    max: 0.001
+    max: 0.01
   },
   reputation: {
     id: "reputation",
