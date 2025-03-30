@@ -83,6 +83,12 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Обработчик нажатия кнопки "Применить знания"
   const handleApplyKnowledge = useCallback(() => {
+    // Проверяем, достаточно ли знаний для конвертации
+    if ((resources.knowledge?.value || 0) < 10) {
+      onAddEvent(`Недостаточно знаний! Требуется минимум 10`, "error");
+      return;
+    }
+    
     console.log("Вызов action APPLY_KNOWLEDGE");
     dispatch({ type: "APPLY_KNOWLEDGE" });
     
@@ -96,10 +102,21 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Показываем уведомление с учетом бонуса
     onAddEvent(`Знания успешно применены! Получено ${usdtReward} USDT`, "success");
-  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus]);
+    
+    // Принудительно проверяем разблокировки после применения знаний
+    setTimeout(() => {
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+    }, 100);
+  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value]);
   
   // Обработчик для применения всех знаний
   const handleApplyAllKnowledge = useCallback(() => {
+    // Проверяем, достаточно ли знаний для конвертации
+    if ((resources.knowledge?.value || 0) < 10) {
+      onAddEvent(`Недостаточно знаний! Требуется минимум 10`, "error");
+      return;
+    }
+    
     console.log("Вызов action APPLY_ALL_KNOWLEDGE");
     dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
     
@@ -118,6 +135,11 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Показываем уведомление с учетом бонуса
     onAddEvent(`Все знания успешно применены! Получено ${obtainedUsdt} USDT`, "success");
+    
+    // Принудительно проверяем разблокировки после применения знаний
+    setTimeout(() => {
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+    }, 100);
   }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value]);
   
   // Обработчик покупки практики

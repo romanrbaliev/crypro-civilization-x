@@ -1,6 +1,5 @@
 import { GameState, Resource } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { checkAllUnlocks } from '@/utils/unlockManager';
 
 /**
  * Обработчик действия "Применить знания" - конвертирует знания в USDT
@@ -77,12 +76,21 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   let newState = {
     ...state,
     resources: updatedResources,
-    counters: updatedCounters
+    counters: updatedCounters,
+    unlocks: {
+      ...state.unlocks,
+      usdt: true // Дополнительно устанавливаем флаг разблокировки USDT
+    }
   };
   
-  // Проверяем все разблокировки
-  newState = checkAllUnlocks(newState);
+  // Проверяем результирующее состояние перед вызовом функции
+  if (!newState.resources.knowledge || !newState.resources.usdt) {
+    console.error("Ошибка: Обязательные ресурсы отсутствуют после обновления состояния");
+    return state; // Возвращаем исходное состояние в случае ошибки
+  }
   
+  // Вместо прямого вызова checkAllUnlocks, возвращаем состояние и позволяем GameStateService
+  // обработать дальнейшие проверки разблокировок
   return newState;
 };
 
@@ -121,42 +129,66 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     usdtReward = Math.floor(usdtReward * 1.1); // +10% от исследования
   }
 
-  // Создаем копию состояния для обновления
-  let newState: GameState = {
-    ...state,
-    resources: {
-      ...state.resources,
-      knowledge: {
-        ...state.resources.knowledge,
-        value: knowledgeValue - knowledgeUsed
-      },
-      usdt: {
-        ...state.resources.usdt,
-        value: usdtValue + usdtReward
-      }
+  // Обновляем ресурсы
+  const updatedResources = {
+    ...state.resources,
+    knowledge: {
+      ...state.resources.knowledge,
+      value: knowledgeValue - knowledgeUsed
+    },
+    usdt: {
+      ...state.resources.usdt,
+      value: usdtValue + usdtReward,
+      unlocked: true // Явно разблокируем USDT при обмене всех знаний
     }
   };
   
-  // Убедимся что счетчик applyKnowledge инициализирован
-  if (!newState.counters.applyKnowledge) {
-    newState.counters = {
-      ...newState.counters,
+  // Инициализируем или увеличиваем счетчик применений знаний
+  let updatedCounters = { ...state.counters };
+  
+  if (!updatedCounters.applyKnowledge) {
+    // Если счетчик не существует, создаем его
+    updatedCounters = {
+      ...updatedCounters,
       applyKnowledge: { id: "applyKnowledge", name: "Применения знаний", value: 1 }
     };
-  } else if (typeof newState.counters.applyKnowledge === 'object') {
-    newState.counters = {
-      ...newState.counters,
+  } else {
+    // Если счетчик существует, увеличиваем его значение
+    const currentValue = typeof updatedCounters.applyKnowledge === 'object' 
+      ? updatedCounters.applyKnowledge.value 
+      : updatedCounters.applyKnowledge;
+    
+    updatedCounters = {
+      ...updatedCounters,
       applyKnowledge: {
-        ...newState.counters.applyKnowledge,
-        value: newState.counters.applyKnowledge.value + 1
+        ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
+        value: currentValue + 1
       }
     };
   }
   
-  console.log(`Применены все знания: -${knowledgeUsed} знаний, +${usdtReward} USDT, счетчик: ${newState.counters.applyKnowledge?.value || 1}`);
+  console.log(`Применены все знания: -${knowledgeUsed} знаний, +${usdtReward} USDT, счетчик: ${updatedCounters.applyKnowledge?.value || 1}`);
   
-  // Проверяем все разблокировки после применения знаний
-  return checkAllUnlocks(newState);
+  // Создаем обновленное состояние
+  let newState = {
+    ...state,
+    resources: updatedResources,
+    counters: updatedCounters,
+    unlocks: {
+      ...state.unlocks,
+      usdt: true // Дополнительно устанавливаем флаг разблокировки USDT
+    }
+  };
+  
+  // Проверяем результирующее состояние перед вызовом функции
+  if (!newState.resources.knowledge || !newState.resources.usdt) {
+    console.error("Ошибка: Обязательные ресурсы отсутствуют после обновления состояния");
+    return state; // Возвращаем исходное состояние в случае ошибки
+  }
+  
+  // Вместо прямого вызова checkAllUnlocks, возвращаем состояние и позволяем GameStateService
+  // обработать дальнейшие проверки разблокировок
+  return newState;
 };
 
 /**

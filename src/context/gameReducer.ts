@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -182,17 +183,29 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "APPLY_KNOWLEDGE": {
       // После применения знаний обновляем состояние через сервис
       console.log("Обработка APPLY_KNOWLEDGE");
-      newState = processApplyKnowledge(state);
-      console.log("Обработан APPLY_KNOWLEDGE, проверка разблокировок...");
-      return gameStateService.processGameStateUpdate(newState);
+      try {
+        newState = processApplyKnowledge(state);
+        console.log("Обработан APPLY_KNOWLEDGE, проверка разблокировок...");
+        // Принудительно выполняем полный цикл проверки разблокировок
+        return gameStateService.performFullStateSync(newState);
+      } catch (error) {
+        console.error("Ошибка при обработке APPLY_KNOWLEDGE:", error);
+        return state; // В случае ошибки возвращаем исходное состояние
+      }
     }
     
     case "APPLY_ALL_KNOWLEDGE": {
       // После применения всех знаний обновляем состояние через сервис
       console.log("Обработка APPLY_ALL_KNOWLEDGE");
-      newState = processApplyAllKnowledge(state);
-      console.log("Обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
-      return gameStateService.processGameStateUpdate(newState);
+      try {
+        newState = processApplyAllKnowledge(state);
+        console.log("Обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
+        // Принудительно выполняем полный цикл проверки разблокировок
+        return gameStateService.performFullStateSync(newState);
+      } catch (error) {
+        console.error("Ошибка при обработке APPLY_ALL_KNOWLEDGE:", error);
+        return state; // В случае ошибки возвращаем исходное состояние
+      }
     }
       
     case "EXCHANGE_BTC": 
