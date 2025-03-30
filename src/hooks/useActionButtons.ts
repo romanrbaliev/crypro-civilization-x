@@ -23,7 +23,7 @@ const isPracticeUnlocked = (state: GameState): boolean => {
 
 export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const { state, dispatch } = useGame();
-  const [currentExchangeRate, setCurrentExchangeRate] = useState(state.miningParams.exchangeRate || 20000);
+  const [currentExchangeRate, setCurrentExchangeRate] = useState(state.miningParams?.exchangeRate || 20000);
   
   // Получаем состояние зданий и ресурсов
   const { buildings, resources, unlocks, upgrades } = state;
@@ -126,22 +126,22 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     }
   }, [dispatch, onAddEvent, resources.usdt.value, practiceCurrentCost, practiceCurrentLevel]);
   
-  // Обработчик обмена BTC на USDT
-  const handleExchangeBtc = useCallback(() => {
-    // Получаем текущее количество BTC для отображения в сообщении
-    const btcAmount = resources.btc?.value || 0;
+  // Обработчик обмена Bitcoin на USDT
+  const handleExchangeBitcoin = useCallback(() => {
+    // Безопасно получаем текущее количество Bitcoin для отображения в сообщении
+    const bitcoinAmount = resources.bitcoin?.value || 0;
     
     // Расчет получаемого USDT на основе текущего курса и комиссии
-    const btcPrice = currentExchangeRate;
-    const commission = state.miningParams.exchangeCommission || 0.05;
+    const bitcoinPrice = currentExchangeRate;
+    const commission = state.miningParams?.exchangeCommission || 0.05;
     
-    const usdtAmountBeforeCommission = btcAmount * btcPrice;
+    const usdtAmountBeforeCommission = bitcoinAmount * bitcoinPrice;
     const commissionAmount = usdtAmountBeforeCommission * commission;
     const finalUsdtAmount = usdtAmountBeforeCommission - commissionAmount;
     
-    console.log("handleExchangeBtc: Вызов обмена BTC", {
-      btcAmount,
-      btcPrice,
+    console.log("handleExchangeBitcoin: Вызов обмена Bitcoin", {
+      bitcoinAmount,
+      bitcoinPrice,
       commission,
       finalUsdtAmount
     });
@@ -150,10 +150,10 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Более детальное сообщение для журнала событий
     onAddEvent(
-      `Обменяны ${btcAmount.toFixed(8)} BTC на ${finalUsdtAmount.toFixed(2)} USDT по курсу ${btcPrice}`, 
+      `Обменяны ${bitcoinAmount.toFixed(8)} Bitcoin на ${finalUsdtAmount.toFixed(2)} USDT по курсу ${bitcoinPrice}`, 
       "success"
     );
-  }, [dispatch, onAddEvent, currentExchangeRate, resources.btc?.value, state.miningParams.exchangeCommission]);
+  }, [dispatch, onAddEvent, currentExchangeRate, resources.bitcoin?.value, state.miningParams?.exchangeCommission]);
   
   // Функция проверки доступности кнопки
   const isButtonEnabled = useCallback((resourceId: string, cost: number) => {
@@ -161,17 +161,19 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     return resource && resource.value >= cost;
   }, [resources]);
   
-  // Обновление курса обмена BTC
+  // Обновление курса обмена Bitcoin
   useEffect(() => {
-    setCurrentExchangeRate(state.miningParams.exchangeRate);
-  }, [state.miningParams.exchangeRate]);
+    if (state.miningParams?.exchangeRate) {
+      setCurrentExchangeRate(state.miningParams.exchangeRate);
+    }
+  }, [state.miningParams?.exchangeRate]);
   
   return {
     handleLearnClick,
     handleApplyKnowledge,
     handleApplyAllKnowledge,
     handlePractice,
-    handleExchangeBtc,
+    handleExchangeBitcoin,
     isButtonEnabled,
     practiceIsUnlocked,
     practiceBuildingExists,

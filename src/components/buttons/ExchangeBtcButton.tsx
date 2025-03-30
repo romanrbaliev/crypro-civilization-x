@@ -14,7 +14,7 @@ const ExchangeBtcButton: React.FC<ExchangeBtcButtonProps> = ({
   onClick, 
   disabled: externalDisabled,
   className = "",
-  currentRate: externalRate
+  currentRate
 }) => {
   const { state } = useGame();
   const { resources } = state;

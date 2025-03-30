@@ -20,7 +20,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     handleApplyKnowledge,
     handleApplyAllKnowledge,
     handlePractice,
-    handleExchangeBtc,
+    handleExchangeBitcoin,
     isButtonEnabled,
     practiceIsUnlocked,
     practiceBuildingExists,
@@ -36,16 +36,19 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const hasApplyKnowledge = state.unlocks.applyKnowledge;
   
   // Получаем значения ресурсов для проверки доступности кнопок
-  const { knowledge, usdt, btc } = state.resources;
+  const { knowledge, usdt } = state.resources;
   
-  // Исправленная проверка на возможность обмена BTC - проверяем только наличие BTC
-  const canExchangeBtc = btc.unlocked && btc.value > 0;
+  // Безопасно получаем Bitcoin
+  const bitcoin = state.resources.bitcoin || { unlocked: false, value: 0 };
+  
+  // Исправленная проверка на возможность обмена Bitcoin - проверяем только наличие Bitcoin
+  const canExchangeBitcoin = bitcoin.unlocked && bitcoin.value > 0;
   
   // Флаг для определения, нужно ли использовать режим "применить все знания"
   const shouldApplyAll = shouldHideLearnButton;
   
   // Проверяем условие разблокировки USDT - должно быть 2 и более применений знаний
-  const isUsdtUnlocked = state.resources.usdt.unlocked && 
+  const isUsdtUnlocked = state.resources.usdt?.unlocked && 
                       state.counters.applyKnowledge && 
                       state.counters.applyKnowledge.value >= 2;
   
@@ -56,13 +59,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   console.log("Состояние разблокировки кнопки 'Применить знания':", hasApplyKnowledge);
   console.log("Счетчик кликов знаний:", state.counters.knowledgeClicks?.value);
   
-  // Кнопка обмена BTC (если разблокирована)
-  if (btc.unlocked && isUsdtUnlocked) {
+  // Кнопка обмена Bitcoin (если разблокирована)
+  if (bitcoin.unlocked && isUsdtUnlocked) {
     buttonComponents.push(
       <ExchangeBtcButton 
         key="exchange"
-        onClick={handleExchangeBtc}
-        disabled={!canExchangeBtc}
+        onClick={handleExchangeBitcoin}
+        disabled={!canExchangeBitcoin}
         className="w-full"
         currentRate={currentExchangeRate}
       />
