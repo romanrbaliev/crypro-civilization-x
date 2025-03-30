@@ -88,7 +88,15 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       return;
     }
     
-    console.log("Вызов action APPLY_KNOWLEDGE с текущими знаниями:", resources.knowledge?.value);
+    console.log("handleApplyKnowledge: Начало применения знаний");
+    console.log("handleApplyKnowledge: Текущее состояние:", {
+      knowledgeValue: resources.knowledge?.value,
+      usdtValue: resources.usdt?.value,
+      usdtUnlocked: resources.usdt?.unlocked,
+      applyKnowledgeCounter: state.counters.applyKnowledge
+    });
+    
+    // Вызываем действие для применения знаний
     dispatch({ type: "APPLY_KNOWLEDGE" });
     
     // Базовая награда за применение знаний
@@ -104,10 +112,20 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Принудительно проверяем разблокировки после применения знаний
     setTimeout(() => {
-      console.log("Принудительное обновление после APPLY_KNOWLEDGE");
+      console.log("handleApplyKnowledge: Принудительное обновление после APPLY_KNOWLEDGE");
       dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      
+      // Проверяем состояние после обновления
+      setTimeout(() => {
+        console.log("handleApplyKnowledge: Проверка состояния после FORCE_RESOURCE_UPDATE:", {
+          knowledgeValue: state.resources.knowledge?.value,
+          usdtValue: state.resources.usdt?.value,
+          usdtUnlocked: state.resources.usdt?.unlocked,
+          applyKnowledgeCounter: state.counters.applyKnowledge
+        });
+      }, 100);
     }, 100);
-  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value]);
+  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value, resources.usdt?.value, resources.usdt?.unlocked, state.counters.applyKnowledge]);
   
   // Обработчик для применения всех знаний
   const handleApplyAllKnowledge = useCallback(() => {
@@ -117,7 +135,15 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       return;
     }
     
-    console.log("Вызов action APPLY_ALL_KNOWLEDGE с текущими знаниями:", resources.knowledge?.value);
+    console.log("handleApplyAllKnowledge: Начало применения всех знаний");
+    console.log("handleApplyAllKnowledge: Текущее состояние:", {
+      knowledgeValue: resources.knowledge?.value,
+      usdtValue: resources.usdt?.value,
+      usdtUnlocked: resources.usdt?.unlocked,
+      applyKnowledgeCounter: state.counters.applyKnowledge
+    });
+    
+    // Вызываем действие для применения всех знаний
     dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
     
     // Базовая награда за применение знаний
@@ -138,10 +164,20 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Принудительно проверяем разблокировки после применения знаний
     setTimeout(() => {
-      console.log("Принудительное обновление после APPLY_ALL_KNOWLEDGE");
+      console.log("handleApplyAllKnowledge: Принудительное обновление после APPLY_ALL_KNOWLEDGE");
       dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      
+      // Проверяем состояние после обновления
+      setTimeout(() => {
+        console.log("handleApplyAllKnowledge: Проверка состояния после FORCE_RESOURCE_UPDATE:", {
+          knowledgeValue: state.resources.knowledge?.value,
+          usdtValue: state.resources.usdt?.value,
+          usdtUnlocked: state.resources.usdt?.unlocked,
+          applyKnowledgeCounter: state.counters.applyKnowledge
+        });
+      }, 100);
     }, 100);
-  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value]);
+  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value, resources.usdt?.value, resources.usdt?.unlocked, state.counters.applyKnowledge]);
   
   // Обработчик покупки практики
   const handlePractice = useCallback(() => {

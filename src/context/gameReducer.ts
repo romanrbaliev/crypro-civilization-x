@@ -182,48 +182,50 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     
     case "APPLY_KNOWLEDGE": {
       // После применения знаний обновляем состояние через сервис
-      console.log("Обработка APPLY_KNOWLEDGE");
+      console.log("gameReducer: Начало обработки APPLY_KNOWLEDGE");
       try {
         newState = processApplyKnowledge(state);
-        console.log("Обработан APPLY_KNOWLEDGE, проверка разблокировок...", newState);
+        console.log("gameReducer: Успешно обработан APPLY_KNOWLEDGE, проверка разблокировок...");
         
         // Принудительно логируем изменения ресурсов
-        console.log("Изменения после применения знаний:", {
+        console.log("gameReducer: Изменения после применения знаний:", {
           knowledgeBefore: state.resources.knowledge?.value,
           knowledgeAfter: newState.resources.knowledge?.value,
           usdtBefore: state.resources.usdt?.value,
           usdtAfter: newState.resources.usdt?.value,
-          applyKnowledgeCounter: newState.counters.applyKnowledge?.value
+          usdtUnlocked: newState.resources.usdt?.unlocked,
+          applyKnowledgeCounter: newState.counters.applyKnowledge
         });
         
         // Принудительно выполняем полный цикл проверки разблокировок
         return gameStateService.performFullStateSync(newState);
       } catch (error) {
-        console.error("Ошибка при обработке APPLY_KNOWLEDGE:", error);
+        console.error("gameReducer: Ошибка при обработке APPLY_KNOWLEDGE:", error);
         return state; // В случае ошибки возвращаем исходное состояние
       }
     }
     
     case "APPLY_ALL_KNOWLEDGE": {
       // После применения всех знаний обновляем состояние через сервис
-      console.log("Обработка APPLY_ALL_KNOWLEDGE");
+      console.log("gameReducer: Начало обработки APPLY_ALL_KNOWLEDGE");
       try {
         newState = processApplyAllKnowledge(state);
-        console.log("Обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
+        console.log("gameReducer: Успешно обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
         
         // Принудительно логируем изменения ресурсов
-        console.log("Изменения после применения всех знаний:", {
+        console.log("gameReducer: Изменения после применения всех знаний:", {
           knowledgeBefore: state.resources.knowledge?.value,
           knowledgeAfter: newState.resources.knowledge?.value,
           usdtBefore: state.resources.usdt?.value,
           usdtAfter: newState.resources.usdt?.value,
-          applyKnowledgeCounter: newState.counters.applyKnowledge?.value
+          usdtUnlocked: newState.resources.usdt?.unlocked,
+          applyKnowledgeCounter: newState.counters.applyKnowledge
         });
         
         // Принудительно выполняем полный цикл проверки разблокировок
         return gameStateService.performFullStateSync(newState);
       } catch (error) {
-        console.error("Ошибка при обработке APPLY_ALL_KNOWLEDGE:", error);
+        console.error("gameReducer: Ошибка при обработке APPLY_ALL_KNOWLEDGE:", error);
         return state; // В случае ошибки возвращаем исходное состояние
       }
     }

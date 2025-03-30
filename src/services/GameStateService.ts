@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -50,6 +51,26 @@ export class GameStateService {
           state.buildings.generator && !state.buildings.generator.unlocked) {
         console.log("GameStateService: Применение принудительной проверки разблокировки генератора");
         state = this.unlockService.checkAllUnlocks(state);
+      }
+      
+      // Проверяем, должен ли быть разблокирован USDT
+      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 1 && 
+          state.resources.usdt && !state.resources.usdt.unlocked) {
+        console.log("GameStateService: Принудительная разблокировка USDT по счетчику применения знаний");
+        state = {
+          ...state,
+          resources: {
+            ...state.resources,
+            usdt: {
+              ...state.resources.usdt,
+              unlocked: true
+            }
+          },
+          unlocks: {
+            ...state.unlocks,
+            usdt: true
+          }
+        };
       }
       
       console.log("GameStateService: Обработка обновления состояния завершена успешно");
@@ -160,6 +181,15 @@ export class GameStateService {
         ...state,
         resources: updatedResources
       };
+      
+      // Проверяем, должен ли быть разблокирован USDT
+      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 1) {
+        console.log("GameStateService: Принудительная разблокировка USDT в performFullStateSync");
+        if (state.resources.usdt) {
+          state.resources.usdt.unlocked = true;
+        }
+        state.unlocks.usdt = true;
+      }
       
       // Логируем итоговое состояние после полной синхронизации
       console.log("GameStateService: Состояние после полной синхронизации:", {

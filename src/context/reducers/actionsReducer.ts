@@ -5,6 +5,8 @@ import { safeDispatchGameEvent } from '../utils/eventBusUtils';
  * Обработчик действия "Применить знания" - конвертирует знания в USDT
  */
 export const processApplyKnowledge = (state: GameState): GameState => {
+  console.log("processApplyKnowledge: Начало обработки");
+  
   // Проверяем наличие ресурсов
   if (!state.resources.knowledge || !state.resources.usdt) {
     console.error("Ошибка: Ресурсы knowledge или usdt отсутствуют в состоянии");
@@ -32,18 +34,25 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     usdtReward = Math.floor(usdtReward * 1.1); // +10% от исследования
   }
 
-  // Обновляем ресурсы
+  console.log(`processApplyKnowledge: Применяем знания - было ${knowledgeValue} знаний и ${usdtValue} USDT`);
+
+  // Создаем новые объекты ресурсов
+  const updatedKnowledge = {
+    ...state.resources.knowledge,
+    value: knowledgeValue - requiredKnowledge
+  };
+  
+  const updatedUsdt = {
+    ...state.resources.usdt,
+    value: usdtValue + usdtReward,
+    unlocked: true // Явно разблокируем USDT при первой конвертации
+  };
+
+  // Создаем новый объект ресурсов
   const updatedResources = {
     ...state.resources,
-    knowledge: {
-      ...state.resources.knowledge,
-      value: knowledgeValue - requiredKnowledge
-    },
-    usdt: {
-      ...state.resources.usdt,
-      value: usdtValue + usdtReward,
-      unlocked: true // Явно разблокируем USDT при первой конвертации
-    }
+    knowledge: updatedKnowledge,
+    usdt: updatedUsdt
   };
   
   // Инициализируем или увеличиваем счетчик применений знаний
@@ -68,24 +77,25 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     };
   }
 
-  console.log(`Применены знания: -${requiredKnowledge} знаний, +${usdtReward} USDT, счетчик:`, updatedCounters.applyKnowledge);
+  console.log(`processApplyKnowledge: Счетчик применений знаний:`, updatedCounters.applyKnowledge);
   
-  // Создаем обновленное состояние с правильно обновленными флагами разблокировки
-  const newState = {
+  // Создаем обновленное состояние
+  const newState: GameState = {
     ...state,
     resources: updatedResources,
     counters: updatedCounters,
     unlocks: {
       ...state.unlocks,
+      applyKnowledge: true, // Явно устанавливаем флаг разблокировки применения знаний
       usdt: true // Явно устанавливаем флаг разблокировки USDT
     }
   };
   
   // Выводим отладочную информацию о состоянии после обновления
-  console.log("Состояние после применения знаний:", {
-    knowledgeValue: newState.resources.knowledge?.value,
-    usdtValue: newState.resources.usdt?.value,
-    usdtUnlocked: newState.resources.usdt?.unlocked,
+  console.log("processApplyKnowledge: Состояние после применения знаний:", {
+    knowledgeValue: newState.resources.knowledge.value,
+    usdtValue: newState.resources.usdt.value,
+    usdtUnlocked: newState.resources.usdt.unlocked,
     counter: newState.counters.applyKnowledge?.value
   });
   
@@ -96,6 +106,8 @@ export const processApplyKnowledge = (state: GameState): GameState => {
  * Обработчик действия "Применить все знания" - конвертирует все доступные знания в USDT
  */
 export const processApplyAllKnowledge = (state: GameState): GameState => {
+  console.log("processApplyAllKnowledge: Начало обработки");
+  
   // Проверяем наличие ресурсов
   if (!state.resources.knowledge || !state.resources.usdt) {
     console.error("Ошибка: Ресурсы knowledge или usdt отсутствуют в состоянии");
@@ -127,18 +139,25 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     usdtReward = Math.floor(usdtReward * 1.1); // +10% от исследования
   }
 
-  // Обновляем ресурсы
+  console.log(`processApplyAllKnowledge: Применяем все знания - было ${knowledgeValue} знаний и ${usdtValue} USDT`);
+
+  // Создаем новые объекты ресурсов
+  const updatedKnowledge = {
+    ...state.resources.knowledge,
+    value: knowledgeValue - knowledgeUsed
+  };
+  
+  const updatedUsdt = {
+    ...state.resources.usdt,
+    value: usdtValue + usdtReward,
+    unlocked: true // Явно разблокируем USDT при обмене всех знаний
+  };
+
+  // Создаем новый объект ресурсов
   const updatedResources = {
     ...state.resources,
-    knowledge: {
-      ...state.resources.knowledge,
-      value: knowledgeValue - knowledgeUsed
-    },
-    usdt: {
-      ...state.resources.usdt,
-      value: usdtValue + usdtReward,
-      unlocked: true // Явно разблокируем USDT при обмене всех знаний
-    }
+    knowledge: updatedKnowledge,
+    usdt: updatedUsdt
   };
   
   // Инициализируем или увеличиваем счетчик применений знаний
@@ -163,24 +182,25 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     };
   }
   
-  console.log(`Применены все знания: -${knowledgeUsed} знаний, +${usdtReward} USDT, счетчик: ${updatedCounters.applyKnowledge?.value || 1}`);
+  console.log(`processApplyAllKnowledge: Счетчик применений знаний:`, updatedCounters.applyKnowledge);
   
   // Создаем обновленное состояние
-  const newState = {
+  const newState: GameState = {
     ...state,
     resources: updatedResources,
     counters: updatedCounters,
     unlocks: {
       ...state.unlocks,
-      usdt: true // Дополнительно устанавливаем флаг разблокировки USDT
+      applyKnowledge: true, // Явно устанавливаем флаг разблокировки применения знаний
+      usdt: true // Явно устанавливаем флаг разблокировки USDT
     }
   };
-
+  
   // Выводим отладочную информацию о состоянии после обновления
-  console.log("Состояние после применения всех знаний:", {
-    knowledgeValue: newState.resources.knowledge?.value,
-    usdtValue: newState.resources.usdt?.value,
-    usdtUnlocked: newState.resources.usdt?.unlocked,
+  console.log("processApplyAllKnowledge: Состояние после применения всех знаний:", {
+    knowledgeValue: newState.resources.knowledge.value,
+    usdtValue: newState.resources.usdt.value,
+    usdtUnlocked: newState.resources.usdt.unlocked,
     counter: newState.counters.applyKnowledge?.value
   });
   
