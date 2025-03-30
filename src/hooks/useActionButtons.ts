@@ -30,7 +30,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Проверяем, должна ли кнопка изучения быть скрыта
   // Кнопка скрывается, если скорость производства знаний >= 10/сек
-  const shouldHideLearnButton = resources.knowledge.perSecond >= 10;
+  const shouldHideLearnButton = resources.knowledge?.perSecond >= 10;
   
   // Проверка наличия и разблокировки здания практики
   const practiceBuildingExists = !!buildings.practice;
@@ -40,7 +40,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const practiceUnlockFlag = unlocks.practice === true;
   
   // Объединенная проверка разблокировки практики
-  const practiceIsUnlocked = practiceBuildingUnlocked && practiceUnlockFlag;
+  const practiceIsUnlocked = practiceUnlockFlag;
   
   // Получение текущей стоимости и уровня практики
   const practiceCurrentLevel = practiceBuildingExists ? buildings.practice.count : 0;
@@ -108,23 +108,23 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     }
     
     // Количество применённых знаний
-    const appliedKnowledge = resources.knowledge.value;
+    const appliedKnowledge = resources.knowledge?.value || 0;
     // Расчёт полученных USDT
     const obtainedUsdt = Math.floor((appliedKnowledge / 10) * usdtRate);
     
     // Показываем уведомление с учетом бонуса
     onAddEvent(`Все знания успешно применены! Получено ${obtainedUsdt} USDT`, "success");
-  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge.value]);
+  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value]);
   
   // Обработчик покупки практики
   const handlePractice = useCallback(() => {
-    if (resources.usdt.value >= practiceCurrentCost) {
+    if (resources.usdt?.value >= practiceCurrentCost) {
       dispatch({ type: "PRACTICE_PURCHASE" });
       onAddEvent(`Куплена практика (уровень ${practiceCurrentLevel + 1})`, "success");
     } else {
       onAddEvent("Недостаточно USDT для покупки практики", "error");
     }
-  }, [dispatch, onAddEvent, resources.usdt.value, practiceCurrentCost, practiceCurrentLevel]);
+  }, [dispatch, onAddEvent, resources.usdt?.value, practiceCurrentCost, practiceCurrentLevel]);
   
   // Обработчик обмена Bitcoin на USDT
   const handleExchangeBitcoin = useCallback(() => {

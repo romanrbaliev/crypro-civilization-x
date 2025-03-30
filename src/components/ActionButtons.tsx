@@ -35,8 +35,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   // Получаем состояние разблокировки кнопки "Применить знания"
   const hasApplyKnowledge = state.unlocks.applyKnowledge;
   
-  // Получаем значения ресурсов для проверки доступности кнопок
-  const { knowledge, usdt } = state.resources;
+  // Получаем значения ресурсов для проверки доступности кнопок (с проверкой на undefined)
+  const knowledge = state.resources.knowledge || { value: 0 };
+  const usdt = state.resources.usdt || { value: 0, unlocked: false };
   
   // Безопасно получаем Bitcoin
   const bitcoin = state.resources.bitcoin || { unlocked: false, value: 0 };
@@ -48,7 +49,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const shouldApplyAll = shouldHideLearnButton;
   
   // Проверяем условие разблокировки USDT - должно быть 2 и более применений знаний
-  const isUsdtUnlocked = state.resources.usdt?.unlocked && 
+  const isUsdtUnlocked = usdt.unlocked && 
                       state.counters.applyKnowledge && 
                       state.counters.applyKnowledge.value >= 2;
   
@@ -58,6 +59,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   // Отладочная информация для понимания почему кнопка может не появляться
   console.log("Состояние разблокировки кнопки 'Применить знания':", hasApplyKnowledge);
   console.log("Счетчик кликов знаний:", state.counters.knowledgeClicks?.value);
+  console.log("Счетчик применений знаний:", state.counters.applyKnowledge?.value);
+  console.log("isUsdtUnlocked:", isUsdtUnlocked);
+  console.log("Bitcoin разблокирован:", bitcoin.unlocked);
+  console.log("Значение Bitcoin:", bitcoin.value);
   
   // Кнопка обмена Bitcoin (если разблокирована)
   if (bitcoin.unlocked && isUsdtUnlocked) {
