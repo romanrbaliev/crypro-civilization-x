@@ -3,13 +3,27 @@ import { GameState } from './types';
 
 // Правильно установленное начальное состояние игры
 export const initialState: GameState = {
+  // Базовые счетчики игровых ресурсов
+  knowledge: 0,
+  btcPrice: 20000,
+  miningPower: 0,
+  usdtBalance: 0,
+  btcBalance: 0,
+  
+  // Свойства игры
   gameStarted: false,
   gameTime: 0,
   lastUpdate: Date.now(),
+  lastSaved: Date.now(),
+  version: '1.0.0',
   phase: 1,
   specialization: null,
   prestigePoints: 0,
   eventMessages: [],
+  referredBy: null,
+  featureFlags: {},
+  buildingUnlocked: {},
+  
   unlocks: {
     knowledge: true, // Знания доступны с самого начала
   },
