@@ -1,5 +1,4 @@
-
-// Единая централизованная система управления разблокировками игровых элементов
+// ��диная централизованная система управления разблокировками игровых элементов
 
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -109,8 +108,13 @@ const unlockConditions: Record<string, UnlockCondition> = {
       if (!newState.miningParams) {
         newState.miningParams = {
           miningEfficiency: 1,
+          networkDifficulty: 1.0,
+          energyEfficiency: 0,
           exchangeRate: 20000,
-          exchangeCommission: 0.05
+          exchangeCommission: 0.05,
+          volatility: 0.2,
+          exchangePeriod: 3600,
+          baseConsumption: 1
         };
       }
       

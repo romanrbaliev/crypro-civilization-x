@@ -91,7 +91,7 @@ export const processPurchaseBuilding = (
           }
         },
         unlocks: {
-          ...newState.unlocks,
+          ...state.unlocks,
           btc: true
         }
       };
@@ -100,8 +100,13 @@ export const processPurchaseBuilding = (
       if (!newState.miningParams) {
         newState.miningParams = {
           miningEfficiency: 1,
+          networkDifficulty: 1.0,
+          energyEfficiency: 0,
           exchangeRate: 20000,
-          exchangeCommission: 0.05
+          exchangeCommission: 0.05,
+          volatility: 0.2,
+          exchangePeriod: 3600,
+          baseConsumption: 1
         };
       }
     }
