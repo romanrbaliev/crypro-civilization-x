@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -237,6 +236,16 @@ export class UnlockService {
     });
     
     return (value >= 1 || usdtFlagUnlocked) && !usdtResourceUnlocked;
+  }
+
+  /**
+   * Проверяет условие разблокировки электричества
+   */
+  private shouldUnlockElectricity(state: GameState): boolean {
+    // Электричество разблокируется при наличии хотя бы одного генератора
+    return state.buildings.generator && 
+           state.buildings.generator.count > 0 && 
+           (!state.resources.electricity || !state.resources.electricity.unlocked);
   }
 
   /**
