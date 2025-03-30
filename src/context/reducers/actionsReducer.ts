@@ -34,8 +34,8 @@ export const processLearnAction = (state: GameState): GameState => {
   
   console.log(`Пользователь изучил криптовалюту. Знания: ${currentKnowledge} -> ${newKnowledgeValue}. Всего кликов: ${knowledgeClicksCounter.value}`);
   
-  // Создаем новое состояние с обновленными знаниями и счетчиком
-  let newState = {
+  // Создаем новое состояние
+  const newState = {
     ...state,
     resources: {
       ...state.resources,
@@ -50,11 +50,8 @@ export const processLearnAction = (state: GameState): GameState => {
     }
   };
   
-  // Добавляем явный вызов проверки разблокировок
-  console.log("Проверяем разблокировки после изучения крипты");
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  // Проверяем разблокировки после клика
+  return checkAllUnlocks(newState);
 };
 
 // Обработка клика на "Применить знания"
@@ -93,8 +90,8 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
   console.log(`Применены знания. Потрачено знаний: ${requiredKnowledge}. Получено USDT: ${usdtGain}. Всего применений: ${applyKnowledgeCounter.value}`);
   safeDispatchGameEvent(`Знания успешно применены. Получено ${usdtGain} USDT`, "success");
   
-  // Создаем копию ресурсов
-  let newResources = { ...state.resources };
+  // Создаем новое состояние с правильной структурой ресурсов
+  const newResources = { ...state.resources };
   
   // Обновляем знания
   if (newResources.knowledge) {
@@ -126,7 +123,7 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
     };
   }
   
-  let newState = {
+  const newState = {
     ...state,
     resources: newResources,
     counters: {
@@ -135,11 +132,9 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
     }
   };
   
-  // Важно: явно проверяем разблокировки после применения знаний
+  // Важно: проверяем разблокировки после применения знаний
   console.log("Проверяем разблокировки после применения знаний. Текущий счетчик:", applyKnowledgeCounter.value);
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Обработка действия "Применить все знания"
@@ -165,8 +160,8 @@ export const processApplyAllKnowledgeAction = (state: GameState): GameState => {
   console.log(`Применены все знания. Потрачено знаний: ${usedKnowledge}. Получено USDT: ${usdtGain}.`);
   safeDispatchGameEvent(`Все знания успешно применены. Получено ${usdtGain} USDT`, "success");
   
-  // Создаем копию ресурсов
-  let newResources = { ...state.resources };
+  // Создаем новое состояние с правильной структурой ресурсов
+  const newResources = { ...state.resources };
   
   // Обновляем знания
   if (newResources.knowledge) {
@@ -198,26 +193,13 @@ export const processApplyAllKnowledgeAction = (state: GameState): GameState => {
     };
   }
   
-  let newState = {
+  const newState = {
     ...state,
-    resources: newResources,
-    counters: {
-      ...state.counters,
-      // Также инкрементируем счетчик применений знаний для правильных разблокировок
-      applyKnowledge: {
-        ...state.counters.applyKnowledge,
-        id: 'applyKnowledge',
-        name: 'Применения знаний',
-        value: (state.counters.applyKnowledge?.value || 0) + 1
-      }
-    }
+    resources: newResources
   };
   
   // Проверяем разблокировки после действия
-  console.log("Проверяем разблокировки после применения всех знаний");
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Обработка действия "Майнинг"
@@ -244,8 +226,8 @@ export const processMiningPowerAction = (state: GameState): GameState => {
   console.log(`Использована вычислительная мощность. Потрачено: ${requiredPower}. Получено USDT: ${usdtGain}.`);
   safeDispatchGameEvent(`Майнинг успешен. Получено ${usdtGain} USDT`, "success");
   
-  // Создаем копию ресурсов
-  let newResources = { ...state.resources };
+  // Создаем новое состояние с правильной структурой ресурсов
+  const newResources = { ...state.resources };
   
   // Обновляем вычислительную мощность
   if (newResources.computingPower) {
@@ -277,7 +259,7 @@ export const processMiningPowerAction = (state: GameState): GameState => {
     };
   }
   
-  let newState = {
+  const newState = {
     ...state,
     resources: newResources
   };
@@ -312,8 +294,8 @@ export const processExchangeBitcoinAction = (state: GameState): GameState => {
   console.log(`Обмен Bitcoin. Количество: ${bitcoinAmount}. Получено USDT: ${usdtGain}.`);
   safeDispatchGameEvent(`Bitcoin успешно обменян. Получено ${usdtGain} USDT`, "success");
   
-  // Создаем копию ресурсов
-  let newResources = { ...state.resources };
+  // Создаем новое состояние с правильной структурой ресурсов
+  const newResources = { ...state.resources };
   
   // Обновляем Bitcoin
   if (newResources.bitcoin) {
@@ -345,7 +327,7 @@ export const processExchangeBitcoinAction = (state: GameState): GameState => {
     };
   }
   
-  let newState = {
+  const newState = {
     ...state,
     resources: newResources
   };
@@ -393,7 +375,7 @@ export const processPracticePurchaseAction = (state: GameState): GameState => {
   };
 
   // Обновляем ресурсы
-  let newResources = { ...state.resources };
+  const newResources = { ...state.resources };
   
   // Обновляем USDT
   if (newResources.usdt) {
@@ -404,7 +386,7 @@ export const processPracticePurchaseAction = (state: GameState): GameState => {
   }
 
   // Обновление состояния
-  let newState = {
+  const newState = {
     ...state,
     resources: newResources,
     buildings: {
@@ -424,7 +406,6 @@ export const processPracticePurchaseAction = (state: GameState): GameState => {
 };
 
 // Экспортируем функции под именами, которые используются в gameReducer
-export const processLearn = processLearnAction;
 export const processApplyKnowledge = processApplyKnowledgeAction;
 export const processApplyAllKnowledge = processApplyAllKnowledgeAction;
 export const processMiningPower = processMiningPowerAction;

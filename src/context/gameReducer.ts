@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -11,7 +12,6 @@ import {
 } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { 
-  processLearn,
   processApplyKnowledge,
   processApplyAllKnowledge,
   processMiningPower,
@@ -65,12 +65,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "UPDATE_RESOURCES": {
       // Пересчитываем ресурсы и проверяем разблокировки через сервис
       return gameStateService.processGameStateUpdate(state);
-    }
-    
-    case "LEARN_CRYPTO": {
-      // Добавлен обработчик клика на "Изучить крипту"
-      newState = processLearn(state);
-      return gameStateService.processGameStateUpdate(newState);
     }
     
     case "PURCHASE_BUILDING": {
