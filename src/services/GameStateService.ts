@@ -3,6 +3,7 @@ import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
 import { UnlockService } from './UnlockService';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 
 /**
  * Централизованный сервис для управления состоянием игры
@@ -25,8 +26,8 @@ export class GameStateService {
     console.log("GameStateService: Начало обработки обновления состояния");
     
     try {
-      // Проверить разблокировки через UnlockService
-      state = this.unlockService.checkAllUnlocks(state);
+      // Используем централизованную систему разблокировок из unlockManager
+      state = checkAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);
@@ -55,8 +56,8 @@ export class GameStateService {
     console.log(`GameStateService: Обработка покупки здания ${buildingId}`);
     
     try {
-      // Проверить разблокировки через UnlockService
-      state = this.unlockService.checkAllUnlocks(state);
+      // Используем централизованную систему разблокировок из unlockManager
+      state = checkAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);
@@ -85,8 +86,8 @@ export class GameStateService {
     console.log(`GameStateService: Обработка покупки улучшения ${upgradeId}`);
     
     try {
-      // Проверить разблокировки через UnlockService
-      state = this.unlockService.checkAllUnlocks(state);
+      // Используем централизованную систему разблокировок из unlockManager
+      state = checkAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);
@@ -118,8 +119,8 @@ export class GameStateService {
     console.log("GameStateService: Выполнение полной синхронизации состояния");
     
     try {
-      // Перестроить разблокировки с нуля через UnlockService
-      state = this.unlockService.rebuildAllUnlocks(state);
+      // Используем централизованную систему разблокировок из unlockManager
+      state = checkAllUnlocks(state);
       
       // Обновить максимальные значения ресурсов
       state = this.updateResourceMaxValues(state);
@@ -169,19 +170,51 @@ export class GameStateService {
       
       // Базовый максимум + увеличение от криптокошельков + увеличение от улучшенных кошельков
       const defaultMaxUsdt = 50;
-      const currentMax = updatedResources.usdt.max || defaultMaxUsdt;
-      updatedResources.usdt.max = currentMax + (cryptoWalletCount * 25) + (improvedWalletCount * 50);
+      const walletBonus = 25;
+      const improvedWalletBonus = 50;
+      
+      updatedResources.usdt.max = defaultMaxUsdt + 
+        (cryptoWalletCount * walletBonus) + 
+        (improvedWalletCount * improvedWalletBonus);
     }
     
     // Обновляем макс. значение знаний на основе криптобиблиотек
     if (updatedResources.knowledge) {
-      const cryptoLibraryCount = state.buildings.cryptoLibrary?.count || 0;
+      const libraryCount = state.buildings.cryptoLibrary?.count || 0;
+      const cryptoWalletCount = state.buildings.cryptoWallet?.count || 0;
       
-      // Базовый максимум + увеличение от криптобиблиотек
+      // Базовый максимум + увеличение от библиотек + увеличение от криптокошельков
       const defaultMaxKnowledge = 100;
-      const currentMax = updatedResources.knowledge.max || defaultMaxKnowledge;
-      updatedResources.knowledge.max = currentMax + (cryptoLibraryCount * 50);
+      const libraryBonus = 100;
+      const walletKnowledgeBonus = 25;
+      
+      updatedResources.knowledge.max = defaultMaxKnowledge + 
+        (libraryCount * libraryBonus) + 
+        (cryptoWalletCount * walletKnowledgeBonus);
+      
+      // Бонус от исследований
+      const blockchainBasicsPurchased = state.upgrades.blockchainBasics?.purchased || 
+                                       state.upgrades.blockchain_basics?.purchased ||
+                                       state.upgrades.basicBlockchain?.purchased;
+      
+      if (blockchainBasicsPurchased) {
+        updatedResources.knowledge.max *= 1.5; // +50% к максимуму знаний
+      }
     }
+    
+    // Обновляем макс. значение электричества на основе генераторов
+    if (updatedResources.electricity) {
+      const generatorCount = state.buildings.generator?.count || 0;
+      
+      // Базовый максимум + увеличение от количества генераторов
+      const defaultMaxElectricity = 1000;
+      const generatorCapacityBonus = 500; 
+      
+      updatedResources.electricity.max = defaultMaxElectricity + 
+        (generatorCount * generatorCapacityBonus);
+    }
+    
+    // Обновляем максимальные значения других ресурсов при необходимости
     
     return {
       ...state,

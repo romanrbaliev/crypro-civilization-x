@@ -141,16 +141,22 @@ const unlockConditions: Record<string, UnlockCondition> = {
   // === ЗДАНИЯ ===
   'practice': {
     check: (state) => {
+      // Исправлено: должно проверяться точное условие - 2+ применения знаний
       const applyCount = state.counters.applyKnowledge?.value || 0;
-      const isPracticeUnlocked = state.buildings.practice?.unlocked || state.unlocks.practice;
-      const result = applyCount >= 2 && !isPracticeUnlocked;
+      // Проверяем что здание существует, но не разблокировано
+      const hasPracticeBuilding = state.buildings.practice != null;
+      const isPracticeUnlocked = state.buildings.practice?.unlocked || false;
+      const isPracticeInUnlocks = state.unlocks.practice || false;
+      
+      const result = applyCount >= 2 && hasPracticeBuilding && !isPracticeUnlocked && !isPracticeInUnlocks;
       
       console.log(`🔍 Проверка разблокировки практики:`, {
         result,
         applyCount,
+        hasPracticeBuilding,
         isPracticeUnlocked,
-        counters: state.counters,
-        unlocks: state.unlocks.practice
+        isPracticeInUnlocks,
+        counters: state.counters
       });
       
       return result;
@@ -178,15 +184,20 @@ const unlockConditions: Record<string, UnlockCondition> = {
   
   'generator': {
     check: (state) => {
+      // Исправлено: уточнены условия разблокировки генератора
       const usdtValue = state.resources.usdt?.value || 0;
       const isUsdtUnlocked = state.resources.usdt?.unlocked || false;
+      // Проверяем что здание существует, но не разблокировано
+      const hasGeneratorBuilding = state.buildings.generator != null;
       const isGeneratorUnlocked = state.buildings.generator?.unlocked || false;
-      const result = usdtValue >= 11 && isUsdtUnlocked && !isGeneratorUnlocked;
+      
+      const result = usdtValue >= 11 && isUsdtUnlocked && hasGeneratorBuilding && !isGeneratorUnlocked;
       
       console.log(`🔍 Проверка разблокировки генератора:`, {
         result,
         usdtValue,
         isUsdtUnlocked,
+        hasGeneratorBuilding,
         isGeneratorUnlocked
       });
       
@@ -493,21 +504,15 @@ const unlockConditions: Record<string, UnlockCondition> = {
   }
 };
 
-// Вспомогательная функция для проверки разблокировки "Основы блокчейна"
-function isBlockchainBasicsUnlocked(state: GameState) {
-  return (
-    (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
-    (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased) ||
-    (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased)
-  );
-}
-
 /**
  * Основная функция проверки и применения всех возможных разблокировок
  */
 export function checkAllUnlocks(state: GameState): GameState {
   console.log("🔍 Проверка всех разблокировок. Текущие разблокировки:", 
     Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
+  console.log("Счетчики:", JSON.stringify(state.counters));
+  console.log("Здания:", Object.entries(state.buildings).map(([k, b]) => `${k}: unlocked=${b?.unlocked}, count=${b?.count}`));
+  console.log("Ресурсы:", Object.entries(state.resources).map(([k, r]) => `${k}: unlocked=${r?.unlocked}, value=${r?.value}`));
   
   let newState = { ...state };
   let anyUnlockApplied = false;
@@ -761,4 +766,13 @@ export function checkActionUnlocks(state: GameState): GameState {
 export function checkSpecialUnlocks(state: GameState): GameState {
   // Теперь все проверки происходят через единую систему
   return checkAllUnlocks(state);
+}
+
+// Вспомогательная функция для проверки разблокировки "Основы блокчейна"
+function isBlockchainBasicsUnlocked(state: GameState) {
+  return (
+    (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
+    (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased) ||
+    (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased)
+  );
 }
