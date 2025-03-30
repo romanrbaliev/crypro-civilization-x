@@ -41,36 +41,54 @@ export class GameStateService {
       };
       
       // Принудительная проверка условий для критических разблокировок
+      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 1) {
+        // Проверяем и разблокируем USDT, если счетчик applyKnowledge >= 1
+        if (!state.resources.usdt || !state.resources.usdt.unlocked) {
+          console.log("GameStateService: Принудительная проверка разблокировки USDT");
+          // Обновляем ресурс USDT
+          const updatedResources = { ...state.resources };
+          if (!updatedResources.usdt) {
+            updatedResources.usdt = {
+              id: 'usdt',
+              name: 'USDT',
+              description: 'Стейблкоин, привязанный к стоимости доллара США',
+              value: 0,
+              baseProduction: 0,
+              production: 0,
+              perSecond: 0,
+              max: 50,
+              unlocked: true,
+              type: 'currency',
+              icon: 'dollar'
+            };
+          } else {
+            updatedResources.usdt = {
+              ...updatedResources.usdt,
+              unlocked: true
+            };
+          }
+          state = {
+            ...state,
+            resources: updatedResources,
+            unlocks: {
+              ...state.unlocks,
+              usdt: true
+            }
+          };
+          console.log("GameStateService: USDT принудительно разблокирован:", state.resources.usdt);
+        }
+      }
+      
       if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2 &&
-          state.buildings.practice && !state.buildings.practice.unlocked) {
+          (!state.buildings.practice || !state.buildings.practice.unlocked)) {
         console.log("GameStateService: Применение принудительной проверки разблокировки практики");
         state = this.unlockService.checkAllUnlocks(state);
       }
       
       if (state.resources.usdt && state.resources.usdt.value >= 11 &&
-          state.buildings.generator && !state.buildings.generator.unlocked) {
+          (!state.buildings.generator || !state.buildings.generator.unlocked)) {
         console.log("GameStateService: Применение принудительной проверки разблокировки генератора");
         state = this.unlockService.checkAllUnlocks(state);
-      }
-      
-      // Проверяем, должен ли быть разблокирован USDT
-      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 1 && 
-          state.resources.usdt && !state.resources.usdt.unlocked) {
-        console.log("GameStateService: Принудительная разблокировка USDT по счетчику применения знаний");
-        state = {
-          ...state,
-          resources: {
-            ...state.resources,
-            usdt: {
-              ...state.resources.usdt,
-              unlocked: true
-            }
-          },
-          unlocks: {
-            ...state.unlocks,
-            usdt: true
-          }
-        };
       }
       
       console.log("GameStateService: Обработка обновления состояния завершена успешно");

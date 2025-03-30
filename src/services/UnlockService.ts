@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -157,6 +158,8 @@ export class UnlockService {
         ? applyKnowledgeCounter.value 
         : applyKnowledgeCounter;
 
+      console.log("UnlockService: Счетчик применения знаний:", applyKnowledgeCount);
+
       if (applyKnowledgeCount >= 2 && (!state.unlocks.practice || !state.buildings.practice?.unlocked)) {
         console.log("UnlockService: 🔍 Особая проверка Practice: счетчик применения знаний >= 2");
         
@@ -174,19 +177,48 @@ export class UnlockService {
     console.log('UnlockService: Применение особых правил разблокировки USDT');
     
     // Если уже явно установлен флаг разблокировки USDT в unlocks, то разблокируем ресурс
-    if (state.unlocks.usdt === true && state.resources.usdt && !state.resources.usdt.unlocked) {
-      console.log('UnlockService: Принудительная разблокировка USDT из флага unlocks');
+    if (state.unlocks.usdt === true) {
+      console.log('UnlockService: Флаг USDT в unlocks установлен как true');
       
-      return {
-        ...state,
-        resources: {
-          ...state.resources,
-          usdt: {
-            ...state.resources.usdt,
-            unlocked: true
-          }
+      // Проверяем, есть ли USDT ресурс и разблокирован ли он
+      if (state.resources.usdt) {
+        if (!state.resources.usdt.unlocked) {
+          console.log('UnlockService: Принудительная разблокировка USDT из флага unlocks');
+          
+          return {
+            ...state,
+            resources: {
+              ...state.resources,
+              usdt: {
+                ...state.resources.usdt,
+                unlocked: true
+              }
+            }
+          };
         }
-      };
+      } else {
+        console.log('UnlockService: Создание нового ресурса USDT по флагу unlocks');
+        
+        return {
+          ...state,
+          resources: {
+            ...state.resources,
+            usdt: {
+              id: 'usdt',
+              name: 'USDT',
+              description: 'Стейблкоин, привязанный к стоимости доллара США',
+              value: 0,
+              baseProduction: 0,
+              production: 0,
+              perSecond: 0,
+              max: 50,
+              unlocked: true,
+              type: 'currency',
+              icon: 'dollar'
+            }
+          }
+        };
+      }
     }
     
     // Если ресурс USDT уже разблокирован, то устанавливаем флаг разблокировки
@@ -209,6 +241,8 @@ export class UnlockService {
         ? applyKnowledgeCounter.value 
         : applyKnowledgeCounter;
         
+      console.log('UnlockService: Проверка счетчика применения знаний:', applyKnowledgeCount);
+        
       if (applyKnowledgeCount >= 1) {
         console.log('UnlockService: Разблокировка USDT по счетчику применения знаний >= 1');
         
@@ -226,16 +260,29 @@ export class UnlockService {
     // USDT разблокируется после применения знаний или если уже установлен флаг разблокировки
     const counter = state.counters.applyKnowledge;
     const value = counter ? (typeof counter === 'object' ? counter.value : counter) : 0;
-    const usdtResourceUnlocked = state.resources.usdt && state.resources.usdt.unlocked;
+    
+    // Проверяем существует ли ресурс USDT
+    const usdtResourceExists = !!state.resources.usdt;
+    
+    // Если ресурс существует, проверяем разблокирован ли он
+    const usdtResourceUnlocked = usdtResourceExists && state.resources.usdt.unlocked;
+    
     const usdtFlagUnlocked = state.unlocks.usdt === true;
     
     console.log('UnlockService - shouldUnlockUsdt:', {
       counterValue: value,
+      usdtResourceExists,
       usdtResourceUnlocked,
       usdtFlagUnlocked
     });
     
-    return (value >= 1 || usdtFlagUnlocked) && !usdtResourceUnlocked;
+    // USDT должен быть разблокирован если:
+    // 1. Счетчик применения знаний >= 1 И ресурс не разблокирован
+    // 2. Флаг разблокировки установлен И ресурс не разблокирован
+    const shouldUnlock = (value >= 1 || usdtFlagUnlocked) && (!usdtResourceExists || !usdtResourceUnlocked);
+    
+    console.log('UnlockService - shouldUnlockUsdt result:', shouldUnlock);
+    return shouldUnlock;
   }
 
   /**
@@ -368,6 +415,8 @@ export class UnlockService {
         unlocked: true
       };
     }
+    
+    console.log('UnlockService: USDT разблокирован, новые значения:', updatedResources.usdt);
     
     // Возвращаем обновленное состояние
     return {

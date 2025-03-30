@@ -8,14 +8,13 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   console.log("processApplyKnowledge: Начало обработки");
   
   // Проверяем наличие ресурсов
-  if (!state.resources.knowledge || !state.resources.usdt) {
-    console.error("Ошибка: Ресурсы knowledge или usdt отсутствуют в состоянии");
+  if (!state.resources.knowledge) {
+    console.error("Ошибка: Ресурс knowledge отсутствует в состоянии");
     return state;
   }
 
   // Получаем текущие значения
   const knowledgeValue = state.resources.knowledge.value;
-  const usdtValue = state.resources.usdt.value;
 
   // Минимальное количество знаний для конвертации
   const requiredKnowledge = 10;
@@ -34,19 +33,39 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     usdtReward = Math.floor(usdtReward * 1.1); // +10% от исследования
   }
 
-  console.log(`processApplyKnowledge: Применяем знания - было ${knowledgeValue} знаний и ${usdtValue} USDT`);
+  console.log(`processApplyKnowledge: Применяем знания - было ${knowledgeValue} знаний`);
 
-  // Создаем новые объекты ресурсов
+  // Создаем обновленное знание
   const updatedKnowledge = {
     ...state.resources.knowledge,
     value: knowledgeValue - requiredKnowledge
   };
   
-  const updatedUsdt = {
-    ...state.resources.usdt,
-    value: usdtValue + usdtReward,
-    unlocked: true // Явно разблокируем USDT при первой конвертации
-  };
+  // Подготавливаем ресурс USDT
+  let updatedUsdt;
+  if (!state.resources.usdt) {
+    // Если USDT не существует, создаем его
+    updatedUsdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, привязанный к стоимости доллара США',
+      value: usdtReward,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true,
+      type: 'currency',
+      icon: 'dollar'
+    };
+  } else {
+    // Если USDT существует, увеличиваем его значение
+    updatedUsdt = {
+      ...state.resources.usdt,
+      value: (state.resources.usdt.value || 0) + usdtReward,
+      unlocked: true // Важно: явно устанавливаем флаг разблокировки
+    };
+  }
 
   // Создаем новый объект ресурсов
   const updatedResources = {
@@ -72,7 +91,9 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       : updatedCounters.applyKnowledge;
     
     updatedCounters.applyKnowledge = {
-      ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
+      ...(typeof updatedCounters.applyKnowledge === 'object' 
+        ? updatedCounters.applyKnowledge 
+        : { id: "applyKnowledge", name: "Применения знаний" }),
       value: currentValue + 1
     };
   }
@@ -93,7 +114,8 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   // Выводим отладочную информацию о состоянии после обновления
   console.log("processApplyKnowledge: Состояние после применения знаний:", {
-    knowledgeValue: newState.resources.knowledge.value,
+    knowledgeBefore: state.resources.knowledge.value,
+    knowledgeAfter: newState.resources.knowledge.value,
     usdtValue: newState.resources.usdt.value,
     usdtUnlocked: newState.resources.usdt.unlocked,
     counter: newState.counters.applyKnowledge?.value
@@ -109,14 +131,13 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   console.log("processApplyAllKnowledge: Начало обработки");
   
   // Проверяем наличие ресурсов
-  if (!state.resources.knowledge || !state.resources.usdt) {
-    console.error("Ошибка: Ресурсы knowledge или usdt отсутствуют в состоянии");
+  if (!state.resources.knowledge) {
+    console.error("Ошибка: Ресурс knowledge отсутствует в состоянии");
     return state;
   }
 
   // Получаем текущие значения
   const knowledgeValue = state.resources.knowledge.value;
-  const usdtValue = state.resources.usdt.value;
 
   // Минимальное количество знаний для конвертации
   const requiredKnowledge = 10;
@@ -139,19 +160,39 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     usdtReward = Math.floor(usdtReward * 1.1); // +10% от исследования
   }
 
-  console.log(`processApplyAllKnowledge: Применяем все знания - было ${knowledgeValue} знаний и ${usdtValue} USDT`);
+  console.log(`processApplyAllKnowledge: Применяем все знания - было ${knowledgeValue} знаний`);
 
-  // Создаем новые объекты ресурсов
+  // Создаем обновленное знание
   const updatedKnowledge = {
     ...state.resources.knowledge,
     value: knowledgeValue - knowledgeUsed
   };
   
-  const updatedUsdt = {
-    ...state.resources.usdt,
-    value: usdtValue + usdtReward,
-    unlocked: true // Явно разблокируем USDT при обмене всех знаний
-  };
+  // Подготавливаем ресурс USDT
+  let updatedUsdt;
+  if (!state.resources.usdt) {
+    // Если USDT не существует, создаем его
+    updatedUsdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, привязанный к стоимости доллара США',
+      value: usdtReward,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true,
+      type: 'currency',
+      icon: 'dollar'
+    };
+  } else {
+    // Если USDT существует, увеличиваем его значение
+    updatedUsdt = {
+      ...state.resources.usdt,
+      value: (state.resources.usdt.value || 0) + usdtReward,
+      unlocked: true // Важно: явно устанавливаем флаг разблокировки
+    };
+  }
 
   // Создаем новый объект ресурсов
   const updatedResources = {
@@ -168,7 +209,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     updatedCounters.applyKnowledge = { 
       id: "applyKnowledge", 
       name: "Применения знаний", 
-      value: 1 
+      value: conversions // Увеличиваем на количество конвертаций
     };
   } else {
     // Если счетчик существует, увеличиваем его значение
@@ -177,8 +218,10 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
       : updatedCounters.applyKnowledge;
     
     updatedCounters.applyKnowledge = {
-      ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
-      value: currentValue + 1
+      ...(typeof updatedCounters.applyKnowledge === 'object' 
+        ? updatedCounters.applyKnowledge 
+        : { id: "applyKnowledge", name: "Применения знаний" }),
+      value: currentValue + conversions
     };
   }
   
@@ -198,7 +241,8 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   
   // Выводим отладочную информацию о состоянии после обновления
   console.log("processApplyAllKnowledge: Состояние после применения всех знаний:", {
-    knowledgeValue: newState.resources.knowledge.value,
+    knowledgeBefore: state.resources.knowledge.value,
+    knowledgeAfter: newState.resources.knowledge.value,
     usdtValue: newState.resources.usdt.value,
     usdtUnlocked: newState.resources.usdt.unlocked,
     counter: newState.counters.applyKnowledge?.value
