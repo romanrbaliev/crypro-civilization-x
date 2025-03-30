@@ -35,7 +35,7 @@ export const processLearnAction = (state: GameState): GameState => {
   console.log(`Пользователь изучил криптовалюту. Знания: ${currentKnowledge} -> ${newKnowledgeValue}. Всего кликов: ${knowledgeClicksCounter.value}`);
   
   // Создаем новое состояние
-  let newState = {
+  const newState = {
     ...state,
     resources: {
       ...state.resources,
@@ -51,9 +51,7 @@ export const processLearnAction = (state: GameState): GameState => {
   };
   
   // Проверяем разблокировки после клика
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Обработка клика на "Применить знания"
@@ -93,31 +91,41 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
   safeDispatchGameEvent(`Знания успешно применены. Получено ${usdtGain} USDT`, "success");
   
   // Создаем новое состояние с правильной структурой ресурсов
-  let newState = {
+  const newResources = { ...state.resources };
+  
+  // Обновляем знания
+  if (newResources.knowledge) {
+    newResources.knowledge = {
+      ...newResources.knowledge,
+      value: Math.max(0, newResources.knowledge.value - requiredKnowledge)
+    };
+  }
+  
+  // Обновляем или создаем USDT
+  if (newResources.usdt) {
+    newResources.usdt = {
+      ...newResources.usdt,
+      value: newResources.usdt.value + usdtGain
+    };
+  } else {
+    newResources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, универсальная валюта для покупок',
+      type: 'currency',
+      icon: 'coins',
+      value: usdtGain,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true
+    };
+  }
+  
+  const newState = {
     ...state,
-    resources: {
-      ...state.resources,
-      knowledge: {
-        ...state.resources.knowledge,
-        value: Math.max(0, state.resources.knowledge.value - requiredKnowledge)
-      },
-      usdt: state.resources.usdt ? {
-        ...state.resources.usdt,
-        value: state.resources.usdt.value + usdtGain
-      } : {
-        id: 'usdt',
-        name: 'USDT',
-        description: 'Стейблкоин, универсальная валюта для покупок',
-        type: 'currency',
-        icon: 'coins',
-        value: usdtGain,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 50,
-        unlocked: true
-      }
-    },
+    resources: newResources,
     counters: {
       ...state.counters,
       applyKnowledge: applyKnowledgeCounter
@@ -126,9 +134,7 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
   
   // Важно: проверяем разблокировки после применения знаний
   console.log("Проверяем разблокировки после применения знаний. Текущий счетчик:", applyKnowledgeCounter.value);
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Обработка действия "Применить все знания"
@@ -155,37 +161,45 @@ export const processApplyAllKnowledgeAction = (state: GameState): GameState => {
   safeDispatchGameEvent(`Все знания успешно применены. Получено ${usdtGain} USDT`, "success");
   
   // Создаем новое состояние с правильной структурой ресурсов
-  let newState = {
+  const newResources = { ...state.resources };
+  
+  // Обновляем знания
+  if (newResources.knowledge) {
+    newResources.knowledge = {
+      ...newResources.knowledge,
+      value: Math.max(0, newResources.knowledge.value - usedKnowledge)
+    };
+  }
+  
+  // Обновляем или создаем USDT
+  if (newResources.usdt) {
+    newResources.usdt = {
+      ...newResources.usdt,
+      value: newResources.usdt.value + usdtGain
+    };
+  } else {
+    newResources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, универсальная валюта для покупок',
+      type: 'currency',
+      icon: 'coins',
+      value: usdtGain,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true
+    };
+  }
+  
+  const newState = {
     ...state,
-    resources: {
-      ...state.resources,
-      knowledge: {
-        ...state.resources.knowledge,
-        value: Math.max(0, state.resources.knowledge.value - usedKnowledge)
-      },
-      usdt: state.resources.usdt ? {
-        ...state.resources.usdt,
-        value: state.resources.usdt.value + usdtGain
-      } : {
-        id: 'usdt',
-        name: 'USDT',
-        description: 'Стейблкоин, универсальная валюта для покупок',
-        type: 'currency',
-        icon: 'coins',
-        value: usdtGain,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 50,
-        unlocked: true
-      }
-    }
+    resources: newResources
   };
   
   // Проверяем разблокировки после действия
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Обработка действия "Майнинг"
@@ -213,37 +227,45 @@ export const processMiningPowerAction = (state: GameState): GameState => {
   safeDispatchGameEvent(`Майнинг успешен. Получено ${usdtGain} USDT`, "success");
   
   // Создаем новое состояние с правильной структурой ресурсов
-  let newState = {
+  const newResources = { ...state.resources };
+  
+  // Обновляем вычислительную мощность
+  if (newResources.computingPower) {
+    newResources.computingPower = {
+      ...newResources.computingPower,
+      value: Math.max(0, newResources.computingPower.value - requiredPower)
+    };
+  }
+  
+  // Обновляем или создаем USDT
+  if (newResources.usdt) {
+    newResources.usdt = {
+      ...newResources.usdt,
+      value: newResources.usdt.value + usdtGain
+    };
+  } else {
+    newResources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, универсальная валюта для покупок',
+      type: 'currency',
+      icon: 'coins',
+      value: usdtGain,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true
+    };
+  }
+  
+  const newState = {
     ...state,
-    resources: {
-      ...state.resources,
-      computingPower: {
-        ...state.resources.computingPower,
-        value: Math.max(0, state.resources.computingPower.value - requiredPower)
-      },
-      usdt: state.resources.usdt ? {
-        ...state.resources.usdt,
-        value: state.resources.usdt.value + usdtGain
-      } : {
-        id: 'usdt',
-        name: 'USDT',
-        description: 'Стейблкоин, универсальная валюта для покупок',
-        type: 'currency',
-        icon: 'coins',
-        value: usdtGain,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 50,
-        unlocked: true
-      }
-    }
+    resources: newResources
   };
   
   // Проверяем разблокировки после действия
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Обработка действия "Обмен Bitcoin"
@@ -273,37 +295,45 @@ export const processExchangeBitcoinAction = (state: GameState): GameState => {
   safeDispatchGameEvent(`Bitcoin успешно обменян. Получено ${usdtGain} USDT`, "success");
   
   // Создаем новое состояние с правильной структурой ресурсов
-  let newState = {
+  const newResources = { ...state.resources };
+  
+  // Обновляем Bitcoin
+  if (newResources.bitcoin) {
+    newResources.bitcoin = {
+      ...newResources.bitcoin,
+      value: 0
+    };
+  }
+  
+  // Обновляем или создаем USDT
+  if (newResources.usdt) {
+    newResources.usdt = {
+      ...newResources.usdt,
+      value: newResources.usdt.value + usdtGain
+    };
+  } else {
+    newResources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, универсальная валюта для покупок',
+      type: 'currency',
+      icon: 'coins',
+      value: usdtGain,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true
+    };
+  }
+  
+  const newState = {
     ...state,
-    resources: {
-      ...state.resources,
-      bitcoin: {
-        ...state.resources.bitcoin,
-        value: 0
-      },
-      usdt: state.resources.usdt ? {
-        ...state.resources.usdt,
-        value: state.resources.usdt.value + usdtGain
-      } : {
-        id: 'usdt',
-        name: 'USDT',
-        description: 'Стейблкоин, универсальная валюта для покупок',
-        type: 'currency',
-        icon: 'coins',
-        value: usdtGain,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 50,
-        unlocked: true
-      }
-    }
+    resources: newResources
   };
   
   // Проверяем разблокировки после действия
-  newState = checkAllUnlocks(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Обработка покупки практики
@@ -344,16 +374,21 @@ export const processPracticePurchaseAction = (state: GameState): GameState => {
     resourceProduction: { knowledge: 0.63 }
   };
 
+  // Обновляем ресурсы
+  const newResources = { ...state.resources };
+  
+  // Обновляем USDT
+  if (newResources.usdt) {
+    newResources.usdt = {
+      ...newResources.usdt,
+      value: newResources.usdt.value - currentCost
+    };
+  }
+
   // Обновление состояния
-  let newState = {
+  const newState = {
     ...state,
-    resources: {
-      ...state.resources,
-      usdt: {
-        ...state.resources.usdt,
-        value: state.resources.usdt.value - currentCost
-      }
-    },
+    resources: newResources,
     buildings: {
       ...state.buildings,
       practice: {
