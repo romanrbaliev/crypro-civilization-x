@@ -168,8 +168,9 @@ export class GameStateService {
       const improvedWalletCount = state.buildings.improvedWallet?.count || 0;
       
       // Базовый максимум + увеличение от криптокошельков + увеличение от улучшенных кошельков
-      const baseMaxUsdt = updatedResources.usdt.max || 50; // Используем текущее значение max или 50 по умолчанию
-      updatedResources.usdt.max = baseMaxUsdt + (cryptoWalletCount * 25) + (improvedWalletCount * 50);
+      const defaultMaxUsdt = 50;
+      const currentMax = updatedResources.usdt.max || defaultMaxUsdt;
+      updatedResources.usdt.max = currentMax + (cryptoWalletCount * 25) + (improvedWalletCount * 50);
     }
     
     // Обновляем макс. значение знаний на основе криптобиблиотек
@@ -177,8 +178,9 @@ export class GameStateService {
       const cryptoLibraryCount = state.buildings.cryptoLibrary?.count || 0;
       
       // Базовый максимум + увеличение от криптобиблиотек
-      const baseMaxKnowledge = updatedResources.knowledge.max || 100; // Используем текущее значение max или 100 по умолчанию
-      updatedResources.knowledge.max = baseMaxKnowledge + (cryptoLibraryCount * 50);
+      const defaultMaxKnowledge = 100;
+      const currentMax = updatedResources.knowledge.max || defaultMaxKnowledge;
+      updatedResources.knowledge.max = currentMax + (cryptoLibraryCount * 50);
     }
     
     return {

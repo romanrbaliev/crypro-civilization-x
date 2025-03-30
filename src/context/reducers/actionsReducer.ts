@@ -6,7 +6,7 @@ import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 // Обработка клика на "Изучить крипту"
 export const processLearnAction = (state: GameState): GameState => {
   // Проверяем, разблокирован ли ресурс знаний
-  if (!state.resources.knowledge.unlocked) {
+  if (!state.resources.knowledge?.unlocked) {
     console.warn("Попытка изучения криптовалют при заблокированном ресурсе знаний");
     return state;
   }
@@ -68,9 +68,9 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
   const requiredKnowledge = 10;
   
   // Проверяем достаточно ли знаний
-  if (state.resources.knowledge.value < requiredKnowledge) {
-    console.warn(`Недостаточно знаний для применения: ${state.resources.knowledge.value}/${requiredKnowledge}`);
-    safeDispatchGameEvent(`Недостаточно знаний (${state.resources.knowledge.value}/${requiredKnowledge})`, "warning");
+  if (!state.resources.knowledge || state.resources.knowledge.value < requiredKnowledge) {
+    console.warn(`Недостаточно знаний для применения: ${state.resources.knowledge?.value || 0}/${requiredKnowledge}`);
+    safeDispatchGameEvent(`Недостаточно знаний (${state.resources.knowledge?.value || 0}/${requiredKnowledge})`, "warning");
     return state;
   }
   
@@ -92,7 +92,7 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
   console.log(`Применены знания. Потрачено знаний: ${requiredKnowledge}. Получено USDT: ${usdtGain}. Всего применений: ${applyKnowledgeCounter.value}`);
   safeDispatchGameEvent(`Знания успешно применены. Получено ${usdtGain} USDT`, "success");
   
-  // Создаем новое состояние
+  // Создаем новое состояние с правильной структурой ресурсов
   let newState = {
     ...state,
     resources: {
@@ -101,9 +101,21 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
         ...state.resources.knowledge,
         value: Math.max(0, state.resources.knowledge.value - requiredKnowledge)
       },
-      usdt: {
+      usdt: state.resources.usdt ? {
         ...state.resources.usdt,
         value: state.resources.usdt.value + usdtGain
+      } : {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стейблкоин, универсальная валюта для покупок',
+        type: 'currency',
+        icon: 'coins',
+        value: usdtGain,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 50,
+        unlocked: true
       }
     },
     counters: {
@@ -119,8 +131,65 @@ export const processApplyKnowledgeAction = (state: GameState): GameState => {
   return newState;
 };
 
+// Обработка действия "Применить все знания"
+export const processApplyAllKnowledgeAction = (state: GameState): GameState => {
+  // Проверяем, разблокировано ли действие
+  if (!state.unlocks.applyKnowledge) {
+    console.warn("Попытка применить все знания при заблокированном действии");
+    return state;
+  }
+  
+  // Проверяем наличие знаний
+  if (!state.resources.knowledge || state.resources.knowledge.value < 10) {
+    console.warn(`Недостаточно знаний для применения: ${state.resources.knowledge?.value || 0}/10`);
+    safeDispatchGameEvent(`Недостаточно знаний (${state.resources.knowledge?.value || 0}/10)`, "warning");
+    return state;
+  }
+  
+  // Количество полных порций знаний для обмена (10 знаний = 1 USDT)
+  const portions = Math.floor(state.resources.knowledge.value / 10);
+  const usedKnowledge = portions * 10;
+  const usdtGain = portions;
+  
+  console.log(`Применены все знания. Потрачено знаний: ${usedKnowledge}. Получено USDT: ${usdtGain}.`);
+  safeDispatchGameEvent(`Все знания успешно применены. Получено ${usdtGain} USDT`, "success");
+  
+  // Создаем новое состояние с правильной структурой ресурсов
+  let newState = {
+    ...state,
+    resources: {
+      ...state.resources,
+      knowledge: {
+        ...state.resources.knowledge,
+        value: Math.max(0, state.resources.knowledge.value - usedKnowledge)
+      },
+      usdt: state.resources.usdt ? {
+        ...state.resources.usdt,
+        value: state.resources.usdt.value + usdtGain
+      } : {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стейблкоин, универсальная валюта для покупок',
+        type: 'currency',
+        icon: 'coins',
+        value: usdtGain,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 50,
+        unlocked: true
+      }
+    }
+  };
+  
+  // Проверяем разблокировки после действия
+  newState = checkAllUnlocks(newState);
+  
+  return newState;
+};
+
 // Обработка действия "Майнинг"
-export const processUseComputingPowerAction = (state: GameState): GameState => {
+export const processMiningPowerAction = (state: GameState): GameState => {
   // Проверяем, разблокировано ли действие
   if (!state.unlocks.miningPower) {
     console.warn("Попытка использовать вычислительную мощность при заблокированном действии");
@@ -131,9 +200,9 @@ export const processUseComputingPowerAction = (state: GameState): GameState => {
   const requiredPower = 50;
   
   // Проверяем достаточно ли вычислительной мощности
-  if (state.resources.computingPower.value < requiredPower) {
-    console.warn(`Недостаточно вычислительной мощности: ${state.resources.computingPower.value}/${requiredPower}`);
-    safeDispatchGameEvent(`Недостаточно вычислительной мощности (${state.resources.computingPower.value}/${requiredPower})`, "warning");
+  if (!state.resources.computingPower || state.resources.computingPower.value < requiredPower) {
+    console.warn(`Недостаточно вычислительной мощности: ${state.resources.computingPower?.value || 0}/${requiredPower}`);
+    safeDispatchGameEvent(`Недостаточно вычислительной мощности (${state.resources.computingPower?.value || 0}/${requiredPower})`, "warning");
     return state;
   }
   
@@ -143,7 +212,7 @@ export const processUseComputingPowerAction = (state: GameState): GameState => {
   console.log(`Использована вычислительная мощность. Потрачено: ${requiredPower}. Получено USDT: ${usdtGain}.`);
   safeDispatchGameEvent(`Майнинг успешен. Получено ${usdtGain} USDT`, "success");
   
-  // Создаем новое состояние
+  // Создаем новое состояние с правильной структурой ресурсов
   let newState = {
     ...state,
     resources: {
@@ -152,9 +221,21 @@ export const processUseComputingPowerAction = (state: GameState): GameState => {
         ...state.resources.computingPower,
         value: Math.max(0, state.resources.computingPower.value - requiredPower)
       },
-      usdt: {
+      usdt: state.resources.usdt ? {
         ...state.resources.usdt,
         value: state.resources.usdt.value + usdtGain
+      } : {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стейблкоин, универсальная валюта для покупок',
+        type: 'currency',
+        icon: 'coins',
+        value: usdtGain,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 50,
+        unlocked: true
       }
     }
   };
@@ -174,7 +255,7 @@ export const processExchangeBitcoinAction = (state: GameState): GameState => {
   }
   
   // Количество Bitcoin для обмена (всё доступное количество)
-  const bitcoinAmount = state.resources.bitcoin.value;
+  const bitcoinAmount = state.resources.bitcoin?.value || 0;
   
   // Проверяем наличие Bitcoin
   if (bitcoinAmount <= 0) {
@@ -191,7 +272,7 @@ export const processExchangeBitcoinAction = (state: GameState): GameState => {
   console.log(`Обмен Bitcoin. Количество: ${bitcoinAmount}. Получено USDT: ${usdtGain}.`);
   safeDispatchGameEvent(`Bitcoin успешно обменян. Получено ${usdtGain} USDT`, "success");
   
-  // Создаем новое состояние
+  // Создаем новое состояние с правильной структурой ресурсов
   let newState = {
     ...state,
     resources: {
@@ -200,9 +281,21 @@ export const processExchangeBitcoinAction = (state: GameState): GameState => {
         ...state.resources.bitcoin,
         value: 0
       },
-      usdt: {
+      usdt: state.resources.usdt ? {
         ...state.resources.usdt,
         value: state.resources.usdt.value + usdtGain
+      } : {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стейблкоин, универсальная валюта для покупок',
+        type: 'currency',
+        icon: 'coins',
+        value: usdtGain,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 50,
+        unlocked: true
       }
     }
   };
@@ -212,3 +305,74 @@ export const processExchangeBitcoinAction = (state: GameState): GameState => {
   
   return newState;
 };
+
+// Обработка покупки практики
+export const processPracticePurchaseAction = (state: GameState): GameState => {
+  console.log("Покупка практики запрошена");
+
+  // Проверяем, разблокирована ли практика
+  if (!state.unlocks.practice) {
+    console.warn("Покупка практики невозможна - функция заблокирована");
+    safeDispatchGameEvent("Покупка практики невозможна - функция недоступна", "error");
+    return state;
+  }
+
+  // Определяем базовую стоимость и множитель
+  const baseCost = 10;
+  const costMultiplier = 1.15;
+  const currentLevel = state.buildings.practice?.count || 0;
+  const currentCost = Math.floor(baseCost * Math.pow(costMultiplier, currentLevel));
+
+  // Проверяем наличие USDT
+  if (!state.resources.usdt || state.resources.usdt.value < currentCost) {
+    console.warn(`Недостаточно USDT для покупки практики: ${state.resources.usdt?.value || 0}/${currentCost}`);
+    safeDispatchGameEvent(`Недостаточно USDT для покупки практики (${state.resources.usdt?.value || 0}/${currentCost})`, "warning");
+    return state;
+  }
+
+  // Здание практики в состоянии
+  const practiceBuilding = state.buildings.practice || {
+    id: 'practice',
+    name: 'Практика',
+    description: 'Автоматическое получение знаний',
+    cost: { usdt: baseCost },
+    costMultiplier: costMultiplier,
+    production: { knowledge: 0.63 },
+    count: 0,
+    unlocked: true,
+    productionBoost: 0,
+    resourceProduction: { knowledge: 0.63 }
+  };
+
+  // Обновление состояния
+  let newState = {
+    ...state,
+    resources: {
+      ...state.resources,
+      usdt: {
+        ...state.resources.usdt,
+        value: state.resources.usdt.value - currentCost
+      }
+    },
+    buildings: {
+      ...state.buildings,
+      practice: {
+        ...practiceBuilding,
+        count: practiceBuilding.count + 1
+      }
+    }
+  };
+
+  console.log(`Практика куплена успешно. Новый уровень: ${newState.buildings.practice.count}`);
+  safeDispatchGameEvent(`Практика куплена. Уровень: ${newState.buildings.practice.count}`, "success");
+
+  // Проверяем разблокировки после покупки
+  return checkAllUnlocks(newState);
+};
+
+// Экспортируем функции под именами, которые используются в gameReducer
+export const processApplyKnowledge = processApplyKnowledgeAction;
+export const processApplyAllKnowledge = processApplyAllKnowledgeAction;
+export const processMiningPower = processMiningPowerAction;
+export const processExchangeBtc = processExchangeBitcoinAction;
+export const processPracticePurchase = processPracticePurchaseAction;
