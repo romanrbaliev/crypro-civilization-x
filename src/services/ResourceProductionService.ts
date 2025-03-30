@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { Building } from '@/context/types';
 import { Upgrade } from '@/context/types';
@@ -50,7 +49,14 @@ export class ResourceProductionService {
     return bonuses;
   }
 
-  // Исправим метод, чтобы он возвращал обновленную копию ресурсов, а не числа
+  private isBlockchainBasicsPurchased(state: GameState): boolean {
+    return (
+      (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
+      (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased) ||
+      (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased)
+    );
+  }
+
   calculateResourceProduction(state: GameState): { [key: string]: any } {
     // Создаем копию ресурсов для изменения
     const updatedResources = JSON.parse(JSON.stringify(state.resources));
@@ -80,41 +86,45 @@ export class ResourceProductionService {
       }
     }
     
+    // Проверяем наличие исследования "Основы блокчейна" в любой из его форм
+    const blockchainBasicsPurchased = this.isBlockchainBasicsPurchased(state);
+    
+    // Применяем бонус к базовому производству знаний, если исследование куплено
+    if (blockchainBasicsPurchased && updatedResources.knowledge) {
+      console.log("ResourceProductionService: Применен бонус от Основ блокчейна +10% к производству знаний");
+      
+      // Если baseProduction не определено, инициализируем его
+      if (typeof updatedResources.knowledge.baseProduction !== 'number') {
+        updatedResources.knowledge.baseProduction = 0.1; // устанавливаем базовый бонус 10%
+      } else if (updatedResources.knowledge.baseProduction < 0.1) {
+        // Добавляем 10% бонус только если он еще не был добавлен
+        updatedResources.knowledge.baseProduction += 0.1;
+      }
+    }
+    
     // ИСПРАВЛЕНИЕ: Применяем все бонусы от исследований 
-    // Проверка на "Основы блокчейна" и другие исследования, влияющие на базовое производство ресурсов
+    // Проверка других исследований, влияющих на базовое производство ресурсов
     for (const upgradeId in state.upgrades) {
       const upgrade = state.upgrades[upgradeId];
       
       if (upgrade.purchased) {
-        // Обрабатываем особые исследования
-        if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-          console.log("ResourceProductionService: Применен эффект Основ блокчейна");
-          
-          // Обеспечиваем применение 10% бонуса к производству знаний
-          if (updatedResources.knowledge) {
-            if (!updatedResources.knowledge.baseProduction) {
-              updatedResources.knowledge.baseProduction = 0;
-            }
-            
-            // Принудительно устанавливаем базовый бонус, если он еще не был установлен
-            if (upgrade.purchased && upgrade.effects && upgrade.effects.knowledgeBoost) {
-              const bonus = upgrade.effects.knowledgeBoost; // Обычно 0.1 (10%)
-              // Проверим, был ли уже применен бонус
-              if (updatedResources.knowledge.baseProduction < bonus) {
-                console.log("Принудительно применяем бонус производства знаний от Основ блокчейна:", bonus);
-                updatedResources.knowledge.baseProduction += bonus;
-              }
-            }
-          }
-        }
-        
         // Обрабатываем эффекты исследований на базе их полей effects или effect
         const effects = upgrade.effects || upgrade.effect || {};
         
         for (const [effectId, amount] of Object.entries(effects)) {
           if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
-            // Принудительно проверяем, что бонус применен
-            console.log(`Проверка эффекта knowledgeBoost (${amount}) из исследования ${upgrade.name}`);
+            // Применяем эффект boost к производству знаний
+            console.log(`Применяем эффект knowledgeBoost (+${amount}) из исследования ${upgrade.name}`);
+            
+            // Если baseProduction не определено, инициализируем его
+            if (typeof updatedResources.knowledge.baseProduction !== 'number') {
+              updatedResources.knowledge.baseProduction = Number(amount);
+            } else {
+              // Если эффект уже учтен в основах блокчейна, не добавляем его повторно
+              if (!(blockchainBasicsPurchased && upgradeId.includes('blockchain') && amount === 0.1)) {
+                updatedResources.knowledge.baseProduction += Number(amount);
+              }
+            }
           }
         }
       }
@@ -134,7 +144,7 @@ export class ResourceProductionService {
         updatedResources.bitcoin.perSecond *= state.miningParams.miningEfficiency;
       }
       
-      console.log(`Расчет производства Bitcoin: ${updatedResources.bitcoin.perSecond} в секунду от ${state.buildings.autoMiner.count} автомайнеров (эфф. майнинга: ${state.miningParams?.miningEfficiency || 1})`);
+      console.log(`Расчет производства Bitcoin: ${updatedResources.bitcoin.perSecond.toFixed(6)} в секунду от ${state.buildings.autoMiner.count} автомайнеров (эфф. майнинга: ${state.miningParams?.miningEfficiency || 1})`);
     }
     
     // Рассчитываем производство от зданий
@@ -149,6 +159,23 @@ export class ResourceProductionService {
             updatedResources[resourceId].perSecond += productionPerSecond;
           }
         }
+      }
+    }
+    
+    // Особая обработка для практики (увеличение производства знаний)
+    if (state.buildings.practice && state.buildings.practice.count > 0) {
+      const baseProductionPerPractice = 0.21; // 0.21 знаний/сек за каждый уровень практики
+      let practiceKnowledgeProduction = baseProductionPerPractice * state.buildings.practice.count;
+      
+      // Проверяем бонус от Основ блокчейна для практики (если исследование куплено)
+      if (blockchainBasicsPurchased) {
+        practiceKnowledgeProduction *= 1.1; // +10% к производству знаний
+        console.log(`Бонус основ блокчейна применен к практике: ${practiceKnowledgeProduction.toFixed(3)} знаний/сек`);
+      }
+      
+      // Добавляем производство от практики
+      if (updatedResources.knowledge) {
+        updatedResources.knowledge.perSecond += practiceKnowledgeProduction;
       }
     }
     
@@ -211,6 +238,11 @@ export class ResourceProductionService {
       }
     }
     
+    // Ещё раз логируем состояние производства знаний после всех расчётов
+    if (updatedResources.knowledge) {
+      console.log(`Итоговая скорость производства знаний: ${updatedResources.knowledge.perSecond.toFixed(3)}/сек`);
+    }
+    
     return updatedResources;
   }
 
@@ -247,7 +279,6 @@ export class ResourceProductionService {
     return bonuses;
   }
 
-  // Обновим метод calculateResourceBonuses, чтобы учитывать бонусы специализации
   calculateResourceBonuses(state: GameState): ResourceBonuses {
     const bonuses: ResourceBonuses = {
       knowledge: 0,

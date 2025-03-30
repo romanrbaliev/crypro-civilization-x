@@ -54,6 +54,9 @@ import { updateResourceMaxValues } from './utils/resourceUtils';
 // Импортируем новую систему разблокировок
 import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockManager';
 
+// Импортируем обработчик производства ресурсов
+import { ResourceProductionService } from '@/services/ResourceProductionService';
+
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
@@ -156,6 +159,12 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // После загрузки игры проверяем все разблокировки
       console.log("Принудительная проверка всех разблокировок после загрузки игры");
       newState = checkAllUnlocks(newState);
+      
+      // Принудительно пересчитываем производство ресурсов через сервис
+      console.log("Принудительный пересчет производства ресурсов после загрузки игры");
+      const resourceProductionService = new ResourceProductionService();
+      const updatedResources = resourceProductionService.calculateResourceProduction(newState);
+      newState.resources = updatedResources;
       
       return newState;
     }

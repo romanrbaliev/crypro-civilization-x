@@ -1,4 +1,4 @@
-
+import { ResourceProductionService } from '@/services/ResourceProductionService';
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -294,10 +294,18 @@ export const processPracticePurchase = (state: GameState): GameState => {
   
   safeDispatchGameEvent(`Практика улучшена до уровня ${currentLevel + 1}`, "success");
   
-  // Возвращаем обновленное состояние
-  return {
+  // Используем ResourceProductionService для полного пересчета производства
+  const resourceProductionService = new ResourceProductionService();
+  const updatedResources = resourceProductionService.calculateResourceProduction({
     ...state,
     resources: newResources,
+    buildings: newBuildings
+  });
+  
+  // Возвращаем обновленное состояние с пересчитанными ресурсами
+  return {
+    ...state,
+    resources: updatedResources,
     buildings: newBuildings
   };
 };

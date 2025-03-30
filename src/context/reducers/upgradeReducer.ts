@@ -64,6 +64,16 @@ export const processPurchaseUpgrade = (
   // После покупки исследования проверяем все возможные разблокировки в централизованной системе
   newState = checkAllUnlocks(newState);
   
+  // Принудительно обновляем ресурсы сразу после покупки исследования
+  // Это необходимо, чтобы эффекты исследования сразу применились к отображаемым значениям
+  const resourceProductionService = new ResourceProductionService();
+  const updatedResources = resourceProductionService.calculateResourceProduction(newState);
+  
+  newState = {
+    ...newState,
+    resources: updatedResources
+  };
+  
   return newState;
 };
 
@@ -88,7 +98,7 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
     // Эффекты этого исследования обрабатываются в processApplyKnowledge
   }
   
-  // Исправление для основ блокчейна
+  // Исправление для основ блокчейна - применяем эффекты явно
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применение эффектов 'Основы блокчейна': +50% к максимуму знаний и +10% к получению знаний");
     
@@ -98,7 +108,7 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
         ...newState.resources.knowledge,
         max: newState.resources.knowledge.max * 1.5,
         // Добавляем или увеличиваем базовое производство на 10%
-        baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1
+        baseProduction: ((newState.resources.knowledge.baseProduction || 0) + 0.1)
       };
     }
     
@@ -189,3 +199,6 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
   
   return newState;
 }
+
+// Необходимый импорт для обновления ресурсов
+import { ResourceProductionService } from '@/services/ResourceProductionService';
