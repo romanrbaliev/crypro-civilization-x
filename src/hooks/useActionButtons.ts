@@ -7,8 +7,14 @@ interface ActionButtonsHookProps {
   onAddEvent: (message: string, type: string) => void;
 }
 
-// Функция для проверки, разблокирована ли практика на основе счетчика
+// Функция для проверки, разблокирована ли практика на основе счетчика и флага unlocks
 const isPracticeUnlocked = (state: GameState): boolean => {
+  // Проверяем наличие флага практики в unlocks
+  if (state.unlocks.practice === true) return true;
+  
+  // Проверяем существование здания практики и его разблокировку
+  if (state.buildings.practice && state.buildings.practice.unlocked) return true;
+  
   // Проверяем наличие счетчика применения знаний
   const counter = state.counters.applyKnowledge;
   
@@ -36,11 +42,18 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const practiceBuildingExists = !!buildings.practice;
   const practiceBuildingUnlocked = practiceBuildingExists && buildings.practice.unlocked;
   
-  // Проверка разблокировки флага практики (должно совпадать с зданием)
+  // Проверка разблокировки флага практики
   const practiceUnlockFlag = unlocks.practice === true;
   
   // Объединенная проверка разблокировки практики
-  const practiceIsUnlocked = practiceUnlockFlag || practiceBuildingUnlocked;
+  const practiceIsUnlocked = practiceUnlockFlag || practiceBuildingUnlocked || isPracticeUnlocked(state);
+  
+  console.log("Проверка разблокировки практики в useActionButtons:", {
+    practiceUnlockFlag,
+    practiceBuildingUnlocked,
+    practiceIsUnlocked,
+    applyKnowledgeCounter: state.counters.applyKnowledge
+  });
   
   // Получение текущей стоимости и уровня практики
   const practiceCurrentLevel = practiceBuildingExists ? buildings.practice.count : 0;
@@ -66,7 +79,6 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     });
     
     // Убираем отправку события в журнал о получении знания
-    // Не отправляем событие "Получено 1 знание" в журнал
   }, [dispatch]);
   
   // Обработчик нажатия кнопки "Применить знания"

@@ -1,4 +1,3 @@
-
 import { GameState, Resource } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
@@ -34,42 +33,57 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     usdtReward = Math.floor(usdtReward * 1.1); // +10% от исследования
   }
 
-  // Создаем копию состояния для обновления
-  const newState: GameState = {
-    ...state,
-    resources: {
-      ...state.resources,
-      knowledge: {
-        ...state.resources.knowledge,
-        value: knowledgeValue - requiredKnowledge
-      },
-      usdt: {
-        ...state.resources.usdt,
-        value: usdtValue + usdtReward
-      }
+  // Обновляем ресурсы
+  const updatedResources = {
+    ...state.resources,
+    knowledge: {
+      ...state.resources.knowledge,
+      value: knowledgeValue - requiredKnowledge
+    },
+    usdt: {
+      ...state.resources.usdt,
+      value: usdtValue + usdtReward,
+      unlocked: true // Явно разблокируем USDT при первой конвертации
     }
   };
-
-  // Увеличиваем счетчик применений знаний, если он еще не существует
-  if (!newState.counters.applyKnowledge) {
-    newState.counters = {
-      ...newState.counters,
+  
+  // Инициализируем или увеличиваем счетчик применений знаний
+  let updatedCounters = { ...state.counters };
+  
+  if (!updatedCounters.applyKnowledge) {
+    // Если счетчик не существует, создаем его
+    updatedCounters = {
+      ...updatedCounters,
       applyKnowledge: { id: "applyKnowledge", name: "Применения знаний", value: 1 }
     };
-  } else if (typeof newState.counters.applyKnowledge === 'object') {
-    newState.counters = {
-      ...newState.counters,
+  } else {
+    // Если счетчик существует, увеличиваем его значение
+    const currentValue = typeof updatedCounters.applyKnowledge === 'object' 
+      ? updatedCounters.applyKnowledge.value 
+      : updatedCounters.applyKnowledge;
+    
+    updatedCounters = {
+      ...updatedCounters,
       applyKnowledge: {
-        ...newState.counters.applyKnowledge,
-        value: newState.counters.applyKnowledge.value + 1
+        ...typeof updatedCounters.applyKnowledge === 'object' ? updatedCounters.applyKnowledge : { id: "applyKnowledge", name: "Применения знаний" },
+        value: currentValue + 1
       }
     };
   }
 
-  console.log(`Применены знания: -${requiredKnowledge} знаний, +${usdtReward} USDT, счетчик: ${newState.counters.applyKnowledge?.value || 1}`);
+  console.log(`Применены знания: -${requiredKnowledge} знаний, +${usdtReward} USDT, счетчик:`, updatedCounters.applyKnowledge);
   
-  // Проверяем все разблокировки после применения знаний
-  return checkAllUnlocks(newState);
+  // Создаем обновленное состояние
+  let newState = {
+    ...state,
+    resources: updatedResources,
+    counters: updatedCounters
+  };
+  
+  // Проверяем все разблокировки
+  newState = checkAllUnlocks(newState);
+  
+  return newState;
 };
 
 /**
