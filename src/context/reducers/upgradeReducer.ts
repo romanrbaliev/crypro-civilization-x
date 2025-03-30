@@ -78,7 +78,7 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
       ...newState,
       miningParams: {
         ...newState.miningParams,
-        miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
+        miningEfficiency: (newState.miningParams?.miningEfficiency || 1) * 1.15
       }
     };
   }
@@ -88,18 +88,22 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
     // Эффекты этого исследования обрабатываются в processApplyKnowledge
   }
   
+  // Исправление для основ блокчейна
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применение эффектов 'Основы блокчейна': +50% к максимуму знаний и +10% к получению знаний");
     
-    // Увеличиваем максимальное количество знаний
-    newState.resources.knowledge = {
-      ...newState.resources.knowledge,
-      max: newState.resources.knowledge.max * 1.5, // Увеличиваем на 50%
-      baseProduction: (newState.resources.knowledge.baseProduction || 0) * 1.1 // Увеличиваем на 10%
-    };
+    // Увеличиваем максимальное количество знаний на 50%
+    if (newState.resources.knowledge) {
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        max: newState.resources.knowledge.max * 1.5,
+        // Добавляем или увеличиваем базовое производство на 10%
+        baseProduction: (newState.resources.knowledge.baseProduction || 0) * 1.1
+      };
+    }
     
-    console.log(`Новый максимум знаний: ${newState.resources.knowledge.max}`);
-    console.log(`Новый базовый прирост знаний: ${newState.resources.knowledge.baseProduction}`);
+    console.log(`Новый максимум знаний: ${newState.resources.knowledge?.max}`);
+    console.log(`Новое базовое производство знаний: ${newState.resources.knowledge?.baseProduction}`);
   }
   
   // Применяем общие эффекты улучшения

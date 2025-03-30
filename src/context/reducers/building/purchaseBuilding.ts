@@ -67,5 +67,45 @@ export const processPurchaseBuilding = (
   // Обновляем максимальные значения ресурсов
   newState = updateResourceMaxValues(newState);
   
+  // Специальный случай для автомайнера - сразу инициализируем ресурс BTC
+  if (buildingId === 'autoMiner' && newState.buildings.autoMiner.count === 1) {
+    // Проверяем, есть ли BTC и разблокирован ли он
+    if (!newState.resources.btc?.unlocked) {
+      console.log("Инициализация BTC после покупки первого автомайнера");
+      newState = {
+        ...newState,
+        resources: {
+          ...newState.resources,
+          btc: {
+            id: 'btc',
+            name: 'BTC',
+            description: 'Биткоин - первая и основная криптовалюта',
+            type: 'currency',
+            icon: 'bitcoin',
+            value: 0,
+            baseProduction: 0,
+            production: 0,
+            perSecond: 0.00005, // Базовая скорость от одного майнера
+            max: 1,
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...newState.unlocks,
+          btc: true
+        }
+      };
+      
+      // Убедимся, что параметры майнинга инициализированы
+      if (!newState.miningParams) {
+        newState.miningParams = {
+          miningEfficiency: 1,
+          exchangeRate: 20000,
+          exchangeCommission: 0.05
+        };
+      }
+    }
+  }
+  
   return newState;
 };

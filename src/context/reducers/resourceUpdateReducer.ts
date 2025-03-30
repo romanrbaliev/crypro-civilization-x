@@ -119,6 +119,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     };
   }
   
+  // Исправлена проблема с BTC - теперь он правильно инициализируется
   if (state.unlocks.btc && !newResources.btc) {
     newResources.btc = {
       id: 'btc',
@@ -129,7 +130,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
       value: 0,
       baseProduction: 0,
       production: 0,
-      perSecond: 0,
+      perSecond: state.buildings.autoMiner?.count > 0 ? 
+        0.00005 * state.buildings.autoMiner.count * (state.miningParams?.miningEfficiency || 1) : 0,
       max: 1,
       unlocked: true
     };
@@ -143,10 +145,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
     // Убедимся, что BTC правильно обновляется от автомайнеров
     if (newResources.btc?.perSecond === 0) {
       console.log("Принудительно устанавливаем производство BTC от автомайнеров");
-      newResources.btc.perSecond = 0.00005 * state.buildings.autoMiner.count;
-      if (state.miningParams?.miningEfficiency) {
-        newResources.btc.perSecond *= state.miningParams.miningEfficiency;
-      }
+      const miningEfficiency = state.miningParams?.miningEfficiency || 1;
+      newResources.btc.perSecond = 0.00005 * state.buildings.autoMiner.count * miningEfficiency;
+      console.log(`Установлено производство BTC: ${newResources.btc.perSecond} (${state.buildings.autoMiner.count} майнеров, коэфф. ${miningEfficiency})`);
     }
   }
   

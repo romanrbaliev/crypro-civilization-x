@@ -78,21 +78,44 @@ const unlockConditions: Record<string, UnlockCondition> = {
   
   'btc': {
     check: (state) => state.buildings.autoMiner?.count > 0,
-    apply: (state) => ({
-      ...state,
-      resources: {
-        ...state.resources,
-        btc: {
-          ...state.resources.btc,
-          unlocked: true,
-          name: "BTC"
+    apply: (state) => {
+      // Делаем базовую настройку BTC
+      const newState = {
+        ...state,
+        resources: {
+          ...state.resources,
+          btc: {
+            ...state.resources.btc,
+            id: 'btc',
+            name: "BTC",
+            description: "Биткоин - первая и основная криптовалюта",
+            type: "currency",
+            icon: "bitcoin",
+            value: state.resources.btc?.value || 0,
+            baseProduction: 0,
+            production: 0,
+            perSecond: 0.00005 * state.buildings.autoMiner.count, // Устанавливаем сразу начальную скорость производства
+            max: 1,
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...state.unlocks,
+          btc: true
         }
-      },
-      unlocks: {
-        ...state.unlocks,
-        btc: true
+      };
+      
+      // Установка дополнительных параметров для майнинга
+      if (!newState.miningParams) {
+        newState.miningParams = {
+          miningEfficiency: 1,
+          exchangeRate: 20000,
+          exchangeCommission: 0.05
+        };
       }
-    }),
+      
+      return newState;
+    },
     message: "Открыт ресурс «BTC»",
     type: "success"
   },
@@ -150,6 +173,23 @@ const unlockConditions: Record<string, UnlockCondition> = {
     type: "success"
   },
   
+  // Добавляем разблокировку Интернет-канала
+  'internetConnection': {
+    check: (state) => state.buildings.homeComputer?.count > 0,
+    apply: (state) => ({
+      ...state,
+      buildings: {
+        ...state.buildings,
+        internetConnection: {
+          ...state.buildings.internetConnection,
+          unlocked: true
+        }
+      }
+    }),
+    message: "Открыта возможность приобрести «Интернет-канал»",
+    type: "success"
+  },
+  
   'cryptoWallet': {
     check: (state) => isBlockchainBasicsUnlocked(state),
     apply: (state) => ({
@@ -182,8 +222,9 @@ const unlockConditions: Record<string, UnlockCondition> = {
     type: "success"
   },
   
+  // Изменено условие для улучшенного кошелька - теперь требуется больше кошельков
   'improvedWallet': {
-    check: (state) => state.buildings.cryptoWallet?.count >= 10,
+    check: (state) => state.buildings.cryptoWallet?.count >= 1 && state.upgrades.walletSecurity?.purchased === true,
     apply: (state) => ({
       ...state,
       buildings: {
@@ -195,6 +236,23 @@ const unlockConditions: Record<string, UnlockCondition> = {
       }
     }),
     message: "Открыта возможность приобрести «Улучшенный кошелек»",
+    type: "success"
+  },
+  
+  // Добавляем разблокировку криптобиблиотеки
+  'cryptoLibrary': {
+    check: (state) => state.upgrades.cryptoCurrencyBasics?.purchased === true,
+    apply: (state) => ({
+      ...state,
+      buildings: {
+        ...state.buildings,
+        cryptoLibrary: {
+          ...state.buildings.cryptoLibrary,
+          unlocked: true
+        }
+      }
+    }),
+    message: "Открыта возможность приобрести «Криптобиблиотека»",
     type: "success"
   },
   
@@ -465,6 +523,9 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
   if (id === 'homeComputer') {
     return state.buildings.homeComputer && !state.buildings.homeComputer.unlocked;
   }
+  if (id === 'internetConnection') {
+    return state.buildings.internetConnection && !state.buildings.internetConnection.unlocked;
+  }
   if (id === 'cryptoWallet') {
     return state.buildings.cryptoWallet && !state.buildings.cryptoWallet.unlocked;
   }
@@ -473,6 +534,9 @@ function checkShouldApplyUnlock(state: GameState, id: string): boolean {
   }
   if (id === 'improvedWallet') {
     return state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked;
+  }
+  if (id === 'cryptoLibrary') {
+    return state.buildings.cryptoLibrary && !state.buildings.cryptoLibrary.unlocked;
   }
   
   // Проверка для исследований и вкладки исследований
@@ -526,7 +590,7 @@ export function checkCategoryUnlocks(state: GameState, category: 'buildings' | '
   const categoryConditions: [string, UnlockCondition][] = Object.entries(unlockConditions).filter(([id]) => {
     switch (category) {
       case 'buildings':
-        return ['practice', 'generator', 'homeComputer', 'cryptoWallet', 'autoMiner', 'improvedWallet'].includes(id);
+        return ['practice', 'generator', 'homeComputer', 'cryptoWallet', 'autoMiner', 'improvedWallet', 'internetConnection', 'cryptoLibrary'].includes(id);
       case 'resources':
         return ['usdt', 'electricity', 'computingPower', 'btc'].includes(id);
       case 'upgrades':

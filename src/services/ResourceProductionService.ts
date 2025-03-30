@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { Building } from '@/context/types';
 import { Upgrade } from '@/context/types';
@@ -89,11 +90,13 @@ export class ResourceProductionService {
         if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
           console.log("ResourceProductionService: Применен эффект Основ блокчейна");
           
-          // Используем базовое производство и применяем к нему бонус
+          // Используем базовое производство знаний и применяем к нему бонус
           if (updatedResources.knowledge) {
-            const baseProduction = updatedResources.knowledge.baseProduction || 0;
-            // Увеличиваем на 10%
-            updatedResources.knowledge.baseProduction = baseProduction * 1.1;
+            // ИСПРАВЛЕНО: не увеличиваем снова на 10%, это уже сделано в upgradeReducer
+            // Просто проверяем что есть базовое производство
+            if (!updatedResources.knowledge.baseProduction) {
+              updatedResources.knowledge.baseProduction = 0;
+            }
           }
         }
         
@@ -102,10 +105,8 @@ export class ResourceProductionService {
         
         for (const [effectId, amount] of Object.entries(effects)) {
           if (effectId === 'knowledgeBoost' && updatedResources.knowledge) {
-            const baseProduction = updatedResources.knowledge.baseProduction || 0;
-            const boost = baseProduction * Number(amount);
-            updatedResources.knowledge.baseProduction = baseProduction + boost;
-            console.log(`ResourceProductionService: Применен knowledgeBoost из исследования ${upgrade.name}: ${baseProduction} + ${boost} = ${updatedResources.knowledge.baseProduction}`);
+            // ИСПРАВЛЕНО: не добавляем бонус здесь, это уже сделано в upgradeReducer
+            console.log(`ResourceProductionService: Эффект knowledgeBoost из исследования ${upgrade.name} уже применен`);
           }
         }
       }
@@ -125,7 +126,7 @@ export class ResourceProductionService {
         updatedResources.btc.perSecond *= state.miningParams.miningEfficiency;
       }
       
-      console.log(`Расчет производства BTC: ${btcPerSecond} в секунду от ${state.buildings.autoMiner.count} автомайнеров`);
+      console.log(`Расчет производства BTC: ${updatedResources.btc.perSecond} в секунду от ${state.buildings.autoMiner.count} автомайнеров (эфф. майнинга: ${state.miningParams?.miningEfficiency || 1})`);
     }
     
     // Рассчитываем производство от зданий
