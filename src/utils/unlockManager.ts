@@ -1,4 +1,3 @@
-
 import { GameState, Building, Upgrade } from '@/context/types';
 
 /**
@@ -197,7 +196,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
           costMultiplier: 1.12, // Обновлено согласно таблице (k=1.12)
           production: { knowledge: 0.63 },
           consumption: {},
-          productionBoost: 0,
+          productionBoost: {},
           unlockedBy: 'applyKnowledge_2'
         };
       } else {
@@ -230,7 +229,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
         costMultiplier: 1.15,
         production: { electricity: 0.5 }, // Согласно таблице
         consumption: {},
-        productionBoost: 0,
+        productionBoost: {},
         unlockedBy: 'usdt_11'
       };
     } else {
@@ -263,7 +262,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
         costMultiplier: 1.15,
         production: { computingPower: 2 }, // Согласно таблице
         consumption: { electricity: 1 },
-        productionBoost: 0,
+        productionBoost: {},
         unlockedBy: 'electricity_50' // Обновлено
       };
     } else {
@@ -297,7 +296,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
         costMultiplier: 1.15,
         production: {},
         consumption: {},
-        productionBoost: 0,
+        productionBoost: {},
         unlockedBy: 'blockchainBasics'
       };
     } else {
@@ -406,7 +405,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
         costMultiplier: 1.15,
         production: { bitcoin: 0.00005 }, // Согласно таблице
         consumption: { electricity: 2, computingPower: 2 }, // Согласно таблице
-        productionBoost: 0,
+        productionBoost: {},
         unlockedBy: 'cryptoCurrencyBasics'
       };
     } else {
