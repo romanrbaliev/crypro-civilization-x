@@ -17,6 +17,11 @@ export const processResourceUpdate = (state: GameState): GameState => {
     return state;
   }
   
+  console.log(`Обновление ресурсов, прошло ${elapsedSeconds.toFixed(2)} сек.`);
+  
+  // Создаем копию состояния
+  let newState = { ...state };
+  
   // Начальные данные
   let newResources = { ...state.resources };
   let eventMessages = { ...state.eventMessages };
@@ -135,10 +140,13 @@ export const processResourceUpdate = (state: GameState): GameState => {
   }
   
   // Обновляем значения ресурсов на основе времени
-  updateResourceValues(newResources, elapsedSeconds);
+  newResources = updateResourceValues(newResources, elapsedSeconds);
+  
+  // Проверяем ресурсы для уведомлений
+  checkResourcesForAlerts(state, newResources);
   
   // Создаем новое состояние
-  let newState = {
+  newState = {
     ...state,
     resources: newResources,
     lastUpdate: now,
@@ -158,18 +166,26 @@ const updateResourceValues = (
   resources: { [key: string]: any },
   elapsedSeconds: number
 ) => {
-  if (elapsedSeconds <= 0) return;
+  if (elapsedSeconds <= 0) return resources;
+  
+  // Создаем копию ресурсов
+  const updatedResources = { ...resources };
   
   // Обновляем значения каждого ресурса
-  for (const resourceId in resources) {
-    const resource = resources[resourceId];
-    if (!resource.unlocked) continue;
+  for (const resourceId in updatedResources) {
+    const resource = updatedResources[resourceId];
+    if (!resource || !resource.unlocked) continue;
     
     // Получаем текущее производство в секунду
     const productionPerSecond = resource.perSecond || 0;
     
     // Рассчитываем производство за прошедшее время
     const deltaProduction = productionPerSecond * elapsedSeconds;
+    
+    // Логируем изменение значения (только для отладки)
+    if (resourceId === 'knowledge' && deltaProduction !== 0) {
+      console.log(`Знания: ${resource.value.toFixed(2)} + ${deltaProduction.toFixed(2)} = ${(resource.value + deltaProduction).toFixed(2)}, perSecond: ${productionPerSecond.toFixed(3)}`);
+    }
     
     // Рассчитываем новое значение на основе производства за секунду
     let newValue = resource.value + deltaProduction;
@@ -182,6 +198,8 @@ const updateResourceValues = (
     // Обновляем значение ресурса (не позволяем опуститься ниже нуля)
     resource.value = Math.max(0, newValue);
   }
+  
+  return updatedResources;
 };
 
 // Проверка ресурсов для уведомлений и остановки оборудования

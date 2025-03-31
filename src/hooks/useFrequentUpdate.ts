@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { GameState, GameDispatch } from '@/context/types';
 
 interface FrequentUpdateProps {
@@ -14,17 +14,25 @@ interface FrequentUpdateProps {
  */
 export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: FrequentUpdateProps) => {
   const [isActive, setIsActive] = useState(true);
+  // Используем ref для оптимизации и предотвращения лишних рендеров
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     if (!state.gameStarted) return;
     
+    // Очищаем предыдущий интервал, если он был
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
     // Используем более частый интервал для визуально плавной анимации ресурсов
-    const interval = 50; // 50 мс (20 раз в секунду) - оптимальный баланс между производительностью и плавностью
+    const interval = 100; // 100 мс (10 раз в секунду) - оптимальный баланс между производительностью и плавностью
     
     console.log(`🔄 Настройка интервала обновления ресурсов: ${interval}мс`);
     
     // Интервал обновления модели
-    const updateInterval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       if (isActive && state.gameStarted) {
         // Отправляем запрос на обновление ресурсов
         dispatch({ type: 'UPDATE_RESOURCES' });
@@ -34,7 +42,10 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
     // Очистка при размонтировании
     return () => {
       console.log('🛑 Остановка интервала обновления ресурсов');
-      clearInterval(updateInterval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [dispatch, resourceId, isActive, state.gameStarted]);
   

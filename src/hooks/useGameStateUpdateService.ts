@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameState } from '../context/GameStateContext';
 import { GameStateService } from '@/services/GameStateService';
 
@@ -8,6 +8,8 @@ import { GameStateService } from '@/services/GameStateService';
  */
 export function useGameStateUpdateService() {
   const { state, dispatch } = useGameState();
+  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const syncIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
   
   // Обновление ресурсов на регулярной основе
   useEffect(() => {
@@ -15,19 +17,26 @@ export function useGameStateUpdateService() {
     
     console.log('⚙️ Запуск сервиса обновления состояния игры');
     
-    const intervalId = setInterval(() => {
-      dispatch({ type: 'UPDATE_RESOURCES' });
-      
+    // Очищаем предыдущий интервал, если он был
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
+    
+    intervalIdRef.current = setInterval(() => {
       // Проверяем статусы оборудования, зависящего от электричества
       if (state.resources.electricity && state.resources.electricity.value <= 0) {
         // Если электричество закончилось, отправляем событие для проверки оборудования
         dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
       }
-    }, 1000); // Полное обновление каждую секунду
+    }, 1000); // Проверка оборудования каждую секунду
     
     return () => {
       console.log('🛑 Остановка сервиса обновления состояния игры');
-      clearInterval(intervalId);
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
     };
   }, [state.gameStarted, dispatch, state.resources.electricity]);
   
@@ -46,14 +55,23 @@ export function useGameStateUpdateService() {
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }
     
+    // Очищаем предыдущий интервал синхронизации, если он был
+    if (syncIntervalIdRef.current) {
+      clearInterval(syncIntervalIdRef.current);
+      syncIntervalIdRef.current = null;
+    }
+    
     // Дополнительно запускаем периодическую полную синхронизацию
-    const syncIntervalId = setInterval(() => {
+    syncIntervalIdRef.current = setInterval(() => {
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }, 5000); // Каждые 5 секунд выполняем полную синхронизацию
     
     return () => {
       console.log('🛑 Остановка полной синхронизации состояния');
-      clearInterval(syncIntervalId);
+      if (syncIntervalIdRef.current) {
+        clearInterval(syncIntervalIdRef.current);
+        syncIntervalIdRef.current = null;
+      }
     };
   }, [state.gameStarted, dispatch]); 
   

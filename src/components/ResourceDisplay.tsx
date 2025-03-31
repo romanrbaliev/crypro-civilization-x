@@ -13,14 +13,15 @@ interface ResourceDisplayProps {
 const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedValue: propFormattedValue, formattedPerSecond: propFormattedPerSecond }) => {
   const { id, name, value, max, perSecond } = resource;
   const prevValueRef = useRef(value);
+  const resourceRef = useRef<HTMLDivElement>(null);
   
-  // Используем хук анимации для мгновенного обновления отображаемого значения
+  // Используем хук анимации для плавного обновления отображаемого значения
   const animatedValue = useResourceAnimation(value, id);
   
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
-  // Расчет процента заполнения (мгновенно обновляется)
+  // Расчет процента заполнения (плавно обновляется)
   const fillPercentage = max === Infinity ? 0 : Math.min(100, Math.max(0, (animatedValue / max) * 100));
   
   // Определяем классы для отображения прогресса
@@ -55,7 +56,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   useEffect(() => {
     // Если значение изменилось существенно, выделяем это изменение
     if (Math.abs(value - prevValueRef.current) > 0.1) {
-      const element = document.getElementById(`resource-value-${id}`);
+      const element = resourceRef.current?.querySelector(`#resource-value-${id}`);
       if (element) {
         // Добавляем класс для анимации, затем удаляем его
         element.classList.add('resource-changed');
@@ -67,8 +68,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
     }
   }, [value, id]);
 
+  // Добавляем отладочную информацию при наведении
+  const debugInfo = `ID: ${id}, Значение: ${value.toFixed(2)}, Производство: ${perSecond.toFixed(3)}/сек`;
+
   return (
-    <div className="w-full text-xs">
+    <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
       <div className="flex justify-between items-center mb-0.5">
         <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{name}</div>
         <div id={`resource-value-${id}`} className="text-gray-600 text-[10px] whitespace-nowrap transition-colors">
@@ -81,7 +85,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
         <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
           <div 
             className={`h-1 rounded-full ${progressColorClass}`} 
-            style={{ width: `${fillPercentage}%` }}
+            style={{ width: `${fillPercentage}%`, transition: 'width 0.5s ease' }}
           ></div>
         </div>
       )}
