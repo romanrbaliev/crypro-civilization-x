@@ -9,9 +9,11 @@ import { GameStateService } from '@/services/GameStateService';
 export function useGameStateUpdateService() {
   const { state, dispatch } = useGameState();
   
-  // Обновление ресурсов каждые 0.05 секунд (увеличиваем частоту для максимально плавной анимации)
+  // Обновление ресурсов на регулярной основе
   useEffect(() => {
     if (!state.gameStarted) return;
+    
+    console.log('⚙️ Запуск сервиса обновления состояния игры');
     
     const intervalId = setInterval(() => {
       dispatch({ type: 'UPDATE_RESOURCES' });
@@ -21,14 +23,19 @@ export function useGameStateUpdateService() {
         // Если электричество закончилось, отправляем событие для проверки оборудования
         dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
       }
-    }, 50); // Изменено для более плавного обновления
+    }, 1000); // Полное обновление каждую секунду
     
-    return () => clearInterval(intervalId);
+    return () => {
+      console.log('🛑 Остановка сервиса обновления состояния игры');
+      clearInterval(intervalId);
+    };
   }, [state.gameStarted, dispatch, state.resources.electricity]);
   
   // Обновление состояния при критических изменениях
   useEffect(() => {
     if (!state.gameStarted) return;
+    
+    console.log('🔄 Настройка периодической полной синхронизации состояния');
     
     // При загрузке игры проводим полную синхронизацию состояния
     const gameStateService = new GameStateService();
@@ -42,9 +49,12 @@ export function useGameStateUpdateService() {
     // Дополнительно запускаем периодическую полную синхронизацию
     const syncIntervalId = setInterval(() => {
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-    }, 2000); // Каждые 2 секунды выполняем полную синхронизацию
+    }, 5000); // Каждые 5 секунд выполняем полную синхронизацию
     
-    return () => clearInterval(syncIntervalId);
+    return () => {
+      console.log('🛑 Остановка полной синхронизации состояния');
+      clearInterval(syncIntervalId);
+    };
   }, [state.gameStarted, dispatch]); 
   
   return null;

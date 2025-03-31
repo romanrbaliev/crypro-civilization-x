@@ -1,194 +1,68 @@
 
-import { GameState } from '@/context/types';
-import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-
-// Форматирование эффектов улучшений
-export const formatEffectName = (effectId: string) => {
+/**
+ * Преобразует технический ID эффекта в удобочитаемое описание на русском языке
+ */
+export const formatEffectName = (effectId: string): string => {
+  // Маппинг для русскоязычного отображения эффектов
   const effectNameMap: { [key: string]: string } = {
-    'knowledgeBoost': 'Прирост знаний',
-    'knowledgeMaxBoost': 'Максимум знаний',
-    'usdtMaxBoost': 'Максимум USDT',
-    'miningEfficiencyBoost': 'Эффективность майнинга',
-    'electricityEfficiencyBoost': 'Эффективность электричества',
-    'computingPowerBoost': 'Вычислительная мощность',
-    'knowledgeEfficiencyBoost': 'Эффективность знаний',
-  };
-  
-  return effectNameMap[effectId] || effectId;
-};
-
-export const formatEffect = (effectId: string, value: number) => {
-  const effectName = formatEffectName(effectId);
-  const sign = value >= 0 ? '+' : '';
-  
-  // Для процентных эффектов форматируем значение как процент
-  if (effectId.includes('Boost')) {
-    return `${effectName}: ${sign}${(value * 100)}%`;
-  }
-  
-  return `${effectName}: ${sign}${value}`;
-};
-
-// Проверка блокировки исследований
-export const checkUnlockConditions = (state: GameState, upgradeId: string) => {
-  const upgrade = state.upgrades[upgradeId];
-  
-  if (!upgrade) return false;
-  
-  // Если уже разблокировано, возвращаем true
-  if (upgrade.unlocked) return true;
-  
-  // Проверяем наличие требуемых исследований
-  if (upgrade.requiredUpgrades && upgrade.requiredUpgrades.length > 0) {
-    const areRequiredUpgradesPurchased = upgrade.requiredUpgrades.every(
-      reqId => state.upgrades[reqId] && state.upgrades[reqId].purchased
-    );
+    // Эффекты ресурсов
+    'knowledgeMax': 'Увеличение максимума знаний',
+    'usdtMax': 'Увеличение максимума USDT',
+    'electricityMax': 'Увеличение максимума электричества',
+    'computingPowerMax': 'Увеличение максимума вычислительной мощности',
+    'bitcoinMax': 'Увеличение максимума Bitcoin',
     
-    if (!areRequiredUpgradesPurchased) return false;
-  }
-  
-  // Проверяем наличие требуемых зданий
-  if (upgrade.requirements?.buildings) {
-    for (const [buildingId, count] of Object.entries(upgrade.requirements.buildings)) {
-      if (!state.buildings[buildingId] || state.buildings[buildingId].count < (count as number)) {
-        return false;
-      }
-    }
-  }
-  
-  // Проверяем наличие требуемых ресурсов
-  if (upgrade.requirements?.resources) {
-    for (const [resourceId, amount] of Object.entries(upgrade.requirements.resources)) {
-      if (!state.resources[resourceId] || state.resources[resourceId].value < (amount as number)) {
-        return false;
-      }
-    }
-  }
-  
-  return true;
-};
-
-// Проверка, является ли исследование любой вариацией "Основ блокчейна"
-export const isBlockchainBasicsUnlocked = (state: GameState): boolean => {
-  return (
-    (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
-    (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased) ||
-    (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased)
-  );
-};
-
-// Получение имени специализации
-export const getSpecializationName = (specializationId: string): string => {
-  const specializationMap: {[key: string]: string} = {
-    'miner': 'Майнер',
-    'trader': 'Трейдер',
-    'investor': 'Инвестор',
-    'influencer': 'Инфлюенсер',
-    'analyst': 'Аналитик',
-    'defi': 'DeFi'
-  };
-  
-  return specializationMap[specializationId] || specializationId;
-};
-
-// Новая функция для централизованной разблокировки исследований
-export const unlockRelatedUpgrades = (state: GameState, upgradeId: string): GameState => {
-  // Создаем новый объект состояния
-  let newState = { ...state };
-  const upgrade = state.upgrades[upgradeId];
-  
-  if (!upgrade) return newState;
-  
-  console.log(`Проверка разблокировки связанных исследований после покупки: ${upgrade.name}`);
-  
-  // Карта зависимостей исследований
-  const dependencyMap: { [key: string]: { relatedUpgrades: string[], message?: string } } = {
-    'blockchainBasics': {
-      relatedUpgrades: ['cryptoCurrencyBasics'],
-      message: "Открыто исследование «Основы криптовалют»"
-    },
-    'blockchain_basics': {
-      relatedUpgrades: ['cryptoCurrencyBasics'],
-      message: "Открыто исследование «Основы криптовалют»"
-    },
-    'basicBlockchain': {
-      relatedUpgrades: ['cryptoCurrencyBasics'],
-      message: "Открыто исследование «Основы криптовалют»"
-    }
-  };
-  
-  // Если у исследования есть связанные исследования для разблокировки
-  if (dependencyMap[upgradeId]) {
-    const { relatedUpgrades, message } = dependencyMap[upgradeId];
+    // Бонусы к производству
+    'knowledgeBoost': 'Бонус к производству знаний',
+    'usdtBoost': 'Бонус к производству USDT',
+    'electricityBoost': 'Бонус к производству электричества',
+    'computingPowerBoost': 'Бонус к производству вычислительной мощности',
+    'bitcoinBoost': 'Бонус к производству Bitcoin',
     
-    for (const relatedUpgradeId of relatedUpgrades) {
-      if (newState.upgrades[relatedUpgradeId] && !newState.upgrades[relatedUpgradeId].unlocked) {
-        newState.upgrades[relatedUpgradeId] = {
-          ...newState.upgrades[relatedUpgradeId],
-          unlocked: true
-        };
-        
-        console.log(`Разблокировано связанное исследование: ${relatedUpgradeId}`);
-        
-        if (message) {
-          safeDispatchGameEvent(message, "success");
-        }
-      }
-    }
-  }
-  
-  return newState;
-};
-
-// Новая функция для централизованной разблокировки зданий после исследований
-export const unlockRelatedBuildings = (state: GameState, upgradeId: string): GameState => {
-  // Создаем новый объект состояния
-  let newState = { ...state };
-  const upgrade = state.upgrades[upgradeId];
-  
-  if (!upgrade) return newState;
-  
-  console.log(`Проверка разблокировки связанных зданий после исследования: ${upgrade.name}`);
-  
-  // Карта зависимостей исследований → здания
-  const buildingDependencyMap: { [key: string]: { buildings: string[], message?: string } } = {
-    'blockchainBasics': {
-      buildings: ['cryptoWallet'],
-      message: "Открыта возможность приобрести «Криптокошелек»"
-    },
-    'blockchain_basics': {
-      buildings: ['cryptoWallet'],
-      message: "Открыта возможность приобрести «Криптокошелек»"
-    },
-    'basicBlockchain': {
-      buildings: ['cryptoWallet'],
-      message: "Открыта возможность приобрести «Криптокошелек»"
-    },
-    'walletSecurity': {
-      buildings: ['improvedWallet'],
-      message: "Открыта возможность приобрести «Улучшенный кошелек»"
-    }
+    // Бонусы к максимальному хранению
+    'knowledgeMaxBoost': 'Увеличение максимума знаний',
+    'usdtMaxBoost': 'Увеличение максимума USDT',
+    
+    // Уменьшение затрат
+    'knowledgeCostReduction': 'Снижение затрат знаний',
+    'usdtCostReduction': 'Снижение затрат USDT',
+    
+    // Другие эффекты
+    'miningEfficiency': 'Эффективность майнинга',
+    'energyEfficiency': 'Энергоэффективность',
+    'btcExchangeBonus': 'Бонус к обмену BTC',
+    'practiceEfficiency': 'Эффективность практики'
   };
   
-  // Если у исследования есть связанные здания для разблокировки
-  if (buildingDependencyMap[upgradeId]) {
-    const { buildings, message } = buildingDependencyMap[upgradeId];
-    
-    for (const buildingId of buildings) {
-      if (newState.buildings[buildingId] && !newState.buildings[buildingId].unlocked) {
-        newState.buildings[buildingId] = {
-          ...newState.buildings[buildingId],
-          unlocked: true
-        };
-        
-        console.log(`Разблокировано связанное здание: ${buildingId}`);
-        
-        if (message) {
-          safeDispatchGameEvent(message, "success");
-        }
-      }
-    }
+  return effectNameMap[effectId] || `${effectId}`;
+};
+
+/**
+ * Форматирует значение эффекта в зависимости от типа эффекта
+ */
+export const formatEffectValue = (value: number, effectId: string): string => {
+  // Определяем, какой формат применить
+  if (effectId.includes('Boost') || 
+      effectId.includes('Efficiency') || 
+      effectId === 'exchangeBonus') {
+    // Для бонусов и эффективности выводим процент
+    return `+${(value * 100).toFixed(0)}%`;
+  } else if (effectId.includes('Reduction')) {
+    // Для снижения затрат
+    return `-${(value * 100).toFixed(0)}%`;
+  } else {
+    // Для абсолютных значений
+    return `+${value}`;
   }
-  
-  return newState;
+};
+
+/**
+ * Преобразует объект эффектов в массив читаемых строк
+ */
+export const formatEffects = (effects: { [key: string]: number }): string[] => {
+  return Object.entries(effects).map(([effectId, value]) => {
+    const name = formatEffectName(effectId);
+    const formattedValue = formatEffectValue(value, effectId);
+    return `${name}: ${formattedValue}`;
+  });
 };

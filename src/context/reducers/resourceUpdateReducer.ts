@@ -12,24 +12,20 @@ export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const elapsedSeconds = (now - state.lastUpdate) / 1000;
   
-  // Логируем для отладки
-  console.log(`processResourceUpdate: Прошло ${elapsedSeconds.toFixed(3)} сек., lastUpdate: ${state.lastUpdate}`);
+  // Проверка необходимости запускать обработку
+  if (elapsedSeconds <= 0 || !state.gameStarted) {
+    return state;
+  }
   
   // Начальные данные
   let newResources = { ...state.resources };
   let eventMessages = { ...state.eventMessages };
   let miningParams = { ...state.miningParams };
   
-  // Проверка необходимости запускать обработку
-  if (elapsedSeconds <= 0 || !state.gameStarted) {
-    return state;
-  }
-  
   // Используем экземпляр сервиса для расчета производства ресурсов
   newResources = resourceProductionService.calculateResourceProduction(state);
   
   // Проверяем наличие только тех критических ресурсов, которые уже разблокированы
-  // Это предотвращает преждевременное появление ресурсов
   const criticalResources = ['knowledge', 'usdt'];
   for (const resourceId of criticalResources) {
     if (!newResources[resourceId] && state.unlocks[resourceId]) {
@@ -162,6 +158,8 @@ const updateResourceValues = (
   resources: { [key: string]: any },
   elapsedSeconds: number
 ) => {
+  if (elapsedSeconds <= 0) return;
+  
   // Обновляем значения каждого ресурса
   for (const resourceId in resources) {
     const resource = resources[resourceId];
@@ -175,9 +173,6 @@ const updateResourceValues = (
     
     // Рассчитываем новое значение на основе производства за секунду
     let newValue = resource.value + deltaProduction;
-    
-    // Логируем для отладки
-    console.log(`updateResourceValues: ${resource.name} ${resource.value.toFixed(2)} + ${deltaProduction.toFixed(2)} = ${newValue.toFixed(2)} (производство: ${productionPerSecond.toFixed(2)}/сек)`);
     
     // Ограничиваем максимумом
     if (resource.max !== undefined && resource.max !== Infinity) {

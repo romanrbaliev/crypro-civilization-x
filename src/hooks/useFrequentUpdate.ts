@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react';
 import { GameState, GameDispatch } from '@/context/types';
-import { getResourceFormat } from '@/utils/resourceFormatConfig';
 
 interface FrequentUpdateProps {
   state: GameState;
@@ -17,8 +16,12 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
   const [isActive, setIsActive] = useState(true);
   
   useEffect(() => {
-    // Используем очень частый интервал для создания плавной анимации ресурсов
-    const interval = 10; // Увеличиваем частоту до 10 мс (100 раз в секунду)
+    if (!state.gameStarted) return;
+    
+    // Используем более частый интервал для визуально плавной анимации ресурсов
+    const interval = 50; // 50 мс (20 раз в секунду) - оптимальный баланс между производительностью и плавностью
+    
+    console.log(`🔄 Настройка интервала обновления ресурсов: ${interval}мс`);
     
     // Интервал обновления модели
     const updateInterval = setInterval(() => {
@@ -29,7 +32,10 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
     }, interval);
     
     // Очистка при размонтировании
-    return () => clearInterval(updateInterval);
+    return () => {
+      console.log('🛑 Остановка интервала обновления ресурсов');
+      clearInterval(updateInterval);
+    };
   }, [dispatch, resourceId, isActive, state.gameStarted]);
   
   // Возвращаем функцию для управления состоянием активности

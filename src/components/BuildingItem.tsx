@@ -40,7 +40,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
   };
   
-  const canAfford = () => {
+  const canAfford = (): boolean => {
     const nextCost = getNextCost();
     for (const [resourceId, amount] of Object.entries(nextCost)) {
       const resource = state.resources[resourceId];
@@ -89,9 +89,12 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     return Object.entries(building.production).map(([resourceId, amount]) => {
       if (resourceId.includes('Max') || resourceId.includes('Boost')) {
         const formattedEffect = formatEffectName(resourceId);
+        const formattedValue = resourceId.includes('Boost') ? 
+          `+${(Number(amount) * 100).toFixed(0)}%` : `+${amount}`;
+        
         return (
           <div key={resourceId} className="text-blue-600 text-[11px]">
-            {formattedEffect}: {amount}
+            {formattedEffect}: {formattedValue}
           </div>
         );
       }

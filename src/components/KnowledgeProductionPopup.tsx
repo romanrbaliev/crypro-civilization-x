@@ -20,14 +20,14 @@ const KnowledgeProductionPopup = () => {
     try {
       setLoading(true);
       
-      // Сначала форсируем обновление состояния игры и ждем короткое время
+      // Форсируем обновление состояния игры
       forceUpdate();
       
       // Небольшая задержка, чтобы обновление успело применится
-      setTimeout(async () => {
+      setTimeout(() => {
         try {
           // Получаем расчеты
-          const { steps, finalValue } = await debugKnowledgeProduction(state);
+          const { steps, finalValue } = debugKnowledgeProduction(state);
           setCalculationSteps(steps);
           setFinalValue(finalValue);
         } catch (error) {
@@ -78,9 +78,9 @@ const KnowledgeProductionPopup = () => {
             ) : (
               calculationSteps.map((step, index) => (
                 <div key={index} className={
-                  step.includes('Статус помощника даёт бонус') ? 'bg-blue-50 p-1 rounded my-1' : 
+                  step.includes('Статус помощника') ? 'bg-blue-50 p-1 rounded my-1' : 
                   step.includes('Итого:') ? 'font-bold mt-2' : 
-                  step.includes('Общий бонус от помощников') ? 'font-semibold' : ''
+                  step.includes('Общий бонус') ? 'font-semibold' : ''
                 }>
                   {step}
                 </div>
