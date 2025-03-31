@@ -16,7 +16,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { formatEffectName, formatEffect } from '@/utils/researchUtils';
+import { formatEffectName, formatEffectValue, formatEffect } from '@/utils/researchUtils';
 import {
   Collapsible,
   CollapsibleContent,

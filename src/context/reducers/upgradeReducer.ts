@@ -64,7 +64,7 @@ export const processPurchaseUpgrade = (
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применяем эффекты Основ блокчейна немедленно");
     
-    // Обновляем максимум знан��й
+    // Обновляем максимум знанй
     if (newState.resources.knowledge) {
       newState.resources.knowledge = {
         ...newState.resources.knowledge,

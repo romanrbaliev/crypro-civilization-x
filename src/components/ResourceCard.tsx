@@ -3,7 +3,16 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatResourceValue } from '@/utils/resourceFormatConfig';
 import { Resource } from '@/context/types';
-import { Icons } from './icons';
+import { 
+  CircleIcon, 
+  SettingsIcon,
+  ZapIcon,
+  BrainIcon,
+  DatabaseIcon,
+  DollarSignIcon,
+  HardDriveIcon,
+  BitcoinIcon
+} from 'lucide-react';
 
 interface ResourceCardProps {
   resource: Resource;
@@ -13,9 +22,19 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
   const { id, name, value, max, perSecond } = resource;
   
   const getResourceIcon = (iconName: string) => {
-    // Получаем компонент иконки, если он существует в Icons
-    const IconComponent = Icons[iconName] || Icons.circle;
-    return <IconComponent className="h-4 w-4" />;
+    // Используем иконки из lucide-react напрямую
+    const iconMap: { [key: string]: React.ReactNode } = {
+      'circle': <CircleIcon className="h-4 w-4" />,
+      'settings': <SettingsIcon className="h-4 w-4" />,
+      'zap': <ZapIcon className="h-4 w-4" />,
+      'brain': <BrainIcon className="h-4 w-4" />,
+      'database': <DatabaseIcon className="h-4 w-4" />,
+      'dollar': <DollarSignIcon className="h-4 w-4" />,
+      'hardDrive': <HardDriveIcon className="h-4 w-4" />,
+      'bitcoin': <BitcoinIcon className="h-4 w-4" />
+    };
+    
+    return iconMap[iconName] || <CircleIcon className="h-4 w-4" />;
   };
   
   const getProgressBarColor = () => {

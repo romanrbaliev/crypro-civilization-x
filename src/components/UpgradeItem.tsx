@@ -21,15 +21,18 @@ import { ChevronRight } from "lucide-react";
 interface UpgradeItemProps {
   upgrade: Upgrade;
   onPurchase?: () => void;
+  onAddEvent?: (message: string, type: string) => void; // Добавляем опциональный пропс
 }
 
-const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
+const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase, onAddEvent }) => {
   const { state, dispatch } = useGame();
   const [isOpen, setIsOpen] = useState(false);
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
     if (onPurchase) onPurchase();
+    // Добавляем событие в журнал, если передан обработчик
+    if (onAddEvent) onAddEvent(`Исследование "${upgrade.name}" завершено`, "success");
   };
   
   const canAfford = (): boolean => {
