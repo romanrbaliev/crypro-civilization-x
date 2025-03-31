@@ -101,55 +101,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     // Убираем отправку события в журнал о получении знания
   }, [dispatch]);
   
-  // Обработчик нажатия кнопки "Применить знания"
-  const handleApplyKnowledge = useCallback(() => {
-    // Проверяем, достаточно ли знаний для конвертации
-    if ((resources.knowledge?.value || 0) < 10) {
-      onAddEvent(`Недостаточно знаний! Требуется минимум 10`, "error");
-      return;
-    }
-    
-    console.log("handleApplyKnowledge: Начало применения знаний");
-    console.log("handleApplyKnowledge: Текущее состояние:", {
-      knowledgeValue: resources.knowledge?.value,
-      usdtValue: resources.usdt?.value,
-      usdtUnlocked: resources.usdt?.unlocked,
-      applyKnowledgeCounter: state.counters.applyKnowledge,
-      knowledgeClicksCounter: state.counters.knowledgeClicks
-    });
-    
-    // Вызываем действие для применения знаний
-    dispatch({ type: "APPLY_KNOWLEDGE" });
-    
-    // Базовая награда за применение знаний
-    let usdtReward = 1;
-    
-    // Применяем бонус если есть исследование "Основы криптовалют"
-    if (cryptoCurrencyBasicsPurchased) {
-      usdtReward = Math.floor(usdtReward * (1 + knowledgeEfficiencyBonus));
-    }
-    
-    // Показываем уведомление с учетом бонуса
-    onAddEvent(`Знания успешно применены! Получено ${usdtReward} USDT`, "success");
-    
-    // Принудительно проверяем разблокировки после применения знаний
-    setTimeout(() => {
-      console.log("handleApplyKnowledge: Принудительное обновление после APPLY_KNOWLEDGE");
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-      
-      // Проверяем состояние после обновления
-      setTimeout(() => {
-        console.log("handleApplyKnowledge: Проверка состояния после FORCE_RESOURCE_UPDATE:", {
-          knowledgeValue: state.resources.knowledge?.value,
-          usdtValue: state.resources.usdt?.value,
-          usdtUnlocked: state.resources.usdt?.unlocked,
-          applyKnowledgeCounter: state.counters.applyKnowledge
-        });
-      }, 100);
-    }, 100);
-  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value, resources.usdt?.value, resources.usdt?.unlocked, state.counters.applyKnowledge]);
-  
-  // Обработчик для применения всех знаний
+  // Обработчик для применения всех знаний (теперь это единственная функциональность)
   const handleApplyAllKnowledge = useCallback(() => {
     // Проверяем, достаточно ли знаний для конвертации
     if ((resources.knowledge?.value || 0) < 10) {
@@ -256,7 +208,6 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   return {
     handleLearnClick,
-    handleApplyKnowledge,
     handleApplyAllKnowledge,
     handlePractice,
     handleExchangeBitcoin,

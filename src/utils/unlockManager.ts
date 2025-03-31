@@ -451,6 +451,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         cost: { knowledge: 100 }, // Обновлено согласно таблице (было 50)
         effects: { 
           maxStorage: { knowledge: 50 }, // +50% к макс. хранению знаний
+          productionBonus: { knowledge: 10 }, // +10% к производству знаний
           unlockFeatures: ['cryptoWallet', 'research'] // Открывает новые механики
         },
         purchased: false,
@@ -465,6 +466,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         cost: { knowledge: 100 },
         effects: {
           maxStorage: { knowledge: 50 },
+          productionBonus: { knowledge: 10 },
           unlockFeatures: ['cryptoWallet', 'research']
         }
       };

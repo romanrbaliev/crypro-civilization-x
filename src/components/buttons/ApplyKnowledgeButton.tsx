@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -26,10 +25,7 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
   knowledgeValue = 0,
   applyAll = false
 }) => {
-  // Текст кнопки меняется в зависимости от режима, но без информации о количестве
-  const buttonText = applyAll
-    ? "Применить все знания"
-    : "Применить знания";
+  const buttonText = "Применить знания";
   
   const bonusText = knowledgeEfficiencyBonus > 0 
     ? `+${knowledgeEfficiencyBonus * 100}% к эффективности`
@@ -46,13 +42,12 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
             size="sm"
             disabled={disabled}
           >
-            <BrainCircuit className="mr-2 h-4 w-4" />
             {buttonText}
           </Button>
         </TooltipTrigger>
         {disabled && (
           <TooltipContent>
-            <p>{applyAll ? "Требуется хотя бы 10 знаний" : "Требуется 10 знаний"}</p>
+            <p>Требуется 10 знаний</p>
           </TooltipContent>
         )}
         {!disabled && bonusText && (

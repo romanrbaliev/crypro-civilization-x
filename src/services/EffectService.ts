@@ -105,11 +105,9 @@ export class EffectService {
           newState.resources.knowledge.baseProduction = 0;
         }
         
-        // Добавляем +10% к базовому производству, но только если он еще не был добавлен
-        if (newState.resources.knowledge.baseProduction < 0.1) {
-          newState.resources.knowledge.baseProduction += 0.1;
-          console.log(`EffectService: Установлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
-        }
+        // Добавляем +10% к базовому производству
+        newState.resources.knowledge.baseProduction += 0.1;
+        console.log(`EffectService: Установлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
       }
     }
     
