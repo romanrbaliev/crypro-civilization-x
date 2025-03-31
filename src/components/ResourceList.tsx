@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Resource } from "@/context/types";
-import { formatNumber, formatResourceValue } from "@/utils/helpers";
+import { formatNumber } from "@/utils/helpers";
+import { formatResourceValue } from "@/utils/resourceFormatConfig";
 import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
 
