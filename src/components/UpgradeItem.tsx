@@ -93,21 +93,21 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
   const formattedEffects = effectsDescription.join('. ');
 
   return (
-    <div className={`border rounded-md p-2 mb-2 ${upgrade.purchased ? 'bg-gray-50' : 'bg-white'}`}>
-      <div className="flex justify-between items-start mb-1">
-        <div className="font-medium text-sm">{upgrade.name}</div>
+    <div className={`border rounded-md p-3 mb-2 ${upgrade.purchased ? 'bg-gray-50' : 'bg-white'}`}>
+      <div className="flex justify-between items-start mb-2">
+        <div className="font-semibold">{upgrade.name}</div>
       </div>
-      <div className="text-xs text-gray-500 mb-1">
+      <div className="text-xs text-gray-600 mb-2">
         {upgrade.description}
       </div>
       
       {formattedEffects && (
-        <div className="text-xs text-green-700 mb-1">
+        <div className="text-xs text-green-700 mb-2">
           {formattedEffects}
         </div>
       )}
       
-      <div className="flex flex-wrap gap-1 text-xs text-gray-500 mb-2">
+      <div className="flex flex-wrap gap-1 text-xs text-gray-500 mb-3">
         <span>Стоимость:</span>
         {Object.entries(upgrade.cost).map(([resourceId, cost]) => (
           <span key={resourceId} className="ml-1">

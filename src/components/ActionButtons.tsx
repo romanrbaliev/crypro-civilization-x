@@ -36,15 +36,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     <div className="border-t border-gray-200 pt-2 mt-auto">
       <div className="flex flex-col space-y-2">
         {/* Отображаем кнопки действий над кнопкой "Изучить крипту" */}
-        {applyKnowledgeUnlocked && (
+        {isBitcoinUnlocked && resources.bitcoin?.value > 0 && (
           <Button
             variant="outline"
             size="sm"
-            onClick={handleApplyAllKnowledge}
-            disabled={!isButtonEnabled("knowledge", 10)}
+            onClick={handleExchangeBitcoin}
             className="w-full text-xs"
           >
-            Применить знания
+            Обменять BTC
           </Button>
         )}
         
@@ -60,14 +59,15 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           </Button>
         )}
         
-        {isBitcoinUnlocked && resources.bitcoin?.value > 0 && (
+        {applyKnowledgeUnlocked && (
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExchangeBitcoin}
+            onClick={handleApplyAllKnowledge}
+            disabled={!isButtonEnabled("knowledge", 10)}
             className="w-full text-xs"
           >
-            Обменять BTC
+            Применить знания
           </Button>
         )}
         
