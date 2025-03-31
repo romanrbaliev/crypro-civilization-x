@@ -21,7 +21,7 @@ import { ChevronRight } from "lucide-react";
 interface UpgradeItemProps {
   upgrade: Upgrade;
   onPurchase?: () => void;
-  onAddEvent?: (message: string, type: string) => void; // Добавляем опциональный пропс
+  onAddEvent?: (message: string, type: string) => void;
 }
 
 const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase, onAddEvent }) => {
@@ -67,6 +67,29 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase, onAddEve
   const renderEffects = () => {
     // Используем эффекты из разных источников
     const effects = upgrade.effects || upgrade.effect || {};
+    
+    // Особая обработка для исследований из базы знаний
+    if (upgrade.id === 'blockchainBasics' && (!effects.knowledgeMaxBoost || !effects.knowledgeBoost)) {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px]">
+            Увеличение максимума знаний: +50%
+          </div>
+          <div className="text-blue-600 text-[11px]">
+            Прирост знаний: +10%
+          </div>
+        </>
+      );
+    }
+    
+    if (upgrade.id === 'cryptoCurrencyBasics' && (!effects.knowledgeEfficiencyBoost)) {
+      return (
+        <div className="text-blue-600 text-[11px]">
+          Эффективность применения знаний: +10%
+        </div>
+      );
+    }
+    
     if (!effects || Object.keys(effects).length === 0) {
       return <div className="text-gray-500 text-[11px]">Нет эффектов</div>;
     }

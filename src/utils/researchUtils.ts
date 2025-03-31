@@ -111,7 +111,6 @@ export const getSpecializationName = (specializationId: string): string => {
  */
 export const unlockRelatedUpgrades = (state: any, upgradeId: string): any => {
   let newState = { ...state };
-  const upgrade = state.upgrades[upgradeId];
   
   console.log(`Проверка разблокировки связанных исследований для ${upgradeId}`);
   
@@ -139,6 +138,36 @@ export const unlockRelatedUpgrades = (state: any, upgradeId: string): any => {
             }
           }
         };
+      }
+    }
+    
+    // Особые кейсы разблокировки исследований согласно базе знаний
+    
+    // Если куплен генератор, разблокируем "Основы блокчейна"
+    if (upgradeId === 'generator' && !newState.upgrades.blockchainBasics?.unlocked) {
+      if (newState.upgrades.blockchainBasics) {
+        newState.upgrades.blockchainBasics.unlocked = true;
+        console.log(`Разблокировка "Основы блокчейна" после покупки генератора`);
+      }
+    }
+    
+    // Если уровень криптокошелька достиг 2, разблокируем "Основы криптовалют"
+    if (upgradeId === 'cryptoWallet' && 
+        newState.buildings.cryptoWallet?.count >= 2 && 
+        !newState.upgrades.cryptoCurrencyBasics?.unlocked) {
+      if (newState.upgrades.cryptoCurrencyBasics) {
+        newState.upgrades.cryptoCurrencyBasics.unlocked = true;
+        console.log(`Разблокировка "Основы криптовалют" после достижения 2 уровня криптокошелька`);
+      }
+    }
+    
+    // Если уровень криптокошелька достиг 5, разблокируем "Улучшенный кошелек"
+    if (upgradeId === 'cryptoWallet' && 
+        newState.buildings.cryptoWallet?.count >= 5 && 
+        !newState.upgrades.enhancedWallet?.unlocked) {
+      if (newState.upgrades.enhancedWallet) {
+        newState.upgrades.enhancedWallet.unlocked = true;
+        console.log(`Разблокировка "Улучшенный кошелек" после достижения 5 уровня криптокошелька`);
       }
     }
   });
@@ -174,6 +203,59 @@ export const unlockRelatedBuildings = (state: any, upgradeId: string): any => {
     }
   }
   
+  // Специальная обработка для "Основы криптовалют"
+  if (upgradeId === 'cryptoCurrencyBasics') {
+    console.log("Разблокировка майнера после изучения Основ криптовалют");
+    
+    // Если майнер существует, разблокируем его
+    if (newState.buildings.miner) {
+      newState = {
+        ...newState,
+        buildings: {
+          ...newState.buildings,
+          miner: {
+            ...newState.buildings.miner,
+            unlocked: true
+          }
+        }
+      };
+      console.log("Майнер разблокирован");
+    }
+    
+    // Разблокировка криптобиблиотеки
+    if (newState.buildings.cryptoLibrary) {
+      newState = {
+        ...newState,
+        buildings: {
+          ...newState.buildings,
+          cryptoLibrary: {
+            ...newState.buildings.cryptoLibrary,
+            unlocked: true
+          }
+        }
+      };
+      console.log("Криптобиблиотека разблокирована");
+    }
+  }
+  
+  // Специальная обработка для "Безопасность криптокошельков"
+  if (upgradeId === 'walletSecurity' && newState.buildings.cryptoWallet) {
+    // Если уровень криптокошелька достиг 5, разблокируем улучшенный кошелек
+    if (newState.buildings.cryptoWallet.count >= 5 && newState.buildings.enhancedWallet) {
+      newState = {
+        ...newState,
+        buildings: {
+          ...newState.buildings,
+          enhancedWallet: {
+            ...newState.buildings.enhancedWallet,
+            unlocked: true
+          }
+        }
+      };
+      console.log("Улучшенный кошелек разблокирован после достижения 5 уровня криптокошелька");
+    }
+  }
+  
   // Проходим по всем зданиям
   Object.values(state.buildings).forEach((building: any) => {
     // Если здание требует данное исследование
@@ -198,6 +280,42 @@ export const unlockRelatedBuildings = (state: any, upgradeId: string): any => {
       }
     }
   });
+  
+  // Специальные проверки для зданий согласно базе знаний
+  
+  // Если куплен домашний компьютер, разблокируем интернет-канал
+  if (upgradeId === 'homeComputer' && !newState.buildings.internetChannel?.unlocked) {
+    if (newState.buildings.internetChannel) {
+      newState = {
+        ...newState,
+        buildings: {
+          ...newState.buildings,
+          internetChannel: {
+            ...newState.buildings.internetChannel,
+            unlocked: true
+          }
+        }
+      };
+      console.log("Интернет-канал разблокирован после покупки домашнего компьютера");
+    }
+  }
+  
+  // Если уровень домашнего компьютера достиг 2, разблокируем систему охлаждения
+  if (upgradeId === 'homeComputer' && newState.buildings.homeComputer?.count >= 2 && !newState.buildings.coolingSystem?.unlocked) {
+    if (newState.buildings.coolingSystem) {
+      newState = {
+        ...newState,
+        buildings: {
+          ...newState.buildings,
+          coolingSystem: {
+            ...newState.buildings.coolingSystem,
+            unlocked: true
+          }
+        }
+      };
+      console.log("Система охлаждения разблокирована после достижения 2 уровня домашнего компьютера");
+    }
+  }
   
   return newState;
 };

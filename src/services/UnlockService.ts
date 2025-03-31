@@ -19,7 +19,7 @@ export class UnlockService {
     console.log("UnlockService: Проверка разблокировок ресурсов");
     const shouldUnlockUsdt = this.shouldUnlockUsdt(state);
     console.log("UnlockService - shouldUnlockUsdt:", {
-      counterValue: this.getApplyKnowledgeCount(state),
+      knowledgeClicksValue: this.getKnowledgeClickCount(state),
       usdtResourceExists: !!state.resources.usdt,
       usdtResourceUnlocked: state.resources.usdt?.unlocked || false,
       usdtFlagUnlocked: state.unlocks.usdt || false
@@ -44,20 +44,8 @@ export class UnlockService {
       result: shouldUnlockGenerator
     });
     
-    // Проверка разблокировки улучшений
-    console.log("UnlockService: Проверка разблокировок улучшений");
-    
-    // Проверка разблокировки действий
-    console.log("UnlockService: Проверка разблокировок действий");
-    
-    // Специальные проверки
-    console.log("UnlockService: Проверка специальных разблокировок");
-    
-    // Проверка счетчика применения знаний для разблокировки USDT
-    console.log("UnlockService: Счетчик применения знаний:", this.getApplyKnowledgeCount(state));
-    console.log("UnlockService: Применение особых правил разблокировки USDT");
-    const counter = state.counters.applyKnowledge;
-    console.log("UnlockService: Проверка счетчика применения знаний:", this.getApplyKnowledgeCount(state));
+    // Проверка разблокировки улучшений и действий
+    console.log("UnlockService: Проверка разблокировок улучшений и действий");
     
     // Используем утилиту unlockManager для проверки всех разблокировок
     return checkAllUnlocks(state);
@@ -72,32 +60,51 @@ export class UnlockService {
   }
   
   /**
-   * Проверяет условия для разблокировки USDT (1+ применений знаний)
+   * Проверяет условия для разблокировки USDT (3+ кликов на Изучить крипту)
+   * Обновлено согласно базе знаний
    */
   private shouldUnlockUsdt(state: GameState): boolean {
-    const counter = state.counters.applyKnowledge;
+    const counter = state.counters.knowledgeClicks;
     if (!counter) return false;
     
     const count = typeof counter === 'object' ? counter.value : counter;
-    return count >= 1;
+    return count >= 3; // Требуется 3 клика на "Изучить крипту"
   }
   
   /**
    * Проверяет условия для разблокировки Practice (2+ применений знаний)
+   * Обновлено согласно базе знаний
    */
   private shouldUnlockPractice(state: GameState): boolean {
     const counter = state.counters.applyKnowledge;
     if (!counter) return false;
     
     const count = typeof counter === 'object' ? counter.value : counter;
-    return count >= 2;
+    return count >= 2; // Требуется 2 использования "Применить знания"
   }
   
   /**
    * Проверяет условия для разблокировки Generator (11+ USDT)
+   * Обновлено согласно базе знаний
    */
   private shouldUnlockGenerator(state: GameState): boolean {
-    return state.resources.usdt?.value >= 11;
+    return state.resources.usdt?.value >= 11; // Требуется накопление 11 USDT
+  }
+  
+  /**
+   * Проверяет условия для разблокировки домашнего компьютера (50+ электричества)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockHomeComputer(state: GameState): boolean {
+    return state.resources.electricity?.value >= 50; // Требуется 50 единиц электричества
+  }
+  
+  /**
+   * Проверяет условия для разблокировки основ блокчейна (куплен генератор)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockBlockchainBasics(state: GameState): boolean {
+    return state.buildings.generator?.count > 0; // Требуется покупка генератора
   }
   
   /**
@@ -105,6 +112,15 @@ export class UnlockService {
    */
   private getApplyKnowledgeCount(state: GameState): number {
     const counter = state.counters.applyKnowledge;
+    if (!counter) return 0;
+    return typeof counter === 'object' ? counter.value : counter;
+  }
+  
+  /**
+   * Безопасно получает значение счетчика кликов знаний
+   */
+  private getKnowledgeClickCount(state: GameState): number {
+    const counter = state.counters.knowledgeClicks;
     if (!counter) return 0;
     return typeof counter === 'object' ? counter.value : counter;
   }
