@@ -69,6 +69,9 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
       type: "PURCHASE_UPGRADE",
       payload: { upgradeId: upgrade.id }
     });
+    
+    // Вызываем коллбэк после успешной покупки
+    onAddEvent(`Завершено исследование: ${upgrade.name}`, "success");
   };
   
   // Формируем описание эффектов

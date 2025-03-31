@@ -6,9 +6,11 @@ import { useResourceAnimation } from "@/hooks/useResourceAnimation";
 
 interface ResourceDisplayProps {
   resource: Resource;
+  formattedValue?: string;
+  formattedPerSecond?: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
+const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedValue: propFormattedValue, formattedPerSecond: propFormattedPerSecond }) => {
   const { id, name, value, max, perSecond } = resource;
   const prevValueRef = useRef(value);
   
@@ -29,7 +31,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
       : "bg-blue-500";
   
   // Форматирование значений с учетом типа ресурса
-  const formattedValue = formatResourceValue(animatedValue, id);
+  const formattedValue = propFormattedValue || formatResourceValue(animatedValue, id);
   
   // Форматируем максимальное значение всегда без десятичных знаков
   const formattedMax = max === Infinity 
@@ -41,12 +43,13 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource }) => {
         : Math.floor(max).toString();
   
   // Форматирование скорости производства с учетом K и M для тысяч и миллионов
-  const formattedPerSecond = 
+  const formattedPerSecond = propFormattedPerSecond || (
     Math.abs(perSecond) >= 1000000 
       ? (perSecond / 1000000).toFixed(1).replace('.0', '') + "M" 
       : Math.abs(perSecond) >= 1000 
         ? (perSecond / 1000).toFixed(1).replace('.0', '') + "K"
-        : formatResourceValue(perSecond, id);
+        : formatResourceValue(perSecond, id)
+  );
   
   // Эффект для выделения изменений
   useEffect(() => {

@@ -68,7 +68,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
                   <UpgradeItem 
                     key={upgrade.id} 
                     upgrade={upgrade} 
-                    onPurchase={() => onAddEvent(`Завершено исследование: ${upgrade.name}`, "success")} 
+                    onAddEvent={onAddEvent}
                   />
                 ))}
               </div>
@@ -82,7 +82,8 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
                 {purchasedUpgrades.map(upgrade => (
                   <UpgradeItem 
                     key={upgrade.id} 
-                    upgrade={upgrade} 
+                    upgrade={upgrade}
+                    onAddEvent={onAddEvent}
                   />
                 ))}
               </div>
