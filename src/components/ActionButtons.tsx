@@ -34,17 +34,26 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   return (
     <div className="border-t border-gray-200 pt-2 mt-auto">
-      <div className="grid grid-cols-2 gap-2">
-        {/* Сначала отображаем другие кнопки, потом Изучить крипту */}
+      <div className="flex flex-col space-y-2">
+        {/* Кнопка изучения всегда первая в вертикальном расположении */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLearnClick}
+          className="w-full text-xs"
+        >
+          Изучить крипту
+        </Button>
         
-        {isBitcoinUnlocked && resources.bitcoin?.value > 0 && (
+        {applyKnowledgeUnlocked && (
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExchangeBitcoin}
+            onClick={handleApplyAllKnowledge}
+            disabled={!isButtonEnabled("knowledge", 10)}
             className="w-full text-xs"
           >
-            Обменять BTC
+            Применить знания
           </Button>
         )}
         
@@ -60,27 +69,16 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           </Button>
         )}
         
-        {applyKnowledgeUnlocked && (
+        {isBitcoinUnlocked && resources.bitcoin?.value > 0 && (
           <Button
             variant="outline"
             size="sm"
-            onClick={handleApplyAllKnowledge}
-            disabled={!isButtonEnabled("knowledge", 10)}
+            onClick={handleExchangeBitcoin}
             className="w-full text-xs"
           >
-            Применить знания
+            Обменять BTC
           </Button>
         )}
-        
-        {/* Кнопка изучения всегда последняя */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLearnClick}
-          className="w-full text-xs"
-        >
-          Изучить крипту
-        </Button>
       </div>
     </div>
   );
