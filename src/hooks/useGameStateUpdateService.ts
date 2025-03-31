@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameState } from '../context/GameStateContext';
 import { GameStateService } from '@/services/GameStateService';
 
@@ -10,6 +10,25 @@ export function useGameStateUpdateService() {
   const { state, dispatch } = useGameState();
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
   const syncIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Полная синхронизация при инициализации
+  useEffect(() => {
+    if (state.gameStarted && !isInitialized) {
+      console.log('🚀 Инициализация сервиса обновления состояния игры');
+      
+      // Сначала проводим полную синхронизацию состояния
+      const gameStateService = new GameStateService();
+      const syncedState = gameStateService.performFullStateSync(state);
+      
+      // Если состояние изменилось, применяем изменения
+      if (syncedState !== state) {
+        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+      }
+      
+      setIsInitialized(true);
+    }
+  }, [state.gameStarted, dispatch, isInitialized, state]);
   
   // Обновление ресурсов на регулярной основе
   useEffect(() => {
@@ -40,20 +59,11 @@ export function useGameStateUpdateService() {
     };
   }, [state.gameStarted, dispatch, state.resources.electricity]);
   
-  // Обновление состояния при критических изменениях
+  // Периодическая полная синхронизация состояния
   useEffect(() => {
     if (!state.gameStarted) return;
     
     console.log('🔄 Настройка периодической полной синхронизации состояния');
-    
-    // При загрузке игры проводим полную синхронизацию состояния
-    const gameStateService = new GameStateService();
-    const syncedState = gameStateService.performFullStateSync(state);
-    
-    // Если состояние изменилось, применяем изменения
-    if (syncedState !== state) {
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-    }
     
     // Очищаем предыдущий интервал синхронизации, если он был
     if (syncIntervalIdRef.current) {
@@ -61,10 +71,10 @@ export function useGameStateUpdateService() {
       syncIntervalIdRef.current = null;
     }
     
-    // Дополнительно запускаем периодическую полную синхронизацию
+    // Запускаем периодическую полную синхронизацию
     syncIntervalIdRef.current = setInterval(() => {
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-    }, 5000); // Каждые 5 секунд выполняем полную синхронизацию
+    }, 10000); // Каждые 10 секунд выполняем полную синхронизацию
     
     return () => {
       console.log('🛑 Остановка полной синхронизации состояния');

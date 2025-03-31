@@ -13,11 +13,19 @@ export function useResourceAnimation(value: number, resourceId: string): number 
   const startTimeRef = useRef<number>(0);
   const startValueRef = useRef<number>(value);
   const targetValueRef = useRef<number>(value);
+  const lastValueRef = useRef<number>(value);
   
   // Константа для определения скорости анимации
-  const animationDuration = 500; // мс
+  const animationDuration = 300; // мс, более быстрая анимация для ощущения мгновенной реакции
   
   useEffect(() => {
+    // Проверяем, действительно ли изменилось значение
+    if (Math.abs(value - lastValueRef.current) < 0.001) {
+      return; // Пропускаем очень маленькие изменения
+    }
+    
+    lastValueRef.current = value;
+    
     // Если значение изменилось, запускаем анимацию
     if (value !== targetValueRef.current) {
       // Останавливаем предыдущую анимацию, если она была
@@ -37,7 +45,7 @@ export function useResourceAnimation(value: number, resourceId: string): number 
         const progress = Math.min(elapsedTime / animationDuration, 1);
         
         // Применяем плавность к прогрессу (easing function)
-        const easedProgress = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+        const easedProgress = 1 - Math.pow(1 - progress, 2); // easeOutQuad для более плавного эффекта
         
         // Рассчитываем новое значение
         const newValue = startValueRef.current + (targetValueRef.current - startValueRef.current) * easedProgress;

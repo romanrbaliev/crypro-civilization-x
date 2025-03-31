@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -21,12 +20,12 @@ export class ResourceProductionService {
       }
     }
     
-    // Расчет базового производства знаний для практики (0.21 на 1 уровень практики)
+    // Расчет базового производства знаний для практики (1.0 на 1 уровень практики)
     if (state.buildings.practice && state.buildings.practice.count > 0) {
       const practiceCount = state.buildings.practice.count;
       
-      // Базовое производство от здания "Практика"
-      const baseKnowledgeProduction = 0.21 * practiceCount;
+      // Базовое производство от здания "Практика" - 1 знание в секунду для одной практики
+      const baseKnowledgeProduction = 1.0 * practiceCount;
       
       // Проверка наличия исследований, улучшающих практику
       const blockchainBasics = state.upgrades.blockchainBasics?.purchased || 
@@ -45,7 +44,7 @@ export class ResourceProductionService {
       // Если ресурс существует, добавляем производство
       if (updatedResources.knowledge) {
         updatedResources.knowledge.perSecond += finalKnowledgeProduction;
-        console.log(`ResourceProductionService: Итоговое производство knowledge: ${finalKnowledgeProduction} (базовое: ${baseKnowledgeProduction}, множитель: ${knowledgeMultiplier})`);
+        console.log(`ResourceProductionService: Итоговое производство knowledge: ${finalKnowledgeProduction.toFixed(2)} (базовое: ${baseKnowledgeProduction}, множитель: ${knowledgeMultiplier})`);
       }
     }
     

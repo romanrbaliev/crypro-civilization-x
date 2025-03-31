@@ -17,6 +17,9 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
   // Используем ref для оптимизации и предотвращения лишних рендеров
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Используем ref для хранения времени последнего обновления
+  const lastUpdateTimeRef = useRef<number>(Date.now());
+  
   useEffect(() => {
     if (!state.gameStarted) return;
     
@@ -26,6 +29,9 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
       intervalRef.current = null;
     }
     
+    // Фиксируем начальное время
+    lastUpdateTimeRef.current = Date.now();
+    
     // Используем более частый интервал для визуально плавной анимации ресурсов
     const interval = 100; // 100 мс (10 раз в секунду) - оптимальный баланс между производительностью и плавностью
     
@@ -34,8 +40,18 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
     // Интервал обновления модели
     intervalRef.current = setInterval(() => {
       if (isActive && state.gameStarted) {
-        // Отправляем запрос на обновление ресурсов
-        dispatch({ type: 'UPDATE_RESOURCES' });
+        const now = Date.now();
+        const deltaTime = now - lastUpdateTimeRef.current;
+        lastUpdateTimeRef.current = now;
+        
+        // Отправляем запрос на обновление ресурсов с указанием прошедшего времени
+        dispatch({ 
+          type: 'UPDATE_RESOURCES', 
+          payload: { 
+            deltaTime: deltaTime, 
+            resourceId: resourceId 
+          }
+        });
       }
     }, interval);
     

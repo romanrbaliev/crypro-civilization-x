@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -67,8 +66,32 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return gameStateService.processGameStateUpdate(newState);
     
     case "UPDATE_RESOURCES": {
+      // Обновляем ресурсы с учетом прошедшего времени (deltaTime)
+      // Создаем копию состояния
+      let updatedState = { ...state };
+      
+      // Обрабатываем deltaTime, если оно передано
+      const deltaTime = action.payload?.deltaTime || 1000; // По умолчанию 1 секунда
+      
+      // Обновляем ресурсы на основе их производства за deltaTime
+      const resourceIds = Object.keys(updatedState.resources);
+      for (const resourceId of resourceIds) {
+        const resource = updatedState.resources[resourceId];
+        if (resource.unlocked && resource.perSecond) {
+          // Вычисляем прирост в зависимости от прошедшего времени
+          const increment = (resource.perSecond * deltaTime) / 1000;
+          // Обновляем значение с учетом максимума
+          const newValue = Math.min(resource.value + increment, resource.max);
+          // Обновляем ресурс
+          updatedState.resources[resourceId] = {
+            ...resource,
+            value: newValue
+          };
+        }
+      }
+      
       // Пересчитываем ресурсы и проверяем разблокировки через сервис
-      return gameStateService.processGameStateUpdate(state);
+      return gameStateService.processGameStateUpdate(updatedState);
     }
     
     case "PURCHASE_BUILDING": {
