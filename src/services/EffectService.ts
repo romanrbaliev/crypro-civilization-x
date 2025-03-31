@@ -96,10 +96,9 @@ export class EffectService {
     
     // Добавляем особую обработку для исследования "Основы блокчейна"
     if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-      // Исправляем основную проблему - делаем явное изменение базового производства знаний
+      console.log("EffectService: Обработка исследования 'Основы блокчейна' - добавляем +10% к базовому производству знаний и +50% к максимуму");
+      
       if (newState.resources.knowledge) {
-        console.log("EffectService: Обработка исследования 'Основы блокчейна' - добавляем +10% к базовому производству знаний");
-        
         // Инициализируем базовое производство, если оно не установлено
         if (typeof newState.resources.knowledge.baseProduction !== 'number') {
           newState.resources.knowledge.baseProduction = 0;
@@ -109,17 +108,17 @@ export class EffectService {
         newState.resources.knowledge.baseProduction += 0.1;
         
         // Увеличиваем максимальное количество знаний на 50%
-        newState.resources.knowledge.max = newState.resources.knowledge.max * 1.5;
+        const currentMax = newState.resources.knowledge.max;
+        newState.resources.knowledge.max = currentMax * 1.5;
         
         console.log(`EffectService: Установлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
-        console.log(`EffectService: Установлен максимум знаний: ${newState.resources.knowledge.max}`);
+        console.log(`EffectService: Установлен максимум знаний: ${newState.resources.knowledge.max} (было: ${currentMax})`);
         
         // Уведомляем игрока
         safeDispatchGameEvent("Максимум знаний увеличен на 50%", "success");
       }
     }
     
-    // Базовые эффекты от всех исследований применяются в BonusCalculationService
     return newState;
   }
 

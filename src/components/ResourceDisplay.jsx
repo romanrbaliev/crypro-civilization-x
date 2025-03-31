@@ -11,6 +11,9 @@ const ResourceDisplay = ({ resource }) => {
   // Рассчитываем процент заполнения
   const fillPercent = resource.max > 0 ? (animatedValue / resource.max) * 100 : 0;
   
+  // Определяем, является ли значение нулевым
+  const isZero = animatedValue <= 0.01;
+  
   // Форматируем значения для отображения
   const formattedValue = formatNumber(animatedValue);
   const formattedMax = formatNumber(resource.max);
@@ -25,11 +28,10 @@ const ResourceDisplay = ({ resource }) => {
         <div className="text-xs text-gray-500">{formattedPerSecond}</div>
       </div>
       
-      {/* Исправлено: Всегда показываем прогресс-бар */}
       <div className="relative">
         <Progress 
           value={fillPercent} 
-          className="h-2" 
+          className={`h-2 ${isZero ? 'opacity-50' : 'opacity-100'}`}
         />
         <div className="text-[10px] text-gray-600 mt-0.5 text-right">
           {formattedValue} / {formattedMax}
