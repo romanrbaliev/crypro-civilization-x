@@ -9,16 +9,22 @@ import { GameStateService } from '@/services/GameStateService';
 export function useGameStateUpdateService() {
   const { state, dispatch } = useGameState();
   
-  // Обновление ресурсов каждые 0.5 секунды
+  // Обновление ресурсов каждые 0.25 секунды (увеличиваем частоту)
   useEffect(() => {
     if (!state.gameStarted) return;
     
     const intervalId = setInterval(() => {
       dispatch({ type: 'UPDATE_RESOURCES' });
-    }, 500);
+      
+      // Проверяем статусы оборудования, зависящего от электричества
+      if (state.resources.electricity && state.resources.electricity.value <= 0) {
+        // Если электричество закончилось, отправляем событие для проверки оборудования
+        dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
+      }
+    }, 250);
     
     return () => clearInterval(intervalId);
-  }, [state.gameStarted, dispatch]);
+  }, [state.gameStarted, dispatch, state.resources.electricity]);
   
   // Обновление состояния при критических изменениях
   useEffect(() => {
@@ -32,7 +38,14 @@ export function useGameStateUpdateService() {
     if (syncedState !== state) {
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }
-  }, [state.gameStarted]); // Запускаем только при изменении статуса игры
+    
+    // Дополнительно запускаем периодическую полную синхронизацию
+    const syncIntervalId = setInterval(() => {
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+    }, 5000); // Каждые 5 секунд выполняем полную синхронизацию
+    
+    return () => clearInterval(syncIntervalId);
+  }, [state.gameStarted, dispatch]); 
   
   return null;
 }

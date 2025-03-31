@@ -1,8 +1,20 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Upgrade } from "@/context/types";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/hooks/useGame";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
+import { ChevronRight } from "lucide-react";
+import {
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 
 interface UpgradeItemProps {
   upgrade: Upgrade;
@@ -52,6 +64,7 @@ const getSpecialEffectDescription = (upgradeId: string): string => {
 const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { resources } = state;
+  const [isOpen, setIsOpen] = useState(false);
   
   // Проверяем, доступно ли исследование
   const canAfford = Object.entries(upgrade.cost).every(
@@ -71,6 +84,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
     
     // Вызываем коллбэк после успешной покупки
     onAddEvent(`Завершено исследование: ${upgrade.name}`, "success");
+    setIsOpen(false);
   };
   
   // Формируем описание эффектов
@@ -93,45 +107,85 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
   const formattedEffects = effectsDescription.join('. ');
 
   return (
-    <div className={`border rounded-md p-3 mb-2 ${upgrade.purchased ? 'bg-gray-50' : 'bg-white'}`}>
-      <div className="flex justify-between items-center mb-1">
-        <div className="font-medium">{upgrade.name}</div>
-      </div>
-      
-      <div className="text-sm text-gray-500 mb-3">
-        {upgrade.description}
-      </div>
-      
-      {formattedEffects && (
-        <div className="text-green-600 mb-3">
-          <div className="font-medium mb-1">Эффекты:</div>
-          <div className="text-sm">{formattedEffects}</div>
-        </div>
-      )}
-      
-      <div className="text-gray-700 mb-3">
-        <div className="font-medium mb-1">Стоимость исследования:</div>
-        <div className="text-sm">
-          {Object.entries(upgrade.cost).map(([resourceId, cost]) => (
-            <div key={resourceId} className="text-red-500">
-              {resources[resourceId]?.name || resourceId} {cost}
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
+    >
+      <CollapsibleTrigger asChild>
+        <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
+          <div className="flex-1">
+            <div className="flex justify-between items-center w-full">
+              <h3 className="text-xs font-medium">
+                {upgrade.name}
+              </h3>
             </div>
-          ))}
+          </div>
+          <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
         </div>
-      </div>
+      </CollapsibleTrigger>
       
-      <div className="flex justify-between gap-2">
-        <Button
-          variant={upgrade.purchased ? "secondary" : canAfford ? "default" : "outline"}
-          size="sm"
-          disabled={upgrade.purchased || !canAfford}
-          onClick={handlePurchase}
-          className="w-full"
-        >
-          {upgrade.purchased ? "Исследовано" : "Исследовать"}
-        </Button>
-      </div>
-    </div>
+      <CollapsibleContent>
+        <div className="p-2 pt-0">
+          <p className="text-[11px] text-gray-500 mt-1 mb-2">{upgrade.description}</p>
+          
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <h4 className="text-[11px] font-medium">Стоимость исследования:</h4>
+              {Object.entries(upgrade.cost).map(([resourceId, amount]) => {
+                const resource = state.resources[resourceId];
+                const hasEnough = resource?.value >= Number(amount);
+                
+                return (
+                  <div key={resourceId} className="flex justify-between w-full">
+                    <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
+                      {resource?.name || resourceId}
+                    </span>
+                    <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
+                      {amount}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="border-t pt-2 mt-2">
+              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
+              {formattedEffects.split('. ').map((effect, index) => (
+                <div key={index} className="text-green-600 text-[11px]">
+                  {effect}
+                </div>
+              ))}
+            </div>
+            
+            <div className="border-t pt-2 mt-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        onClick={handlePurchase}
+                        disabled={!canAfford() || upgrade.purchased}
+                        variant={canAfford() && !upgrade.purchased ? "default" : "outline"}
+                        size="sm"
+                        className="w-full text-xs"
+                      >
+                        {upgrade.purchased ? "Исследовано" : "Исследовать"}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {!canAfford() && !upgrade.purchased && (
+                    <TooltipContent>
+                      <p className="text-xs">Недостаточно ресурсов</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 
