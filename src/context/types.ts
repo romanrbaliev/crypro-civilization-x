@@ -148,7 +148,7 @@ export type GameDispatch = React.Dispatch<GameAction>;
 
 export type GameAction =
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
-  | { type: "UPDATE_RESOURCES" }
+  | { type: "UPDATE_RESOURCES"; payload?: { deltaTime: number; resourceId?: string } }
   | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
   | { type: "SELL_BUILDING"; payload: { buildingId: string } }
   | { type: "PRACTICE_PURCHASE" }
