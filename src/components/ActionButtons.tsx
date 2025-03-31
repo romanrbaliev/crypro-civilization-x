@@ -35,16 +35,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   return (
     <div className="border-t border-gray-200 pt-2 mt-auto">
       <div className="flex flex-col space-y-2">
-        {/* Кнопка изучения всегда первая в вертикальном расположении */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLearnClick}
-          className="w-full text-xs"
-        >
-          Изучить крипту
-        </Button>
-        
+        {/* Отображаем кнопки действий над кнопкой "Изучить крипту" */}
         {applyKnowledgeUnlocked && (
           <Button
             variant="outline"
@@ -79,6 +70,16 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
             Обменять BTC
           </Button>
         )}
+        
+        {/* Кнопка "Изучить крипту" отображается последней (внизу) */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLearnClick}
+          className="w-full text-xs"
+        >
+          Изучить крипту
+        </Button>
       </div>
     </div>
   );
