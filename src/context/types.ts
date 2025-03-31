@@ -1,4 +1,3 @@
-
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -59,7 +58,7 @@ export interface Building {
   unlocked: boolean;
   requirements?: { [key: string]: number };
   maxCount?: number;
-  productionBoost: number;
+  productionBoost: { [key: string]: number } | number;
   unlockedBy?: string;
   resourceProduction?: { [key: string]: number };
 }
@@ -139,7 +138,6 @@ export interface MiningParams {
 
 export type Counters = { [key: string]: Counter };
 
-// Добавляем тип GameDispatch для определения типа dispatch функции
 export type GameDispatch = React.Dispatch<GameAction>;
 
 export type GameAction =
@@ -157,7 +155,7 @@ export type GameAction =
   | { type: "CHECK_SYNERGIES" }
   | { type: "ACTIVATE_SYNERGY"; payload: { synergyId: string } }
   | { type: "LOAD_GAME"; payload: GameState }
-  | { type: "START_GAME" } // Явно указываем, что START_GAME не требует payload
+  | { type: "START_GAME" }
   | { type: "PRESTIGE" }
   | { type: "RESET_GAME" }
   | { type: "RESTART_COMPUTERS" }

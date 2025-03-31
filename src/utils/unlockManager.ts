@@ -725,7 +725,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
               costMultiplier: 1.12, // Обновлено согласно таблице
               production: { knowledge: 0.63 },
               consumption: {},
-              productionBoost: 0,
+              productionBoost: {},
               unlockedBy: 'applyKnowledge_2'
             }),
             unlocked: true
@@ -802,7 +802,7 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
         costMultiplier: 1.12, // Обновлено согласно таблице
         production: { knowledge: 0.63 },
         consumption: {},
-        productionBoost: 0,
+        productionBoost: {},
         unlockedBy: 'applyKnowledge_2'
       };
     } else {
