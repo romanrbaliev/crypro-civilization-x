@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { useGameState } from '../context/GameStateContext';
+import { useGame } from '../context/hooks/useGame';
 import { ResourceContainer } from './ResourceContainer';
 import { BuildingsContainer } from './BuildingsContainer';
 import ActionButtons from './ActionButtons';
@@ -11,7 +11,7 @@ import { useGameSaver } from '../hooks/useGameSaver';
 import { useGameStateUpdateService } from '../hooks/useGameStateUpdateService';
 
 export function Game() {
-  const { state, dispatch } = useGameState();
+  const { state, dispatch } = useGame();
   
   // Используем хук для автоматического сохранения игры
   useGameSaver();

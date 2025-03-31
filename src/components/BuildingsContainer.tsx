@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { useGameState } from '@/context/GameStateContext';
+import { useGame } from '@/context/hooks/useGame';
 import BuildingItem from '@/components/BuildingItem';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 export function BuildingsContainer() {
-  const { state } = useGameState();
+  const { state } = useGame();
   
   const handlePurchase = (buildingName: string) => {
     safeDispatchGameEvent(`Построено здание: ${buildingName}`, 'success');
