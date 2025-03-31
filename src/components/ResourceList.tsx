@@ -32,14 +32,14 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
             </div>
             <div className="text-right">
               <div className="font-semibold text-sm" data-resource-id={resource.id}>
-                {formatResourceValue(resource.id, resource.value)} 
+                {formatResourceValue(resource.value, resource.id)} 
                 {resource.max !== undefined && 
                   <span className="text-gray-400">/{formatNumber(resource.max)}</span>
                 }
               </div>
               {resource.perSecond !== undefined && resource.perSecond !== 0 && (
                 <div className={`text-xs ${resource.perSecond > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {resource.perSecond > 0 ? '+' : ''}{formatResourceValue(resource.id, resource.perSecond)}/сек
+                  {resource.perSecond > 0 ? '+' : ''}{formatResourceValue(resource.perSecond, resource.id)}/сек
                 </div>
               )}
             </div>
