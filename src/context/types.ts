@@ -62,6 +62,9 @@ export interface Building {
   productionBoost: { [key: string]: number } | number;
   unlockedBy?: string;
   resourceProduction?: { [key: string]: number };
+  // Поле type опционально, поскольку оно использовалось в коде, но не во всех объектах
+  type?: string;
+  effects?: { [key: string]: number };
 }
 
 export interface Upgrade {
@@ -83,6 +86,8 @@ export interface Upgrade {
     resources?: { [key: string]: number }
   };
   requiredUpgrades?: string[];
+  // Поле type опционально, поскольку оно использовалось в коде, но не во всех объектах
+  type?: string;
 }
 
 export interface Counter {

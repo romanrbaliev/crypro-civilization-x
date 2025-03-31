@@ -48,7 +48,6 @@ export const initialState: GameState = {
       id: 'practice',
       name: 'Практика',
       description: 'Автоматически получает знания о криптовалюте',
-      type: 'building',
       cost: {
         usdt: 10
       },
@@ -64,7 +63,6 @@ export const initialState: GameState = {
       id: 'generator',
       name: 'Генератор',
       description: 'Производит электроэнергию для ваших устройств',
-      type: 'building',
       cost: {
         usdt: 20
       },
@@ -80,7 +78,6 @@ export const initialState: GameState = {
       id: 'cryptoWallet',
       name: 'Криптокошелек',
       description: 'Позволяет хранить больше USDT и увеличивает максимум знаний',
-      type: 'building',
       cost: {
         usdt: 30,
         knowledge: 50 // Добавляем стоимость в знаниях согласно базе знаний
@@ -98,7 +95,6 @@ export const initialState: GameState = {
       id: 'homeComputer',
       name: 'Домашний компьютер',
       description: 'Обеспечивает вычислительную мощность для майнинга',
-      type: 'building',
       cost: {
         usdt: 55
       },
@@ -117,7 +113,6 @@ export const initialState: GameState = {
       id: 'internetChannel',
       name: 'Интернет-канал',
       description: 'Ускоряет получение знаний и повышает эффективность вычислений',
-      type: 'building',
       cost: {
         usdt: 75
       },
@@ -136,7 +131,6 @@ export const initialState: GameState = {
       id: 'blockchainBasics',
       name: 'Основы блокчейна',
       description: 'Фундаментальные знания о технологии блокчейна',
-      type: 'upgrade',
       cost: {
         knowledge: 100
       },
@@ -151,7 +145,6 @@ export const initialState: GameState = {
       id: 'walletSecurity',
       name: 'Безопасность криптокошельков',
       description: 'Повышает безопасность и ёмкость ваших криптокошельков',
-      type: 'upgrade',
       cost: {
         knowledge: 175
       },
@@ -166,7 +159,6 @@ export const initialState: GameState = {
       id: 'cryptoCurrencyBasics',
       name: 'Основы криптовалют',
       description: 'Базовые знания о криптовалютах и их использовании',
-      type: 'upgrade',
       cost: {
         knowledge: 200
       },
@@ -180,7 +172,6 @@ export const initialState: GameState = {
       id: 'algorithmOptimization',
       name: 'Оптимизация алгоритмов',
       description: 'Повышает эффективность майнинга криптовалют',
-      type: 'upgrade',
       cost: {
         usdt: 150,
         knowledge: 100
@@ -196,7 +187,6 @@ export const initialState: GameState = {
       id: 'proofOfWork',
       name: 'Proof of Work',
       description: 'Исследование механизма консенсуса Proof of Work',
-      type: 'upgrade',
       cost: {
         usdt: 250,
         knowledge: 200
@@ -212,7 +202,6 @@ export const initialState: GameState = {
       id: 'energyEfficientComponents',
       name: 'Энергоэффективные компоненты',
       description: 'Снижает энергопотребление ваших устройств',
-      type: 'upgrade',
       cost: {
         knowledge: 400
       },
@@ -227,7 +216,6 @@ export const initialState: GameState = {
       id: 'cryptoTrading',
       name: 'Криптовалютный трейдинг',
       description: 'Позволяет обменивать различные криптовалюты',
-      type: 'upgrade',
       cost: {
         usdt: 300,
         knowledge: 250
@@ -243,7 +231,6 @@ export const initialState: GameState = {
       id: 'tradingBot',
       name: 'Торговый бот',
       description: 'Автоматический обмен BTC по заданным условиям',
-      type: 'upgrade',
       cost: {
         knowledge: 500
       },
@@ -274,13 +261,12 @@ export const initialState: GameState = {
   referralHelpers: []
 };
 
-// Добавляем экспорт начальных зданий для фазы 2
+// Добавляем экспорт зданий для фазы 2
 export const initialPhase2Buildings = {
   miner: {
     id: 'miner',
     name: 'Майнер',
     description: 'Автоматически добывает Bitcoin, используя электричество и вычислительную мощность',
-    type: 'building',
     cost: {
       usdt: 150
     },
@@ -300,7 +286,6 @@ export const initialPhase2Buildings = {
     id: 'cryptoLibrary',
     name: 'Криптобиблиотека',
     description: 'Увеличивает скорость получения знаний и их максимальное количество',
-    type: 'building',
     cost: {
       usdt: 200,
       knowledge: 200
@@ -334,7 +319,6 @@ export const initialPhase2Buildings = {
     id: 'enhancedWallet',
     name: 'Улучшенный кошелек',
     description: 'Значительно увеличивает максимальное хранение USDT и Bitcoin',
-    type: 'building',
     cost: {
       usdt: 300,
       knowledge: 250
@@ -350,4 +334,3 @@ export const initialPhase2Buildings = {
     productionBoost: 0
   }
 };
-

@@ -9,11 +9,16 @@ export const resetAllGameData = async (): Promise<boolean> => {
   try {
     localStorage.removeItem('gameState');
     
-    // Принудительно сбрасываем состояния зданий 
-    // Используем initialBuildings, который мы определили в initialState
+    // Обновленный код: теперь мы используем правильную структуру
+    // из initialState вместо несуществующего initialBuildings
     const initialState = await import('../../context/initialState');
-    if (initialState.initialBuildings && initialState.initialBuildings.coolingSystem) {
-      initialState.initialBuildings.coolingSystem.unlocked = false;
+    
+    // Проверяем здания напрямую в структуре initialState
+    if (initialState && 
+        initialState.initialState && 
+        initialState.initialState.buildings && 
+        initialState.initialState.buildings.coolingSystem) {
+      initialState.initialState.buildings.coolingSystem.unlocked = false;
     }
     
     return true;
