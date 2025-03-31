@@ -9,8 +9,7 @@ export const resetAllGameData = async (): Promise<boolean> => {
   try {
     localStorage.removeItem('gameState');
     
-    // Обновленный код: теперь мы используем правильную структуру
-    // из initialState вместо несуществующего initialBuildings
+    // Обновленный код: используем правильную структуру из initialState
     const initialState = await import('../../context/initialState');
     
     // Проверяем здания напрямую в структуре initialState
@@ -27,3 +26,4 @@ export const resetAllGameData = async (): Promise<boolean> => {
     return false;
   }
 };
+

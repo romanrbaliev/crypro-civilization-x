@@ -1,4 +1,3 @@
-
 import { GameState } from './types';
 
 // Правильно установленное начальное состояние игры
@@ -83,6 +82,7 @@ export const initialState: GameState = {
         knowledge: 50 // Добавляем стоимость в знаниях согласно базе знаний
       },
       costMultiplier: 1.15, // k=1.15 согласно базе знаний
+      production: {}, // Добавляем пустой объект production, так как это здание не производит ресурсы
       effects: {
         usdtMax: 50, // +50 к макс. USDT
         knowledgeMaxBoost: 0.25 // +25% к макс. Знаниям
@@ -117,6 +117,7 @@ export const initialState: GameState = {
         usdt: 75
       },
       costMultiplier: 1.15, // k=1.15 согласно базе знаний
+      production: {}, // Добавляем пустой объект production, так как это здание не производит ресурсы
       effects: {
         knowledgeBoost: 0.2, // +20% к скорости получения знаний
         computingPowerBoost: 0.05 // +5% к эффективности производства вычисл. мощности
@@ -291,6 +292,7 @@ export const initialPhase2Buildings = {
       knowledge: 200
     },
     costMultiplier: 1.15, // k=1.15 согласно базе знаний
+    production: {}, // Добавляем пустой объект production
     effects: {
       knowledgeBoost: 0.5, // +50% к скорости получения знаний
       knowledgeMax: 100 // +100 к макс. Знаниям
@@ -308,6 +310,7 @@ export const initialPhase2Buildings = {
       electricity: 50 
     },
     costMultiplier: 1.15, // k=1.15 согласно базе знаний
+    production: {}, // Добавляем пустой объект production
     effects: {
       computingPowerConsumptionReduction: 0.2 // -20% к потреблению вычислительной мощности
     },
@@ -324,6 +327,7 @@ export const initialPhase2Buildings = {
       knowledge: 250
     },
     costMultiplier: 1.15, // k=1.15 согласно базе знаний
+    production: {}, // Добавляем пустой объект production
     effects: {
       usdtMax: 150, // +150 к макс. хранению USDT
       bitcoinMax: 1, // +1 к макс. BTC
