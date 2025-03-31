@@ -1,3 +1,4 @@
+
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -171,4 +172,5 @@ export type GameAction =
   | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
   | { type: "FORCE_RESOURCE_UPDATE" }
   | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } }
-  | { type: "CHOOSE_SPECIALIZATION"; payload: { roleId: string } };
+  | { type: "CHOOSE_SPECIALIZATION"; payload: { roleId: string } }
+  | { type: "CHECK_EQUIPMENT_STATUS" };

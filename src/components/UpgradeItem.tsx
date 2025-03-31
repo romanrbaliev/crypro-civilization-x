@@ -110,7 +110,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
+      className={`border rounded-lg ${canAfford ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
     >
       <CollapsibleTrigger asChild>
         <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
@@ -165,8 +165,8 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
                     <div>
                       <Button
                         onClick={handlePurchase}
-                        disabled={!canAfford() || upgrade.purchased}
-                        variant={canAfford() && !upgrade.purchased ? "default" : "outline"}
+                        disabled={!canAfford || upgrade.purchased}
+                        variant={canAfford && !upgrade.purchased ? "default" : "outline"}
                         size="sm"
                         className="w-full text-xs"
                       >
@@ -174,7 +174,7 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
                       </Button>
                     </div>
                   </TooltipTrigger>
-                  {!canAfford() && !upgrade.purchased && (
+                  {!canAfford && !upgrade.purchased && (
                     <TooltipContent>
                       <p className="text-xs">Недостаточно ресурсов</p>
                     </TooltipContent>

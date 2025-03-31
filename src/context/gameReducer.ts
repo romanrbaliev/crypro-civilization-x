@@ -180,6 +180,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       newState = processMiningPower(state);
       return gameStateService.processGameStateUpdate(newState);
     
+    case "CHECK_EQUIPMENT_STATUS": {
+      // Проверяем статус оборудования, зависящего от ресурсов
+      console.log("Проверка статуса оборудования");
+      // Пока просто возвращаем текущее состояние,
+      // в будущем можно добавить логику проверки и выключения оборудования
+      return gameStateService.processGameStateUpdate(state);
+    }
+    
     case "APPLY_KNOWLEDGE": {
       // После применения знаний обновляем состояние через сервис
       console.log("gameReducer: Начало обработки APPLY_KNOWLEDGE");

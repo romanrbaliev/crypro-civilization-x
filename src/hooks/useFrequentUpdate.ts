@@ -18,7 +18,7 @@ export const useFrequentUpdate = ({ state, dispatch, resourceId = 'default' }: F
   
   useEffect(() => {
     // Используем очень частый интервал для создания плавной анимации ресурсов
-    const interval = 25; // Увеличиваем частоту с 50 до 25 мс (40 раз в секунду)
+    const interval = 15; // Увеличиваем частоту до 15 мс (более 60 раз в секунду)
     
     // Интервал обновления модели
     const updateInterval = setInterval(() => {

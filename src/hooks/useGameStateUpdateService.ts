@@ -9,7 +9,7 @@ import { GameStateService } from '@/services/GameStateService';
 export function useGameStateUpdateService() {
   const { state, dispatch } = useGameState();
   
-  // Обновление ресурсов каждые 0.25 секунды (увеличиваем частоту)
+  // Обновление ресурсов каждые 0.1 секунды (увеличиваем частоту для более плавной анимации)
   useEffect(() => {
     if (!state.gameStarted) return;
     
@@ -21,7 +21,7 @@ export function useGameStateUpdateService() {
         // Если электричество закончилось, отправляем событие для проверки оборудования
         dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
       }
-    }, 250);
+    }, 100); // Изменено с 250 мс на 100 мс для более плавного обновления
     
     return () => clearInterval(intervalId);
   }, [state.gameStarted, dispatch, state.resources.electricity]);
