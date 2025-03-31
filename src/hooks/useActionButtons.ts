@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -5,6 +6,23 @@ import { GameState } from '@/context/types';
 interface ActionButtonsHookProps {
   onAddEvent: (message: string, type: string) => void;
 }
+
+// Функция для проверки, разблокирована ли кнопка "Применить знания" на основе счетчика кликов
+const isApplyKnowledgeUnlocked = (state: GameState): boolean => {
+  // Проверяем наличие флага разблокировки
+  if (state.unlocks.applyKnowledge === true) return true;
+  
+  // Проверяем наличие счетчика кликов знаний
+  const counter = state.counters.knowledgeClicks;
+  
+  if (!counter) return false;
+  
+  // Получаем значение счетчика
+  const count = typeof counter === 'object' ? counter.value : counter;
+  
+  // Кнопка "Применить знания" разблокируется после 3-х нажатий на "Изучить крипту"
+  return count >= 3;
+};
 
 // Функция для проверки, разблокирована ли практика на основе счетчика и флага unlocks
 const isPracticeUnlocked = (state: GameState): boolean => {
@@ -44,6 +62,9 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Проверка разблокировки флага практики
   const practiceUnlockFlag = unlocks.practice === true;
   
+  // Проверка разблокировки кнопки "Применить знания"
+  const applyKnowledgeUnlocked = isApplyKnowledgeUnlocked(state);
+  
   // Объединенная проверка разблокировки практики
   const practiceIsUnlocked = practiceUnlockFlag || practiceBuildingUnlocked || isPracticeUnlocked(state);
   
@@ -56,8 +77,8 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Получение текущей стоимости и уровня практики
   const practiceCurrentLevel = practiceBuildingExists ? buildings.practice.count : 0;
-  const practiceBaseCost = practiceBuildingExists ? buildings.practice.cost.usdt : 10;
-  const practiceCostMultiplier = practiceBuildingExists ? buildings.practice.costMultiplier || 1.15 : 1.15;
+  const practiceBaseCost = 10; // Базовая стоимость согласно таблице
+  const practiceCostMultiplier = 1.12; // Множитель стоимости согласно таблице
   const practiceCurrentCost = Math.floor(practiceBaseCost * Math.pow(practiceCostMultiplier, practiceCurrentLevel));
   
   // Проверка наличия автомайнера
@@ -93,7 +114,8 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       knowledgeValue: resources.knowledge?.value,
       usdtValue: resources.usdt?.value,
       usdtUnlocked: resources.usdt?.unlocked,
-      applyKnowledgeCounter: state.counters.applyKnowledge
+      applyKnowledgeCounter: state.counters.applyKnowledge,
+      knowledgeClicksCounter: state.counters.knowledgeClicks
     });
     
     // Вызываем действие для применения знаний
@@ -246,6 +268,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     hasAutoMiner,
     currentExchangeRate,
     shouldHideLearnButton,
-    knowledgeEfficiencyBonus
+    knowledgeEfficiencyBonus,
+    applyKnowledgeUnlocked
   };
 };
