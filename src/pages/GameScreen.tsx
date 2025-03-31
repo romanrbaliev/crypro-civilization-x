@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
@@ -47,10 +48,12 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
+  // Изменено: Теперь проверяем разблокировку генератора, а не любое здание кроме практики
   const hasUnlockedBuildings = state.buildings.generator && state.buildings.generator.unlocked;
     
   const hasUnlockedResearch = state.unlocks.research === true;
   
+  // Проверка на доступность вкладки специализации (Фаза 3)
   const hasUnlockedSpecialization = state.phase >= 3;
   
   useEffect(() => {
@@ -112,11 +115,13 @@ const GameScreen = () => {
   }, []);
   
   useEffect(() => {
+    // Выбираем правильную вкладку по умолчанию
     if (hasUnlockedBuildings) {
       setSelectedTab("equipment");
     } else if (hasUnlockedResearch) {
       setSelectedTab("research");
     } else {
+      // Если ничего не разблокировано, по умолчанию показываем рефералы
       setSelectedTab("referrals");
     }
     
@@ -307,6 +312,7 @@ const GameScreen = () => {
           
           <div className="border-t mt-auto">
             <div className="flex flex-col">
+              {/* Показываем вкладку оборудования только если разблокирован генератор */}
               {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
               
               {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
@@ -338,7 +344,7 @@ const GameScreen = () => {
               )}
             </div>
             
-            <div className="mt-auto sticky bottom-0 bg-gray-50 pb-2">
+            <div className="mt-auto sticky bottom-0 bg-white pb-2 pt-1">
               <ActionButtons onAddEvent={addEvent} />
             </div>
           </div>

@@ -3,7 +3,6 @@ import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
 import { useActionButtons } from "@/hooks/useActionButtons";
-import { Separator } from "@/components/ui/separator";
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
@@ -49,54 +48,54 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   }
   
   return (
-    <>
-      <Separator className="mb-3" />
-      <div className="grid grid-cols-1 gap-2 px-2">
-        {isBitcoinUnlocked && resources.bitcoin?.value > 0 && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleExchangeBitcoin}
-            className="w-full"
-          >
-            Обменять BTC
-          </Button>
-        )}
-        
-        {practiceIsUnlocked && isUsdtUnlocked && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handlePractice}
-            disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
-            className="w-full"
-          >
-            Практика ({practiceCurrentCost} USDT)
-          </Button>
-        )}
-        
-        {applyKnowledgeUnlocked && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleApplyAllKnowledge}
-            disabled={!isButtonEnabled("knowledge", 10)}
-            className="w-full"
-          >
-            Применить знания
-          </Button>
-        )}
-        
+    <div className="flex flex-wrap justify-center gap-2">
+      {/* Сначала отображаем другие кнопки, потом Изучить крипту */}
+      
+      {isBitcoinUnlocked && resources.bitcoin?.value > 0 && (
         <Button
           variant="secondary"
           size="sm"
-          onClick={handleLearnClick}
-          className="w-full"
+          onClick={handleExchangeBitcoin}
+          className="flex items-center"
         >
-          Изучить крипту
+          Обменять BTC
         </Button>
-      </div>
-    </>
+      )}
+      
+      {practiceIsUnlocked && isUsdtUnlocked && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handlePractice}
+          disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
+          className="flex items-center"
+        >
+          Практика ({practiceCurrentCost} USDT)
+        </Button>
+      )}
+      
+      {applyKnowledgeUnlocked && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleApplyAllKnowledge}
+          disabled={!isButtonEnabled("knowledge", 10)}
+          className="flex items-center"
+        >
+          Применить знания
+        </Button>
+      )}
+      
+      {/* Кнопка изучения всегда последняя */}
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={handleLearnClick}
+        className="flex items-center"
+      >
+        Изучить крипту
+      </Button>
+    </div>
   );
 };
 
