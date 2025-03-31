@@ -107,7 +107,15 @@ export class EffectService {
         
         // Добавляем +10% к базовому производству
         newState.resources.knowledge.baseProduction += 0.1;
+        
+        // Увеличиваем максимальное количество знаний на 50%
+        newState.resources.knowledge.max = newState.resources.knowledge.max * 1.5;
+        
         console.log(`EffectService: Установлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
+        console.log(`EffectService: Установлен максимум знаний: ${newState.resources.knowledge.max}`);
+        
+        // Уведомляем игрока
+        safeDispatchGameEvent("Максимум знаний увеличен на 50%", "success");
       }
     }
     

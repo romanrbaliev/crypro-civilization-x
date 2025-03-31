@@ -82,7 +82,8 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const renderProduction = () => {
-    if (!building.production || Object.keys(building.production).length === 0) {
+    // Исправлено: Всегда показываем эффекты здания
+    if (!building.production) {
       return null;
     }
     
@@ -111,7 +112,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const renderConsumption = () => {
-    if (!building.consumption || Object.keys(building.consumption).length === 0) {
+    if (!building.consumption) {
       return null;
     }
     
