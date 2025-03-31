@@ -12,15 +12,16 @@ export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
   const elapsedSeconds = (now - state.lastUpdate) / 1000;
   
+  // Логируем для отладки
+  console.log(`processResourceUpdate: Прошло ${elapsedSeconds.toFixed(3)} сек., lastUpdate: ${state.lastUpdate}`);
+  
   // Начальные данные
   let newResources = { ...state.resources };
   let eventMessages = { ...state.eventMessages };
   let miningParams = { ...state.miningParams };
-  const buildings = { ...state.buildings };
   
   // Проверка необходимости запускать обработку
   if (elapsedSeconds <= 0 || !state.gameStarted) {
-    console.log("⚠️ Не запускаем обновление ресурсов (слишком малый интервал или игра не запущена)");
     return state;
   }
   
@@ -140,20 +141,6 @@ export const processResourceUpdate = (state: GameState): GameState => {
   // Обновляем значения ресурсов на основе времени
   updateResourceValues(newResources, elapsedSeconds);
   
-  // Специальная обработка для Bitcoin
-  if (state.buildings.autoMiner?.count > 0 && newResources.bitcoin?.unlocked) {
-    // Убедимся, что Bitcoin правильно обновляется от автомайнеров
-    if (newResources.bitcoin?.perSecond === 0) {
-      console.log("Принудительно устанавливаем производство Bitcoin от автомайнеров");
-      const miningEfficiency = state.miningParams?.miningEfficiency || 1;
-      newResources.bitcoin.perSecond = 0.00005 * state.buildings.autoMiner.count * miningEfficiency;
-      console.log(`Установлено производство Bitcoin: ${newResources.bitcoin.perSecond} (${state.buildings.autoMiner.count} майнеров, коэфф. ${miningEfficiency})`);
-    }
-  }
-  
-  // Проверяем, были ли проблемы с ресурсами (остановка оборудования)
-  checkResourcesForAlerts(state, newResources);
-  
   // Создаем новое состояние
   let newState = {
     ...state,
@@ -175,7 +162,7 @@ const updateResourceValues = (
   resources: { [key: string]: any },
   elapsedSeconds: number
 ) => {
-  // Обновляем значения каждого ресурса (включая Bitcoin)
+  // Обновляем значения каждого ресурса
   for (const resourceId in resources) {
     const resource = resources[resourceId];
     if (!resource.unlocked) continue;
@@ -183,11 +170,14 @@ const updateResourceValues = (
     // Получаем текущее производство в секунду
     const productionPerSecond = resource.perSecond || 0;
     
-    // ИСПРАВЛЕНО: Для более плавного обновления используем точное значение прошедших секунд
+    // Рассчитываем производство за прошедшее время
     const deltaProduction = productionPerSecond * elapsedSeconds;
     
     // Рассчитываем новое значение на основе производства за секунду
     let newValue = resource.value + deltaProduction;
+    
+    // Логируем для отладки
+    console.log(`updateResourceValues: ${resource.name} ${resource.value.toFixed(2)} + ${deltaProduction.toFixed(2)} = ${newValue.toFixed(2)} (производство: ${productionPerSecond.toFixed(2)}/сек)`);
     
     // Ограничиваем максимумом
     if (resource.max !== undefined && resource.max !== Infinity) {
@@ -196,11 +186,6 @@ const updateResourceValues = (
     
     // Обновляем значение ресурса (не позволяем опуститься ниже нуля)
     resource.value = Math.max(0, newValue);
-    
-    // Если ресурс достиг максимума, и это важно для игрока - уведомляем
-    if (productionPerSecond > 0 && newValue >= resource.max && resource.max !== Infinity) {
-      console.log(`Ресурс ${resource.name} достиг максимума (${resource.max})!`);
-    }
   }
 };
 

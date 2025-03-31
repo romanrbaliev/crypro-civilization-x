@@ -13,7 +13,7 @@ const defaultConfig: ResourceFormatConfig = {
   decimalPlaces: 2,
   useGrouping: true,
   minValue: 0.001,
-  updateFrequency: 100  // 10 обновлений в секунду
+  updateFrequency: 50  // 20 обновлений в секунду
 };
 
 // Специфичные настройки для каждого ресурса
@@ -66,6 +66,7 @@ export const getResourceFormat = (resourceId: string): ResourceFormatConfig => {
  */
 export const formatResourceValue = (value: number, resourceId: string): string => {
   if (value === Infinity) return "∞";
+  if (isNaN(value)) return "0";
   
   const format = getResourceFormat(resourceId);
   if (Math.abs(value) < format.minValue) return "0";

@@ -105,7 +105,7 @@ export class ResourceProductionService {
     // Применяем множитель производства
     const totalProduction = baseProduction * productionMultiplier;
     
-    // ИСПРАВЛЕНИЕ: Проверяем, не теряется ли производство ресурсов
+    // Логируем расчеты для отладки
     console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${totalProduction} (базовое: ${baseProduction}, множитель: ${productionMultiplier})`);
     
     return {

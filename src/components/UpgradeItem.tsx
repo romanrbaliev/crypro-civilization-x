@@ -34,8 +34,14 @@ const formatUpgradeEffect = (effectId: string, amount: number): string => {
       return `Повышение эффективности майнинга на ${amount * 100}%`;
     case 'electricityEfficiencyBoost':
       return `Увеличение эффективности электричества на ${amount * 100}%`;
+    case 'maxStorage':
+      if (!isNaN(amount)) {
+        return `Увеличение максимального хранилища на ${amount * 100}%`;
+      }
+      return '';
     default:
-      return `${effectId}: ${amount}`;
+      // Если эффект не распознан, не отображаем его
+      return '';
   }
 };
 
@@ -94,18 +100,16 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
   const specialEffect = getSpecialEffectDescription(upgrade.id);
   if (specialEffect) {
     effectsDescription.push(specialEffect);
-  }
-  
-  // Добавляем стандартные эффекты из объекта effects
-  if (upgrade.effects) {
+  } else if (upgrade.effects) {
+    // Добавляем стандартные эффекты из объекта effects
     for (const [effectId, amount] of Object.entries(upgrade.effects)) {
-      effectsDescription.push(formatUpgradeEffect(effectId, Number(amount)));
+      const formattedEffect = formatUpgradeEffect(effectId, Number(amount));
+      if (formattedEffect) {
+        effectsDescription.push(formattedEffect);
+      }
     }
   }
   
-  // Объединяем описания эффектов в строку
-  const formattedEffects = effectsDescription.join('. ');
-
   return (
     <Collapsible
       open={isOpen}
@@ -151,11 +155,15 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
             
             <div className="border-t pt-2 mt-2">
               <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
-              {formattedEffects.split('. ').map((effect, index) => (
-                <div key={index} className="text-green-600 text-[11px]">
-                  {effect}
-                </div>
-              ))}
+              {effectsDescription.length > 0 ? (
+                effectsDescription.map((effect, index) => (
+                  <div key={index} className="text-green-600 text-[11px]">
+                    {effect}
+                  </div>
+                ))
+              ) : (
+                <div className="text-green-600 text-[11px]">Нет дополнительных эффектов</div>
+              )}
             </div>
             
             <div className="border-t pt-2 mt-2">
