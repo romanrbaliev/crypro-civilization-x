@@ -1,231 +1,131 @@
 
-import React from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { Button } from '@/components/ui/button';
-import { formatNumber } from '@/utils/helpers';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from '@/components/ui/tooltip';
-import { 
-  Sparkles, 
-  Lock, 
-  AlertCircle,
-  Info,
-  ChevronRight
-} from 'lucide-react';
-import { formatEffectName, formatEffect, getSpecializationName } from '@/utils/researchUtils';
-import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from "@/components/ui/collapsible";
+import React from "react";
+import { Upgrade } from "@/context/types";
+import { Button } from "@/components/ui/button";
+import { useGame } from "@/context/hooks/useGame";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface UpgradeItemProps {
-  upgrade: any;
-  onPurchase?: () => void;
+  upgrade: Upgrade;
+  onAddEvent: (message: string, type: string) => void;
 }
 
-const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase }) => {
+// Функция для перевода и форматирования эффектов исследований
+const formatUpgradeEffect = (effectId: string, amount: number): string => {
+  switch (effectId) {
+    case 'knowledgeBoost':
+      return `Увеличение производства знаний на ${amount * 100}%`;
+    case 'knowledgeMaxBoost':
+      return `Увеличение максимума знаний на ${amount * 100}%`;
+    case 'usdtMaxBoost':
+      return `Увеличение максимума USDT на ${amount * 100}%`;
+    case 'miningEfficiencyBoost':
+      return `Повышение эффективности майнинга на ${amount * 100}%`;
+    case 'electricityEfficiencyBoost':
+      return `Увеличение эффективности электричества на ${amount * 100}%`;
+    default:
+      return `${effectId}: ${amount}`;
+  }
+};
+
+// Переводы специальных эффектов исследований
+const getSpecialEffectDescription = (upgradeId: string): string => {
+  switch (upgradeId) {
+    case 'blockchainBasics':
+    case 'basicBlockchain': 
+    case 'blockchain_basics':
+      return 'Увеличение максимума знаний на 50%. Разблокирует Криптокошелек.';
+      
+    case 'algorithmOptimization':
+      return 'Увеличение эффективности майнинга на 15%';
+      
+    case 'cryptoCurrencyBasics':
+      return 'Увеличение эффективности применения знаний на 10%';
+      
+    case 'walletSecurity':
+      return 'Увеличение максимального хранения криптовалют на 25%';
+      
+    default:
+      return '';
+  }
+};
+
+const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
   const { state, dispatch } = useGame();
-  const [isOpen, setIsOpen] = React.useState(false);
+  const { resources } = state;
   
-  // Проверка доступности исследования
-  const canPurchase = () => {
-    if (!upgrade.unlocked || upgrade.purchased) return false;
-    
-    // Проверяем наличие необходимых ресурсов
-    for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
-      if (state.resources[resourceId]?.value < Number(amount)) {
-        return false;
-      }
-    }
-    return true;
-  };
+  // Проверяем, доступно ли исследование
+  const canAfford = Object.entries(upgrade.cost).every(
+    ([resourceId, cost]) => (resources[resourceId]?.value || 0) >= cost
+  );
   
-  // Проверка зависимостей от других исследований
-  const hasMissingDependencies = () => {
-    if (!upgrade.requiredUpgrades || upgrade.requiredUpgrades.length === 0) return false;
-    
-    return upgrade.requiredUpgrades.some(
-      (requiredId: string) => !state.upgrades[requiredId]?.purchased
-    );
-  };
-  
-  // Покупка исследования
   const handlePurchase = () => {
-    if (!canPurchase()) return;
-    
-    try {
-      dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
-      if (onPurchase) onPurchase();
-    } catch (error) {
-      console.error(`Ошибка при покупке исследования ${upgrade.id}:`, error);
+    if (!canAfford) {
+      onAddEvent(`Недостаточно ресурсов для исследования "${upgrade.name}"`, "error");
+      return;
     }
-  };
-  
-  // Отображение стоимости
-  const renderCost = () => {
-    return Object.entries(upgrade.cost).map(([resourceId, amount], index) => {
-      const resource = state.resources[resourceId];
-      const hasEnough = resource?.value >= Number(amount);
-      
-      return (
-        <div key={resourceId} className="flex justify-between w-full">
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {resource?.name || resourceId}
-          </span>
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {formatNumber(Number(amount))}
-          </span>
-        </div>
-      );
+    
+    dispatch({
+      type: "PURCHASE_UPGRADE",
+      payload: { upgradeId: upgrade.id }
     });
   };
   
-  // Отображение эффектов
-  const renderEffects = () => {
-    // Безопасно получаем объект эффектов
-    const effects = upgrade.effects || upgrade.effect || {};
-    
-    if (Object.keys(effects).length === 0) {
-      // Проверяем специальные ID улучшений - основы блокчейна
-      if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
-        return (
-          <div className="text-blue-600 text-[11px]">
-            Прирост знаний: +10%, Максимум знаний: +50%
-          </div>
-        );
-      }
-      
-      // Добавляем эффекты для других исследований, у которых нет свойства effects
-      if (upgrade.id === 'cryptoCurrencyBasics') {
-        return (
-          <div className="text-blue-600 text-[11px]">
-            Эффективность знаний: +10%
-          </div>
-        );
-      }
-      
-      if (upgrade.id === 'algorithmOptimization') {
-        return (
-          <div className="text-blue-600 text-[11px]">
-            Эффективность майнинга: +15%
-          </div>
-        );
-      }
-      
-      if (upgrade.id === 'walletSecurity') {
-        return (
-          <div className="text-blue-600 text-[11px]">
-            Максимум USDT: +25%
-          </div>
-        );
-      }
+  // Формируем описание эффектов
+  let effectsDescription: string[] = [];
+  
+  // Добавляем специальные эффекты для известных исследований
+  const specialEffect = getSpecialEffectDescription(upgrade.id);
+  if (specialEffect) {
+    effectsDescription.push(specialEffect);
+  }
+  
+  // Добавляем стандартные эффекты из объекта effects
+  if (upgrade.effects) {
+    for (const [effectId, amount] of Object.entries(upgrade.effects)) {
+      effectsDescription.push(formatUpgradeEffect(effectId, Number(amount)));
     }
-    
-    return Object.entries(effects).map(([effectId, amount], index) => {
-      const formattedEffect = formatEffect(effectId, Number(amount));
-      return (
-        <div key={effectId} className="text-blue-600 text-[11px]">
-          {formattedEffect}
-        </div>
-      );
-    });
-  };
+  }
   
-  // Получение описания требуемых улучшений
-  const getRequiredUpgradesText = () => {
-    if (!upgrade.requiredUpgrades || upgrade.requiredUpgrades.length === 0) return null;
-    
-    const requiredNames = upgrade.requiredUpgrades.map((reqId: string) => {
-      const requiredUpgrade = state.upgrades[reqId];
-      return requiredUpgrade ? requiredUpgrade.name : reqId;
-    }).join(", ");
-    
-    return `Требуется: ${requiredNames}`;
-  };
-  
-  // Отображение специализации
-  const renderSpecialization = () => {
-    if (!upgrade.specialization) return null;
-    
-    return (
-      <span className="text-purple-600 text-xs ml-1">
-        {getSpecializationName(upgrade.specialization)}
-      </span>
-    );
-  };
+  // Объединяем описания эффектов в строку
+  const formattedEffects = effectsDescription.join('. ');
   
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className={`border rounded-lg ${canPurchase() ? 'bg-white' : 'bg-gray-100'} ${upgrade.purchased ? 'border-green-200 bg-green-50' : 'border-gray-200'} shadow-sm mb-2 overflow-hidden`}
-    >
-      <CollapsibleTrigger asChild>
-        <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
-          <div className="flex-1">
-            <div className="flex justify-between items-center w-full">
-              <h3 className="text-xs font-medium flex items-center">
-                {upgrade.name} 
-                {upgrade.purchased && <Sparkles className="h-3 w-3 text-amber-500 ml-1" />}
-                {!upgrade.unlocked && <Lock className="h-3 w-3 text-gray-400 ml-1" />}
-                {hasMissingDependencies() && <AlertCircle className="h-3 w-3 text-red-400 ml-1" />}
-                {renderSpecialization()}
-              </h3>
-            </div>
+    <Card className={`mb-4 ${upgrade.purchased ? 'bg-gray-50' : 'bg-white'}`}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">{upgrade.name}</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <CardDescription className="text-xs mb-2">
+          {upgrade.description}
+        </CardDescription>
+        
+        {formattedEffects && (
+          <div className="text-xs text-green-700 mb-2">
+            {formattedEffects}
           </div>
-          <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        )}
+        
+        <div className="text-xs text-gray-500 mb-3">
+          Стоимость:
+          {Object.entries(upgrade.cost).map(([resourceId, cost]) => (
+            <span key={resourceId} className="ml-2">
+              {cost} {resources[resourceId]?.name || resourceId}
+            </span>
+          ))}
         </div>
-      </CollapsibleTrigger>
-      
-      <CollapsibleContent>
-        <div className="p-2 pt-0">
-          <p className="text-[11px] text-gray-500 mt-1 mb-2">{upgrade.description}</p>
-          
-          <div className="space-y-2">
-            {!upgrade.purchased && (
-              <div className="space-y-1">
-                <h4 className="text-[11px] font-medium">Стоимость:</h4>
-                {renderCost()}
-              </div>
-            )}
-            
-            <div className="border-t pt-2 mt-2">
-              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
-              {renderEffects()}
-            </div>
-            
-            <div className="border-t pt-2 mt-2 flex justify-center">
-              {upgrade.purchased ? (
-                <span className="text-xs px-4 py-1.5 bg-green-100 text-green-600 rounded w-full text-center">
-                  Исследовано
-                </span>
-              ) : (
-                <Button
-                  onClick={handlePurchase}
-                  disabled={!canPurchase()}
-                  variant={canPurchase() ? "default" : "outline"}
-                  size="sm"
-                  className="w-full text-xs"
-                >
-                  Исследовать
-                </Button>
-              )}
-            </div>
-            
-            {hasMissingDependencies() && (
-              <div className="text-[11px] text-red-500 mt-1">
-                {getRequiredUpgradesText()}
-              </div>
-            )}
-          </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+        
+        <Button
+          variant={upgrade.purchased ? "secondary" : canAfford ? "default" : "outline"}
+          size="sm"
+          disabled={upgrade.purchased || !canAfford}
+          onClick={handlePurchase}
+          className="w-full"
+        >
+          {upgrade.purchased ? "Исследовано" : "Исследовать"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -170,7 +170,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   return newState;
 };
 
-// Обновление значений ресурсов с учетом времени
+// Обновление значений ресурсов с учетом времени - ИСПРАВЛЕНО
 const updateResourceValues = (
   resources: { [key: string]: any },
   deltaTime: number
@@ -180,8 +180,12 @@ const updateResourceValues = (
     const resource = resources[resourceId];
     if (!resource.unlocked) continue;
     
+    // Получаем текущее производство в секунду
+    const productionPerSecond = resource.perSecond || 0;
+    
     // Рассчитываем новое значение на основе производства за секунду
-    let newValue = resource.value + resource.perSecond * deltaTime;
+    // ИСПРАВЛЕНИЕ: используем productionPerSecond вместо resource.perSecond
+    let newValue = resource.value + (productionPerSecond * deltaTime);
     
     // Ограничиваем максимумом
     if (resource.max !== undefined && resource.max !== Infinity) {
@@ -192,7 +196,7 @@ const updateResourceValues = (
     resource.value = Math.max(0, newValue);
     
     // Если ресурс достиг максимума, и это важно для игрока - уведомляем
-    if (resource.perSecond > 0 && newValue >= resource.max && resource.max !== Infinity) {
+    if (productionPerSecond > 0 && newValue >= resource.max && resource.max !== Infinity) {
       console.log(`Ресурс ${resource.name} достиг максимума (${resource.max})!`);
     }
   }

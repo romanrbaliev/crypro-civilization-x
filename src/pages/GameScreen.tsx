@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
@@ -344,9 +343,7 @@ const GameScreen = () => {
               )}
             </div>
             
-            <div className="mt-auto sticky bottom-0 bg-white pb-2 pt-1">
-              <ActionButtons onAddEvent={addEvent} />
-            </div>
+            <ActionButtons onAddEvent={addEvent} />
           </div>
         </div>
       </div>
