@@ -77,7 +77,7 @@ export class ResourceProductionService {
         const requiredElectricity = homeComputerCount * electricityPerComputer;
         const availableElectricity = state.resources.electricity?.value || 0;
         
-        if (requiredElectricity > availableElectricity) {
+        if (requiredElectricity > availableElectricity && requiredElectricity > 0) {
           // Снижаем производство пропорционально доступному электричеству
           const ratio = availableElectricity / requiredElectricity;
           baseProduction *= ratio;
@@ -104,6 +104,9 @@ export class ResourceProductionService {
     
     // Применяем множитель производства
     const totalProduction = baseProduction * productionMultiplier;
+    
+    // ИСПРАВЛЕНИЕ: Проверяем, не теряется ли производство ресурсов
+    console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${totalProduction} (базовое: ${baseProduction}, множитель: ${productionMultiplier})`);
     
     return {
       ...resource,

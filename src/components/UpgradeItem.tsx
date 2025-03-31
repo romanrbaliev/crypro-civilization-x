@@ -94,29 +94,33 @@ const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
 
   return (
     <div className={`border rounded-md p-3 mb-2 ${upgrade.purchased ? 'bg-gray-50' : 'bg-white'}`}>
-      <div className="flex justify-between items-start mb-2">
-        <div className="font-semibold">{upgrade.name}</div>
+      <div className="flex justify-between items-center mb-1">
+        <div className="font-medium">{upgrade.name}</div>
       </div>
-      <div className="text-xs text-gray-600 mb-2">
+      
+      <div className="text-sm text-gray-500 mb-3">
         {upgrade.description}
       </div>
       
       {formattedEffects && (
-        <div className="text-xs text-green-700 mb-2">
-          {formattedEffects}
+        <div className="text-green-600 mb-3">
+          <div className="font-medium mb-1">Эффекты:</div>
+          <div className="text-sm">{formattedEffects}</div>
         </div>
       )}
       
-      <div className="flex flex-wrap gap-1 text-xs text-gray-500 mb-3">
-        <span>Стоимость:</span>
-        {Object.entries(upgrade.cost).map(([resourceId, cost]) => (
-          <span key={resourceId} className="ml-1">
-            {cost} {resources[resourceId]?.name || resourceId}
-          </span>
-        ))}
+      <div className="text-gray-700 mb-3">
+        <div className="font-medium mb-1">Стоимость исследования:</div>
+        <div className="text-sm">
+          {Object.entries(upgrade.cost).map(([resourceId, cost]) => (
+            <div key={resourceId} className="text-red-500">
+              {resources[resourceId]?.name || resourceId} {cost}
+            </div>
+          ))}
+        </div>
       </div>
       
-      <div className="flex justify-between mt-2">
+      <div className="flex justify-between gap-2">
         <Button
           variant={upgrade.purchased ? "secondary" : canAfford ? "default" : "outline"}
           size="sm"

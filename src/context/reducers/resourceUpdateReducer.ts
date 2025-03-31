@@ -170,10 +170,10 @@ export const processResourceUpdate = (state: GameState): GameState => {
   return newState;
 };
 
-// Обновление значений ресурсов с учетом времени - ИСПРАВЛЕНО
+// Обновление значений ресурсов с учетом времени
 const updateResourceValues = (
   resources: { [key: string]: any },
-  deltaTime: number
+  elapsedSeconds: number
 ) => {
   // Обновляем значения каждого ресурса (включая Bitcoin)
   for (const resourceId in resources) {
@@ -183,9 +183,11 @@ const updateResourceValues = (
     // Получаем текущее производство в секунду
     const productionPerSecond = resource.perSecond || 0;
     
+    // ИСПРАВЛЕНО: Для более плавного обновления используем точное значение прошедших секунд
+    const deltaProduction = productionPerSecond * elapsedSeconds;
+    
     // Рассчитываем новое значение на основе производства за секунду
-    // ИСПРАВЛЕНИЕ: используем productionPerSecond вместо resource.perSecond
-    let newValue = resource.value + (productionPerSecond * deltaTime);
+    let newValue = resource.value + deltaProduction;
     
     // Ограничиваем максимумом
     if (resource.max !== undefined && resource.max !== Infinity) {

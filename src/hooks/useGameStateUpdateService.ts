@@ -9,13 +9,13 @@ import { GameStateService } from '@/services/GameStateService';
 export function useGameStateUpdateService() {
   const { state, dispatch } = useGameState();
   
-  // Обновление ресурсов каждую секунду
+  // Обновление ресурсов каждые 0.5 секунды
   useEffect(() => {
     if (!state.gameStarted) return;
     
     const intervalId = setInterval(() => {
       dispatch({ type: 'UPDATE_RESOURCES' });
-    }, 1000);
+    }, 500);
     
     return () => clearInterval(intervalId);
   }, [state.gameStarted, dispatch]);
