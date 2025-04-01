@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -156,70 +155,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // Покупаем улучшение
       newState = processPurchaseUpgrade(state, action.payload);
       
-      // Специальная обработка для "Основы блокчейна"
-      if (
-        action.payload.upgradeId === 'blockchainBasics' || 
-        action.payload.upgradeId === 'basicBlockchain' || 
-        action.payload.upgradeId === 'blockchain_basics'
-      ) {
-        console.log(`Применяем эффекты улучшения "Основы блокчейна":`);
-        console.log(`1. Увеличиваем максимум знаний на 50%`);
-        console.log(`2. Увеличиваем скорость производства знаний на 10%`);
-        
-        // Обновляем максимум знаний (увеличиваем на 50%)
-        if (newState.resources.knowledge) {
-          newState.resources.knowledge = {
-            ...newState.resources.knowledge,
-            max: newState.resources.knowledge.max * 1.5
-          };
-        }
-        
-        // Разблокируем Криптокошелек
-        if (newState.buildings.cryptoWallet) {
-          newState.buildings.cryptoWallet = {
-            ...newState.buildings.cryptoWallet,
-            unlocked: true
-          };
-          
-          newState.unlocks = {
-            ...newState.unlocks,
-            cryptoWallet: true
-          };
-        }
-      }
-      
-      // Специальная обработка для "Основы криптовалют"
-      if (action.payload.upgradeId === 'cryptoCurrencyBasics') {
-        console.log(`Применяем эффекты улучшения "Основы криптовалют":`);
-        console.log(`1. Увеличиваем эффективность применения знаний на 10%`);
-        console.log(`2. Разблокируем майнер`);
-        
-        // Добавляем эффект увеличения эффективности применения знаний
-        if (newState.upgrades.cryptoCurrencyBasics) {
-          newState.upgrades.cryptoCurrencyBasics = {
-            ...newState.upgrades.cryptoCurrencyBasics,
-            effects: {
-              ...(newState.upgrades.cryptoCurrencyBasics.effects || {}),
-              knowledgeEfficiencyBoost: 0.1
-            }
-          };
-        }
-        
-        // Разблокируем майнер
-        if (newState.buildings.miner) {
-          newState.buildings.miner = {
-            ...newState.buildings.miner,
-            unlocked: true
-          };
-          
-          newState.unlocks = {
-            ...newState.unlocks,
-            miner: true
-          };
-          
-          console.log("gameReducer: Майнер разблокирован");
-        }
-      }
+      // ИСПРАВЛЕНИЕ: Убираем двойное применение эффектов "Основы блокчейна"
+      // Все эффекты улучшения будут применены в processPurchaseUpgrade и затем через gameStateService
       
       // Обрабатываем изменения через сервис
       return gameStateService.processUpgradePurchase(newState, action.payload.upgradeId);

@@ -37,6 +37,7 @@ export class ResourceProductionService {
             console.log(`ResourceProductionService: Практика добавляет ${practiceProduction.toFixed(2)}/сек знаний`);
           }
           
+          // ИСПРАВЛЕНИЕ: Применяем бонус от исследования "Основы блокчейна" ТОЛЬКО ОДИН РАЗ
           // Проверяем наличие исследования "Основы блокчейна" для бонуса к производству знаний
           const hasBlockchainBasics = state.upgrades.blockchainBasics?.purchased || 
                                      state.upgrades.basicBlockchain?.purchased || 
@@ -44,9 +45,13 @@ export class ResourceProductionService {
           
           // Если есть исследование, увеличиваем производство на 10%
           if (hasBlockchainBasics) {
-            const bonus = knowledgeProduction * 0.1; // +10% бонус
-            knowledgeProduction += bonus;
-            console.log(`ResourceProductionService: "Основы блокчейна" добавляют ${bonus.toFixed(2)}/сек знаний (+10%)`);
+            // Проверим, что изначальное производство больше 0, чтобы избежать лишних бонусов при нуле
+            if (knowledgeProduction > 0) {
+              // Находим базовое значение и применяем только один раз бонус
+              const bonus = knowledgeProduction * 0.1; // +10% бонус
+              knowledgeProduction += bonus;
+              console.log(`ResourceProductionService: "Основы блокчейна" добавляют ${bonus.toFixed(2)}/сек знаний (+10%)`);
+            }
           }
           
           console.log(`ResourceProductionService: скорость производства знаний=${knowledgeProduction.toFixed(2)}/сек`);

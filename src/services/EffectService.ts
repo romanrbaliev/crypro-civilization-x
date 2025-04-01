@@ -96,7 +96,7 @@ export class EffectService {
         break;
         
       case 'internetChannel':
-        // Увеличиваем скоро��ть получения знаний на 20%
+        // Увел��чиваем скоро��ть получения знаний на 20%
         // и эффективность вычислительной мощности на 5%
         // Эти эффекты будут применены в BonusCalculationService
         break;
@@ -185,20 +185,15 @@ export class EffectService {
         const currentMax = newState.resources.knowledge.max || 100;
         const newMax = currentMax * 1.5;
         
-        // Применяем бонус к производству знаний (+10%)
-        const currentProduction = newState.resources.knowledge.perSecond || 0;
-        const boost = currentProduction * 0.1; // 10% от текущего производства
+        // ИСПРАВЛЕНИЕ: НЕ изменяем напрямую baseProduction, production и perSecond 
+        // Это будет сделано в ResourceProductionService для предотвращения двойного применения
         
         newState.resources.knowledge = {
           ...newState.resources.knowledge,
-          max: newMax,
-          baseProduction: (newState.resources.knowledge.baseProduction || 0) + boost,
-          production: (newState.resources.knowledge.production || 0) + boost,
-          perSecond: (newState.resources.knowledge.perSecond || 0) + boost
+          max: newMax
         };
         
-        console.log(`EffectService: Максимум знаний у��еличен с ${currentMax} до ${newMax}`);
-        console.log(`EffectService: Производство знаний увеличено на ${boost} (10%)`);
+        console.log(`EffectService: Максимум знаний увеличен с ${currentMax} до ${newMax}`);
       } else {
         console.warn("EffectService: Не найден ресурс знания при применении эффектов");
       }
@@ -414,14 +409,10 @@ export class EffectService {
     
     // Сбрасываем baseProduction для ресурсов, оставляя только базовые эффекты
     if (newState.resources.knowledge) {
-      // Сохраняем базовый эффект от исследования "Основы блокчейна"
-      const hasBlockchainBasics = newState.upgrades.blockchainBasics?.purchased ||
-                                 newState.upgrades.basicBlockchain?.purchased ||
-                                 newState.upgrades.blockchain_basics?.purchased;
-      
+      // ИСПРАВЛЕНИЕ: Не добавляем базовый эффект здесь, это будет сделано в ResourceProductionService
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
-        baseProduction: hasBlockchainBasics ? 0.1 : 0
+        baseProduction: 0
       };
     }
     

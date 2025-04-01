@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -83,21 +82,9 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log(`Максимум знаний установлен на ${newMax}`);
     }
     
-    // 2. Увеличиваем скорость производства знаний на 10% 
-    // ВАЖНО: Напрямую изменяем perSecond и production в дополнение к эффектам
-    if (newState.resources.knowledge) {
-      const currentProduction = newState.resources.knowledge.perSecond || 0;
-      const boost = currentProduction * 0.1;
-      
-      newState.resources.knowledge = {
-        ...newState.resources.knowledge,
-        baseProduction: (newState.resources.knowledge.baseProduction || 0) + boost,
-        production: (newState.resources.knowledge.production || 0) + boost,
-        perSecond: (newState.resources.knowledge.perSecond || 0) + boost
-      };
-      
-      console.log(`Производство знаний увеличено на 10%: было ${currentProduction}, добавлено ${boost}`);
-    }
+    // 2. ИСПРАВЛЕНИЕ: Не изменяем perSecond и production здесь, 
+    // иначе будет двойное применение с ResourceProductionService
+    // Просто устанавливаем эффекты улучшения для корректного применения в других местах
     
     // Обновляем эффекты улучшения, чтобы BonusCalculationService правильно их учитывал
     newState.upgrades[upgradeId] = {
