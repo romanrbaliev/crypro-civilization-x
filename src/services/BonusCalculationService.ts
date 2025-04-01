@@ -1,134 +1,155 @@
-import { GameState } from '@/context/types';
 
 /**
- * Сервис для расчёта бонусов от исследований и зданий
+ * Сервис для расчета бонусов от исследований, зданий и других источников
  */
 export class BonusCalculationService {
+  
   /**
    * Расчет бонусов для конкретного ресурса
+   * @param state Состояние игры
+   * @param resourceId ID ресурса
+   * @returns Объект с множителями производства и другими бонусами
    */
-  calculateResourceBonuses(state: GameState, resourceId: string): { productionMultiplier: number } {
-    console.log(`BonusCalculationService: Расчет бонусов для ресурса ${resourceId}`);
+  calculateResourceBonuses(state: any, resourceId: string): { productionMultiplier: number, maxMultiplier: number } {
+    let productionMultiplier = 1;
+    let maxMultiplier = 1;
     
-    let productionMultiplier = 1; // Базовый множитель
-    
-    // Проверка наличия исследований для улучшения знаний
-    switch (resourceId) {
-      case 'knowledge':
-        // Проверяем наличие базовых исследований
-        if (state.upgrades['blockchain_basics']?.purchased || 
-            state.upgrades['blockchainBasics']?.purchased || 
-            state.upgrades['basicBlockchain']?.purchased) {
-          productionMultiplier *= 1.1; // +10% к получению знаний
-          console.log("BonusCalculationService: Применен бонус Основы блокчейна +10% к знаниям");
+    try {
+      // Бонусы от исследований
+      if (state.upgrades) {
+        const upgrades = Object.values(state.upgrades) as any[];
+        
+        for (const upgrade of upgrades) {
+          if (!upgrade.purchased) continue;
+          
+          // Используем effects или effect, в зависимости от того, что доступно
+          const effects = upgrade.effects || upgrade.effect || {};
+          
+          // Логируем для отладки
+          if (resourceId === 'knowledge' && Object.keys(effects).length > 0) {
+            console.log(`BonusCalculation: Исследование ${upgrade.name} имеет эффекты:`, effects);
+          }
+          
+          // Применяем увеличение производства ресурса
+          if (effects[`${resourceId}ProductionBoost`] !== undefined) {
+            const boost = Number(effects[`${resourceId}ProductionBoost`]);
+            productionMultiplier += boost;
+            
+            if (resourceId === 'knowledge') {
+              console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к производству ${resourceId}`);
+            }
+          }
+          
+          // Применяем бонусы к максимальному значению
+          if (effects[`${resourceId}MaxBoost`] !== undefined) {
+            const boost = Number(effects[`${resourceId}MaxBoost`]);
+            maxMultiplier += boost;
+            
+            if (resourceId === 'knowledge') {
+              console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к максимуму ${resourceId}`);
+            }
+          }
+          
+          // Обрабатываем специальные эффекты для конкретных исследований
+          if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
+            if (resourceId === 'knowledge') {
+              // Увеличиваем производство знаний на 10%
+              productionMultiplier += 0.1;
+              // Увеличиваем максимум знаний на 50%
+              maxMultiplier += 0.5;
+              console.log(`BonusCalculation: Основы блокчейна увеличивают производство знаний на +10%, максимум на +50%`);
+            }
+          }
         }
-        
-        // Проверяем наличие интернет-канала для увеличения скорости получения знаний
-        if (state.buildings.internetConnection?.count > 0) {
-          const internetBonus = 0.2; // +20% к скорости получения знаний
-          productionMultiplier *= (1 + internetBonus);
-          console.log(`BonusCalculationService: Применен бонус Интернет-канала +${internetBonus * 100}% к знаниям`);
-        }
-        
-        break;
-        
-      case 'electricity':
-        // Добавим бонусы для производства электричества
-        if (state.upgrades?.energyEfficiency?.purchased) {
-          productionMultiplier *= 1.15; // +15% к производству электричества
-          console.log("BonusCalculationService: Применен бонус Энергоэффективности +15% к электричеству");
-        }
-        break;
-        
-      case 'computingPower':
-        // Бонусы для вычислительной мощности
-        if (state.upgrades?.algorithmOptimization?.purchased) {
-          productionMultiplier *= 1.15; // +15% к вычислительной мощности
-          console.log("BonusCalculationService: Применен бонус Оптимизации алгоритмов +15% к вычислительной мощности");
-        }
-        
-        // Проверяем наличие системы охлаждения
-        if (state.buildings.coolingSystem?.count > 0) {
-          const coolingBonus = 0.2; // +20% к эффективности вычислений
-          productionMultiplier *= (1 + coolingBonus);
-          console.log(`BonusCalculationService: Применен бонус Системы охлаждения +${coolingBonus * 100}% к вычислительной мощности`);
-        }
-        break;
-        
-      case 'bitcoin':
-        // Бонусы для майнинга Bitcoin
-        if (state.miningParams?.miningEfficiency > 1) {
-          productionMultiplier *= state.miningParams.miningEfficiency;
-          console.log(`BonusCalculationService: Применен множитель эффективности майнинга ${state.miningParams.miningEfficiency}`);
-        }
-        break;
-    }
-    
-    // Возвращаем рассчитанные бонусы
-    return { productionMultiplier };
-  }
-
-  /**
-   * Применяет бонусы от покупки улучшения
-   */
-  applyUpgradeBonuses(state: GameState, upgradeId: string): GameState {
-    console.log(`BonusCalculationService: Применение бонусов от улучшения ${upgradeId}`);
-    
-    let updatedState = { ...state };
-    
-    // Логика применения бонусов в зависимости от улучшения
-    switch (upgradeId) {
-      case 'blockchainBasics':
-      case 'blockchain_basics':
-      case 'basicBlockchain':
-        // Увеличиваем максимум знаний на 50%
-        if (updatedState.resources.knowledge) {
-          updatedState.resources.knowledge = {
-            ...updatedState.resources.knowledge,
-            max: updatedState.resources.knowledge.max * 1.5,
-            baseProduction: (updatedState.resources.knowledge.baseProduction || 0) + 0.1
-          };
-          console.log(`BonusCalculationService: Применен бонус "Основы блокчейна": максимум знаний увеличен до ${updatedState.resources.knowledge.max}`);
-          console.log(`BonusCalculationService: Применен бонус "Основы блокчейна": базовое производство знаний увеличено до ${updatedState.resources.knowledge.baseProduction}`);
-        }
-        break;
-        
-      case 'cryptoCurrencyBasics':
-        // Увеличиваем эффективность конвертации знаний в USDT на 10%
-        console.log(`BonusCalculationService: Применен бонус "Основы криптовалют": +10% к эффективности конвертации знаний`);
-        // Этот эффект учитывается в processApplyKnowledgeAction
-        break;
-        
-      case 'algorithmOptimization':
-        // Увеличиваем эффективность майнинга на 15%
-        updatedState.miningParams = {
-          ...updatedState.miningParams,
-          miningEfficiency: (updatedState.miningParams?.miningEfficiency || 1) * 1.15
-        };
-        console.log(`BonusCalculationService: Применен бонус "Оптимизация алгоритмов": эффективность майнинга увеличена до ${updatedState.miningParams.miningEfficiency}`);
-        break;
-        
-      // Другие улучшения по мере необходимости
-    }
-    
-    return updatedState;
-  }
-
-  /**
-   * Пересчитывает все бонусы
-   */
-  recalculateAllBonuses(state: GameState): GameState {
-    console.log("BonusCalculationService: Пересчет всех бонусов");
-    
-    let updatedState = { ...state };
-    
-    // Применяем эффекты от всех купленных улучшений
-    for (const upgradeId in state.upgrades) {
-      if (state.upgrades[upgradeId]?.purchased) {
-        updatedState = this.applyUpgradeBonuses(updatedState, upgradeId);
       }
+      
+      // Бонусы от зданий
+      if (state.buildings) {
+        for (const buildingId in state.buildings) {
+          const building = state.buildings[buildingId];
+          if (!building.count || building.count <= 0) continue;
+          
+          // Если здание имеет бонусы к производству
+          const productionBoost = building.productionBoost;
+          if (typeof productionBoost === 'object' && productionBoost[resourceId]) {
+            const totalBoost = Number(productionBoost[resourceId]) * building.count;
+            productionMultiplier += totalBoost;
+            
+            if (resourceId === 'knowledge' && totalBoost > 0) {
+              console.log(`BonusCalculation: Здание ${building.name} (${building.count} шт.) добавляет +${totalBoost * 100}% к производству ${resourceId}`);
+            }
+          }
+          
+          // Если у здания есть специальные эффекты
+          if (buildingId === 'internetConnection' && resourceId === 'knowledge') {
+            // Интернет-канал увеличивает скорость получения знаний
+            const boost = 0.2 * building.count; // +20% за каждый уровень
+            productionMultiplier += boost;
+            console.log(`BonusCalculation: Интернет-канал (${building.count} шт.) увеличивает скорость получения знаний на +${boost * 100}%`);
+          }
+        }
+      }
+      
+      // Другие источники бонусов можно добавить здесь
+      
+    } catch (error) {
+      console.error(`Ошибка при расчёте бонусов для ресурса ${resourceId}:`, error);
     }
     
-    return updatedState;
+    return { productionMultiplier, maxMultiplier };
+  }
+  
+  /**
+   * Расчет эффективности майнинга
+   * @param state Состояние игры
+   * @returns Коэффициент эффективности майнинга
+   */
+  calculateMiningEfficiency(state: any): number {
+    let efficiency = 1;
+    
+    try {
+      // Бонусы от исследований
+      if (state.upgrades) {
+        // Оптимизация алгоритмов: +15% к эффективности майнинга
+        if (state.upgrades.algorithmOptimization?.purchased) {
+          efficiency += 0.15;
+        }
+        
+        // Proof of Work: +25% к эффективности майнинга
+        if (state.upgrades.proofOfWork?.purchased) {
+          efficiency += 0.25;
+        }
+      }
+      
+      // Другие источники бонусов
+      
+    } catch (error) {
+      console.error("Ошибка при расчёте эффективности майнинга:", error);
+    }
+    
+    return efficiency;
+  }
+  
+  /**
+   * Расчет энергоэффективности (снижение потребления электричества)
+   * @param state Состояние игры
+   * @returns Коэффициент энергоэффективности (меньше 1 означает снижение потребления)
+   */
+  calculateEnergyEfficiency(state: any): number {
+    let efficiency = 1;
+    
+    try {
+      // Энергоэффективные компоненты: -10% к потреблению электричества
+      if (state.upgrades.energyEfficientComponents?.purchased) {
+        efficiency -= 0.1;
+      }
+      
+      // Другие исследования
+      
+    } catch (error) {
+      console.error("Ошибка при расчёте энергоэффективности:", error);
+    }
+    
+    return Math.max(0.5, efficiency); // Минимальное значение 0.5 (не меньше 50% потребления)
   }
 }

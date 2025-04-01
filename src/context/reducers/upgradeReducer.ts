@@ -1,41 +1,54 @@
 
-import { GameState, Upgrade } from '../types';
-import { hasEnoughResources } from '../utils/resourceUtils';
+import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { unlockRelatedUpgrades, unlockRelatedBuildings } from '@/utils/researchUtils';
-import { checkUpgradeUnlocks, checkAllUnlocks } from '@/utils/unlockManager';
 
-// Обработка покупки улучшений
-export const processPurchaseUpgrade = (
-  state: GameState,
-  payload: { upgradeId: string }
-): GameState => {
+// Обработчик покупки улучшения
+export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: string }): GameState => {
   const { upgradeId } = payload;
+  
+  // Проверяем, существует ли такое улучшение
+  if (!state.upgrades[upgradeId]) {
+    console.log(`Улучшение с ID ${upgradeId} не найдено`);
+    return state;
+  }
+  
   const upgrade = state.upgrades[upgradeId];
   
-  // Если улучшение не существует или уже куплено, возвращаем текущее состояние
-  if (!upgrade || upgrade.purchased) {
-    console.warn(`Попытка купить недоступное улучшение: ${upgradeId}`);
+  // Проверяем, разблокировано ли улучшение
+  if (!upgrade.unlocked) {
+    console.log(`Улучшение ${upgrade.name} еще не разблокировано`);
+    return state;
+  }
+  
+  // Проверяем, уже куплено ли улучшение
+  if (upgrade.purchased) {
+    console.log(`Улучшение ${upgrade.name} уже приобретено`);
     return state;
   }
   
   // Проверяем, достаточно ли ресурсов для покупки
-  if (!hasEnoughResources(state, upgrade.cost)) {
-    console.warn(`Недостаточно ресурсов для покупки ${upgrade.name}`);
-    return state;
+  const cost = upgrade.cost;
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    const resource = state.resources[resourceId];
+    if (!resource || resource.value < amount) {
+      console.log(`Недостаточно ресурса ${resourceId} для покупки ${upgrade.name}`);
+      return state;
+    }
   }
   
-  // Вычитаем ресурсы
-  const newResources = { ...state.resources };
-  for (const [resourceId, cost] of Object.entries(upgrade.cost)) {
-    newResources[resourceId] = {
-      ...newResources[resourceId],
-      value: Math.max(0, newResources[resourceId].value - cost) // Предотвращаем отрицательные значения
+  // Создаем копии для изменения
+  const updatedResources = { ...state.resources };
+  
+  // Вычитаем стоимость
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    updatedResources[resourceId] = {
+      ...updatedResources[resourceId],
+      value: updatedResources[resourceId].value - Number(amount)
     };
   }
   
-  // Помечаем улучшение как купленное
-  const newUpgrades = {
+  // Обновляем улучшение
+  const updatedUpgrades = {
     ...state.upgrades,
     [upgradeId]: {
       ...upgrade,
@@ -43,168 +56,59 @@ export const processPurchaseUpgrade = (
     }
   };
   
-  console.log(`Куплено улучшение ${upgrade.name} за:`, upgrade.cost);
-  safeDispatchGameEvent(`Исследование "${upgrade.name}" завершено`, "success");
-  
+  // Создаем новое состояние с обновлениями
   let newState = {
     ...state,
-    resources: newResources,
-    upgrades: newUpgrades
+    resources: updatedResources,
+    upgrades: updatedUpgrades
   };
   
-  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных исследований
-  newState = unlockRelatedUpgrades(newState, upgradeId);
-  
-  // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных зданий
-  newState = unlockRelatedBuildings(newState, upgradeId);
-  
-  // Особая обработка для "Основы блокчейна" - сразу применяем эффекты
+  // Применяем специальные эффекты для конкретных улучшений
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-    console.log("Применяем эффекты Основ блокчейна немедленно");
+    console.log("Применяем специальные эффекты 'Основы блокчейна'");
     
-    // Обновляем максимум знаний (+50%)
+    // 1. Увеличиваем макс. хранение знаний на 50%
     if (newState.resources.knowledge) {
-      const currentMax = newState.resources.knowledge.max;
-      const newMax = currentMax * 1.5; // Увеличиваем максимум на 50%
+      const currentMax = newState.resources.knowledge.max || 100;
+      const newMax = currentMax * 1.5;
       
-      // ВАЖНО: Корректно применяем бонус к производству знаний (+10%)
-      // и больше нигде не дублируем этот эффект!
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
-        max: newMax, // Устанавливаем новый максимум
-        baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1 // Увеличиваем базовое производство на 0.1 (10%)
+        max: newMax
       };
       
-      console.log(`Обновлен максимум знаний: ${currentMax} -> ${newMax}`);
-      console.log(`Базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
-      
-      // Добавляем явное уведомление для пользователя
-      safeDispatchGameEvent(`Максимум знаний увеличен на 50%: до ${newMax.toFixed(0)}`, "success");
-      safeDispatchGameEvent(`Скорость получения знаний увеличена на 10%`, "success");
-    } else {
-      console.warn("Не найден ресурс знания при обработке эффектов Основ блокчейна");
+      console.log(`Максимум знаний увеличен с ${currentMax} до ${newMax}`);
     }
     
-    // Применяем эффекты улучшения единожды
-    newState = applyUpgradeEffects(newState, upgradeId, newState.upgrades[upgradeId]);
+    // 2. Увеличиваем скорость производства знаний на 10%
+    // Это будет обрабатываться сервисом BonusCalculationService
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Основы блокчейна: +50% к макс. хранению знаний, +10% к скорости их получения", "success");
   }
   
-  // После покупки исследования проверяем все возможные разблокировки в централизованной системе
-  newState = checkAllUnlocks(newState);
+  if (upgradeId === 'cryptoWalletSecurity' || upgradeId === 'walletSecurity') {
+    console.log("Применяем эффекты 'Безопасность криптокошельков'");
+    
+    // Увеличиваем макс. хранение USDT на 25%
+    if (newState.resources.usdt) {
+      const currentMax = newState.resources.usdt.max || 50;
+      const newMax = currentMax * 1.25;
+      
+      newState.resources.usdt = {
+        ...newState.resources.usdt,
+        max: newMax
+      };
+      
+      console.log(`Максимум USDT увеличен с ${currentMax} до ${newMax}`);
+    }
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Безопасность кошельков: +25% к макс. хранению USDT", "info");
+  }
+  
+  // Логируем покупку
+  console.log(`Куплено улучшение: ${upgrade.name}`);
   
   return newState;
 };
-
-// Выделенная функция для применения эффектов улучшений
-function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgrade): GameState {
-  let newState = { ...state };
-  
-  // Исправление для основ блокчейна - применяем эффекты только один раз!
-  if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-    // Эффекты уже применены выше в processPurchaseUpgrade, не дублируем их здесь
-    console.log("Эффекты 'Основы блокчейна' уже применены выше, пропускаем повторное применение");
-  }
-  
-  // Применяем эффекты для конкретных улучшений
-  if (upgradeId === 'algorithmOptimization') {
-    console.log("Применение эффектов 'Оптимизация алгоритмов': +15% к эффективности майнинга");
-    newState = {
-      ...newState,
-      miningParams: {
-        ...newState.miningParams,
-        miningEfficiency: (newState.miningParams?.miningEfficiency || 1) * 1.15
-      }
-    };
-  }
-  
-  if (upgradeId === 'cryptoCurrencyBasics') {
-    console.log("Применение эффектов 'Основы криптовалют': +10% к эффективности");
-    // Эффекты этого исследования обрабатываются в processApplyKnowledge
-  }
-  
-  // Применяем общие эффекты улучшения
-  if (upgrade.effects) {
-    // Обработка каждого эффекта улучшения
-    for (const [effectId, amount] of Object.entries(upgrade.effects)) {
-      if (effectId === 'knowledgeBoost') {
-        // Увеличиваем базовый прирост знаний
-        const currentBase = newState.resources.knowledge.baseProduction || 0;
-        const increase = Number(amount);
-        
-        newState.resources.knowledge = {
-          ...newState.resources.knowledge,
-          baseProduction: currentBase + increase
-        };
-        
-        console.log(`Применен эффект knowledgeBoost (+${increase}): увеличение с ${currentBase} до ${newState.resources.knowledge.baseProduction}`);
-      }
-      
-      if (effectId === 'knowledgeMaxBoost') {
-        // Увеличиваем максимум знаний
-        const currentMax = newState.resources.knowledge.max;
-        const increase = currentMax * Number(amount);
-        
-        newState.resources.knowledge = {
-          ...newState.resources.knowledge,
-          max: currentMax + increase
-        };
-        
-        console.log(`Применен эффект knowledgeMaxBoost: увеличение с ${currentMax} до ${newState.resources.knowledge.max}`);
-      }
-      
-      if (effectId === 'usdtMaxBoost') {
-        // Увеличиваем максимум USDT
-        const currentMax = newState.resources.usdt.max;
-        const increase = currentMax * Number(amount);
-        
-        newState.resources.usdt = {
-          ...newState.resources.usdt,
-          max: currentMax + increase
-        };
-        
-        console.log(`Применен эффект usdtMaxBoost: увеличение с ${currentMax} до ${newState.resources.usdt.max}`);
-      }
-      
-      if (effectId === 'miningEfficiencyBoost') {
-        // Увеличиваем эффективность майнинга
-        const currentEfficiency = newState.miningParams?.miningEfficiency || 1;
-        const newEfficiency = currentEfficiency * (1 + Number(amount));
-        
-        newState = {
-          ...newState,
-          miningParams: {
-            ...newState.miningParams,
-            miningEfficiency: newEfficiency
-          }
-        };
-        
-        console.log(`Применен эффект miningEfficiencyBoost: увеличение с ${currentEfficiency} до ${newEfficiency}`);
-      }
-      
-      if (effectId === 'electricityEfficiencyBoost') {
-        // Увеличиваем эффективность электричества
-        if (newState.resources.electricity) {
-          const currentEfficiency = newState.resources.electricity.boosts?.efficiency || 1;
-          const newEfficiency = currentEfficiency * (1 + Number(amount));
-          
-          newState.resources.electricity = {
-            ...newState.resources.electricity,
-            boosts: {
-              ...(newState.resources.electricity.boosts || {}),
-              efficiency: newEfficiency
-            }
-          };
-          
-          console.log(`Применен эффект electricityEfficiencyBoost: увеличение с ${currentEfficiency} до ${newEfficiency}`);
-        }
-      }
-      
-      console.log(`Обработан эффект ${effectId}: ${amount}`);
-    }
-  }
-  
-  return newState;
-}
-
-// Необходимый импорт для обновления ресурсов
-import { ResourceProductionService } from '@/services/ResourceProductionService';

@@ -1,60 +1,110 @@
-
 import { GameState } from '../types';
+import { toast } from '@/components/ui/use-toast';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
-// Обработка применения знаний для получения USDT
+// Обработчик для применения знаний
 export const processApplyKnowledge = (state: GameState): GameState => {
-  console.log("processApplyKnowledge: Начало обработки применения знаний");
+  console.log("Начало обработки применения знаний");
   
-  // Проверяем наличие достаточных знаний
-  if (!state.resources.knowledge || state.resources.knowledge.value < 10) {
-    console.warn("Недостаточно знаний для применения");
+  // Проверка достаточности знаний
+  const knowledgeValue = state.resources.knowledge?.value || 0;
+  
+  // Требуем минимум 10 знаний для конвертации
+  const minKnowledgeRequired = 10;
+  if (knowledgeValue < minKnowledgeRequired) {
+    safeDispatchGameEvent("Недостаточно знаний для применения! Требуется как минимум 10.", "warning");
     return state;
   }
   
-  // Базовая конверсия: 10 знаний -> 1 USDT
-  const knowledgeCost = 10;
-  const baseUsdtGain = 1;
+  // Определяем количество знаний для применения (кратное 10)
+  const conversions = Math.floor(knowledgeValue / 10);
   
-  // Применяем бонусы эффективности (если есть улучшение "Основы криптовалют")
-  const cryptoCurrencyBasics = state.upgrades.cryptoCurrencyBasics;
-  const efficiencyBonus = cryptoCurrencyBasics && cryptoCurrencyBasics.purchased ? 0.1 : 0; // +10% если исследование куплено
-  const usdtGain = Math.floor(baseUsdtGain * (1 + efficiencyBonus));
+  // Базовая награда: 10 знаний = 1 USDT
+  let usdtRate = 1;
+  let usdtReward = conversions * usdtRate;
   
-  // Обновляем ресурсы
-  const updatedResources = { ...state.resources };
+  // Применяем бонус эффективности, если есть улучшения
+  if (state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased) {
+    // 10% бонус от исследования "Основы криптовалют"
+    const efficiencyBonus = 0.1;
+    usdtReward = Math.floor(usdtReward * (1 + efficiencyBonus));
+    console.log(`Применен бонус эффективности: ${efficiencyBonus * 100}%, награда: ${usdtReward} USDT`);
+  }
   
-  // Уменьшаем знания
-  updatedResources.knowledge = {
-    ...updatedResources.knowledge,
-    value: Math.max(0, updatedResources.knowledge.value - knowledgeCost)
+  // Обновляем счетчик применений знаний
+  const newCounter = {
+    ...state.counters,
+    applyKnowledge: state.counters.applyKnowledge 
+      ? (typeof state.counters.applyKnowledge === 'object' 
+          ? { ...state.counters.applyKnowledge, value: state.counters.applyKnowledge.value + 1 }
+          : state.counters.applyKnowledge + 1)
+      : { id: 'applyKnowledge', name: 'Применение знаний', value: 1 }
   };
   
-  // Увеличиваем счетчик применения знаний
-  let newCounters = { ...state.counters };
-  if (!newCounters.applyKnowledge) {
-    newCounters.applyKnowledge = {
-      id: 'applyKnowledge',
-      name: 'Применение знаний',
-      value: 1
-    };
-  } else {
-    newCounters.applyKnowledge = {
-      ...newCounters.applyKnowledge,
-      value: newCounters.applyKnowledge.value + 1
+  // Создаем копию ресурсов для изменения
+  const updatedResources = { ...state.resources };
+  
+  // Уменьшаем количество знаний (используем ровно кратное 10)
+  const usedKnowledge = conversions * 10;
+  if (updatedResources.knowledge) {
+    updatedResources.knowledge = {
+      ...updatedResources.knowledge,
+      value: updatedResources.knowledge.value - usedKnowledge
     };
   }
   
-  console.log(`processApplyKnowledge: Обновлен счетчик применения знаний: ${newCounters.applyKnowledge.value}`);
+  // Проверяем, существует ли уже USDT
+  let updatedUnlocks = { ...state.unlocks };
   
-  // Инициализируем или обновляем USDT
-  if (!updatedResources.usdt || !updatedResources.usdt.unlocked) {
-    // Если USDT еще не существует или не разблокирован - создаем его
+  // Проверка, был ли этот первый обмен знаний (для разблокировки USDT)
+  const isFirstApply = !state.counters.applyKnowledge || 
+                      (typeof state.counters.applyKnowledge === 'object' && state.counters.applyKnowledge.value === 0) ||
+                      state.counters.applyKnowledge === 0;
+  
+  // Если это первая конвертация, разблокируем USDT
+  if (isFirstApply) {
+    updatedUnlocks.usdt = true;
+    console.log("USDT разблокирован при первом применении знаний");
+    safeDispatchGameEvent("Разблокирован ресурс: USDT!", "success");
+    
+    // Создаем ресурс USDT, если он еще не существует
+    if (!updatedResources.usdt) {
+      updatedResources.usdt = {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стейблкоин, привязанный к стоимости доллара США',
+        value: 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 50,
+        unlocked: true,
+        type: 'currency',
+        icon: 'dollar'
+      };
+    } else {
+      // Или просто отмечаем как разблокированный
+      updatedResources.usdt = {
+        ...updatedResources.usdt,
+        unlocked: true
+      };
+    }
+  }
+  
+  // Добавляем заработанный USDT
+  if (updatedResources.usdt) {
+    updatedResources.usdt = {
+      ...updatedResources.usdt,
+      value: (updatedResources.usdt.value || 0) + usdtReward,
+      unlocked: true
+    };
+  } else {
+    // Создаем ресурс USDT, если он не существует
     updatedResources.usdt = {
       id: 'usdt',
       name: 'USDT',
       description: 'Стейблкоин, привязанный к стоимости доллара США',
-      value: usdtGain,
+      value: usdtReward,
       baseProduction: 0,
       production: 0,
       perSecond: 0,
@@ -63,124 +113,25 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       type: 'currency',
       icon: 'dollar'
     };
-    
-    console.log("processApplyKnowledge: USDT создан и разблокирован");
-  } else {
-    // Если USDT уже существует - добавляем к нему значение
-    updatedResources.usdt = {
-      ...updatedResources.usdt,
-      value: Math.min(updatedResources.usdt.value + usdtGain, updatedResources.usdt.max),
-      unlocked: true
-    };
-    
-    console.log(`processApplyKnowledge: USDT обновлен, текущее значение: ${updatedResources.usdt.value}`);
   }
   
+  console.log(`Применение знаний: использовано ${usedKnowledge} знаний, получено ${usdtReward} USDT`);
+  
+  // Возвращаем обновленное состояние
   return {
     ...state,
     resources: updatedResources,
-    counters: newCounters,
-    unlocks: {
-      ...state.unlocks,
-      usdt: true,  // Всегда устанавливаем флаг разблокировки USDT
-      applyKnowledge: true // Устанавливаем флаг разблокировки применения знаний
-    }
+    unlocks: updatedUnlocks,
+    counters: newCounter
   };
 };
 
-// Обработка применения всех знаний
+// Обработчик для применения всех знаний
 export const processApplyAllKnowledge = (state: GameState): GameState => {
-  console.log("processApplyAllKnowledge: Начало обработки применения всех знаний");
-  
-  // Проверяем наличие достаточных знаний
-  if (!state.resources.knowledge || state.resources.knowledge.value < 10) {
-    console.warn("Недостаточно знаний для применения");
-    return state;
-  }
-  
-  // Базовая конверсия: 10 знаний -> 1 USDT
-  const knowledgeCost = 10;
-  const baseUsdtGain = 1;
-  
-  // Применяем бонусы эффективности (если есть улучшение "Основы криптовалют")
-  const cryptoCurrencyBasics = state.upgrades.cryptoCurrencyBasics;
-  const efficiencyBonus = cryptoCurrencyBasics && cryptoCurrencyBasics.purchased ? 0.1 : 0; // +10% если исследование куплено
-  const actualEfficiencyBonus = 1 + efficiencyBonus;
-  
-  const availableKnowledge = state.resources.knowledge.value;
-  const conversions = Math.floor(availableKnowledge / knowledgeCost);
-  const totalKnowledgeSpent = conversions * knowledgeCost;
-  const totalUsdtGain = Math.floor(conversions * baseUsdtGain * actualEfficiencyBonus);
-  
-  // Обновляем ресурсы
-  const updatedResources = { ...state.resources };
-  
-  // Уменьшаем знания
-  updatedResources.knowledge = {
-    ...updatedResources.knowledge,
-    value: Math.max(0, updatedResources.knowledge.value - totalKnowledgeSpent)
-  };
-  
-  // Увеличиваем счетчик применения знаний (за каждую конверсию)
-  let newCounters = { ...state.counters };
-  if (!newCounters.applyKnowledge) {
-    newCounters.applyKnowledge = {
-      id: 'applyKnowledge',
-      name: 'Применение знаний',
-      value: conversions
-    };
-  } else {
-    newCounters.applyKnowledge = {
-      ...newCounters.applyKnowledge,
-      value: newCounters.applyKnowledge.value + conversions
-    };
-  }
-  
-  console.log(`processApplyAllKnowledge: Обновлен счетчик применения знаний: +${conversions}, всего: ${newCounters.applyKnowledge.value}`);
-  
-  // Инициализируем или обновляем USDT
-  if (!updatedResources.usdt || !updatedResources.usdt.unlocked) {
-    // Если USDT еще не существует или не разблокирован - создаем его
-    updatedResources.usdt = {
-      id: 'usdt',
-      name: 'USDT',
-      description: 'Стейблкоин, привязанный к стоимости доллара США',
-      value: totalUsdtGain,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0,
-      max: 50,
-      unlocked: true,
-      type: 'currency',
-      icon: 'dollar'
-    };
-    
-    console.log(`processApplyAllKnowledge: USDT создан и разблокирован, значение: ${totalUsdtGain}`);
-  } else {
-    // Если USDT уже существует - добавляем к нему значение
-    const newValue = Math.min(updatedResources.usdt.value + totalUsdtGain, updatedResources.usdt.max);
-    updatedResources.usdt = {
-      ...updatedResources.usdt,
-      value: newValue,
-      unlocked: true
-    };
-    
-    console.log(`processApplyAllKnowledge: USDT обновлен, текущее значение: ${newValue}`);
-  }
-  
-  return {
-    ...state,
-    resources: updatedResources,
-    counters: newCounters,
-    unlocks: {
-      ...state.unlocks,
-      usdt: true,  // Всегда устанавливаем флаг разблокировки USDT
-      applyKnowledge: true // Устанавливаем флаг разблокировки применения знаний
-    }
-  };
+  return processApplyKnowledge(state);
 };
 
-// Обработка использования вычислительной мощности для майнинга
+// Обработчик для работы с вычислительной мощностью (майнинг)
 export const processMiningPower = (state: GameState): GameState => {
   // Проверяем наличие достаточной вычислительной мощности
   if (!state.resources.computingPower || state.resources.computingPower.value < 10) {
@@ -241,7 +192,7 @@ export const processMiningPower = (state: GameState): GameState => {
   };
 };
 
-// Обработка обмена Bitcoin на USDT
+// Обработчик для обмена Bitcoin на USDT
 export const processExchangeBtc = (state: GameState): GameState => {
   // Проверяем наличие Bitcoin для обмена
   if (!state.resources.bitcoin || state.resources.bitcoin.value <= 0) {
@@ -298,55 +249,92 @@ export const processExchangeBtc = (state: GameState): GameState => {
   };
 };
 
-// Обработка покупки практики
+// Обработчик покупки практики
 export const processPracticePurchase = (state: GameState): GameState => {
-  console.log("processPracticePurchase: Начало покупки практики");
-  
-  // Получаем текущий уровень практики
-  const currentLevel = state.buildings.practice ? state.buildings.practice.count : 0;
-  const baseCost = 10; // Базовая стоимость практики (согласно таблице)
-  const costMultiplier = 1.12; // Множитель стоимости (обновленный согласно таблице)
-  
-  // Рассчитываем стоимость следующего уровня
-  const cost = Math.floor(baseCost * Math.pow(costMultiplier, currentLevel));
-  
-  // Проверяем достаточно ли ресурсов
-  if (!state.resources.usdt || state.resources.usdt.value < cost) {
-    console.warn(`Недостаточно USDT для покупки практики. Требуется: ${cost}, имеется: ${state.resources.usdt?.value}`);
+  // Проверка наличия достаточных средств
+  if (!state.resources.usdt || state.resources.usdt.value < 10) {
+    console.log("Недостаточно средств для покупки практики");
     return state;
   }
   
-  // Создаем или обновляем здание практики
-  const updatedBuildings = { ...state.buildings };
-  if (!updatedBuildings.practice) {
-    updatedBuildings.practice = {
-      id: 'practice',
-      name: 'Практика',
-      description: 'Автоматическое накопление знаний',
-      cost: { usdt: 10 },
-      count: 1,
-      unlocked: true,
-      costMultiplier: 1.12, // Согласно таблице
-      production: { knowledge: 0.63 }, // Согласно таблице
-      consumption: {},
-      productionBoost: 0
+  const buildingId = 'practice';
+  
+  // Получаем текущее здание практики
+  const currentBuilding = state.buildings[buildingId];
+  
+  // Если здания нет в списке, добавляем его
+  if (!currentBuilding) {
+    console.log("Здание практики не найдено, создаем новое");
+    
+    // Создаем обновленные здания
+    const newBuildings = {
+      ...state.buildings,
+      [buildingId]: {
+        id: buildingId,
+        name: 'Практика',
+        description: 'Автоматическое получение 1 знания в секунду',
+        type: 'building',
+        cost: { usdt: 10 },
+        costMultiplier: 1.12,
+        production: { knowledge: 1 },
+        count: 1,
+        unlocked: true,
+        productionBoost: 0
+      }
     };
-  } else {
-    updatedBuildings.practice = {
-      ...updatedBuildings.practice,
-      count: updatedBuildings.practice.count + 1
+    
+    // Обновляем ресурсы
+    const newResources = {
+      ...state.resources,
+      usdt: {
+        ...state.resources.usdt,
+        value: state.resources.usdt.value - 10
+      }
+    };
+    
+    // Возвращаем обновленное состояние
+    return {
+      ...state,
+      buildings: newBuildings,
+      resources: newResources
     };
   }
   
-  // Обновляем ресурсы (уменьшаем USDT)
-  const updatedResources = { ...state.resources };
-  updatedResources.usdt = {
-    ...updatedResources.usdt,
-    value: updatedResources.usdt.value - cost
+  // Если здание уже есть, увеличиваем его количество
+  const nextCount = (currentBuilding.count || 0) + 1;
+  
+  // Рассчитываем стоимость с учетом множителя
+  const basePrice = 10; // Начальная цена
+  const multiplier = 1.12; // Коэффициент роста цены
+  const cost = Math.floor(basePrice * Math.pow(multiplier, currentBuilding.count));
+  
+  // Проверяем, хватает ли ресурсов
+  if (state.resources.usdt.value < cost) {
+    console.log(`Недостаточно USDT для покупки: имеется ${state.resources.usdt.value}, требуется ${cost}`);
+    return state;
+  }
+  
+  // Обновляем количество и историю покупок
+  const updatedBuildings = {
+    ...state.buildings,
+    [buildingId]: {
+      ...currentBuilding,
+      count: nextCount,
+    }
   };
   
-  console.log(`processPracticePurchase: Практика куплена, новый уровень: ${updatedBuildings.practice.count}`);
+  // Обновляем ресурсы
+  const updatedResources = {
+    ...state.resources,
+    usdt: {
+      ...state.resources.usdt,
+      value: state.resources.usdt.value - cost
+    }
+  };
   
+  console.log(`Куплена практика (${nextCount-1} -> ${nextCount}) за ${cost} USDT`);
+  
+  // Возвращаем обновленное состояние
   return {
     ...state,
     buildings: updatedBuildings,
