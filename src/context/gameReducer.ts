@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -290,6 +291,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // После применения всех знаний обновляем состояние через сервис
       console.log("gameReducer: Начало обработки APPLY_ALL_KNOWLEDGE");
       try {
+        // Исправляем ошибку TS2345, не передавая payload в processApplyAllKnowledge
         newState = processApplyAllKnowledge(state);
         console.log("gameReducer: Успешно обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
         

@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -143,7 +142,8 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     // 2. Разблокируем майнер (проверяем оба возможных ID и принудительно разблокируем)
     console.log("Принудительно разблокируем майнер после изучения 'Основы криптовалют'");
     
-    // Разблокируем майнер по первому ID (miner)
+    // Разблокируем майнер по всем возможным ID
+    // Первый вариант - 'miner'
     if (newState.buildings.miner) {
       newState.buildings.miner = {
         ...newState.buildings.miner,
@@ -158,7 +158,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log("Майнер (ID: miner) принудительно разблокирован");
     }
     
-    // Разблокируем альтернативный майнер (autoMiner)
+    // Второй вариант - 'autoMiner'
     if (newState.buildings.autoMiner) {
       newState.buildings.autoMiner = {
         ...newState.buildings.autoMiner,
@@ -173,7 +173,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log("Автомайнер (ID: autoMiner) принудительно разблокирован");
     }
     
-    // Принудительно инициализируем ресурс Bitcoin если не существует
+    // Принудительно инициализируем и разблокируем ресурс Bitcoin
     if (!newState.resources.bitcoin) {
       newState.resources.bitcoin = {
         id: 'bitcoin',
@@ -189,11 +189,6 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         unlocked: true
       };
       
-      newState.unlocks = {
-        ...newState.unlocks,
-        bitcoin: true
-      };
-      
       console.log("Bitcoin инициализирован");
     } else {
       // Разблокируем существующий ресурс Bitcoin
@@ -202,13 +197,14 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         unlocked: true
       };
       
-      newState.unlocks = {
-        ...newState.unlocks,
-        bitcoin: true
-      };
-      
       console.log("Существующий Bitcoin разблокирован");
     }
+    
+    // Устанавливаем флаг разблокировки Bitcoin
+    newState.unlocks = {
+      ...newState.unlocks,
+      bitcoin: true
+    };
     
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Основы криптовалют: +10% к эффективности применения знаний, разблокирован майнер", "info");

@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -67,6 +66,7 @@ export class GameStateService {
       let newState = {...state};
       
       // Принудительно разблокируем майнер по всем возможным ID
+      // Первый вариант - 'miner'
       if (newState.buildings.miner) {
         newState.buildings.miner = {
           ...newState.buildings.miner,
@@ -81,6 +81,7 @@ export class GameStateService {
         console.log("GameStateService: Майнер (ID: miner) принудительно разблокирован");
       }
       
+      // Второй вариант - 'autoMiner'
       if (newState.buildings.autoMiner) {
         newState.buildings.autoMiner = {
           ...newState.buildings.autoMiner,
@@ -120,7 +121,7 @@ export class GameStateService {
           unlocked: true
         };
         
-        console.log("GameStateService: Существующий ресурс Bitcoin разблокирован");
+        console.log("GameStateService: Существующий Bitcoin разблокирован");
       }
       
       // Устанавливаем флаг разблокировки Bitcoin
@@ -128,6 +129,26 @@ export class GameStateService {
         ...newState.unlocks,
         bitcoin: true
       };
+      
+      // Теперь проверим, есть ли сам майнер в зданиях
+      // Если его нет в списке зданий - добавим базовую версию
+      if (!newState.buildings.miner && !newState.buildings.autoMiner) {
+        console.log("GameStateService: Майнер отсутствует в списке зданий, создаем его");
+        
+        // Создаем майнер с базовыми параметрами
+        newState.buildings.miner = {
+          id: 'miner',
+          name: 'Майнер',
+          description: 'Автоматически добывает Bitcoin',
+          baseCost: { usdt: 150 },
+          costMultiplier: 1.15,
+          count: 0,
+          unlocked: true,
+          type: 'production',
+          category: 'mining',
+          icon: 'cpu'
+        };
+      }
       
       return newState;
     }

@@ -73,10 +73,27 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   if (knowledgeValue < 10) {
     return state;
   }
+
+  // Проверяем наличие бонуса от "Основ криптовалют"
+  // Экспоненциальный поиск исследования по обоим возможным ID
+  const cryptoCurrencyBasicsPurchased = 
+    (state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased) || 
+    (state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased);
+
+  // Базовая эффективность: 1 USDT за каждые 10 знаний
+  let knowledgeEfficiencyRate = 1.0;
   
-  // Определяем, сколько USDT получим (1 USDT за каждые 10 знаний)
+  // Применяем бонус +10% если есть исследование "Основы криптовалют"
+  if (cryptoCurrencyBasicsPurchased) {
+    knowledgeEfficiencyRate = 1.1; // Увеличиваем на 10%
+    console.log("actionsReducer: Применен бонус +10% к обмену знаний от 'Основ криптовалют'");
+  }
+  
+  // Определяем, сколько USDT получим с учетом возможного бонуса
   const knowledgeToConvert = Math.floor(knowledgeValue / 10) * 10;
-  const usdtToAdd = Math.floor(knowledgeToConvert / 10);
+  const usdtToAdd = Math.floor(knowledgeToConvert / 10 * knowledgeEfficiencyRate);
+  
+  console.log(`actionsReducer: Обмен ${knowledgeToConvert} знаний на ${usdtToAdd} USDT (коэффициент: ${knowledgeEfficiencyRate})`);
   
   // Инкрементируем счетчик применений знаний
   const currentApplyCounter = state.counters.applyKnowledge || { id: 'applyKnowledge', name: 'Применения знаний', value: 0 };
@@ -181,7 +198,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     amount: -knowledgeToConvert
   });
   
-  // Увеличиваем USDT
+  // Увеличиваем USDT с учетом бонуса эффективности
   updatedState = processIncrementResource(updatedState, { 
     resourceId: 'usdt',
     amount: usdtToAdd
@@ -241,10 +258,27 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   if (knowledgeValue < 10) {
     return state;
   }
+
+  // Проверяем наличие бонуса от "Основ криптовалют"
+  // Экспоненциальный поиск исследования по обоим возможным ID
+  const cryptoCurrencyBasicsPurchased = 
+    (state.upgrades.cryptoCurrencyBasics && state.upgrades.cryptoCurrencyBasics.purchased) || 
+    (state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased);
+
+  // Базовая эффективность: 1 USDT за каждые 10 знаний
+  let knowledgeEfficiencyRate = 1.0;
   
-  // Определяем, сколько USDT получим (1 USDT за каждые 10 знаний)
+  // Применяем бонус +10% если есть исследование "Основы криптовалют"
+  if (cryptoCurrencyBasicsPurchased) {
+    knowledgeEfficiencyRate = 1.1; // Увеличиваем на 10%
+    console.log("actionsReducer: Применен бонус +10% к обмену знаний от 'Основ криптовалют'");
+  }
+  
+  // Определяем, сколько USDT получим с учетом возможного бонуса
   const knowledgeToConvert = Math.floor(knowledgeValue / 10) * 10;
-  const usdtToAdd = Math.floor(knowledgeToConvert / 10);
+  const usdtToAdd = Math.floor(knowledgeToConvert / 10 * knowledgeEfficiencyRate);
+  
+  console.log(`actionsReducer: Обмен ${knowledgeToConvert} знаний на ${usdtToAdd} USDT (коэффициент: ${knowledgeEfficiencyRate})`);
   
   // Инкрементируем счетчик применений знаний
   const currentApplyCounter = state.counters.applyKnowledge || { id: 'applyKnowledge', name: 'Применения знаний', value: 0 };
@@ -350,7 +384,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     amount: -knowledgeToConvert
   });
   
-  // Увеличиваем USDT
+  // Увеличиваем USDT с учетом бонуса эффективности
   updatedState = processIncrementResource(updatedState, { 
     resourceId: 'usdt',
     amount: usdtToAdd

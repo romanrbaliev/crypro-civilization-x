@@ -96,7 +96,7 @@ export class EffectService {
         break;
         
       case 'internetChannel':
-        // Увел��чиваем скоро��ть получения знаний на 20%
+        // Увел����чиваем скоро��ть получения знаний на 20%
         // и эффективность вычислительной мощности на 5%
         // Эти эффекты будут применены в BonusCalculationService
         break;
@@ -218,7 +218,20 @@ export class EffectService {
     if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
       console.log("EffectService: Особая обработка для исследования 'Основы криптовалют'");
       
+      // Добавляем бонус эффективности применения знаний
+      if (!newState.upgrades[upgradeId].effects) {
+        newState.upgrades[upgradeId].effects = {};
+      }
+      
+      newState.upgrades[upgradeId].effects = {
+        ...newState.upgrades[upgradeId].effects,
+        knowledgeEfficiencyBoost: 0.1 // +10% к эффективности применения знаний
+      };
+      
+      console.log("EffectService: Установлен бонус +10% к эффективности применения знаний");
+      
       // Проверяем и разблокируем майнер по всем возможным ID
+      // Первый вариант - 'miner'
       if (newState.buildings.miner) {
         newState.buildings.miner = {
           ...newState.buildings.miner,
@@ -233,6 +246,7 @@ export class EffectService {
         console.log("EffectService: Майнер (ID: miner) принудительно разблокирован");
       }
       
+      // Второй вариант - 'autoMiner'
       if (newState.buildings.autoMiner) {
         newState.buildings.autoMiner = {
           ...newState.buildings.autoMiner,

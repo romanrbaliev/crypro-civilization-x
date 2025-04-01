@@ -42,7 +42,10 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const hasAutoMiner = buildings.autoMiner && buildings.autoMiner.count > 0;
   
   // Проверка наличия улучшений для эффективности применения знаний
-  const cryptoCurrencyBasicsPurchased = upgrades.cryptoCurrencyBasics && upgrades.cryptoCurrencyBasics.purchased;
+  const cryptoCurrencyBasicsPurchased = 
+    (upgrades.cryptoCurrencyBasics && upgrades.cryptoCurrencyBasics.purchased) || 
+    (upgrades.cryptoBasics && upgrades.cryptoBasics.purchased);
+  
   const knowledgeEfficiencyBonus = cryptoCurrencyBasicsPurchased ? 0.1 : 0; // +10% если исследование куплено
   
   // Обработчик нажатия кнопки "Изучить крипту"
@@ -71,7 +74,9 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       knowledgeValue: resources.knowledge?.value,
       usdtValue: resources.usdt?.value,
       usdtUnlocked: resources.usdt?.unlocked,
-      applyKnowledgeCounter: state.counters.applyKnowledge
+      applyKnowledgeCounter: state.counters.applyKnowledge,
+      cryptoCurrencyBasicsPurchased: cryptoCurrencyBasicsPurchased,
+      knowledgeEfficiencyBonus: knowledgeEfficiencyBonus
     });
     
     // Вызываем действие для применения всех знаний
