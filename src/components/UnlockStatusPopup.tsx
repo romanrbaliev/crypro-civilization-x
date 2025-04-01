@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/popover';
 
 const UnlockStatusPopup = () => {
-  const { state, forceUpdate } = useGame();
+  const { state, dispatch } = useGame();
   const [statusSteps, setStatusSteps] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
@@ -20,7 +20,7 @@ const UnlockStatusPopup = () => {
       setLoading(true);
       
       // Форсируем обновление состояния игры
-      forceUpdate();
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
       
       // Небольшая задержка, чтобы обновление успело применится
       setTimeout(() => {

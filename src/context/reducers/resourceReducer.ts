@@ -1,66 +1,64 @@
 
-// Импорты оставляем без изменений
 import { GameState, ResourceAction } from '../types';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
-// Экспортируем функцию applyAllKnowledge как она есть, но также добавим экспорт под именем processApplyAllKnowledge для совместимости
-// Функция для применения всех знаний и конвертации их в USDT
+/**
+ * Применяет все знания для получения USDT
+ */
 export const applyAllKnowledge = (state: GameState, action: ResourceAction): GameState => {
-  console.log('applyAllKnowledge: Функция вызвана', action);
+  // Получаем текущее значение знаний и скорость конвертации
+  let knowledgeValue = state.resources.knowledge?.value || 0;
+  let conversionRate = action.payload?.conversionRate || 0.1; // По умолчанию 0.1 USDT за 1 знание
   
-  // Получаем текущее значение знаний
-  const knowledgeValue = state.resources.knowledge?.value || 0;
-  
-  // ИСПРАВЛЕНО: Получаем ставку конвертации из payload или используем дефолтное значение
-  const conversionRate = action.payload?.conversionRate || 1;
-  console.log(`applyAllKnowledge: Ставка конвертации знаний: ${conversionRate}`);
-  
-  // Проверяем, достаточно ли знаний для конвертации (минимум 10)
-  if (knowledgeValue < 10) {
-    console.log('applyAllKnowledge: Недостаточно знаний для конвертации');
+  if (knowledgeValue <= 0) {
+    console.log('Недостаточно знаний для конвертации в USDT');
     return state;
   }
   
-  // Рассчитываем, сколько групп по 10 знаний можно конвертировать
-  const conversions = Math.floor(knowledgeValue / 10);
-  const knowledgeToConvert = conversions * 10;
-  const remainingKnowledge = knowledgeValue - knowledgeToConvert;
-  
-  // ИСПРАВЛЕНО: Используем переданную ставку конвертации для расчета USDT
-  // Получаем 1*conversionRate USDT за каждые 10 знаний
-  const obtainedUsdt = conversions * conversionRate;
-  
-  console.log(`applyAllKnowledge: Конвертировано ${knowledgeToConvert} знаний (${conversions} групп) в ${obtainedUsdt} USDT`);
-  console.log(`applyAllKnowledge: Осталось ${remainingKnowledge} знаний`);
-  
-  // Создаем копию состояния для модификации
-  const newState = { ...state };
-  
-  // Обновляем значение знаний
-  if (newState.resources.knowledge) {
-    newState.resources.knowledge = {
-      ...newState.resources.knowledge,
-      value: remainingKnowledge
-    };
+  // Проверяем наличие бонуса от исследования "Основы криптовалют"
+  if (state.upgrades.cryptoCurrencyBasics?.purchased) {
+    // Даем +10% к эффективности применения знаний
+    conversionRate = conversionRate * 1.1;
+    console.log(`Применяем бонус от исследования "Основы криптовалют": конверсия ${conversionRate.toFixed(2)}`);
   }
   
-  // Проверяем, существует ли уже ресурс USDT
-  if (newState.resources.usdt) {
-    // Обновляем значение USDT
-    newState.resources.usdt = {
-      ...newState.resources.usdt,
-      value: (newState.resources.usdt.value || 0) + obtainedUsdt,
-      unlocked: true
-    };
-  } else {
-    // Создаем ресурс USDT, если он не существует
+  // Расчет знаний, подлежащих обмену (целое число)
+  const knowledgeToApply = Math.floor(knowledgeValue / 10) * 10;
+  
+  if (knowledgeToApply <= 0) {
+    console.log('Недостаточно знаний для конвертации в USDT (минимум 10)');
+    return state;
+  }
+  
+  // Расчет получаемого количества USDT
+  const usdtGained = knowledgeToApply * conversionRate;
+  
+  // Обновляем состояние - уменьшаем знания и увеличиваем USDT
+  let newState = {
+    ...state,
+    resources: {
+      ...state.resources,
+      knowledge: {
+        ...state.resources.knowledge,
+        value: knowledgeValue - knowledgeToApply
+      }
+    },
+    counters: {
+      ...state.counters,
+      applyKnowledge: {
+        value: (state.counters.applyKnowledge?.value || 0) + 1,
+        updatedAt: Date.now()
+      }
+    }
+  };
+  
+  // Если USDT еще не разблокирован, создаем ресурс
+  if (!newState.resources.usdt) {
     newState.resources.usdt = {
       id: 'usdt',
       name: 'USDT',
-      description: 'Стейблкоин, привязанный к доллару США',
-      type: 'currency',
-      icon: 'usdt',
-      value: obtainedUsdt,
+      description: 'Стабильная криптовалюта, используемая для покупок',
+      type: 'resource', // Используем тип 'resource' вместо 'currency'
+      value: usdtGained,
       baseProduction: 0,
       production: 0,
       perSecond: 0,
@@ -68,51 +66,33 @@ export const applyAllKnowledge = (state: GameState, action: ResourceAction): Gam
       unlocked: true
     };
     
-    // Добавляем флаг разблокировки USDT
+    // Разблокируем USDT
     newState.unlocks = {
       ...newState.unlocks,
       usdt: true
     };
     
-    console.log('applyAllKnowledge: USDT разблокирован');
-  }
-  
-  // Увеличиваем счетчик применений знаний
-  const currentApplyCount = typeof newState.counters.applyKnowledge === 'object'
-    ? (newState.counters.applyKnowledge?.value || 0)
-    : (newState.counters.applyKnowledge || 0);
+    console.log(`USDT разблокирован. Получено ${usdtGained.toFixed(2)} USDT за ${knowledgeToApply} знаний`);
     
-  newState.counters = {
-    ...newState.counters,
-    applyKnowledge: {
-      value: currentApplyCount + 1,
-      updatedAt: Date.now()
-    }
-  };
-  
-  console.log(`applyAllKnowledge: Счетчик применений знаний увеличен до ${currentApplyCount + 1}`);
-  
-  // Проверяем разблокировку фазы 2 (после первого применения знаний)
-  if (currentApplyCount === 0) {
-    newState.unlocks = {
-      ...newState.unlocks,
-      phase2: true
+  } else {
+    // Увеличиваем существующий USDT
+    newState.resources.usdt = {
+      ...newState.resources.usdt,
+      value: (newState.resources.usdt.value || 0) + usdtGained,
+      unlocked: true
     };
     
-    console.log('applyAllKnowledge: Фаза 2 разблокирована');
-    safeDispatchGameEvent("Фаза 2 разблокирована!", "success");
+    // Гарантируем, что USDT разблокирован
+    newState.unlocks = {
+      ...newState.unlocks,
+      usdt: true
+    };
+    
+    console.log(`Получено ${usdtGained.toFixed(2)} USDT за ${knowledgeToApply} знаний`);
   }
   
-  // Возвращаем обновленное состояние
   return newState;
 };
 
-// Экспорт функции также под именем processApplyAllKnowledge для совместимости со старым кодом
+// Экспортируем applyAllKnowledge под другим именем для совместимости
 export const processApplyAllKnowledge = applyAllKnowledge;
-
-// Добавим простую заглушку для processIncrementResource чтобы исправить ошибку импорта
-export const processIncrementResource = (state: GameState, action: ResourceAction): GameState => {
-  // Простая заглушка для совместимости
-  // В идеале эту функцию следует полноценно реализовать или заменить на корректные импорты
-  return state;
-};

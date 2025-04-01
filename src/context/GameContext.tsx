@@ -1,5 +1,4 @@
-
-import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
+import React, { createContext, useReducer, useEffect, ReactNode, useState, useCallback } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
@@ -22,6 +21,7 @@ export type { Resource, Building, Upgrade };
 export interface GameContextProps {
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
+  forceUpdate: () => void;
 }
 
 export const GameContext = createContext<GameContextProps | undefined>(undefined);
@@ -195,9 +195,14 @@ export function GameProvider({ children }: GameProviderProps) {
     return <LoadingScreen message={loadingMessage} />;
   }
   
+  // Добавляем функцию forceUpdate для обновления состояния
+  const forceUpdate = useCallback(() => {
+    dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+  }, [dispatch]);
+  
   // Render game with context
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={{ state, dispatch, forceUpdate }}>
       <GameEventSystem />
       {children}
       <Toaster />

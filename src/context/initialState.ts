@@ -1,3 +1,4 @@
+
 import { GameState } from './types';
 
 export const initialState: GameState = {
@@ -15,7 +16,7 @@ export const initialState: GameState = {
   phase: 1,
   specialization: null,
   prestigePoints: 0,
-  eventMessages: [],
+  eventMessages: {},
   referredBy: null,
   featureFlags: {},
   buildingUnlocked: {},
@@ -218,7 +219,7 @@ export const initialState: GameState = {
         knowledge: 250
       },
       effects: {
-        unlockTrading: true
+        unlockTrading: 1  // Изменено с boolean на number
       },
       purchased: false,
       unlocked: false,
@@ -232,7 +233,7 @@ export const initialState: GameState = {
         knowledge: 500
       },
       effects: {
-        autoBtcExchange: true
+        autoBtcExchange: 1  // Изменено с boolean на number
       },
       purchased: false,
       unlocked: false,
@@ -250,7 +251,7 @@ export const initialState: GameState = {
     baseConsumption: 1
   },
   counters: {
-    knowledgeClicks: { id: 'knowledgeClicks', name: 'Клики знаний', value: 0 },
+    knowledgeClicks: { value: 0, updatedAt: Date.now() },
   },
   specializationSynergies: {},
   referralCode: null,

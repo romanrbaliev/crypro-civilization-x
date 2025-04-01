@@ -77,6 +77,7 @@ export interface SpecializationSynergy {
   effects: { [resourceId: string]: number };
   unlocked: boolean;
   active: boolean;
+  bonus?: { [key: string]: number };  // Добавляем поле bonus для совместимости
 }
 
 export interface ReferralHelper {
@@ -96,7 +97,7 @@ export interface GameState {
   upgrades: { [upgradeId: string]: Upgrade };
   synergies: { [synergyId: string]: Synergy };
   counters: { [counterId: string]: number | { value: number; updatedAt: number } };
-  unlocks: { [unlockId: string]: boolean };
+  unlocks: { [unlockId: string]: boolean | number };  // Разрешаем как boolean, так и number
   miningParams?: MiningParams;
   gameStarted: boolean;
   multiBuy: boolean;
@@ -185,6 +186,7 @@ export type GameDispatch = (action: GameAction) => void;
 export interface GameContextProps {
   state: GameState;
   dispatch: GameDispatch;
+  forceUpdate?: () => void;  // Добавляем опциональный метод forceUpdate
 }
 
 export interface NewsItem {
