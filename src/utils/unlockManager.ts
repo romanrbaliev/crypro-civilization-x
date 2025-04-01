@@ -48,6 +48,22 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
       return state;
     }
     
+    // ИСПРАВЛЕНО: Проверка разблокировки "Применить знания" (нужно 3+ кликов на "Изучить крипту")
+    if (counters.knowledgeClicks) {
+      const knowledgeClicksCount = typeof counters.knowledgeClicks === 'object' 
+        ? counters.knowledgeClicks.value 
+        : counters.knowledgeClicks;
+        
+      console.log(`unlockManager: Проверка разблокировки кнопки "Применить знания", кликов на "Изучить крипту": ${knowledgeClicksCount}`);
+      
+      if (knowledgeClicksCount >= 3) {
+        if (!newUnlocks.applyKnowledge) {
+          console.log('unlockManager: Разблокирована кнопка "Применить знания" - набрано достаточно кликов на "Изучить крипту"');
+          newUnlocks.applyKnowledge = true;
+        }
+      }
+    }
+    
     // ИСПРАВЛЕНО: Проверка разблокировки USDT (нужно 1+ применений знаний)
     if (counters.applyKnowledge) {
       const applyCount = typeof counters.applyKnowledge === 'object' 
@@ -218,6 +234,20 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       }
     }
     
+    // ДОБАВЛЕНО: Разблокировка интернет-канала после покупки домашнего компьютера
+    if (buildings.homeComputer && buildings.homeComputer.count > 0) {
+      if (!unlocks.internetChannel) {
+        console.log('unlockManager: Разблокирована возможность Интернет-канал');
+        unlocks.internetChannel = true;
+      }
+      
+      if (buildings.internetChannel && !buildings.internetChannel.unlocked) {
+        console.log('unlockManager: Разблокировано здание Интернет-канал');
+        buildings.internetChannel.unlocked = true;
+        safeDispatchGameEvent('Разблокировано: Интернет-канал', 'success');
+      }
+    }
+    
     // ИСПРАВЛЕНО: Разблокировка майнера после покупки "Основы криптовалют"
     const hasCryptoBasics = state.upgrades.cryptoCurrencyBasics?.purchased || 
                            state.upgrades.cryptoBasics?.purchased;
@@ -292,12 +322,30 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         }
       }
       
-      // ДОБАВЛЕНО: Разблокировка "Основы криптовалют" после покупки Основ блокчейна
-      if (state.upgrades.blockchainBasics?.purchased) {
+      // ДОБАВЛЕНО: Разблокировка "Безопасность криптокошельков" после покупки Криптокошелька
+      if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0) {
+        if (upgrades.walletSecurity && !upgrades.walletSecurity.unlocked) {
+          console.log('unlockManager: Разблокировано исследование Безопасность криптокошельков');
+          upgrades.walletSecurity.unlocked = true;
+          safeDispatchGameEvent('Разблокировано исследование: Безопасность криптокошельков', 'success');
+        }
+      }
+      
+      // ДОБАВЛЕНО: Разблокировка "Основы криптовалют" после покупки криптокошелька уровня 2+
+      if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count >= 2) {
         if (upgrades.cryptoCurrencyBasics && !upgrades.cryptoCurrencyBasics.unlocked) {
-          console.log('unlockManager: Разблокировано исследование Основы криптовалют');
+          console.log('unlockManager: Разблокировано исследование Основы криптовалют (криптокошелек уровень 2+)');
           upgrades.cryptoCurrencyBasics.unlocked = true;
           safeDispatchGameEvent('Разблокировано исследование: Основы криптовалют', 'success');
+        }
+      } else {
+        // ДОБАВЛЕНО: Разблокировка "Основы криптовалют" после покупки Основ блокчейна (альтернативный путь)
+        if (state.upgrades.blockchainBasics?.purchased) {
+          if (upgrades.cryptoCurrencyBasics && !upgrades.cryptoCurrencyBasics.unlocked) {
+            console.log('unlockManager: Разблокировано исследование Основы криптовалют');
+            upgrades.cryptoCurrencyBasics.unlocked = true;
+            safeDispatchGameEvent('Разблокировано исследование: Основы криптовалют', 'success');
+          }
         }
       }
     }

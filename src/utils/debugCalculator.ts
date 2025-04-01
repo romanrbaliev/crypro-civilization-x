@@ -55,7 +55,17 @@ export const debugKnowledgeProduction = (state: GameState) => {
       const internetConnectionBonus = 0.2 * internetConnectionCount; // +20% за каждый уровень
       buildingBonusMultiplier += internetConnectionBonus;
       steps.push(`• Интернет-канал (${internetConnectionCount} шт.): +${(internetConnectionBonus * 100).toFixed(0)}%`);
-    } else {
+    }
+    
+    // Проверяем криптобиблиотеку (фаза 2)
+    if (state.buildings.cryptoLibrary && state.buildings.cryptoLibrary.count > 0) {
+      const cryptoLibraryCount = state.buildings.cryptoLibrary.count;
+      const cryptoLibraryBonus = 0.5 * cryptoLibraryCount; // +50% за каждый уровень
+      buildingBonusMultiplier += cryptoLibraryBonus;
+      steps.push(`• Криптобиблиотека (${cryptoLibraryCount} шт.): +${(cryptoLibraryBonus * 100).toFixed(0)}%`);
+    }
+    
+    if (buildingBonusMultiplier === 0) {
       steps.push('Нет бонусов от зданий');
     }
     
@@ -128,6 +138,18 @@ export const debugKnowledgeProduction = (state: GameState) => {
       steps.push(`✅ Текущее значение соответствует расчетам`);
     }
     
+    // ДОБАВЛЕНО: Статус разблокировок критических элементов
+    steps.push('\n📋 Статус разблокировок:');
+    steps.push(`• Применить знания: ${state.unlocks.applyKnowledge ? '✅' : '❌'} (Нужно 3+ кликов на "Изучить крипту")`);
+    steps.push(`• USDT: ${state.resources.usdt?.unlocked ? '✅' : '❌'} (Нужно 1+ использований "Применить знания")`);
+    steps.push(`• Практика: ${state.buildings.practice?.unlocked ? '✅' : '❌'} (Нужно 2+ использований "Применить знания")`);
+    steps.push(`• Генератор: ${state.buildings.generator?.unlocked ? '✅' : '❌'} (Нужно 11+ USDT)`);
+    steps.push(`• Электричество: ${state.resources.electricity?.unlocked ? '✅' : '❌'} (Автоматически при покупке генератора)`);
+    steps.push(`• Исследования: ${state.unlocks.research ? '✅' : '❌'} (Нужна 1+ Практика)`);
+    steps.push(`• Основы блокчейна: ${state.upgrades.blockchainBasics?.unlocked ? '✅' : '❌'} (Нужен 1+ Генератор)`);
+    steps.push(`• Криптокошелек: ${state.buildings.cryptoWallet?.unlocked ? '✅' : '❌'} (Нужны купленные Основы блокчейна)`);
+    steps.push(`• Домашний компьютер: ${state.buildings.homeComputer?.unlocked ? '✅' : '❌'} (Нужно 50+ электричества)`);
+    
   } catch (error) {
     steps.push(`Ошибка при расчете: ${error}`);
     console.error('Ошибка при отладке производства знаний:', error);
@@ -135,3 +157,60 @@ export const debugKnowledgeProduction = (state: GameState) => {
   
   return { steps, finalValue };
 };
+
+/**
+ * NEW: Функция для отладочных целей, которая отображает информацию
+ * о разблокировке элементов и выполнении условий
+ */
+export const debugUnlockStatus = (state: GameState) => {
+  const steps: string[] = [];
+  
+  try {
+    steps.push('📊 Счетчики:');
+    steps.push(`• Клики на "Изучить крипту": ${getCounterValue(state, 'knowledgeClicks')} (нужно 3+ для разблокировки "Применить знания")`);
+    steps.push(`• Применение знаний: ${getCounterValue(state, 'applyKnowledge')} (нужно 1+ для USDT, 2+ для Практики)`);
+    
+    steps.push('\n🔓 Статус разблокировок:');
+    steps.push(`• Применить знания: ${state.unlocks.applyKnowledge ? '✅' : '❌'}`);
+    steps.push(`• USDT: ${state.unlocks.usdt ? '✅' : '❌'} (ресурс: ${state.resources.usdt?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Практика: ${state.unlocks.practice ? '✅' : '❌'} (здание: ${state.buildings.practice?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Генератор: ${state.unlocks.generator ? '✅' : '❌'} (здание: ${state.buildings.generator?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Электричество: ${state.unlocks.electricity ? '✅' : '❌'} (ресурс: ${state.resources.electricity?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Основы блокчейна: ${state.unlocks.blockchainBasics ? '✅' : '❌'} (исследование: ${state.upgrades.blockchainBasics?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Криптокошелек: ${state.unlocks.cryptoWallet ? '✅' : '❌'} (здание: ${state.buildings.cryptoWallet?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Домашний компьютер: ${state.unlocks.homeComputer ? '✅' : '❌'} (здание: ${state.buildings.homeComputer?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Интернет-канал: ${state.unlocks.internetChannel ? '✅' : '❌'} (здание: ${state.buildings.internetChannel?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Майнер: ${state.unlocks.miner ? '✅' : '❌'} (здание: ${state.buildings.miner?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Bitcoin: ${state.unlocks.bitcoin ? '✅' : '❌'} (ресурс: ${state.resources.bitcoin?.unlocked ? '✅' : '❌'})`);
+    steps.push(`• Исследования: ${state.unlocks.research ? '✅' : '❌'}`);
+    
+    steps.push('\n🏗️ Здания:');
+    for (const buildingId in state.buildings) {
+      const building = state.buildings[buildingId];
+      if (building) {
+        steps.push(`• ${building.name || buildingId}: ${building.count} шт. (${building.unlocked ? '✅ разблокировано' : '❌ заблокировано'})`);
+      }
+    }
+    
+    steps.push('\n📚 Исследования:');
+    for (const upgradeId in state.upgrades) {
+      const upgrade = state.upgrades[upgradeId];
+      if (upgrade) {
+        steps.push(`• ${upgrade.name || upgradeId}: ${upgrade.purchased ? '✅ изучено' : upgrade.unlocked ? '⏳ доступно' : '❌ заблокировано'}`);
+      }
+    }
+    
+  } catch (error) {
+    steps.push(`Ошибка при сборе данных о разблокировках: ${error}`);
+    console.error('Ошибка при анализе разблокировок:', error);
+  }
+  
+  return { steps };
+};
+
+// Вспомогательная функция для безопасного получения значения счетчика
+function getCounterValue(state: GameState, counterId: string): number {
+  const counter = state.counters[counterId];
+  if (!counter) return 0;
+  return typeof counter === 'object' ? counter.value : counter;
+}

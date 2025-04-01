@@ -11,6 +11,7 @@ import ReferralsTab from "@/components/ReferralsTab";
 import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
+import UnlockStatusPopup from "@/components/UnlockStatusPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import {
@@ -28,7 +29,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { 
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -47,14 +48,8 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
-  // Исправляем условие для показа вкладки оборудования: 
-  // Теперь учитываем, что практика уже является зданием, поэтому 
-  // нужно показывать вкладку оборудования всегда, когда есть хотя бы одно разблокированное здание
   const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
-    
   const hasUnlockedResearch = state.unlocks.research === true;
-  
-  // Проверка на доступность вкладки специализации (Фаза 3)
   const hasUnlockedSpecialization = state.phase >= 3;
   
   useEffect(() => {
@@ -116,13 +111,11 @@ const GameScreen = () => {
   }, []);
   
   useEffect(() => {
-    // Выбираем правильную вкладку по умолчанию
     if (hasUnlockedBuildings) {
       setSelectedTab("equipment");
     } else if (hasUnlockedResearch) {
       setSelectedTab("research");
     } else {
-      // Если ничего не разблокировано, по умолчанию показываем рефералы
       setSelectedTab("referrals");
     }
     
@@ -179,8 +172,9 @@ const GameScreen = () => {
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
         <div className="flex justify-between items-center h-full">
-          <div className="flex-1 flex items-center pl-2">
+          <div className="flex-1 flex items-center pl-2 gap-2">
             <KnowledgeProductionPopup />
+            <UnlockStatusPopup />
           </div>
           <div className="flex items-center justify-between px-2">
             <Dialog>
@@ -313,7 +307,6 @@ const GameScreen = () => {
           
           <div className="border-t mt-auto">
             <div className="flex flex-col">
-              {/* Показываем вкладку оборудования всегда, когда hasUnlockedBuildings === true */}
               {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
               
               {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
