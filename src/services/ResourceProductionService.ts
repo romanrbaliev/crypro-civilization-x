@@ -70,16 +70,15 @@ export class ResourceProductionService {
           case 'practice': {
             // Практика производит знания
             if (resources.knowledge) {
-              // ИСПРАВЛЕНО: Практика дает строго 1 знание в секунду за каждый уровень
-              // согласно таблице разблокировки контента
+              // Практика дает строго 1 знание в секунду за каждый уровень
               const practiceCount = building.count;
-              const knowledgePerPractice = 1; // Исправлено с 0.21 на 1
+              const knowledgePerPractice = 1; // Строго 1 знание в секунду
               const totalKnowledgeFromPractice = practiceCount * knowledgePerPractice;
               
               // Добавляем производство к базовому
               resources.knowledge.production += totalKnowledgeFromPractice;
               
-              console.log(`ResourceProductionService: Производство знаний от практики: ${totalKnowledgeFromPractice.toFixed(2)}`);
+              console.log(`ResourceProductionService: Производство знаний от практики: ${totalKnowledgeFromPractice.toFixed(2)}/сек за ${practiceCount} шт.`);
             }
             break;
           }
@@ -87,7 +86,7 @@ export class ResourceProductionService {
           case 'generator': {
             // Генератор производит электричество
             if (resources.electricity) {
-              // ИСПРАВЛЕНО: Генератор дает строго 0.5 электричества в секунду за каждый уровень
+              // Генератор дает строго 0.5 электричества в секунду за каждый уровень
               const generatorCount = building.count;
               const electricityPerGenerator = 0.5;
               const totalElectricityFromGenerators = generatorCount * electricityPerGenerator;
@@ -95,7 +94,7 @@ export class ResourceProductionService {
               // Добавляем производство к базовому
               resources.electricity.production += totalElectricityFromGenerators;
               
-              console.log(`ResourceProductionService: Производство электричества от генераторов: ${totalElectricityFromGenerators.toFixed(2)}`);
+              console.log(`ResourceProductionService: Производство электричества от генераторов: ${totalElectricityFromGenerators.toFixed(2)}/сек за ${generatorCount} шт.`);
             }
             break;
           }
@@ -103,7 +102,7 @@ export class ResourceProductionService {
           case 'homeComputer': {
             // Домашний компьютер производит вычислительную мощность
             if (resources.computingPower && resources.electricity) {
-              // ИСПРАВЛЕНО: Компьютер дает строго 2 вычисл. мощности в секунду и потребляет 1 электричества
+              // Компьютер дает строго 2 вычисл. мощности в секунду и потребляет 1 электричества
               const computerCount = building.count;
               const powerPerComputer = 2;
               const totalPowerFromComputers = computerCount * powerPerComputer;
@@ -118,8 +117,8 @@ export class ResourceProductionService {
               // Вычитаем потребление из производства электричества
               resources.electricity.production -= totalElectricityConsumption;
               
-              console.log(`ResourceProductionService: Производство вычислительной мощности: ${totalPowerFromComputers.toFixed(2)}`);
-              console.log(`ResourceProductionService: Потребление электричества компьютерами: ${totalElectricityConsumption.toFixed(2)}`);
+              console.log(`ResourceProductionService: Производство вычислительной мощности: ${totalPowerFromComputers.toFixed(2)}/сек за ${computerCount} шт.`);
+              console.log(`ResourceProductionService: Потребление электричества компьютерами: ${totalElectricityConsumption.toFixed(2)}/сек`);
             }
             break;
           }
@@ -127,7 +126,7 @@ export class ResourceProductionService {
           case 'autoMiner': {
             // Автомайнер производит Bitcoin, но потребляет электричество и вычисл. мощность
             if (resources.bitcoin && resources.electricity && resources.computingPower) {
-              // ИСПРАВЛЕНО: Майнер производит 0.00005 Bitcoin за каждый уровень
+              // Майнер производит 0.00005 Bitcoin за каждый уровень
               const minerCount = building.count;
               const bitcoinPerMiner = 0.00005;
               const miningEfficiency = state.miningParams?.miningEfficiency || 1;
@@ -149,9 +148,9 @@ export class ResourceProductionService {
               resources.electricity.production -= totalElectricityConsumption;
               resources.computingPower.production -= totalComputingPowerConsumption;
               
-              console.log(`ResourceProductionService: Производство Bitcoin: ${totalBitcoinFromMiners.toFixed(8)}`);
-              console.log(`ResourceProductionService: Потребление электричества майнерами: ${totalElectricityConsumption.toFixed(2)}`);
-              console.log(`ResourceProductionService: Потребление вычислительной мощности: ${totalComputingPowerConsumption.toFixed(2)}`);
+              console.log(`ResourceProductionService: Производство Bitcoin: ${totalBitcoinFromMiners.toFixed(8)}/сек за ${minerCount} шт.`);
+              console.log(`ResourceProductionService: Потребление электричества майнерами: ${totalElectricityConsumption.toFixed(2)}/сек`);
+              console.log(`ResourceProductionService: Потребление вычислительной мощности: ${totalComputingPowerConsumption.toFixed(2)}/сек`);
             }
             break;
           }
@@ -174,7 +173,7 @@ export class ResourceProductionService {
       // Добавляем базовое производство к общему
       resources.knowledge.production += baseKnowledgeProduction;
       
-      console.log(`ResourceProductionService: Базовое производство знаний: ${baseKnowledgeProduction.toFixed(2)}`);
+      console.log(`ResourceProductionService: Базовое производство знаний: ${baseKnowledgeProduction.toFixed(2)}/сек`);
     }
     
     // Здесь можно добавить обработку базового производства для других ресурсов
@@ -226,7 +225,7 @@ export class ResourceProductionService {
       const resource = resources[resourceId];
       
       // Получаем бонусы для ресурса
-      const { productionMultiplier } = this.bonusCalculationService.calculateResourceBonuses(state, resourceId);
+      const { productionMultiplier, maxMultiplier } = this.bonusCalculationService.calculateResourceBonuses(state, resourceId);
       
       // Применяем множитель к производству
       const finalProduction = resource.production * productionMultiplier;
@@ -234,11 +233,23 @@ export class ResourceProductionService {
       // Устанавливаем perSecond как итоговое производство в секунду
       resource.perSecond = finalProduction;
       
+      // Обновляем максимальное значение ресурса с учетом множителя
+      if (resource.max !== undefined && maxMultiplier > 1) {
+        const baseMax = resourceId === 'knowledge' ? 100 :
+                      resourceId === 'usdt' ? 50 :
+                      resourceId === 'electricity' ? 100 :
+                      resourceId === 'computingPower' ? 1000 :
+                      resourceId === 'bitcoin' ? 0.01 : resource.max;
+                      
+        resource.max = baseMax * maxMultiplier;
+      }
+      
       // Логируем для ключевых ресурсов
       if (resourceId === 'knowledge') {
-        console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${finalProduction.toFixed(2)} (базовое: ${resource.baseProduction}, множитель: ${productionMultiplier})`);
-      } else {
-        console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${finalProduction.toFixed(2)}`);
+        console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${finalProduction.toFixed(2)}/сек (базовое: ${resource.production.toFixed(2)}, множитель: ${productionMultiplier.toFixed(2)})`);
+        console.log(`ResourceProductionService: Максимум ${resourceId}: ${resource.max.toFixed(2)} (множитель: ${maxMultiplier.toFixed(2)})`);
+      } else if (resource.perSecond !== 0) {
+        console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${finalProduction.toFixed(2)}/сек`);
       }
     }
   }

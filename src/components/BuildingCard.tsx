@@ -25,7 +25,7 @@ interface BuildingCardProps {
   canBuy: boolean;
   onBuy: () => void;
   onSell?: () => void;
-  costMultiplier?: number; // Изменяем costScaling на costMultiplier
+  costMultiplier?: number; // Используем costMultiplier вместо costScaling
   production?: Record<string, number>;
   consumption?: Record<string, number>;
 }
@@ -40,7 +40,7 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
   canBuy,
   onBuy,
   onSell,
-  costMultiplier = 1, // Изменяем costScaling на costMultiplier
+  costMultiplier = 1, // Используем costMultiplier вместо costScaling
   production = {},
   consumption = {}
 }) => {
@@ -53,8 +53,8 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
       let displayAmount = amount;
       
       // Масштабируем стоимость с учетом количества
-      if (count > 0 && costMultiplier > 1) { // Изменяем costScaling на costMultiplier
-        displayAmount = amount * Math.pow(costMultiplier, count); // Изменяем costScaling на costMultiplier
+      if (count > 0 && costMultiplier > 1) {
+        displayAmount = amount * Math.pow(costMultiplier, count);
       }
       
       return `${formatNumber(displayAmount)} ${resource}`;
@@ -67,6 +67,8 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
     
     // Добавляем производство ресурсов
     Object.entries(production).forEach(([resource, amount]) => {
+      if (amount <= 0) return; // Пропускаем нулевые или отрицательные значения
+      
       const readableResource = resource === 'knowledge' ? 'знаний' : 
                               resource === 'usdt' ? 'USDT' :
                               resource === 'electricity' ? 'электричества' :
@@ -77,6 +79,8 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
     
     // Добавляем потребление ресурсов
     Object.entries(consumption).forEach(([resource, amount]) => {
+      if (amount <= 0) return; // Пропускаем нулевые или отрицательные значения
+      
       const readableResource = resource === 'knowledge' ? 'знаний' : 
                               resource === 'usdt' ? 'USDT' :
                               resource === 'electricity' ? 'электричества' :
@@ -87,12 +91,12 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
     
     // Особые эффекты для зданий
     if (id === 'practice') {
-      effectsList.push(`+1/сек знаний`);
+      effectsList.push(`+${count}/сек знаний`);
     } else if (id === 'generator') {
-      effectsList.push(`+0.5/сек электричества`);
+      effectsList.push(`+${0.5 * count}/сек электричества`);
     } else if (id === 'homeComputer') {
-      effectsList.push(`+2/сек вычисл. мощности`);
-      effectsList.push(`-1/сек электричества`);
+      effectsList.push(`+${2 * count}/сек вычисл. мощности`);
+      effectsList.push(`-${count}/сек электричества`);
     } else if (id === 'cryptoWallet') {
       effectsList.push(`+50 макс. USDT`);
       effectsList.push(`+25% макс. знаний`);

@@ -102,9 +102,11 @@ export class BonusCalculationService {
             console.log(`BonusCalculation: Интернет-канал (${building.count} шт.) увеличивает скорость получения знаний на +${boost * 100}%`);
           }
           
-          // Криптокошелёк, особая обработка
-          if (buildingId === 'cryptoWallet') {
-            // Не добавляем никаких негативных бонусов к знаниям
+          // Криптокошелёк - увеличивает максимум знаний на 25%
+          if (buildingId === 'cryptoWallet' && resourceId === 'knowledge') {
+            const boost = 0.25 * building.count; // +25% за каждый уровень
+            maxMultiplier += boost;
+            console.log(`BonusCalculation: Криптокошелёк (${building.count} шт.) увеличивает максимум знаний на +${boost * 100}%`);
           }
         }
       }
@@ -261,4 +263,3 @@ export class BonusCalculationService {
     return updatedState;
   }
 }
-
