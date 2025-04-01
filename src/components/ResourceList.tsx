@@ -1,96 +1,90 @@
 
-import React, { useState } from 'react';
-import { Resource } from '@/context/types';
-import ResourceCard from './ResourceCard';
-import ResourceDisplay from './ResourceDisplay';
+import React, { memo } from "react";
+import { Resource } from "@/context/types";
+import ResourceDisplay from "./ResourceDisplay";
+import { Separator } from "@/components/ui/separator";
+import { formatResourceValue } from "@/utils/resourceFormatConfig";
+import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { CircleDollarSign } from "lucide-react";
 
 interface ResourceListProps {
   resources: Resource[];
 }
 
-const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
-  const [expandedView, setExpandedView] = useState(false);
-  const [selectedResources, setSelectedResources] = useState<string[]>([]);
+// Используем memo для предотвращения лишних перерисовок
+const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
+  const { dispatch, state } = useGame();
   
-  // Отображаем ресурсы в зависимости от выбранного вида
-  const sortedResources = [...resources].sort((a, b) => {
-    // Сортировка: сначала основные ресурсы (knowledge, usdt), затем остальные
-    const order = { knowledge: 1, usdt: 2, electricity: 3, computingPower: 4, bitcoin: 5 };
-    
-    const aOrder = order[a.id as keyof typeof order] || 10;
-    const bOrder = order[b.id as keyof typeof order] || 10;
-    
-    return aOrder - bOrder;
-  });
-
-  const toggleExpandedView = () => {
-    setExpandedView(!expandedView);
+  // Фильтруем только разблокированные ресурсы
+  const unlockedResources = resources.filter(resource => resource.unlocked);
+  
+  // Заполнение USDT до максимального значения
+  const handleFillUsdt = () => {
+    if (state.resources.usdt && state.resources.usdt.unlocked) {
+      // Используем максимальное значение USDT из состояния
+      const maxUsdt = state.resources.usdt.max || 0;
+      const currentValue = state.resources.usdt.value || 0;
+      
+      dispatch({
+        type: "INCREMENT_RESOURCE",
+        payload: {
+          resourceId: "usdt",
+          amount: maxUsdt - currentValue
+        }
+      });
+    }
   };
-
-  const toggleResourceSelection = (resourceId: string) => {
-    setSelectedResources(prev => 
-      prev.includes(resourceId)
-        ? prev.filter(id => id !== resourceId)
-        : [...prev, resourceId]
+  
+  if (unlockedResources.length === 0) {
+    return (
+      <div className="text-center py-4 text-sm text-gray-500">
+        Нет доступных ресурсов
+      </div>
     );
-  };
+  }
 
-  // Функция для фильтрации важных ресурсов (в компактном режиме)
-  const isPrimaryResource = (resource: Resource): boolean => {
-    return ['knowledge', 'usdt', 'electricity', 'computingPower', 'bitcoin'].includes(resource.id);
-  };
-
-  // Фильтруем ресурсы для компактного отображения (только основные)
-  const displayedResources = expandedView 
-    ? sortedResources 
-    : sortedResources.filter(r => isPrimaryResource(r) || selectedResources.includes(r.id));
+  // Проверяем, разблокирован ли USDT
+  const isUsdtUnlocked = state.resources.usdt && state.resources.usdt.unlocked;
 
   return (
-    <div className="resource-list">
-      <div className="flex justify-between items-center mb-2">
-        <div className="text-sm font-medium text-gray-700">Ресурсы</div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-6 px-2 py-0"
-          onClick={toggleExpandedView}
-        >
-          {expandedView ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-        </Button>
-      </div>
-
-      <div className="space-y-1">
-        {expandedView ? (
-          // Расширенное отображение
-          displayedResources.map((resource) => (
-            <div key={resource.id} className="resource-item">
-              <ResourceCard resource={resource} />
+    <div className="flex flex-col h-full">
+      <div className="space-y-0.5 text-xs flex-grow">
+        {unlockedResources.map((resource, index) => (
+          <React.Fragment key={resource.id}>
+            <div className="py-1">
+              <ResourceDisplay 
+                resource={resource} 
+                formattedValue={formatResourceValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
+                formattedPerSecond={formatResourceValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
+              />
             </div>
-          ))
-        ) : (
-          // Компактное отображение
-          displayedResources.map((resource) => (
-            <div key={resource.id} className="border rounded p-1.5 mb-1 bg-white resource-item">
-              <ResourceDisplay resource={resource} />
-            </div>
-          ))
-        )}
+            {index < unlockedResources.length - 1 && (
+              <Separator className="my-0.5" />
+            )}
+          </React.Fragment>
+        ))}
       </div>
       
-      {!expandedView && sortedResources.length > displayedResources.length && (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="w-full text-xs mt-1 h-6"
-          onClick={toggleExpandedView}
-        >
-          Показать все ресурсы ({sortedResources.length - displayedResources.length})
-        </Button>
+      {/* Кнопка заполнения USDT (только если USDT разблокирован) */}
+      {isUsdtUnlocked && (
+        <div className="mt-2 pt-2 border-t border-gray-200">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleFillUsdt} 
+            className="w-full text-xs flex items-center justify-center"
+          >
+            <CircleDollarSign className="h-3 w-3 mr-1" />
+            Full USDT (Тест)
+          </Button>
+        </div>
       )}
     </div>
   );
-};
+});
+
+// Добавляем отображаемое имя для отладки
+ResourceList.displayName = "ResourceList";
 
 export default ResourceList;
