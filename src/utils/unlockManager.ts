@@ -111,33 +111,101 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
 export const checkSpecialUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
+  // Проверяем количество кликов на "Изучить крипту" для разблокировки "Применить знания"
+  const knowledgeClicks = newState.counters.knowledgeClicks?.value || 0;
+  if (!newState.unlocks.applyKnowledge && knowledgeClicks >= 3) {
+    console.log('unlockManager: Разблокирована кнопка "Применить знания" (3+ кликов)');
+    newState.unlocks.applyKnowledge = true;
+    safeDispatchGameEvent('Разблокировано: Применить знания', 'success');
+  }
+  
   // Проверяем, разблокирован ли USDT
-  if (!newState.resources.usdt?.unlocked && newState.counters.applyKnowledge?.value >= 1) {
+  const applyKnowledgeCount = newState.counters.applyKnowledge?.value || 0;
+  if (!newState.resources.usdt?.unlocked && applyKnowledgeCount >= 1) {
     console.log('unlockManager: Разблокирован USDT (1+ применений знаний)');
-    newState.resources.usdt.unlocked = true;
+    if (newState.resources.usdt) {
+      newState.resources.usdt.unlocked = true;
+    } else {
+      // Создаем ресурс USDT, если его нет
+      newState.resources.usdt = {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стабильная криптовалюта для покупок',
+        type: 'resource',
+        icon: 'dollar',
+        value: 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 100,
+        unlocked: true
+      };
+    }
     newState.unlocks.usdt = true;
     safeDispatchGameEvent('Разблокирован ресурс: USDT', 'success');
   }
   
   // Проверяем, разблокирована ли практика
-  if (!newState.buildings.practice?.unlocked && newState.counters.applyKnowledge?.value >= 2) {
+  if (!newState.buildings.practice?.unlocked && applyKnowledgeCount >= 2) {
     console.log('unlockManager: Разблокирована практика (2+ применений знаний)');
-    newState.buildings.practice.unlocked = true;
-    newState.unlocks.practice = true;
-    safeDispatchGameEvent('Разблокировано: Практика', 'success');
+    if (newState.buildings.practice) {
+      newState.buildings.practice.unlocked = true;
+      newState.unlocks.practice = true;
+      safeDispatchGameEvent('Разблокировано: Практика', 'success');
+    }
   }
   
-  // Проверяем, разблокирована ли вкладка исследований (после 5 применений знаний)
-  if (!newState.unlocks.research && newState.counters.applyKnowledge?.value >= 5) {
-    console.log('unlockManager: Разблокирована вкладка исследований (5+ применений знаний)');
-    newState.unlocks.research = true;
-    safeDispatchGameEvent('Разблокировано: Исследования', 'success');
+  // Проверяем, разблокирован ли генератор (11+ USDT)
+  if (!newState.buildings.generator?.unlocked && 
+      newState.resources.usdt?.unlocked && 
+      newState.resources.usdt?.value >= 11) {
+    console.log('unlockManager: Разблокирован генератор (11+ USDT)');
+    if (newState.buildings.generator) {
+      newState.buildings.generator.unlocked = true;
+      newState.unlocks.generator = true;
+      safeDispatchGameEvent('Разблокировано: Генератор', 'success');
+    }
+  }
+  
+  // Проверяем, разблокированы ли Основы блокчейна
+  if (!newState.upgrades.blockchainBasics?.unlocked && 
+      newState.buildings.generator?.count > 0) {
+    console.log('unlockManager: Разблокированы основы блокчейна (куплен генератор)');
+    if (newState.upgrades.blockchainBasics) {
+      newState.upgrades.blockchainBasics.unlocked = true;
+      newState.unlocks.blockchainBasics = true;
+      safeDispatchGameEvent('Разблокировано: Основы блокчейна', 'success');
+    }
+  }
+  
+  // Проверяем, разблокирован ли Домашний компьютер (50+ электричества)
+  if (!newState.buildings.homeComputer?.unlocked && 
+      newState.resources.electricity?.unlocked && 
+      newState.resources.electricity?.value >= 50) {
+    console.log('unlockManager: Разблокирован домашний компьютер (50+ электричества)');
+    if (newState.buildings.homeComputer) {
+      newState.buildings.homeComputer.unlocked = true;
+      newState.unlocks.homeComputer = true;
+      safeDispatchGameEvent('Разблокировано: Домашний компьютер', 'success');
+    }
+  }
+  
+  // Проверяем, разблокирован ли Интернет-канал
+  if (!newState.buildings.internetChannel?.unlocked && 
+      newState.buildings.homeComputer?.count > 0) {
+    console.log('unlockManager: Разблокирован интернет-канал (куплен домашний компьютер)');
+    if (newState.buildings.internetChannel) {
+      newState.buildings.internetChannel.unlocked = true;
+      newState.unlocks.internetChannel = true;
+      safeDispatchGameEvent('Разблокировано: Интернет-канал', 'success');
+    }
   }
   
   // Проверяем, нужно ли активировать фазу 2
   if (!newState.unlocks.phase2 && (newState.resources.usdt?.value >= 25 || newState.resources.electricity?.unlocked)) {
     console.log('unlockManager: Активирована фаза 2 (25+ USDT или разблокировано электричество)');
     newState.unlocks.phase2 = true;
+    newState.phase = 2;
     safeDispatchGameEvent('Открыта фаза 2: Основы криптоэкономики', 'success');
   }
   
@@ -148,12 +216,31 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
 export const checkResourceUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // Пример: Разблокировка электричества при наличии генератора
+  // Разблокировка электричества при наличии генератора
   if (!newState.resources.electricity?.unlocked && newState.buildings.generator?.count > 0) {
     console.log('unlockManager: Разблокировано электричество (есть генератор)');
-    newState.resources.electricity.unlocked = true;
-    newState.unlocks.electricity = true;
-    safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'success');
+    if (newState.resources.electricity) {
+      newState.resources.electricity.unlocked = true;
+      newState.unlocks.electricity = true;
+      safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'success');
+    } else {
+      // Создаем ресурс электричество, если его нет
+      newState.resources.electricity = {
+        id: 'electricity',
+        name: 'Электричество',
+        description: 'Электроэнергия для питания устройств',
+        type: 'resource',
+        icon: 'zap',
+        value: 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 100,
+        unlocked: true
+      };
+      newState.unlocks.electricity = true;
+      safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'success');
+    }
   }
   
   return newState;
@@ -163,15 +250,63 @@ export const checkResourceUnlocks = (state: GameState): GameState => {
 export const checkBuildingUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-   // Разблокировка криптокошелька, если изучены основы блокчейна
+  // Разблокировка криптокошелька, если изучены основы блокчейна
   if (!newState.buildings.cryptoWallet?.unlocked &&
       (state.upgrades.blockchainBasics?.purchased ||
        state.upgrades.basicBlockchain?.purchased ||
        state.upgrades.blockchain_basics?.purchased)) {
     console.log('unlockManager: Разблокирован криптокошелек (изучены основы блокчейна)');
-    newState.buildings.cryptoWallet.unlocked = true;
-    newState.unlocks.cryptoWallet = true;
-    safeDispatchGameEvent('Разблокировано: Криптокошелек', 'success');
+    if (newState.buildings.cryptoWallet) {
+      newState.buildings.cryptoWallet.unlocked = true;
+      newState.unlocks.cryptoWallet = true;
+      safeDispatchGameEvent('Разблокировано: Криптокошелек', 'success');
+    }
+  }
+  
+  // ФАЗА 2 Разблокировки
+  
+  // Разблокировка майнера после исследования "Основы криптовалют"
+  if (!newState.buildings.miner?.unlocked && 
+      state.upgrades.cryptoCurrencyBasics?.purchased) {
+    console.log('unlockManager: Разблокирован майнер (изучены основы криптовалют)');
+    if (newState.buildings.miner) {
+      newState.buildings.miner.unlocked = true;
+      newState.unlocks.miner = true;
+      safeDispatchGameEvent('Разблокировано: Майнер', 'success');
+    }
+  }
+  
+  // Разблокировка криптобиблиотеки после исследования "Основы криптовалют"
+  if (!newState.buildings.cryptoLibrary?.unlocked && 
+      state.upgrades.cryptoCurrencyBasics?.purchased) {
+    console.log('unlockManager: Разблокирована криптобиблиотека (изучены основы криптовалют)');
+    if (newState.buildings.cryptoLibrary) {
+      newState.buildings.cryptoLibrary.unlocked = true;
+      newState.unlocks.cryptoLibrary = true;
+      safeDispatchGameEvent('Разблокировано: Криптобиблиотека', 'success');
+    }
+  }
+  
+  // Разблокировка системы охлаждения после покупки 2+ Домашних компьютеров
+  if (!newState.buildings.coolingSystem?.unlocked && 
+      state.buildings.homeComputer?.count >= 2) {
+    console.log('unlockManager: Разблокирована система охлаждения (2+ домашних компьютера)');
+    if (newState.buildings.coolingSystem) {
+      newState.buildings.coolingSystem.unlocked = true;
+      newState.unlocks.coolingSystem = true;
+      safeDispatchGameEvent('Разблокировано: Система охлаждения', 'success');
+    }
+  }
+  
+  // Разблокировка улучшенного кошелька после покупки 5+ криптокошельков
+  if (!newState.buildings.enhancedWallet?.unlocked && 
+      state.buildings.cryptoWallet?.count >= 5) {
+    console.log('unlockManager: Разблокирован улучшенный кошелек (5+ криптокошельков)');
+    if (newState.buildings.enhancedWallet) {
+      newState.buildings.enhancedWallet.unlocked = true;
+      newState.unlocks.enhancedWallet = true;
+      safeDispatchGameEvent('Разблокировано: Улучшенный кошелек', 'success');
+    }
   }
   
   return newState;
@@ -181,10 +316,76 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
 export const checkUpgradeUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // Пример: Разблокировка улучшения "Более эффективные майнеры" при наличии 5 майнеров
-  if (!newState.upgrades.betterMiners?.unlocked && newState.buildings.miner?.count >= 5) {
-    console.log('unlockManager: Разблокировано улучшение "Более эффективные майнеры" (5+ майнеров)');
-    newState.upgrades.betterMiners.unlocked = true;
+  // Разблокировка "Безопасность криптокошельков" после покупки криптокошелька
+  if (!newState.upgrades.walletSecurity?.unlocked && 
+      state.buildings.cryptoWallet?.count > 0) {
+    console.log('unlockManager: Разблокирован исследование "Безопасность криптокошельков"');
+    if (newState.upgrades.walletSecurity) {
+      newState.upgrades.walletSecurity.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Безопасность криптокошельков', 'success');
+    }
+  }
+  
+  // ФАЗА 2 Разблокировки
+  
+  // Разблокировка "Основы криптовалют" после покупки 2+ криптокошельков
+  if (!newState.upgrades.cryptoCurrencyBasics?.unlocked && 
+      state.buildings.cryptoWallet?.count >= 2) {
+    console.log('unlockManager: Разблокировано исследование "Основы криптовалют"');
+    if (newState.upgrades.cryptoCurrencyBasics) {
+      newState.upgrades.cryptoCurrencyBasics.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Основы криптовалют', 'success');
+    }
+  }
+  
+  // Разблокировка "Оптимизация алгоритмов" после покупки майнера
+  if (!newState.upgrades.algorithmOptimization?.unlocked && 
+      state.buildings.miner?.count > 0) {
+    console.log('unlockManager: Разблокировано исследование "Оптимизация алгоритмов"');
+    if (newState.upgrades.algorithmOptimization) {
+      newState.upgrades.algorithmOptimization.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Оптимизация алгоритмов', 'success');
+    }
+  }
+  
+  // Разблокировка "Proof of Work" после покупки оптимизации алгоритмов
+  if (!newState.upgrades.proofOfWork?.unlocked && 
+      state.upgrades.algorithmOptimization?.purchased) {
+    console.log('unlockManager: Разблокировано исследование "Proof of Work"');
+    if (newState.upgrades.proofOfWork) {
+      newState.upgrades.proofOfWork.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Proof of Work', 'success');
+    }
+  }
+  
+  // Разблокировка "Энергоэффективные компоненты" после покупки системы охлаждения
+  if (!newState.upgrades.energyEfficientComponents?.unlocked && 
+      state.buildings.coolingSystem?.count > 0) {
+    console.log('unlockManager: Разблокировано исследование "Энергоэффективные компоненты"');
+    if (newState.upgrades.energyEfficientComponents) {
+      newState.upgrades.energyEfficientComponents.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Энергоэффективные компоненты', 'success');
+    }
+  }
+  
+  // Разблокировка "Криптовалютный трейдинг" после покупки улучшенного кошелька
+  if (!newState.upgrades.cryptoTrading?.unlocked && 
+      state.buildings.enhancedWallet?.count > 0) {
+    console.log('unlockManager: Разблокировано исследование "Криптовалютный трейдинг"');
+    if (newState.upgrades.cryptoTrading) {
+      newState.upgrades.cryptoTrading.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Криптовалютный трейдинг', 'success');
+    }
+  }
+  
+  // Разблокировка "Торговый бот" после исследования криптовалютного трейдинга
+  if (!newState.upgrades.tradingBot?.unlocked && 
+      state.upgrades.cryptoTrading?.purchased) {
+    console.log('unlockManager: Разблокировано исследование "Торговый бот"');
+    if (newState.upgrades.tradingBot) {
+      newState.upgrades.tradingBot.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Торговый бот', 'success');
+    }
   }
   
   return newState;
@@ -194,9 +395,17 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
 export const checkActionUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // Пример: Разблокировка действия "Майнить" при наличии 100 вычислительной мощности
-  if (!newState.unlocks.mining && state.miningPower >= 100) {
-    console.log('unlockManager: Разблокировано действие "Майнить" (100+ вычислительной мощности)');
+  // Разблокировка исследований (вкладка исследований) после 5 применений знаний
+  if (!newState.unlocks.research && 
+      (newState.counters.applyKnowledge?.value || 0) >= 5) {
+    console.log('unlockManager: Разблокирована вкладка исследований (5+ применений знаний)');
+    newState.unlocks.research = true;
+    safeDispatchGameEvent('Разблокировано: Исследования', 'success');
+  }
+  
+  // Разблокировка действия майнинга при наличии вычислительной мощности
+  if (!newState.unlocks.mining && (state.miningPower >= 100 || state.buildings.miner?.count > 0)) {
+    console.log('unlockManager: Разблокировано действие "Майнить"');
     newState.unlocks.mining = true;
     safeDispatchGameEvent('Разблокировано действие: Майнинг', 'success');
   }

@@ -64,11 +64,8 @@ export class UnlockService {
    * Обновлено согласно базе знаний
    */
   private shouldUnlockUsdt(state: GameState): boolean {
-    const counter = state.counters.knowledgeClicks;
-    if (!counter) return false;
-    
-    const count = typeof counter === 'object' ? counter.value : counter;
-    return count >= 3; // Требуется 3 клика на "Изучить крипту"
+    const applyKnowledgeCount = this.getApplyKnowledgeCount(state);
+    return applyKnowledgeCount >= 1; // Требуется 1+ применений знаний
   }
   
   /**
@@ -76,11 +73,8 @@ export class UnlockService {
    * Обновлено согласно базе знаний
    */
   private shouldUnlockPractice(state: GameState): boolean {
-    const counter = state.counters.applyKnowledge;
-    if (!counter) return false;
-    
-    const count = typeof counter === 'object' ? counter.value : counter;
-    return count >= 2; // Требуется 2 использования "Применить знания"
+    const applyKnowledgeCount = this.getApplyKnowledgeCount(state);
+    return applyKnowledgeCount >= 2; // Требуется 2+ применения знаний
   }
   
   /**
@@ -88,7 +82,7 @@ export class UnlockService {
    * Обновлено согласно базе знаний
    */
   private shouldUnlockGenerator(state: GameState): boolean {
-    return state.resources.usdt?.value >= 11 && state.resources.usdt?.unlocked; // Требуется накопление 11 USDT и разблокированный USDT
+    return state.resources.usdt?.value >= 11 && state.resources.usdt?.unlocked; // Требуется накопление 11 USDT
   }
   
   /**
@@ -96,7 +90,7 @@ export class UnlockService {
    * Добавлено согласно базе знаний
    */
   private shouldUnlockHomeComputer(state: GameState): boolean {
-    return state.resources.electricity?.value >= 50 && state.resources.electricity?.unlocked; // Требуется 50 единиц электричества и разблокированное электричество
+    return state.resources.electricity?.value >= 50 && state.resources.electricity?.unlocked; // Требуется 50 единиц электричества
   }
   
   /**
