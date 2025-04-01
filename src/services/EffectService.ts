@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -97,7 +96,7 @@ export class EffectService {
         break;
         
       case 'internetChannel':
-        // Увел���чиваем скоро��ть получения знаний на 20%
+        // Увел��чиваем скоро��ть получения знаний на 20%
         // и эффективность вычислительной мощности на 5%
         // Эти эффекты будут применены в BonusCalculationService
         break;
@@ -219,24 +218,19 @@ export class EffectService {
     if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
       console.log("EffectService: Особая обработка для исследования 'Основы криптовалют'");
       
-      // ИСПРАВЛЕНО: Более детальное логирование состояния майнера
-      console.log("EffectService: Текущее состояние майнера:", {
-        minerExists: !!newState.buildings.miner,
-        minerUnlocked: newState.buildings.miner?.unlocked,
-        autoMinerExists: !!newState.buildings.autoMiner,
-        autoMinerUnlocked: newState.buildings.autoMiner?.unlocked
-      });
-      
-      // ИСПРАВЛЕНО: Проверяем и разблокируем майнер по всем возможным ID
+      // Проверяем и разблокируем майнер по всем возможным ID
       if (newState.buildings.miner) {
         newState.buildings.miner = {
           ...newState.buildings.miner,
           unlocked: true
         };
         
+        newState.unlocks = {
+          ...newState.unlocks,
+          miner: true
+        };
+        
         console.log("EffectService: Майнер (ID: miner) принудительно разблокирован");
-      } else {
-        console.warn("EffectService: Здание miner не найдено в state.buildings!");
       }
       
       if (newState.buildings.autoMiner) {
@@ -245,21 +239,17 @@ export class EffectService {
           unlocked: true
         };
         
+        newState.unlocks = {
+          ...newState.unlocks,
+          autoMiner: true
+        };
+        
         console.log("EffectService: Автомайнер (ID: autoMiner) принудительно разблокирован");
       }
       
-      // ИСПРАВЛЕНО: Устанавливаем флаги разблокировки в unlocks
-      newState.unlocks = {
-        ...newState.unlocks,
-        miner: true,
-        autoMiner: true
-      };
-      
-      // ИСПРАВЛЕНО: Проверяем и разблокируем Bitcoin более подробно
+      // Проверяем и разблокируем Bitcoin
       if (!newState.resources.bitcoin) {
         // Создаем ресурс если не существует
-        console.log("EffectService: Создаем ресурс Bitcoin, так как он не существует");
-        
         newState.resources.bitcoin = {
           id: 'bitcoin',
           name: 'Bitcoin',
@@ -273,14 +263,16 @@ export class EffectService {
           max: 0.01,
           unlocked: true
         };
+        
+        console.log("EffectService: Ресурс Bitcoin создан");
       } else {
         // Разблокируем существующий ресурс
-        console.log("EffectService: Разблокируем существующий ресурс Bitcoin");
-        
         newState.resources.bitcoin = {
           ...newState.resources.bitcoin,
           unlocked: true
         };
+        
+        console.log("EffectService: Существующий ресурс Bitcoin разблокирован");
       }
       
       // Устанавливаем флаг разблокировки Bitcoin
@@ -288,16 +280,6 @@ export class EffectService {
         ...newState.unlocks,
         bitcoin: true
       };
-      
-      console.log("EffectService: После обработки 'Основы криптовалют':", {
-        minerUnlocked: newState.buildings.miner?.unlocked,
-        autoMinerUnlocked: newState.buildings.autoMiner?.unlocked,
-        bitcoinUnlocked: newState.resources.bitcoin?.unlocked,
-        unlocks: newState.unlocks
-      });
-      
-      // ИСПРАВЛЕНО: Добавляем уведомление о разблокировке майнера
-      safeDispatchGameEvent("Майнер разблокирован! Добавлен ресурс Bitcoin.", "info");
     }
     
     // Обработка других исследований
@@ -441,35 +423,5 @@ export class EffectService {
     };
     
     return newState;
-  }
-
-  /**
-   * Проверка и применение эффекта майнинга
-   */
-  public updateMiningEfficiency(state: GameState): GameState {
-    if (!state.miningParams) {
-      // Если miningParams отсутствует, создаем его
-      state = {
-        ...state,
-        miningParams: {
-          exchangeRate: 20000,
-          exchangeCommission: 0.05,
-          miningEfficiency: 1.0,
-          energyEfficiency: 1.0
-        }
-      };
-    } else if (state.miningParams && !state.miningParams.miningEfficiency) {
-      // Если miningParams существует, но без miningEfficiency
-      state = {
-        ...state,
-        miningParams: {
-          ...state.miningParams,
-          miningEfficiency: 1.0,
-          energyEfficiency: 1.0
-        }
-      };
-    }
-    
-    return state;
   }
 }

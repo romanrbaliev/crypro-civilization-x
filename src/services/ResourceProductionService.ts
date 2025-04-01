@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 
 /**
@@ -10,28 +11,6 @@ export class ResourceProductionService {
   calculateResourceProduction(state: GameState): any {
     // Создаем копию ресурсов для модификации
     const resources = { ...state.resources };
-    
-    // ИСПРАВЛЕНО: Более детальное логирование
-    console.log("ResourceProductionService: Начинаем расчет производства с состоянием:", {
-      miner: {
-        exists: !!state.buildings.miner,
-        unlocked: state.buildings.miner?.unlocked,
-        count: state.buildings.miner?.count
-      },
-      autoMiner: {
-        exists: !!state.buildings.autoMiner,
-        unlocked: state.buildings.autoMiner?.unlocked,
-        count: state.buildings.autoMiner?.count
-      },
-      bitcoin: {
-        exists: !!state.resources.bitcoin,
-        unlocked: state.resources.bitcoin?.unlocked,
-      },
-      upgrades: {
-        cryptoCurrencyBasics: state.upgrades.cryptoCurrencyBasics?.purchased,
-        cryptoBasics: state.upgrades.cryptoBasics?.purchased
-      }
-    });
     
     // Принудительно проверяем разблокировку майнера при наличии исследования "Основы криптовалют"
     this.checkMinerUnlock(state);
@@ -155,7 +134,7 @@ export class ResourceProductionService {
             const computerCount = state.buildings.homeComputer.count;
             let computerProduction = computerCount * 2; // 2 вычисл. мощности в секунду на компьютер
             
-            // Проверяем наличие интернет-канала для бонуса к вычисл��тельной мощности
+            // Проверяем наличие интернет-канала для бонуса к вычислительной мощности
             if (state.buildings.internetChannel && state.buildings.internetChannel.count > 0) {
               // +5% к эффективности вычислительной мощности за каждый интернет-канал
               const internetChannelCount = state.buildings.internetChannel.count;
@@ -192,15 +171,6 @@ export class ResourceProductionService {
           break;
           
         case 'bitcoin':
-          // ИСПРАВЛЕНО: Добавлены логи для отладки производства биткоина
-          console.log("ResourceProductionService: Обрабатываем Bitcoin:", {
-            minerExists: !!state.buildings.miner,
-            minerUnlocked: state.buildings.miner?.unlocked,
-            minerCount: state.buildings.miner?.count,
-            miningParamsExists: !!state.miningParams,
-            miningEfficiency: state.miningParams?.miningEfficiency
-          });
-          
           // Биткоин от майнеров
           let bitcoinProduction = resource.baseProduction || 0;
           
@@ -212,8 +182,6 @@ export class ResourceProductionService {
             bitcoinProduction += minerProduction;
             
             console.log(`ResourceProductionService: Майнеры производят ${minerProduction.toFixed(6)}/сек Bitcoin (эффективность: ${miningEfficiency})`);
-          } else {
-            console.log("ResourceProductionService: Майнеры не производят Bitcoin - нет активных майнеров");
           }
           
           resources[resourceId] = {
@@ -239,18 +207,13 @@ export class ResourceProductionService {
    * Принудительно проверяет разблокировку майнера при наличии исследования "Основы криптовалют"
    */
   private checkMinerUnlock(state: GameState): void {
-    // ИСПРАВЛЕНО: Проверяем оба возможных ID для исследования
+    // Проверяем, куплено ли исследование "Основы криптовалют"
     const hasCryptoBasics = 
       (state.upgrades.cryptoCurrencyBasics?.purchased === true) || 
       (state.upgrades.cryptoBasics?.purchased === true);
     
     if (hasCryptoBasics) {
       console.log("ResourceProductionService: Обнаружено исследование 'Основы криптовалют', проверяем разблокировку майнера");
-      
-      // ИСПРАВЛЕНО: Проверяем наличие флага разблокировки во флагах unlocks
-      const isMinerUnlockedInFlags = 
-        (state.unlocks.miner === true) || 
-        (state.unlocks.autoMiner === true);
       
       // Проверяем, разблокирован ли майнер
       const isMinerUnlocked = 
@@ -259,18 +222,6 @@ export class ResourceProductionService {
       
       if (!isMinerUnlocked) {
         console.warn("ResourceProductionService: Майнер не разблокирован, хотя исследование 'Основы криптовалют' куплено!");
-        console.warn("ResourceProductionService: Текущее состояние:", {
-          hasCryptoBasics,
-          isMinerUnlockedInFlags,
-          minerExists: !!state.buildings.miner,
-          minerUnlocked: state.buildings.miner?.unlocked,
-          autoMinerExists: !!state.buildings.autoMiner,
-          autoMinerUnlocked: state.buildings.autoMiner?.unlocked,
-          unlockFlags: {
-            miner: state.unlocks.miner,
-            autoMiner: state.unlocks.autoMiner
-          }
-        });
       }
       
       // Проверяем, разблокирован ли Bitcoin

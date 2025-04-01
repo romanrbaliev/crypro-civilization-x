@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface SynergyCardProps {
   synergy: SpecializationSynergy;
-  onActivate?: (synergyId: string) => void;
+  onActivate?: (synergyId: string) => void; // Делаем этот проп опциональным
 }
 
 const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
@@ -31,7 +31,7 @@ const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
         type: 'ACTIVATE_SYNERGY', 
         payload: { synergyId: synergy.id } 
       });
-      onAddEvent(`Активирована синергия: ${synergy.name}`, "default");
+      onAddEvent(`Активирована синергия: ${synergy.name}`, "default"); // Изменяем "success" на "default"
     }
   };
 
@@ -40,14 +40,9 @@ const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
       <h3 className="text-lg font-semibold">{synergy.name}</h3>
       <p className="text-sm">{synergy.description}</p>
       <ul>
-        {Object.entries(synergy.effects || {}).map(([key, value]) => (
+        {Object.entries(synergy.bonus).map(([key, value]) => (
           <li key={key} className="text-xs">
             {key}: {value}
-          </li>
-        ))}
-        {synergy.bonus && Object.entries(synergy.bonus).map(([key, value]) => (
-          <li key={`bonus-${key}`} className="text-xs font-semibold text-green-600">
-            Бонус {key}: {value}
           </li>
         ))}
       </ul>

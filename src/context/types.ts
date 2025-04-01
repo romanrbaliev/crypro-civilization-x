@@ -1,191 +1,177 @@
+import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
-// Базовые интерфейсы для игры
-
-// Тип ресурса
-export interface Resource {
-  id: string;
-  name: string;
-  description: string;
-  type: "currency" | "material" | "science" | "resource";
-  icon?: string;
-  value: number;
-  baseProduction: number;
-  production: number;
-  consumption?: number;
-  perSecond: number;
-  max: number;
-  unlocked: boolean;
-}
-
-// Тип здания
-export interface Building {
-  id: string;
-  name: string;
-  description: string;
-  cost: { [resourceId: string]: number };
-  costMultiplier: number;
-  production: { [resourceId: string]: number };
-  consumption?: { [resourceId: string]: number };
-  effects?: { [key: string]: number };
-  count: number;
-  unlocked: boolean;
-  productionBoost?: number;
-  category?: string;
-  tier?: number;
-  specialization?: string;
-  requirements?: { [resourceId: string]: number };
-  unlockCondition?: { [key: string]: any };
-}
-
-// Тип апгрейда
-export interface Upgrade {
-  id: string;
-  name: string;
-  description: string;
-  cost: { [resourceId: string]: number };
-  effects: { [key: string]: number };
-  purchased: boolean;
-  unlocked: boolean;
-  requiredUpgrades?: string[];
-  category?: string;
-  tier?: number;
-  specialization?: string;
-  unlockCondition?: { [key: string]: any }; // Добавлено поле unlockCondition
-}
-
-// Тип для синергий специализаций
-export interface SpecializationSynergy {
-  id: string;
-  name: string;
-  description: string;
-  requiredCategories?: string[];
-  requiredCount?: number;
-  effects: { [resourceId: string]: number };
-  unlocked: boolean;
-  active: boolean;
-  bonus?: { [key: string]: number };
-}
-
-// Тип для рефералов
-export interface Referral {
-  id: string;
-  userId: string;
-  name: string;
-  activated: boolean;
-  hired: boolean;
-  assignedBuildingId?: string;
-  createdAt: number;
-  updatedAt?: number;
-  username?: string;  // Добавляем поле username для совместимости
-  joinedAt?: number;   // Добавляем поле joinedAt для совместимости
-}
-
-// Тип для хелперов рефералов
-export interface ReferralHelper {
-  id: string;
-  userId: string;
-  buildingId: string;
-  helperId: string;
-  status: "pending" | "accepted" | "rejected" | "working";
-  createdAt: number;
-  updatedAt: number;
-}
-
-// Действия для ресурсов
-export interface ResourceAction {
-  resourceId: string;
-  amount: number;
-}
-
-// Полный тип состояния игры
 export interface GameState {
+  resources: { [key: string]: Resource };
+  buildings: { [key: string]: Building };
+  upgrades: { [key: string]: Upgrade };
+  counters: { [key: string]: Counter };
   knowledge: number;
   btcPrice: number;
   miningPower: number;
   usdtBalance: number;
   btcBalance: number;
-  
   gameStarted: boolean;
-  multiBuy: boolean;
-  referralBonusApplied: boolean;
-  eventLog: string[];
-  settings: {
-    soundEnabled: boolean;
-    musicEnabled: boolean;
-    notificationsEnabled: boolean;
-    multibuy: boolean;
-  };
-  
-  gameTime: number;
   lastUpdate: number;
   lastSaved: number;
   version: string;
-  phase: number;
-  specialization: string | null;
-  prestigePoints: number;
-  eventMessages: { [key: string]: any };
-  referredBy: string | null;
   featureFlags: { [key: string]: boolean };
   buildingUnlocked: { [key: string]: boolean };
-  
-  synergies: { [key: string]: any };
-  unlocks: { [key: string]: boolean };
-  resources: { [resourceId: string]: Resource };
-  buildings: { [buildingId: string]: Building };
-  upgrades: { [upgradeId: string]: Upgrade };
-  specializationSynergies: { [synergyId: string]: SpecializationSynergy };
-  counters: { [counterId: string]: number | { value: number; updatedAt: number } };
-  referrals: Referral[];
+  specializationSynergies: { [key: string]: SpecializationSynergy };
+  referralCode: string | null;
+  referredBy: string | null;
+  referrals: any[];
   referralHelpers: ReferralHelper[];
-  referralCode?: string; // Добавляем необязательное поле referralCode
-  miningParams?: {
-    exchangeRate: number;
-    exchangeCommission: number;
-    miningEfficiency?: number; // Добавляем необязательное поле miningEfficiency
-    energyEfficiency?: number; // Добавляем необязательное поле energyEfficiency
+  unlocks: { [key: string]: boolean };
+  prestigePoints: number;
+  eventMessages: { [key: string]: any };
+  gameTime: number;
+  miningParams: MiningParams;
+  phase: number;
+  specialization?: string;
+}
+
+export interface Resource {
+  id: string;
+  name: string;
+  description?: string;
+  value: number;
+  baseProduction?: number;
+  production?: number;
+  perSecond?: number;
+  consumption?: number;
+  max?: number;
+  unlocked: boolean;
+  type?: string;
+  icon?: string;
+}
+
+export interface Building {
+  id: string;
+  name: string;
+  description: string;
+  cost: { [key: string]: number };
+  costMultiplier?: number;
+  production: { [key: string]: number };
+  consumption?: { [key: string]: number };
+  count: number;
+  unlocked: boolean;
+  requirements?: { [key: string]: number };
+  maxCount?: number;
+  productionBoost: { [key: string]: number } | number;
+  unlockedBy?: string;
+  resourceProduction?: { [key: string]: number };
+  type?: string;
+  effects?: { [key: string]: number };
+}
+
+export interface Upgrade {
+  id: string;
+  name: string;
+  description: string;
+  cost: { [key: string]: number };
+  effects: { [key: string]: any };
+  effect?: { [key: string]: any };
+  purchased: boolean;
+  unlocked: boolean;
+  unlockedBy?: string;
+  category?: string;
+  tier?: number;
+  specialization?: string;
+  requirements?: { [key: string]: any };
+  unlockCondition?: { 
+    buildings?: { [key: string]: number },
+    resources?: { [key: string]: number }
   };
+  requiredUpgrades?: string[];
+  type?: string;
 }
 
-// Типы действий для редюсера
-export type GameAction =
-  | { type: 'START_GAME' }
-  | { type: 'INCREMENT_RESOURCE'; payload: ResourceAction }
-  | { type: 'DECREMENT_RESOURCE'; payload: ResourceAction }
-  | { type: 'SET_RESOURCE'; payload: ResourceAction }
-  | { type: 'UPDATE_RESOURCES' }
-  | { type: 'FORCE_RESOURCE_UPDATE' }
-  | { type: 'APPLY_ALL_KNOWLEDGE'; payload?: any }
-  | { type: 'EXCHANGE_BTC' }
-  | { type: 'PURCHASE_BUILDING'; payload: { buildingId: string; count?: number } }
-  | { type: 'SELL_BUILDING'; payload: { buildingId: string } }
-  | { type: 'UNLOCK_BUILDING'; payload: { buildingId: string } }
-  | { type: 'SET_BUILDING_UNLOCKED'; payload: { buildingId: string; unlocked: boolean } }
-  | { type: 'PURCHASE_UPGRADE'; payload: { upgradeId: string } }
-  | { type: 'SET_UPGRADE_UNLOCKED'; payload: { upgradeId: string; unlocked: boolean } }
-  | { type: 'TOGGLE_MULTIBUY' }
-  | { type: 'CHOOSE_SPECIALIZATION'; payload: { specialization: string } }
-  | { type: 'PROCESS_SYNERGY'; payload: { synergyId: string } }
-  | { type: 'PROCESS_REFERRAL'; payload: { referralId: string } }
-  | { type: 'CHECK_REFERRAL' }
-  | { type: 'INCREMENT_COUNTER'; payload: { counterId: string; value: number } }
-  | { type: 'LOAD_GAME'; payload: GameState }
-  | { type: 'RESET_GAME' }
-  | { type: 'ADD_REFERRAL'; payload: { referral: Referral } }
-  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; hired: boolean; buildingId?: string } }
-  | { type: 'HIRE_REFERRAL_HELPER'; payload: { referralId: string; buildingId: string } }
-  | { type: 'RESPOND_TO_HELPER_REQUEST'; payload: { requestId: string; accept: boolean } }
-  | { type: 'SET_REFERRAL_CODE'; payload: { code: string } }
-  | { type: 'UPDATE_HELPERS'; payload: { updatedHelpers: ReferralHelper[] } }
-  | { type: 'ACTIVATE_SYNERGY'; payload: { synergyId: string } }
-  | { type: 'CHECK_SYNERGIES' }
-  | { type: 'FORCE_CHECK_MINER_UNLOCK' };
-
-// Тип для контекста игры
-export interface GameContextProps {
-  state: GameState;
-  dispatch: React.Dispatch<GameAction>;
-  forceUpdate: () => void;
+export interface Counter {
+  id: string;
+  name: string;
+  value: number;
 }
 
-// Тип диспетчера игровых действий
+export interface Synergy {
+  id: string;
+  name: string;
+  description: string;
+  effects: { [key: string]: any };
+  isActivated: boolean;
+  activationCost: number;
+  type: string;
+  unlocked: boolean;
+  active: boolean;
+  requiredCategories?: string[];
+  requiredCount?: number;
+  bonus?: { [key: string]: number };
+}
+
+export interface SpecializationSynergy {
+  id: string;
+  name: string;
+  description: string;
+  requiredCategories: string[];
+  requiredCount: number;
+  bonus: { [key: string]: number };
+  unlocked: boolean;
+  active: boolean;
+}
+
+export interface ReferralHelper {
+  id: string;
+  buildingId: string;
+  helperId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: number;
+  employerId?: string;
+}
+
+export interface MiningParams {
+  miningEfficiency: number;
+  networkDifficulty: number;
+  energyEfficiency: number;
+  exchangeRate: number;
+  exchangeCommission: number;
+  volatility: number;
+  exchangePeriod: number;
+  baseConsumption: number;
+}
+
+export type Counters = { [key: string]: Counter };
+
 export type GameDispatch = React.Dispatch<GameAction>;
+
+export type GameAction =
+  | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
+  | { type: "UPDATE_RESOURCES"; payload?: { deltaTime: number; resourceId?: string } }
+  | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
+  | { type: "SELL_BUILDING"; payload: { buildingId: string } }
+  | { type: "PRACTICE_PURCHASE" }
+  | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
+  | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
+  | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }
+  | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
+  | { type: "SET_UPGRADE_UNLOCKED"; payload: { upgradeId: string; unlocked: boolean } }
+  | { type: "INCREMENT_COUNTER"; payload: { counterId: string; value: number } }
+  | { type: "CHECK_SYNERGIES" }
+  | { type: "ACTIVATE_SYNERGY"; payload: { synergyId: string } }
+  | { type: "LOAD_GAME"; payload: GameState }
+  | { type: "START_GAME" }
+  | { type: "PRESTIGE" }
+  | { type: "RESET_GAME" }
+  | { type: "RESTART_COMPUTERS" }
+  | { type: "MINE_COMPUTING_POWER" }
+  | { type: "APPLY_KNOWLEDGE" }
+  | { type: "APPLY_ALL_KNOWLEDGE" }
+  | { type: "EXCHANGE_BTC" }
+  | { type: "SET_REFERRAL_CODE"; payload: { code: string } }
+  | { type: "ADD_REFERRAL"; payload: { referral: any } }
+  | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
+  | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
+  | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
+  | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
+  | { type: "FORCE_RESOURCE_UPDATE" }
+  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } }
+  | { type: "CHOOSE_SPECIALIZATION"; payload: { roleId: string } }
+  | { type: "CHECK_EQUIPMENT_STATUS" };

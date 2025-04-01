@@ -1,147 +1,102 @@
 
 import { GameState } from '../types';
 
-// Обработка разблокировки ресурса
-export const processUnlockResource = (state: GameState, resourceId: string): GameState => {
-  // Проверяем, существует ли ресурс
-  if (!state.resources[resourceId]) {
-    console.log(`Ресурс ${resourceId} не найден`);
-    return state;
-  }
+// Обработка разблокировки фичи
+export const processUnlockFeature = (
+  state: GameState,
+  payload: { featureId: string }
+): GameState => {
+  const { featureId } = payload;
   
-  // Если ресурс уже разблокирован, ничего не делаем
-  if (state.resources[resourceId].unlocked) {
-    return state;
-  }
-  
-  // Разблокируем ресурс
-  const updatedState = {
+  return {
     ...state,
-    resources: {
-      ...state.resources,
-      [resourceId]: {
-        ...state.resources[resourceId],
-        unlocked: true
-      }
-    },
     unlocks: {
       ...state.unlocks,
-      [resourceId]: true
+      [featureId]: true
     }
   };
-  
-  return updatedState;
 };
 
 // Обработка разблокировки здания
-export const processUnlockBuilding = (state: GameState, buildingId: string): GameState => {
-  // Проверяем, существует ли здание
+export const processSetBuildingUnlocked = (
+  state: GameState,
+  payload: { buildingId: string; unlocked: boolean }
+): GameState => {
+  const { buildingId, unlocked } = payload;
+  
   if (!state.buildings[buildingId]) {
-    console.log(`Здание ${buildingId} не найдено`);
     return state;
   }
   
-  // Если здание уже разблокировано, ничего не делаем
-  if (state.buildings[buildingId].unlocked) {
-    return state;
-  }
-  
-  // Разблокируем здание
-  const updatedState = {
+  return {
     ...state,
     buildings: {
       ...state.buildings,
       [buildingId]: {
         ...state.buildings[buildingId],
-        unlocked: true
+        unlocked
       }
-    },
-    unlocks: {
-      ...state.unlocks,
-      [buildingId]: true
     }
   };
-  
-  return updatedState;
 };
 
 // Обработка разблокировки улучшения
-export const processUnlockUpgrade = (state: GameState, upgradeId: string): GameState => {
-  // Проверяем, существует ли улучшение
+export const processSetUpgradeUnlocked = (
+  state: GameState,
+  payload: { upgradeId: string; unlocked: boolean }
+): GameState => {
+  const { upgradeId, unlocked } = payload;
+  
   if (!state.upgrades[upgradeId]) {
-    console.log(`Улучшение ${upgradeId} не найдено`);
     return state;
   }
   
-  // Если улучшение уже разблокировано, ничего не делаем
-  if (state.upgrades[upgradeId].unlocked) {
-    return state;
-  }
-  
-  // Разблокируем улучшение
-  const updatedState = {
+  return {
     ...state,
     upgrades: {
       ...state.upgrades,
       [upgradeId]: {
         ...state.upgrades[upgradeId],
-        unlocked: true
-      }
-    },
-    counters: {
-      ...state.counters,
-      unlocks: {
-        value: (typeof state.counters.unlocks === 'object' 
-          ? state.counters.unlocks.value + 1 
-          : (state.counters.unlocks || 0) + 1),
-        updatedAt: Date.now()
+        unlocked
       }
     }
   };
-  
-  return updatedState;
 };
 
-// Обработка разблокировки специальных возможностей
-export const processUnlockSpecial = (state: GameState, specialId: string): GameState => {
-  // Если такой разблокировки не существует, создаем её
-  const updatedState = {
-    ...state,
-    unlocks: {
-      ...state.unlocks,
-      [specialId]: true
-    },
-    counters: {
-      ...state.counters,
-      specialUnlocks: {
-        value: (typeof state.counters.specialUnlocks === 'object'
-          ? state.counters.specialUnlocks.value + 1
-          : (state.counters.specialUnlocks || 0) + 1),
-        updatedAt: Date.now()
+// Обработка инкремента счетчика
+export const processIncrementCounter = (
+  state: GameState,
+  payload: { counterId: string; value?: number }
+): GameState => {
+  const { counterId, value = 1 } = payload;
+  
+  // Если счетчик не существует, создаем его
+  if (!state.counters[counterId]) {
+    return {
+      ...state,
+      counters: {
+        ...state.counters,
+        [counterId]: {
+          id: counterId,
+          name: counterId,
+          value: value
+        }
       }
-    }
-  };
-  
-  return updatedState;
-};
-
-// Функция для обработки разблокировки любого типа
-export const processUnlock = (state: GameState, id: string, type: 'resource' | 'building' | 'upgrade' | 'special'): GameState => {
-  switch (type) {
-    case 'resource':
-      return processUnlockResource(state, id);
-    case 'building':
-      return processUnlockBuilding(state, id);
-    case 'upgrade':
-      return processUnlockUpgrade(state, id);
-    case 'special':
-      return processUnlockSpecial(state, id);
-    default:
-      return state;
+    };
   }
-};
-
-// Функция для проверки условий разблокировки ресурсов
-export const checkResourceUnlocks = (state: GameState): GameState => {
-  return state;
+  
+  // Обновляем существующий счетчик
+  const counter = state.counters[counterId];
+  const currentValue = typeof counter === 'number' ? counter : counter.value;
+  
+  return {
+    ...state,
+    counters: {
+      ...state.counters,
+      [counterId]: {
+        ...(typeof counter === 'object' ? counter : { id: counterId, name: counterId }),
+        value: currentValue + value
+      }
+    }
+  };
 };

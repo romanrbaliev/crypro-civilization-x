@@ -1,9 +1,9 @@
+
 import { GameState } from '@/context/types';
-import { checkAllUnlocks } from '@/utils/unlockManager';
-import { updateResourceMaxValues } from '@/context/utils/resourceUtils';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
 import { UnlockService } from './UnlockService';
+import { updateResourceMaxValues } from '@/context/utils/resourceUtils';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 /**
@@ -35,7 +35,7 @@ export class GameStateService {
       newState = updateResourceMaxValues(newState);
       
       // Проверяем все разблокировки
-      newState = checkAllUnlocks(newState);
+      newState = this.unlockService.checkAllUnlocks(newState);
       
       // Обновляем lastUpdate для отслеживания времени
       newState = {
@@ -187,7 +187,7 @@ export class GameStateService {
       newState = updateResourceMaxValues(newState);
       
       // Проверяем все разблокировки
-      newState = checkAllUnlocks(newState);
+      newState = this.unlockService.checkAllUnlocks(newState);
       
       // Обновляем lastUpdate для отслеживания времени
       newState = {
@@ -394,7 +394,7 @@ export class GameStateService {
     // Считаем итоговый максимум ресурса
     let totalMax = baseMax * multiplier + additionalMax;
     
-    // Если это знания и есть ��сследование "Основы блокчейна"
+    // Если это знания и есть исследование "Основы блокчейна"
     if (resourceId === 'knowledge') {
       let totalMultiplier = 1.0;
       

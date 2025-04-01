@@ -91,9 +91,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           if (gameState.resources && gameState.resources.usdt) {
             if (!gameState.counters || 
                 !gameState.counters.applyKnowledge || 
-                (typeof gameState.counters.applyKnowledge === 'object' 
-                  ? gameState.counters.applyKnowledge.value < 2 
-                  : gameState.counters.applyKnowledge < 2)) {
+                gameState.counters.applyKnowledge.value < 2) {
               gameState.resources.usdt.unlocked = false;
               
               if (gameState.unlocks) {

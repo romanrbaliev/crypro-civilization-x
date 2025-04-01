@@ -1,101 +1,167 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/hooks/useGame';
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { loadGame } from '@/utils/gameLoader';
+import { loadGameFromServer, getUserIdentifier, checkReferralInfo } from '@/api/gameDataService';
+import { saveReferralInfo } from '@/api/referralService';
 
-const StartScreen: React.FC = () => {
-  const { state, dispatch } = useGame();
+const StartScreen = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-
+  const { state, dispatch } = useGame();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasExistingSave, setHasExistingSave] = useState(false);
+  const [loadAttempted, setLoadAttempted] = useState(false);
+  
   useEffect(() => {
-    const tryLoadGame = async () => {
+    // Предотвращаем повторные запросы после первой попытки загрузки
+    if (loadAttempted) {
+      return;
+    }
+    
+    const checkForSavedGame = async () => {
+      setIsLoading(true);
+      setLoadAttempted(true);
+      
       try {
-        setIsLoading(true);
-        const savedGame = await loadGame();
+        // Получаем текущий ID пользователя
+        const currentUserId = await getUserIdentifier();
+        
+        // Генерируем реферальный код, если его нет
+        if (!state.referralCode) {
+          const newCode = Array.from({ length: 8 }, () => 
+              Math.floor(Math.random() * 16).toString(16).toUpperCase()
+          ).join('');
+          
+          dispatch({ 
+            type: "LOAD_GAME", 
+            payload: { ...state, referralCode: newCode } 
+          });
+        }
+
+        // Проверяем наличие реферального кода в URL
+        const referrerCode = extractReferralCodeFromUrl();
+        
+        if (referrerCode) {
+          // Сохраняем информацию о том, кто пригласил этого пользователя
+          dispatch({ 
+            type: "LOAD_GAME", 
+            payload: { 
+              ...state,
+              referredBy: referrerCode
+            } 
+          });
+          
+          // Обновляем реферальную информацию в базе данных
+          await checkReferralInfo(currentUserId, referrerCode);
+        }
+        
+        // Пытаемся загрузить сохраненную игру
+        const savedGame = await loadGameFromServer();
         
         if (savedGame) {
-          dispatch({ type: 'LOAD_GAME', payload: savedGame });
-          console.log('Игра успешно загружена');
+          // Проверяем реферальный код и устанавливаем, если отсутствует
+          if (!savedGame.referralCode) {
+            const newCode = Array.from({ length: 8 }, () => 
+              Math.floor(Math.random() * 16).toString(16).toUpperCase()
+            ).join('');
+            
+            savedGame.referralCode = newCode;
+          }
+          
+          // Фиксируем, что игра запущена
+          savedGame.gameStarted = true;
+          
+          // ВАЖНО: Убедимся, что USDT не разблокирован при загрузке
+          if (savedGame.resources && savedGame.resources.usdt) {
+            savedGame.resources.usdt.unlocked = false;
+            // Проверяем условие для разблокировки USDT
+            if (savedGame.counters && 
+                savedGame.counters.applyKnowledge && 
+                savedGame.counters.applyKnowledge.value >= 2) {
+              savedGame.resources.usdt.unlocked = true;
+              savedGame.unlocks.usdt = true;
+            } else {
+              // Если условие не выполнено, убедимся что USDT заблокирован
+              savedGame.resources.usdt.unlocked = false;
+              savedGame.unlocks.usdt = false;
+            }
+          }
+          
+          // Обновляем состояние с данными о рефералах
+          setHasExistingSave(true);
+          
+          dispatch({ type: "LOAD_GAME", payload: savedGame });
+          
+          // Принудительно обновляем информацию в таблице referral_data
+          await saveReferralInfo(savedGame.referralCode, state.referredBy || null);
+          
+          // Принудительно запрашиваем обновление статусов рефералов из БД
+          setTimeout(() => {
+            const refreshEvent = new CustomEvent('refresh-referrals');
+            window.dispatchEvent(refreshEvent);
+          }, 500);
+          
+          // Автоматически перенаправляем на экран игры
+          navigate('/game');
+        } else {
+          setHasExistingSave(false);
+          
+          // Сразу сохраняем реферальную информацию для ��ового пользователя
+          if (state.referralCode) {
+            await saveReferralInfo(state.referralCode, state.referredBy || null);
+          }
+          
+          // НОВАЯ ИГРА: Перед запуском новой игры очищаем состояние
+          // Используем правильный тип для действия START_GAME
+          dispatch({ type: "START_GAME" });
+          
+          // Автоматически перенаправляем на экран игры
+          navigate('/game');
         }
       } catch (error) {
-        console.error('Ошибка при загрузке игры:', error);
-        toast({
-          title: "Ошибка загрузки",
-          description: "Не удалось загрузить сохраненную игру.",
-          variant: "destructive",
-        });
+        console.error('Ошибка при проверке сохранений:', error);
+        setHasExistingSave(false);
+        
+        // Даже при ошибке запускаем новую игру и переходим на игровой экран
+        dispatch({ type: "START_GAME" });
+        navigate('/game');
       } finally {
         setIsLoading(false);
       }
     };
-
-    tryLoadGame();
-  }, [dispatch, toast]);
-
-  const handleStartGame = () => {
-    if (!state.gameStarted) {
-      dispatch({ type: 'START_GAME' });
-    }
-    navigate('/game');
-  };
-
-  // Обработка нажатия на кнопку приветствия
-  const handleWelcomeClick = () => {
-    const clickCount = typeof state.counters.welcomeClicks === 'object' 
-      ? state.counters.welcomeClicks.value || 0 
-      : (state.counters.welcomeClicks || 0);
     
-    // Увеличиваем счетчик на 1
-    dispatch({
-      type: 'INCREMENT_COUNTER',
-      payload: {
-        counterId: 'welcomeClicks',
-        value: 1
+    checkForSavedGame();
+  }, [dispatch, state.referralCode, navigate, state.referredBy, loadAttempted]);
+  
+  // Извлечение реферального кода из URL-параметра start
+  const extractReferralCodeFromUrl = () => {
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      // В Telegram стартовые параметры доступны через initDataUnsafe.start_param
+      // или через startapp для прямого запуска mini app
+      if (tg.initDataUnsafe?.start_param) {
+        return tg.initDataUnsafe.start_param;
       }
-    });
-    
-    // Показываем разные сообщения в зависимости от количества кликов
-    if (clickCount === 4) {
-      toast({
-        title: "Скрытый режим активирован",
-        description: "Вы разблокировали режим разработчика!",
-        variant: "success",
-      });
-    } else if (clickCount > 4 && clickCount < 10) {
-      toast({
-        description: `Еще ${10 - clickCount} нажатий до супер-режима!`,
-      });
-    } else if (clickCount === 10) {
-      toast({
-        title: "СУПЕР-РЕЖИМ АКТИВИРОВАН!",
-        description: "Добро пожаловать в супер-секретный режим разработчика!",
-        variant: "success",
-      });
+      
+      // Проверяем на наличие startapp параметра
+      if (tg.initDataUnsafe?.startapp) {
+        return tg.initDataUnsafe.startapp;
+      }
     }
+    
+    // Проверка параметра URL для веб-версии
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = urlParams.get('start') || urlParams.get('startapp');
+    
+    return startParam;
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-white p-4">
-      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg text-center">
-        <h1 className="text-4xl font-bold mb-2 text-blue-800" onClick={handleWelcomeClick}>
-          Crypto Civilization
-        </h1>
-        <p className="mb-8 text-gray-600">
-          Постройте свою криптовалютную империю
-        </p>
-        
-        <Button 
-          onClick={handleStartGame}
-          className="w-full py-6" 
-          disabled={isLoading}
-        >
-          {isLoading ? "Загрузка..." : (state.gameStarted ? "Продолжить игру" : "Начать игру")}
-        </Button>
+    <div className="h-screen w-full flex flex-col items-center justify-center p-4 bg-gray-50">
+      <div className="text-center">
+        <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-blue-600 border-t-transparent" role="status">
+          <span className="visually-hidden">Загрузка...</span>
+        </div>
+        <p className="mt-4 text-gray-600">Загрузка игры...</p>
       </div>
     </div>
   );

@@ -1,154 +1,80 @@
-import { GameState, ResourceAction } from '../types';
+
+import { GameState } from '../types';
+import { checkUnlocks } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { checkSpecialUnlocks } from '@/utils/unlockSystem';
 
-/**
- * Обрабатывает действие применения всех знаний
- */
-export const applyAllKnowledge = (state: GameState, action: ResourceAction): GameState => {
-  // Получаем текущее количество знаний
-  const knowledgeValue = state.resources.knowledge?.value || 0;
+// Обработка инкремента ресурсов
+export const processIncrementResource = (
+  state: GameState,
+  payload: { resourceId: string; amount?: number }
+): GameState => {
+  const { resourceId, amount = 1 } = payload;
   
-  // Если нет знаний, ничего не делаем
-  if (knowledgeValue <= 0) {
-    safeDispatchGameEvent('Нет знаний для применения', "warning");
+  // Если ресурс не существует, возвращаем текущее состояние
+  if (!state.resources[resourceId]) {
     return state;
   }
   
-  // Создаем копию состояния
-  let newState = { ...state };
+  const currentValue = state.resources[resourceId].value;
+  const maxValue = state.resources[resourceId].max;
   
-  // Рассчитываем, сколько USDT можно получить за знания
-  const knowledgeToUsdtRate = 10; // 10 знаний = 1 USDT
-  const appliedKnowledge = Math.floor(knowledgeValue / knowledgeToUsdtRate) * knowledgeToUsdtRate;
-  const usdtGain = appliedKnowledge / knowledgeToUsdtRate;
+  // Вычисляем новое значение, но не выше максимального
+  let newValue = currentValue + amount;
+  if (maxValue !== Infinity && newValue > maxValue) {
+    newValue = maxValue;
+  }
   
-  // Проверяем, есть ли что применять
-  if (appliedKnowledge <= 0) {
-    safeDispatchGameEvent('Недостаточно знаний для применения', "warning");
+  // Не позволяем опуститься ниже нуля
+  if (newValue < 0) {
+    newValue = 0;
+  }
+  
+  // Выводим сообщение в консоль для отладки
+  console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue}`);
+  
+  // Отправляем событие для возможного отображения в интерфейсе
+  if (amount > 0) {
+    safeDispatchGameEvent(`Получено ${amount} ${state.resources[resourceId].name}`, "info");
+  } else if (amount < 0) {
+    safeDispatchGameEvent(`Потрачено ${Math.abs(amount)} ${state.resources[resourceId].name}`, "info");
+  }
+  
+  const newState = {
+    ...state,
+    resources: {
+      ...state.resources,
+      [resourceId]: {
+        ...state.resources[resourceId],
+        value: newValue
+      }
+    },
+    // Обновляем lastUpdate, чтобы не было двойного обновления
+    lastUpdate: Date.now()
+  };
+  
+  // Используем новую систему проверки специальных разблокировок
+  return checkSpecialUnlocks(newState);
+};
+
+// Обработка разблокировки ресурса
+export const processUnlockResource = (
+  state: GameState,
+  payload: { resourceId: string }
+): GameState => {
+  const { resourceId } = payload;
+  
+  if (!state.resources[resourceId]) {
     return state;
   }
   
-  // Проверяем, разблокирован ли USDT
-  if (!state.resources.usdt) {
-    // Создаем ресурс USDT, если его нет
-    newState.resources = {
-      ...newState.resources,
-      usdt: {
-        id: 'usdt',
-        name: 'USDT',
-        description: 'Стабильная криптовалюта, привязанная к доллару США',
-        type: 'currency',
-        icon: 'dollar-sign',
-        value: usdtGain,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 100,
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      [resourceId]: {
+        ...state.resources[resourceId],
         unlocked: true
-      }
-    };
-    
-    // Устанавливаем флаг разблокировки
-    newState.unlocks = {
-      ...newState.unlocks,
-      usdt: true
-    };
-    
-    safeDispatchGameEvent('Разблокирован ресурс: USDT', 'success');
-  } else {
-    // Если USDT уже существует, просто увеличиваем его значение
-    const currentUsdtValue = newState.resources.usdt.value || 0;
-    newState.resources = {
-      ...newState.resources,
-      usdt: {
-        ...newState.resources.usdt,
-        value: currentUsdtValue + usdtGain
-      }
-    };
-  }
-  
-  // Обновляем значение знаний
-  newState.resources = {
-    ...newState.resources,
-    knowledge: {
-      ...newState.resources.knowledge,
-      value: knowledgeValue - appliedKnowledge
-    }
-  };
-  
-  // Увеличиваем счетчик применения знаний
-  const applyKnowledgeCount = typeof newState.counters.applyKnowledge === 'object' 
-    ? (newState.counters.applyKnowledge.value || 0) 
-    : (newState.counters.applyKnowledge || 0);
-  
-  newState.counters = {
-    ...newState.counters,
-    applyKnowledge: {
-      value: applyKnowledgeCount + 1,
-      updatedAt: Date.now()
-    }
-  };
-  
-  // Отправляем уведомление
-  safeDispatchGameEvent(`Применено ${appliedKnowledge} знаний, получено ${usdtGain} USDT`, 'success');
-  
-  return newState;
-};
-
-/**
- * Обрабатывает действие применения всех знаний (legacy поддержка)
- */
-export const processApplyAllKnowledge = applyAllKnowledge;
-
-/**
- * Обрабатывает увеличение ресурса
- */
-export const processIncrementResource = (state: GameState, payload: ResourceAction): GameState => {
-  const { resourceId, amount } = payload;
-  
-  if (!resourceId || amount === undefined) return state;
-  
-  // Получаем текущий ресурс
-  const currentResource = state.resources[resourceId];
-  
-  // Если ресурса нет, ничего не делаем
-  if (!currentResource) return state;
-  
-  // Обновляем значение ресурса
-  return {
-    ...state,
-    resources: {
-      ...state.resources,
-      [resourceId]: {
-        ...currentResource,
-        value: currentResource.value + amount
-      }
-    }
-  };
-};
-
-/**
- * Обрабатывает уменьшение ресурса
- */
-export const processDecrementResource = (state: GameState, payload: ResourceAction): GameState => {
-  const { resourceId, amount } = payload;
-  
-  if (!resourceId || amount === undefined) return state;
-  
-  // Получаем текущий ресурс
-  const currentResource = state.resources[resourceId];
-  
-  // Если ресурса нет, ничего не делаем
-  if (!currentResource) return state;
-  
-  // Обновляем значение ресурса (не меньше 0)
-  return {
-    ...state,
-    resources: {
-      ...state.resources,
-      [resourceId]: {
-        ...currentResource,
-        value: Math.max(0, currentResource.value - amount)
       }
     }
   };
