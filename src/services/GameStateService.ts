@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -138,19 +139,37 @@ export class GameStateService {
       // Проверить разблокировки через UnlockService
       let newState = this.unlockService.checkAllUnlocks(state);
       
-      // Особая обработка для "Основы криптовалют" - разблокировка майнера
-      if (upgradeId === 'cryptoCurrencyBasics' && newState.buildings.miner) {
+      // Особая обработка для "Основы криптовалют" - принудительная разблокировка майнера
+      if ((upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') && 
+          (newState.buildings.miner || newState.buildings.autoMiner)) {
         console.log("GameStateService: Принудительная разблокировка майнера");
         
-        newState.buildings.miner = {
-          ...newState.buildings.miner,
-          unlocked: true
-        };
+        // Разблокируем майнер по обоим возможным ID
+        if (newState.buildings.miner) {
+          newState.buildings.miner = {
+            ...newState.buildings.miner,
+            unlocked: true
+          };
+          
+          newState.unlocks = {
+            ...newState.unlocks,
+            miner: true
+          };
+        }
         
-        newState.unlocks = {
-          ...newState.unlocks,
-          miner: true
-        };
+        if (newState.buildings.autoMiner) {
+          newState.buildings.autoMiner = {
+            ...newState.buildings.autoMiner,
+            unlocked: true
+          };
+          
+          newState.unlocks = {
+            ...newState.unlocks,
+            autoMiner: true
+          };
+        }
+        
+        console.log("GameStateService: Майнер принудительно разблокирован");
       }
       
       // Обновить максимальные значения ресурсов
@@ -277,7 +296,9 @@ export class GameStateService {
       let totalMultiplier = 1.0;
       
       // Проверяем наличие исследования "Основы блокчейна"
-      if (state.upgrades.blockchainBasics?.purchased) {
+      if (state.upgrades.blockchainBasics?.purchased || 
+          state.upgrades.basicBlockchain?.purchased || 
+          state.upgrades.blockchain_basics?.purchased) {
         // Увеличиваем общий множитель на 50%
         totalMultiplier += 0.5;
         console.log(`GameStateService: Множитель максимума знаний от Основ блокчейна: +50%`);

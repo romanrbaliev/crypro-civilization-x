@@ -70,7 +70,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     // 1. Увеличиваем макс. хранение знаний на 50%
     if (newState.resources.knowledge) {
       const baseMax = 100; // Базовое значение
-      const newMax = baseMax * 1.5; // Именно +50% от базового значения, а не умножение текущего на 1.5
+      const newMax = baseMax * 1.5; // +50% от базового значения (100 * 1.5 = 150)
       
       newState.resources.knowledge = {
         ...newState.resources.knowledge,

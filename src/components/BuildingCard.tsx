@@ -36,13 +36,16 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onBuy, onSell }) 
         effects += '+50 к макс. USDT, +25% к макс. Знаниям, ';
         break;
       case 'internetConnection':
-        effects += '+20% к скорости получения знаний, ';
+        effects += '+20% к скорости получения знаний, +5% к эффективности производства вычисл. мощности, ';
         break;
       case 'coolingSystem':
         effects += '-20% к потреблению вычислительной мощности, ';
         break;
       case 'improvedWallet':
-        effects += '+150 к макс. USDT, +1 к макс. BTC, ';
+        effects += '+150 к макс. USDT, +1 к макс. BTC, +8% к эффективности конвертации BTC на USDT, ';
+        break;
+      case 'cryptoLibrary':
+        effects += '+50% к скорости получения знаний, +100 к макс. Знаниям, ';
         break;
     }
     
