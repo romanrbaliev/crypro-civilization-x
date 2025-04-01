@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 
 /**
@@ -21,7 +22,7 @@ export class ResourceProductionService {
     }
     
     // Расчет базового производства знаний для практики (1.0 на 1 уровень практики)
-    if (state.buildings.practice && state.buildings.practice.count > 0) {
+    if (state.buildings.practice && state.buildings.practice.count > 0 && state.buildings.practice.unlocked) {
       const practiceCount = state.buildings.practice.count;
       
       // Базовое производство от здания "Практика" - 1 знание в секунду для одной практики
@@ -49,7 +50,7 @@ export class ResourceProductionService {
     }
     
     // Расчет производства электричества от генераторов
-    if (state.buildings.generator && state.buildings.generator.count > 0) {
+    if (state.buildings.generator && state.buildings.generator.count > 0 && state.buildings.generator.unlocked) {
       const generatorCount = state.buildings.generator.count;
       const baseElectricityProduction = 0.5 * generatorCount; // 0.5 электричества в секунду на 1 генератор
       
@@ -60,7 +61,7 @@ export class ResourceProductionService {
     }
     
     // Расчет производства от автомайнеров
-    if (state.buildings.autoMiner && state.buildings.autoMiner.count > 0 && updatedResources.bitcoin) {
+    if (state.buildings.autoMiner && state.buildings.autoMiner.count > 0 && state.buildings.autoMiner.unlocked && updatedResources.bitcoin) {
       const minerCount = state.buildings.autoMiner.count;
       const miningEfficiency = state.miningParams?.miningEfficiency || 1.0;
       const bitcoinProduction = 0.00005 * minerCount * miningEfficiency;
@@ -86,7 +87,7 @@ export class ResourceProductionService {
     for (const buildingId in state.buildings) {
       const building = state.buildings[buildingId];
       
-      if (building.count > 0 && building.consumption) {
+      if (building.count > 0 && building.consumption && building.unlocked) {
         // Для каждого ресурса, потребляемого зданием
         for (const resourceId in building.consumption) {
           const consumptionRate = building.consumption[resourceId];

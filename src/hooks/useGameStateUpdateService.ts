@@ -1,89 +1,72 @@
 
-import { useEffect, useRef, useState } from 'react';
-import { useGameState } from '../context/GameStateContext';
-import { GameStateService } from '@/services/GameStateService';
+import { useEffect, useRef } from 'react';
+import { useGame } from '@/context/hooks/useGame';
 
 /**
- * Хук для управления централизованным обновлением состояния игры
+ * Хук для управления обновлением состояния игры на основе прошедшего времени
  */
-export function useGameStateUpdateService() {
-  const { state, dispatch } = useGameState();
-  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
-  const syncIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+export const useGameStateUpdateService = () => {
+  const { state, dispatch, isPageVisible } = useGame();
+  const lastUpdateRef = useRef<number>(Date.now());
+  const intervalIdRef = useRef<number | null>(null);
   
-  // Полная синхронизация при инициализации
-  useEffect(() => {
-    if (state.gameStarted && !isInitialized) {
-      console.log('🚀 Инициализация сервиса обновления состояния игры');
-      
-      // Сначала проводим полную синхронизацию состояния
-      const gameStateService = new GameStateService();
-      const syncedState = gameStateService.performFullStateSync(state);
-      
-      // Если состояние изменилось, применяем изменения
-      if (syncedState !== state) {
-        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-      }
-      
-      setIsInitialized(true);
+  // Функция обновления ресурсов
+  const updateResources = () => {
+    // Если страница не видима, не обновляем ресурсы слишком часто
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateRef.current;
+    
+    // Ограничиваем скорость обновления ресурсов
+    if (timeSinceLastUpdate < 1000) {
+      return; // Обновление происходит не чаще раза в секунду
     }
-  }, [state.gameStarted, dispatch, isInitialized, state]);
+    
+    // Отправляем действие для обновления ресурсов
+    dispatch({ 
+      type: 'UPDATE_RESOURCES',
+      payload: { deltaTime: timeSinceLastUpdate }
+    });
+    
+    // Обновляем время последнего обновления
+    lastUpdateRef.current = now;
+  };
   
-  // Обновление ресурсов на регулярной основе
+  // Эффект для настройки интервала обновления состояния
   useEffect(() => {
     if (!state.gameStarted) return;
     
-    console.log('⚙️ Запуск сервиса обновления состояния игры');
+    // Определяем частоту обновления в зависимости от видимости страницы
+    const updateInterval = isPageVisible ? 1000 : 5000; // 1 секунда при видимости, 5 секунд в фоне
     
     // Очищаем предыдущий интервал, если он был
-    if (intervalIdRef.current) {
+    if (intervalIdRef.current !== null) {
       clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
     }
     
-    intervalIdRef.current = setInterval(() => {
-      // Проверяем статусы оборудования, зависящего от электричества
-      if (state.resources.electricity && state.resources.electricity.value <= 0) {
-        // Если электричество закончилось, отправляем событие для проверки оборудования
-        dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
-      }
-    }, 1000); // Проверка оборудования каждую секунду
+    // Устанавливаем новый интервал для обновления ресурсов
+    intervalIdRef.current = window.setInterval(updateResources, updateInterval);
+    
+    // Выполняем начальное обновление
+    updateResources();
     
     return () => {
-      console.log('🛑 Остановка сервиса обновления состояния игры');
-      if (intervalIdRef.current) {
+      if (intervalIdRef.current !== null) {
         clearInterval(intervalIdRef.current);
         intervalIdRef.current = null;
       }
     };
-  }, [state.gameStarted, dispatch, state.resources.electricity]);
+  }, [state.gameStarted, isPageVisible]);
   
-  // Периодическая полная синхронизация состояния
+  // Эффект для обработки изменения видимости страницы
   useEffect(() => {
     if (!state.gameStarted) return;
     
-    console.log('🔄 Настройка периодической полной синхронизации состояния');
-    
-    // Очищаем предыдущий интервал синхронизации, если он был
-    if (syncIntervalIdRef.current) {
-      clearInterval(syncIntervalIdRef.current);
-      syncIntervalIdRef.current = null;
+    // При возвращении на страницу, немедленно обновляем ресурсы
+    if (isPageVisible) {
+      updateResources();
+      
+      // Проверяем статус оборудования
+      dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
     }
-    
-    // Запускаем периодическую полную синхронизацию
-    syncIntervalIdRef.current = setInterval(() => {
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-    }, 10000); // Каждые 10 секунд выполняем полную синхронизацию
-    
-    return () => {
-      console.log('🛑 Остановка полной синхронизации состояния');
-      if (syncIntervalIdRef.current) {
-        clearInterval(syncIntervalIdRef.current);
-        syncIntervalIdRef.current = null;
-      }
-    };
-  }, [state.gameStarted, dispatch]); 
-  
-  return null;
-}
+  }, [isPageVisible]);
+};

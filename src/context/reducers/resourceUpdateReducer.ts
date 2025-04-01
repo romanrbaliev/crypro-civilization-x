@@ -17,7 +17,10 @@ export const processResourceUpdate = (state: GameState): GameState => {
     return state;
   }
   
-  console.log(`Обновление ресурсов, прошло ${elapsedSeconds.toFixed(2)} сек.`);
+  // Ограничиваем максимальное время обновления, чтобы избежать больших скачков
+  const cappedElapsedSeconds = Math.min(elapsedSeconds, 5);
+  
+  console.log(`Обновление ресурсов, прошло ${elapsedSeconds.toFixed(2)} сек., используем ${cappedElapsedSeconds.toFixed(2)} сек.`);
   
   // Создаем копию состояния
   let newState = { ...state };
@@ -132,15 +135,15 @@ export const processResourceUpdate = (state: GameState): GameState => {
       value: 0,
       baseProduction: 0,
       production: 0,
-      perSecond: state.buildings.autoMiner?.count > 0 ? 
+      perSecond: state.buildings.autoMiner?.count > 0 && state.buildings.autoMiner?.unlocked ? 
         0.00005 * state.buildings.autoMiner.count * (state.miningParams?.miningEfficiency || 1) : 0,
       max: 0.01,
       unlocked: true
     };
   }
   
-  // Обновляем значения ресурсов на основе времени
-  newResources = updateResourceValues(newResources, elapsedSeconds);
+  // Обновляем значения ресурсов на основе времени с ограничением максимального времени
+  newResources = updateResourceValues(newResources, cappedElapsedSeconds);
   
   // Проверяем ресурсы для уведомлений
   checkResourcesForAlerts(state, newResources);
@@ -151,7 +154,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     resources: newResources,
     lastUpdate: now,
     eventMessages: eventMessages,
-    gameTime: state.gameTime + elapsedSeconds,
+    gameTime: state.gameTime + cappedElapsedSeconds, // Используем ограниченное время для обновления игрового времени
     miningParams: miningParams
   };
   

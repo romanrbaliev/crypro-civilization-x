@@ -88,7 +88,7 @@ export class UnlockService {
    * Обновлено согласно базе знаний
    */
   private shouldUnlockGenerator(state: GameState): boolean {
-    return state.resources.usdt?.value >= 11; // Требуется накопление 11 USDT
+    return state.resources.usdt?.value >= 11 && state.resources.usdt?.unlocked; // Требуется накопление 11 USDT и разблокированный USDT
   }
   
   /**
@@ -96,7 +96,7 @@ export class UnlockService {
    * Добавлено согласно базе знаний
    */
   private shouldUnlockHomeComputer(state: GameState): boolean {
-    return state.resources.electricity?.value >= 50; // Требуется 50 единиц электричества
+    return state.resources.electricity?.value >= 50 && state.resources.electricity?.unlocked; // Требуется 50 единиц электричества и разблокированное электричество
   }
   
   /**
@@ -104,7 +104,7 @@ export class UnlockService {
    * Добавлено согласно базе знаний
    */
   private shouldUnlockBlockchainBasics(state: GameState): boolean {
-    return state.buildings.generator?.count > 0; // Требуется покупка генератора
+    return state.buildings.generator?.count > 0 && state.buildings.generator?.unlocked; // Требуется покупка генератора
   }
   
   /**

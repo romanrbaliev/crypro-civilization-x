@@ -21,17 +21,6 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
-  // Расчет процента заполнения (плавно обновляется)
-  // Проверяем, что max определен и не равен Infinity
-  const fillPercentage = max === Infinity || max === 0 ? 0 : Math.min(100, Math.max(0, (animatedValue / max) * 100));
-  
-  // Определяем классы для отображения прогресса
-  const progressColorClass = fillPercentage > 90 
-    ? "bg-red-500" 
-    : fillPercentage > 70 
-      ? "bg-yellow-500" 
-      : "bg-blue-500";
-  
   // Форматирование значений с учетом типа ресурса
   const formattedValue = propFormattedValue || formatResourceValue(animatedValue, id);
   
@@ -81,15 +70,6 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
           {max !== Infinity && ` / ${formattedMax}`}
         </div>
       </div>
-      
-      {max !== Infinity && (
-        <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-          <div 
-            className={`h-1 rounded-full ${progressColorClass}`} 
-            style={{ width: `${fillPercentage}%`, transition: 'width 0.5s ease' }}
-          ></div>
-        </div>
-      )}
       
       {/* Отображаем скорость только если она не равна нулю */}
       {perSecond !== 0 && (
