@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { processIncrementResource } from './resourceReducer';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -82,7 +83,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   const applyCount = typeof currentApplyCounter === 'object' ? currentApplyCounter.value : currentApplyCounter;
   
   // Создаем новое состояние с обновленным счетчиком
-  const newState = {
+  let updatedState = {
     ...state,
     counters: {
       ...state.counters,
@@ -95,8 +96,6 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   };
   
   // Проверяем, нужно ли разблокировать USDT (после первого применения знаний)
-  let updatedState = { ...newState };
-  
   if ((applyCount + 1) >= 1 && !updatedState.unlocks.usdt) {
     console.log('actionsReducer: Разблокирован USDT (1+ применений знаний)');
     updatedState = {
@@ -198,7 +197,7 @@ export const processLearnKnowledgeAction = (state: GameState): GameState => {
   const clicksCount = typeof currentClicksCounter === 'object' ? currentClicksCounter.value : currentClicksCounter;
   
   // Создаем новое состояние с обновленным счетчиком
-  const newState = {
+  let updatedState = {
     ...state,
     counters: {
       ...state.counters,
@@ -211,8 +210,6 @@ export const processLearnKnowledgeAction = (state: GameState): GameState => {
   };
   
   // Если кликов стало >= 3, разблокируем кнопку "Применить знания" (если еще не разблокирована)
-  let updatedState = { ...newState };
-  
   if ((clicksCount + 1) >= 3 && !updatedState.unlocks.applyKnowledge) {
     console.log('actionsReducer: Разблокирована кнопка "Применить знания" (3+ кликов на "Изучить")');
     
@@ -254,7 +251,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   const applyCount = typeof currentApplyCounter === 'object' ? currentApplyCounter.value : currentApplyCounter;
   
   // Создаем новое состояние с обновленным счетчиком
-  const newState = {
+  let updatedState = {
     ...state,
     counters: {
       ...state.counters,
@@ -267,8 +264,6 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   };
   
   // Проверяем, нужно ли разблокировать USDT (после первого применения знаний)
-  let updatedState = { ...newState };
-  
   if ((applyCount + 1) >= 1 && !updatedState.unlocks.usdt) {
     console.log('actionsReducer: Разблокирован USDT (1+ применений знаний)');
     
