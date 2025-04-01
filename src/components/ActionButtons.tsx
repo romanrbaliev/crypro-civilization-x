@@ -71,11 +71,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         <Button 
           key="exchange-bitcoin"
           variant={canExchangeBitcoin ? "default" : "outline"}
-          className={`py-6 px-4 ${!canExchangeBitcoin ? "opacity-50" : ""}`}
+          className={`py-3 px-4 text-sm h-8 ${!canExchangeBitcoin ? "opacity-50" : ""}`}
           onClick={handleExchangeBitcoin}
           disabled={!canExchangeBitcoin}
         >
-          <span className="text-base">Обменять Bitcoin</span>
+          <span className="text-xs">Обменять Bitcoin</span>
           <small className="text-xs ml-2">
             1 BTC = {currentExchangeRate.toLocaleString()} USDT
           </small>
@@ -89,11 +89,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         <Button 
           key="apply-knowledge"
           variant={canApplyKnowledge ? "default" : "outline"}
-          className="py-6 px-4"
+          className="py-2 px-4 h-8 text-xs"
           onClick={handleApplyAllKnowledge}
           disabled={!canApplyKnowledge}
         >
-          <span className="text-base">Применить знания</span>
+          <span className="text-xs">Применить знания</span>
         </Button>
       );
     }
@@ -104,14 +104,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         <Button 
           key="learn-crypto"
           variant="secondary"
-          className="py-6 px-4"
+          className="py-2 px-4 h-8 text-xs"
           onMouseDown={handleLearnMouseDown}
           onMouseUp={handleLearnMouseUp}
           onMouseLeave={handleLearnMouseLeave}
           onTouchStart={handleLearnClick}
           onTouchEnd={() => {}}
         >
-          <span className="text-base">Изучить крипту</span>
+          <span className="text-xs">Изучить крипту</span>
         </Button>
       );
     }
