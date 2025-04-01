@@ -13,7 +13,7 @@ interface TechTreeProps {
 const TechTree: React.FC<TechTreeProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
-  // ИСПРАВЛЕНО: Упрощение проверки разблокированных исследований
+  // Упрощение проверки разблокированных исследований
   const hasUnlockedResearch = state.unlocks.research === true;
   
   // Получаем количество активных категорий

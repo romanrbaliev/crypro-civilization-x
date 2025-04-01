@@ -12,7 +12,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { debugUnlockStatus } from '@/utils/debugCalculator';
-import { isPhase2Unlocked, getUnlockedPhase2Buildings, getUnlockedPhase2Upgrades } from '@/utils/researchUtils';
+import { 
+  getUnlockedBuildingsByGroup, 
+  getUnlockedUpgradesByGroup 
+} from '@/utils/researchUtils';
 
 const UnlocksDebugger: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -45,16 +48,26 @@ const UnlocksDebugger: React.FC = () => {
     }, 100);
   };
   
-  // Дополнительная информация о фазе 2
-  const phase2Info = React.useMemo(() => {
+  // Получаем информацию о разблокированных элементах
+  const advancedBuildings = React.useMemo(() => {
     if (!isOpen) return null;
     
-    const phase2Unlocked = isPhase2Unlocked(state);
-    const unlockedBuildings = getUnlockedPhase2Buildings(state);
-    const unlockedUpgrades = getUnlockedPhase2Upgrades(state);
+    // Список продвинутых зданий
+    const advancedBuildingsList = ['miner', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet'];
+    const unlockedBuildings = getUnlockedBuildingsByGroup(state, advancedBuildingsList);
+    
+    // Список продвинутых исследований
+    const advancedUpgradesList = [
+      'cryptoCurrencyBasics', 
+      'algorithmOptimization', 
+      'proofOfWork', 
+      'energyEfficientComponents', 
+      'cryptoTrading', 
+      'tradingBot'
+    ];
+    const unlockedUpgrades = getUnlockedUpgradesByGroup(state, advancedUpgradesList);
     
     return {
-      phase2Unlocked,
       unlockedBuildings,
       unlockedUpgrades
     };
@@ -94,32 +107,28 @@ const UnlocksDebugger: React.FC = () => {
           </div>
         </div>
         
-        {/* Информация о фазе 2 */}
-        {phase2Info && (
+        {/* Информация о продвинутых зданиях и исследованиях */}
+        {advancedBuildings && (
           <div className="border-t pt-3 mt-2">
-            <h4 className="font-medium mb-2">Фаза 2: {state.phase >= 2 ? "Активна" : "Неактивна"}</h4>
-            <p className="text-xs mb-2">
-              Условия для фазы 2 {phase2Info.phase2Unlocked ? "выполнены" : "не выполнены"}
-              {phase2Info.phase2Unlocked && state.phase < 2 && " (требуется обновление)"}
-            </p>
+            <h4 className="font-medium mb-2">Продвинутый контент</h4>
             
             <div className="text-xs mb-2">
-              <strong>Здания фазы 2:</strong>
+              <strong>Продвинутые здания:</strong>
               <ul className="ml-4">
                 {['miner', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet'].map(building => (
-                  <li key={building} className={phase2Info.unlockedBuildings.includes(building) ? "text-green-600" : "text-gray-400"}>
-                    {phase2Info.unlockedBuildings.includes(building) ? "✅" : "❌"} {building}
+                  <li key={building} className={advancedBuildings.unlockedBuildings.includes(building) ? "text-green-600" : "text-gray-400"}>
+                    {advancedBuildings.unlockedBuildings.includes(building) ? "✅" : "❌"} {building}
                   </li>
                 ))}
               </ul>
             </div>
             
             <div className="text-xs">
-              <strong>Исследования фазы 2:</strong>
+              <strong>Продвинутые исследования:</strong>
               <ul className="ml-4">
                 {['cryptoCurrencyBasics', 'algorithmOptimization', 'proofOfWork', 'energyEfficientComponents', 'cryptoTrading', 'tradingBot'].map(upgrade => (
-                  <li key={upgrade} className={phase2Info.unlockedUpgrades.includes(upgrade) ? "text-green-600" : "text-gray-400"}>
-                    {phase2Info.unlockedUpgrades.includes(upgrade) ? "✅" : "❌"} {upgrade}
+                  <li key={upgrade} className={advancedBuildings.unlockedUpgrades.includes(upgrade) ? "text-green-600" : "text-gray-400"}>
+                    {advancedBuildings.unlockedUpgrades.includes(upgrade) ? "✅" : "❌"} {upgrade}
                   </li>
                 ))}
               </ul>

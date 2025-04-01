@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
@@ -50,7 +51,7 @@ const GameScreen = () => {
   
   const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
   const hasUnlockedResearch = state.unlocks.research === true;
-  const hasUnlockedSpecialization = state.phase >= 3;
+  const hasUnlockedSpecialization = state.unlocks.specialization === true;
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });

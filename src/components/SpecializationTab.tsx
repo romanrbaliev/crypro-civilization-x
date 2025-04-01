@@ -23,10 +23,14 @@ const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => 
   const { state, dispatch } = useGame();
   
   // Проверяем, доступен ли выбор специализации
-  const canChooseSpecialization = state.phase >= 3;
+  const canChooseSpecialization = state.unlocks.specialization === true;
   
   // Массив доступных ролей
-  const availableRoles = Object.values(roles).filter(role => role.phase <= state.phase);
+  const availableRoles = Object.values(roles).filter(role => 
+    // Проверяем, разблокирована ли роль
+    !role.requiredUpgrades || 
+    role.requiredUpgrades.every(upgradeId => state.upgrades[upgradeId]?.purchased)
+  );
   
   // Обработчик выбора специализации
   const handleChooseSpecialization = (roleId: string) => {
@@ -48,7 +52,7 @@ const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => 
   };
   
   if (!canChooseSpecialization) {
-    return <SpecializationLocked phase={state.phase} />;
+    return <SpecializationLocked />;
   }
   
   if (availableRoles.length === 0) {
@@ -74,17 +78,15 @@ const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => 
   );
 };
 
-const SpecializationLocked: React.FC<{ phase: number }> = ({ phase }) => {
-  const nextPhase = Math.min(phase + 1, 6);
-  
+const SpecializationLocked: React.FC = () => {
   return (
     <div className="text-center py-6 text-gray-500">
       <BadgeAlert className="h-10 w-10 mx-auto mb-3 opacity-20" />
-      <p className="text-xs">Выбор специализации станет доступен в Фазе 3.<br />Сейчас вы находитесь в Фазе {phase}.</p>
+      <p className="text-xs">Выбор специализации станет доступен позже.<br />Продолжайте развивать свою крипто-цивилизацию.</p>
       
       <div className="mt-4">
         <Badge variant="outline" className="mx-auto">
-          Фаза {nextPhase} разблокируется позже
+          Продолжайте исследования для разблокировки
         </Badge>
       </div>
     </div>

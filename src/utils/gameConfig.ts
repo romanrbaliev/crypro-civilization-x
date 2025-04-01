@@ -8,8 +8,7 @@ export const resources = {
     icon: "🧠",
     baseValue: 0,
     baseMax: 100,
-    description: "Базовые знания о криптовалютах и блокчейне",
-    phase: 1
+    description: "Базовые знания о криптовалютах и блокчейне"
   },
   usdt: {
     id: "usdt",
@@ -17,8 +16,7 @@ export const resources = {
     icon: "💰",
     baseValue: 0,
     baseMax: 50,
-    description: "Стейблкоин, привязанный к доллару США",
-    phase: 1
+    description: "Стейблкоин, привязанный к доллару США"
   },
   btc: {
     id: "btc",
@@ -26,8 +24,7 @@ export const resources = {
     icon: "₿",
     baseValue: 0,
     baseMax: 10,
-    description: "Основная криптовалюта, добываемая майнингом",
-    phase: 2
+    description: "Основная криптовалюта, добываемая майнингом"
   },
   electricity: {
     id: "electricity",
@@ -35,8 +32,7 @@ export const resources = {
     icon: "⚡",
     baseValue: 0,
     baseMax: 1000,
-    description: "Используется для питания майнинг-ферм и компьютеров",
-    phase: 2
+    description: "Используется для питания майнинг-ферм и компьютеров"
   },
   computingPower: {
     id: "computingPower",
@@ -44,8 +40,7 @@ export const resources = {
     icon: "💻",
     baseValue: 0,
     baseMax: 1000,
-    description: "Необходима для майнинга и анализа данных",
-    phase: 2
+    description: "Необходима для майнинга и анализа данных"
   },
   reputation: {
     id: "reputation",
@@ -53,8 +48,7 @@ export const resources = {
     icon: "⭐",
     baseValue: 0,
     baseMax: Infinity,
-    description: "Влияет на доверие сообщества и возможности сотрудничества",
-    phase: 2
+    description: "Влияет на доверие сообщества и возможности сотрудничества"
   },
   hashrate: {
     id: "hashrate",
@@ -62,8 +56,7 @@ export const resources = {
     icon: "🔄",
     baseValue: 0,
     baseMax: 10000,
-    description: "Скорость решения криптографических задач для майнинга",
-    phase: 3
+    description: "Скорость решения криптографических задач для майнинга"
   },
   subscribers: {
     id: "subscribers",
@@ -71,8 +64,7 @@ export const resources = {
     icon: "👥",
     baseValue: 0,
     baseMax: Infinity,
-    description: "Ваши последователи в крипто-сообществе",
-    phase: 3
+    description: "Ваши последователи в крипто-сообществе"
   }
 };
 
@@ -82,7 +74,7 @@ export const roles = {
     id: "investor",
     name: "Инвестор",
     description: "Фокус на долгосрочных инвестициях и диверсификации портфеля",
-    phase: 3,
+    requiredUpgrades: ["portfolioDiversification"],
     bonuses: {
       stakingIncome: 0.15,
       maxCrypto: 0.1,
@@ -93,7 +85,7 @@ export const roles = {
     id: "trader",
     name: "Трейдер",
     description: "Фокус на краткосрочной торговле и использовании волатильности",
-    phase: 3,
+    requiredUpgrades: ["cryptoTrading"],
     bonuses: {
       tradingProfit: 0.2,
       tradeSpeed: 0.15,
@@ -104,7 +96,7 @@ export const roles = {
     id: "miner",
     name: "Майнер",
     description: "Создание инфраструктуры для поддержания сети и майнинга",
-    phase: 3,
+    requiredUpgrades: ["proofOfWork"],
     bonuses: {
       hashrateEfficiency: 0.25,
       energyConsumption: -0.1,
@@ -115,7 +107,7 @@ export const roles = {
     id: "influencer",
     name: "Инфлюенсер",
     description: "Социальное влияние и формирование общественного мнения",
-    phase: 3,
+    requiredUpgrades: ["cryptoCommunity"],
     bonuses: {
       subscriberGrowth: 0.3,
       reputationEfficiency: 0.2,
@@ -126,7 +118,7 @@ export const roles = {
     id: "analyst",
     name: "Аналитик",
     description: "Исследование рынка и прогнозирование трендов",
-    phase: 4,
+    requiredUpgrades: ["technicalAnalysis"],
     bonuses: {
       knowledgeBoost: 0.25,
       projectDiscoveryChance: 0.15,
@@ -137,7 +129,7 @@ export const roles = {
     id: "founder",
     name: "Фаундер",
     description: "Создание и развитие собственных проектов",
-    phase: 4,
+    requiredUpgrades: ["smartContracts", "wealthManagement"],
     bonuses: {
       fundingEfficiency: 0.2,
       projectDevelopmentSpeed: 0.15,
@@ -148,7 +140,7 @@ export const roles = {
     id: "arbitrageur",
     name: "Арбитражник",
     description: "Использование ценовых различий между рынками",
-    phase: 4,
+    requiredUpgrades: ["tradingBots"],
     bonuses: {
       arbitrageProfitBoost: 0.25,
       arbitrageOpportunitySpeed: 0.2,
@@ -157,8 +149,8 @@ export const roles = {
   }
 };
 
-// Фазы игры
-export const phases = [
+// Прогрессия игры
+export const progression = [
   {
     id: 1,
     name: "Первые шаги",
@@ -384,37 +376,13 @@ export const techTreeUpgrades = {
   cryptoCurrencyBasics: {
     id: "cryptoCurrencyBasics",
     name: "Основы криптовалют",
-    description: "Изучение принципов работы ��азличных криптовалют",
+    description: "Изучение принципов работы различных криптовалют",
     category: "blockchain",
     tier: 1,
     cost: { knowledge: 100 },
     effect: { miningEfficiencyBoost: 0.1 },
     requiredUpgrades: ["basicBlockchain"],
     unlockCondition: { resources: { knowledge: 150 } },
-    specialization: null
-  },
-  smartContracts: {
-    id: "smartContracts",
-    name: "Смарт-контракты",
-    description: "Автоматическое выполнение контрактов в блокчейне",
-    category: "blockchain",
-    tier: 2,
-    cost: { knowledge: 350, usdt: 150 },
-    effect: { automationBoost: 0.15, reputationBoost: 0.05 },
-    requiredUpgrades: ["basicBlockchain"],
-    unlockCondition: { resources: { knowledge: 500 } },
-    specialization: null
-  },
-  blockchainScalability: {
-    id: "blockchainScalability",
-    name: "Масштабируемость блокчейна",
-    description: "Решения для увеличения пропускной способности блокчейна",
-    category: "blockchain",
-    tier: 3,
-    cost: { knowledge: 750, usdt: 300 },
-    effect: { transactionSpeedBoost: 0.2, networkEfficiencyBoost: 0.15 },
-    requiredUpgrades: ["smartContracts"],
-    unlockCondition: { resources: { knowledge: 1000 } },
     specialization: null
   },
   

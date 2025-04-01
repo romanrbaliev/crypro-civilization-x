@@ -140,57 +140,19 @@ export const getSpecializationName = (specializationId: string): string => {
 };
 
 /**
- * Проверяет, разблокирована ли фаза 2
+ * Получает список разблокированных зданий определенной группы
  */
-export const isPhase2Unlocked = (state: GameState): boolean => {
-  // Основное условие для перехода на фазу 2: 
-  // криптокошелек 2 уровня
-  const cryptoWallet = state.buildings.cryptoWallet;
-  
-  // Проверяем уровень криптокошелька
-  if (!cryptoWallet || cryptoWallet.count < 2) {
-    return false;
-  }
-  
-  // Проверяем, изучено ли исследование "Основы блокчейна"
-  if (!isBlockchainBasicsUnlocked(state)) {
-    return false;
-  }
-  
-  // Проверка выполнения исследования "Безопасность криптокошельков" (walletSecurity)
-  const walletSecurity = state.upgrades.walletSecurity;
-  if (!walletSecurity || !walletSecurity.purchased) {
-    return false;
-  }
-  
-  // Если все условия выполнены, фаза 2 разблокирована
-  return true;
-};
-
-/**
- * Получает список разблокированных зданий фазы 2
- */
-export const getUnlockedPhase2Buildings = (state: GameState): string[] => {
-  const phase2Buildings = ['miner', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet'];
-  return phase2Buildings.filter(buildingId => 
+export const getUnlockedBuildingsByGroup = (state: GameState, groupIds: string[]): string[] => {
+  return groupIds.filter(buildingId => 
     state.buildings[buildingId] && state.buildings[buildingId].unlocked
   );
 };
 
 /**
- * Получает список разблокированных исследований фазы 2
+ * Получает список разблокированных исследований определенной группы
  */
-export const getUnlockedPhase2Upgrades = (state: GameState): string[] => {
-  const phase2Upgrades = [
-    'cryptoCurrencyBasics', 
-    'algorithmOptimization', 
-    'proofOfWork', 
-    'energyEfficientComponents', 
-    'cryptoTrading', 
-    'tradingBot'
-  ];
-  
-  return phase2Upgrades.filter(upgradeId => 
+export const getUnlockedUpgradesByGroup = (state: GameState, groupIds: string[]): string[] => {
+  return groupIds.filter(upgradeId => 
     state.upgrades[upgradeId] && state.upgrades[upgradeId].unlocked
   );
 };
