@@ -20,6 +20,7 @@ export class UnlockService {
     const shouldUnlockUsdt = this.shouldUnlockUsdt(state);
     console.log("UnlockService - shouldUnlockUsdt:", {
       knowledgeClicksValue: this.getKnowledgeClickCount(state),
+      applyKnowledgeCount: this.getApplyKnowledgeCount(state),
       usdtResourceExists: !!state.resources.usdt,
       usdtResourceUnlocked: state.resources.usdt?.unlocked || false,
       usdtFlagUnlocked: state.unlocks.usdt || false
@@ -60,7 +61,7 @@ export class UnlockService {
   }
   
   /**
-   * Проверяет условия для разблокировки USDT (3+ кликов на Изучить крипту)
+   * Проверяет условия для разблокировки USDT (1+ применений знаний)
    * Обновлено согласно базе знаний
    */
   private shouldUnlockUsdt(state: GameState): boolean {
@@ -82,7 +83,8 @@ export class UnlockService {
    * Обновлено согласно базе знаний
    */
   private shouldUnlockGenerator(state: GameState): boolean {
-    return state.resources.usdt?.value >= 11 && state.resources.usdt?.unlocked; // Требуется накопление 11 USDT
+    return (state.resources.usdt?.value || 0) >= 11 && 
+           (state.resources.usdt?.unlocked === true); // Требуется накопление 11 USDT
   }
   
   /**
@@ -90,7 +92,8 @@ export class UnlockService {
    * Добавлено согласно базе знаний
    */
   private shouldUnlockHomeComputer(state: GameState): boolean {
-    return state.resources.electricity?.value >= 50 && state.resources.electricity?.unlocked; // Требуется 50 единиц электричества
+    return (state.resources.electricity?.value || 0) >= 50 && 
+           (state.resources.electricity?.unlocked === true); // Требуется 50 единиц электричества
   }
   
   /**
@@ -98,7 +101,8 @@ export class UnlockService {
    * Добавлено согласно базе знаний
    */
   private shouldUnlockBlockchainBasics(state: GameState): boolean {
-    return state.buildings.generator?.count > 0 && state.buildings.generator?.unlocked; // Требуется покупка генератора
+    return (state.buildings.generator?.count > 0) && 
+           (state.buildings.generator?.unlocked === true); // Требуется покупка генератора
   }
   
   /**

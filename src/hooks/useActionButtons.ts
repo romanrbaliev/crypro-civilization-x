@@ -82,7 +82,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Применяем бонус если есть исследование "Основы криптовалют"
     if (cryptoCurrencyBasicsPurchased) {
-      usdtRate = Math.floor(usdtRate * (1 + knowledgeEfficiencyBonus));
+      usdtRate = 1 + knowledgeEfficiencyBonus; // 1.1 при наличии бонуса
     }
     
     // Количество применённых знаний

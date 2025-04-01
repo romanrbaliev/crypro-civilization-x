@@ -121,26 +121,30 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   
   // Проверяем, разблокирован ли USDT
   const applyKnowledgeCount = newState.counters.applyKnowledge?.value || 0;
-  if (!newState.resources.usdt?.unlocked && applyKnowledgeCount >= 1) {
+  if (!newState.unlocks.usdt && applyKnowledgeCount >= 1) {
     console.log('unlockManager: Разблокирован USDT (1+ применений знаний)');
-    if (newState.resources.usdt) {
-      newState.resources.usdt.unlocked = true;
-    } else {
-      // Создаем ресурс USDT, если его нет
+    
+    // Создаем или обновляем ресурс USDT
+    if (!newState.resources.usdt) {
+      // Если ресурса USDT еще нет, создаем его
       newState.resources.usdt = {
         id: 'usdt',
         name: 'USDT',
         description: 'Стабильная криптовалюта для покупок',
-        type: 'resource',
+        type: 'currency',
         icon: 'dollar',
         value: 0,
         baseProduction: 0,
         production: 0,
         perSecond: 0,
-        max: 100,
+        max: 50,
         unlocked: true
       };
+    } else {
+      // Если ресурс USDT существует, просто разблокируем его
+      newState.resources.usdt.unlocked = true;
     }
+    
     newState.unlocks.usdt = true;
     safeDispatchGameEvent('Разблокирован ресурс: USDT', 'success');
   }
@@ -158,7 +162,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   // Проверяем, разблокирован ли генератор (11+ USDT)
   if (!newState.buildings.generator?.unlocked && 
       newState.resources.usdt?.unlocked && 
-      newState.resources.usdt?.value >= 11) {
+      (newState.resources.usdt?.value || 0) >= 11) {
     console.log('unlockManager: Разблокирован генератор (11+ USDT)');
     if (newState.buildings.generator) {
       newState.buildings.generator.unlocked = true;
@@ -169,7 +173,8 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   
   // Проверяем, разблокированы ли Основы блокчейна
   if (!newState.upgrades.blockchainBasics?.unlocked && 
-      newState.buildings.generator?.count > 0) {
+      newState.buildings.generator?.count > 0 && 
+      newState.buildings.generator?.unlocked) {
     console.log('unlockManager: Разблокированы основы блокчейна (куплен генератор)');
     if (newState.upgrades.blockchainBasics) {
       newState.upgrades.blockchainBasics.unlocked = true;
@@ -181,7 +186,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   // Проверяем, разблокирован ли Домашний компьютер (50+ электричества)
   if (!newState.buildings.homeComputer?.unlocked && 
       newState.resources.electricity?.unlocked && 
-      newState.resources.electricity?.value >= 50) {
+      (newState.resources.electricity?.value || 0) >= 50) {
     console.log('unlockManager: Разблокирован домашний компьютер (50+ электричества)');
     if (newState.buildings.homeComputer) {
       newState.buildings.homeComputer.unlocked = true;
@@ -192,7 +197,8 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   
   // Проверяем, разблокирован ли Интернет-канал
   if (!newState.buildings.internetChannel?.unlocked && 
-      newState.buildings.homeComputer?.count > 0) {
+      newState.buildings.homeComputer?.count > 0 && 
+      newState.buildings.homeComputer?.unlocked) {
     console.log('unlockManager: Разблокирован интернет-канал (куплен домашний компьютер)');
     if (newState.buildings.internetChannel) {
       newState.buildings.internetChannel.unlocked = true;
@@ -202,7 +208,10 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   }
   
   // Проверяем, нужно ли активировать фазу 2
-  if (!newState.unlocks.phase2 && (newState.resources.usdt?.value >= 25 || newState.resources.electricity?.unlocked)) {
+  if (!newState.unlocks.phase2 && (
+      (newState.resources.usdt?.value || 0) >= 25 || 
+      newState.resources.electricity?.unlocked)
+  ) {
     console.log('unlockManager: Активирована фаза 2 (25+ USDT или разблокировано электричество)');
     newState.unlocks.phase2 = true;
     newState.phase = 2;
@@ -217,7 +226,9 @@ export const checkResourceUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
   // Разблокировка электричества при наличии генератора
-  if (!newState.resources.electricity?.unlocked && newState.buildings.generator?.count > 0) {
+  if (!newState.resources.electricity?.unlocked && 
+      newState.buildings.generator?.count > 0 && 
+      newState.buildings.generator?.unlocked) {
     console.log('unlockManager: Разблокировано электричество (есть генератор)');
     if (newState.resources.electricity) {
       newState.resources.electricity.unlocked = true;
@@ -240,6 +251,35 @@ export const checkResourceUnlocks = (state: GameState): GameState => {
       };
       newState.unlocks.electricity = true;
       safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'success');
+    }
+  }
+  
+  // Разблокировка вычислительной мощности при наличии домашнего компьютера
+  if (!newState.resources.computingPower?.unlocked && 
+      newState.buildings.homeComputer?.count > 0 && 
+      newState.buildings.homeComputer?.unlocked) {
+    console.log('unlockManager: Разблокирована вычислительная мощность (есть домашний компьютер)');
+    if (newState.resources.computingPower) {
+      newState.resources.computingPower.unlocked = true;
+      newState.unlocks.computingPower = true;
+      safeDispatchGameEvent('Разблокирован ресурс: Вычислительная мощность', 'success');
+    } else {
+      // Создаем ресурс вычислительная мощность, если его нет
+      newState.resources.computingPower = {
+        id: 'computingPower',
+        name: 'Вычислительная мощность',
+        description: 'Вычислительная мощность для майнинга и анализа',
+        type: 'resource',
+        icon: 'cpu',
+        value: 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 1000,
+        unlocked: true
+      };
+      newState.unlocks.computingPower = true;
+      safeDispatchGameEvent('Разблокирован ресурс: Вычислительная мощность', 'success');
     }
   }
   
@@ -403,12 +443,7 @@ export const checkActionUnlocks = (state: GameState): GameState => {
     safeDispatchGameEvent('Разблокировано: Исследования', 'success');
   }
   
-  // Разблокировка действия майнинга при наличии вычислительной мощности
-  if (!newState.unlocks.mining && (state.miningPower >= 100 || state.buildings.miner?.count > 0)) {
-    console.log('unlockManager: Разблокировано действие "Майнить"');
-    newState.unlocks.mining = true;
-    safeDispatchGameEvent('Разблокировано действие: Майнинг', 'success');
-  }
+  // Проверка других действий могут быть добавлены по мере необходимости
   
   return newState;
 };

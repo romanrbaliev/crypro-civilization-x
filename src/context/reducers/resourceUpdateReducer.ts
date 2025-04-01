@@ -74,19 +74,27 @@ export const processResourceUpdate = (state: GameState): GameState => {
         'bitcoin': 0.01
       }[resourceId] || 100;
       
+      const resourceType = {
+        'usdt': 'currency',
+        'bitcoin': 'currency',
+        'knowledge': 'resource',
+        'electricity': 'resource',
+        'computingPower': 'resource'
+      }[resourceId] || 'resource';
+      
       newResources[resourceId] = {
         ...state.resources[resourceId],
         id: resourceId,
         name: baseName,
         description: baseDescription,
-        type: resourceId === 'usdt' || resourceId === 'bitcoin' ? 'currency' : 'resource',
+        type: resourceType,
         icon: baseIcon,
         value: baseValue,
         baseProduction: 0,
         production: 0,
         perSecond: 0,
         max: baseMax,
-        unlocked: true
+        unlocked: state.unlocks[resourceId] === true
       };
     }
   }
