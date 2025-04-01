@@ -2,13 +2,28 @@
 // Импорты оставляем без изменений
 import { GameState, GameAction } from './types';
 import { processPurchaseBuilding, processSellBuilding } from './reducers/building';
-import { applyAllKnowledge } from './reducers/resourceReducer';
+import { applyAllKnowledge, processApplyAllKnowledge } from './reducers/resourceReducer';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processResourceUpdate } from './reducers/resourceUpdateReducer';
 import { checkAllUnlocks, rebuildAllUnlocks } from '@/utils/unlockManager';
-import { processSynergy } from '@/context/reducers/synergyReducer';
-import { processReferral, processCheckReferral } from '@/context/reducers/referralReducer';
-import { processChooseSpecialization } from './reducers/building/chooseSpecialization';
+import { processSpecialization } from './reducers/building/chooseSpecialization';
+import { processLoadGame, processResetGame, processStartGame } from './gameStateReducer';
+
+// Заглушки для пока отсутствующих процессов
+const processSynergy = (state: GameState, payload: any): GameState => {
+  console.log('processSynergy: Этот метод еще не реализован', payload);
+  return state;
+};
+
+const processReferral = (state: GameState, payload: any): GameState => {
+  console.log('processReferral: Этот метод еще не реализован', payload);
+  return state;
+};
+
+const processCheckReferral = (state: GameState): GameState => {
+  console.log('processCheckReferral: Этот метод еще не реализован');
+  return state;
+};
 
 // Редьюсер для обработки игровых действий
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -16,10 +31,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   
   switch (action.type) {
     case 'START_GAME':
-      return {
-        ...state,
-        gameStarted: true
-      };
+      return processStartGame(state);
       
     case 'PURCHASE_BUILDING':
       return processPurchaseBuilding(state, action.payload);
@@ -30,24 +42,92 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'UNLOCK_BUILDING':
       // Поскольку функция processUnlockBuilding не существует в импортах, 
       // используем правильную функцию из модуля building.
-      // Возвращаем просто state, чтобы функция не вызывала ошибок
-      return state;
+      return {
+        ...state,
+        buildings: {
+          ...state.buildings,
+          [action.payload.buildingId]: {
+            ...state.buildings[action.payload.buildingId],
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...state.unlocks,
+          [action.payload.buildingId]: true
+        }
+      };
+      
+    case 'SET_BUILDING_UNLOCKED':
+      return {
+        ...state,
+        buildings: {
+          ...state.buildings,
+          [action.payload.buildingId]: {
+            ...state.buildings[action.payload.buildingId],
+            unlocked: action.payload.unlocked
+          }
+        }
+      };
+      
+    case 'SET_UPGRADE_UNLOCKED':
+      return {
+        ...state,
+        upgrades: {
+          ...state.upgrades,
+          [action.payload.upgradeId]: {
+            ...state.upgrades[action.payload.upgradeId],
+            unlocked: action.payload.unlocked
+          }
+        }
+      };
       
     case 'PURCHASE_UPGRADE':
       return processPurchaseUpgrade(state, action.payload);
       
     case 'INCREMENT_RESOURCE':
-      // Поскольку processIncrementResource не импортирован, нам нужно или импортировать его,
-      // или реализовать встроенную логику. Временно просто возвращаем state.
-      return state;
+      // Обработка увеличения ресурса
+      if (!action.payload?.resourceId || !action.payload?.amount) return state;
+      
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          [action.payload.resourceId]: {
+            ...state.resources[action.payload.resourceId],
+            value: (state.resources[action.payload.resourceId]?.value || 0) + action.payload.amount
+          }
+        }
+      };
       
     case 'DECREMENT_RESOURCE':
-      // Аналогично, просто возвращаем state для устранения ошибки компиляции
-      return state;
+      // Обработка уменьшения ресурса
+      if (!action.payload?.resourceId || !action.payload?.amount) return state;
+      
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          [action.payload.resourceId]: {
+            ...state.resources[action.payload.resourceId],
+            value: Math.max(0, (state.resources[action.payload.resourceId]?.value || 0) - action.payload.amount)
+          }
+        }
+      };
       
     case 'SET_RESOURCE':
-      // Аналогично, просто возвращаем state для устранения ошибки компиляции
-      return state;
+      // Обработка установки значения ресурса
+      if (!action.payload?.resourceId || action.payload?.amount === undefined) return state;
+      
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          [action.payload.resourceId]: {
+            ...state.resources[action.payload.resourceId],
+            value: action.payload.amount
+          }
+        }
+      };
       
     case 'UPDATE_RESOURCES':
       return processResourceUpdate(state);
@@ -56,7 +136,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return checkAllUnlocks(processResourceUpdate(state));
       
     case 'APPLY_ALL_KNOWLEDGE':
-      // Исправляем вызов на импортированную функцию applyAllKnowledge
+      // Используем импортированную функцию applyAllKnowledge
       return applyAllKnowledge(state, action);
       
     case 'EXCHANGE_BTC':
@@ -100,7 +180,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
       
     case 'CHOOSE_SPECIALIZATION':
-      return processChooseSpecialization(state, action.payload);
+      return processSpecialization(state, { specializationType: action.payload.specialization });
       
     case 'PROCESS_SYNERGY':
       return processSynergy(state, action.payload);
@@ -130,6 +210,65 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           }
         }
       };
+      
+    case 'LOAD_GAME':
+      return processLoadGame(state, action.payload);
+      
+    case 'RESET_GAME':
+      return processResetGame(state);
+      
+    case 'ADD_REFERRAL':
+      if (!state.referrals) {
+        return {
+          ...state,
+          referrals: [action.payload.referral]
+        };
+      }
+      
+      return {
+        ...state,
+        referrals: [...state.referrals, action.payload.referral]
+      };
+      
+    case 'UPDATE_REFERRAL_STATUS':
+      if (!state.referrals) return state;
+      
+      return {
+        ...state,
+        referrals: state.referrals.map(ref => 
+          ref.id === action.payload.referralId 
+            ? { ...ref, hired: action.payload.hired, assignedBuildingId: action.payload.buildingId }
+            : ref
+        )
+      };
+      
+    case 'HIRE_REFERRAL_HELPER':
+      console.log('Найм реферального помощника:', action.payload);
+      return state;
+      
+    case 'RESPOND_TO_HELPER_REQUEST':
+      console.log('Ответ на запрос помощи:', action.payload);
+      return state;
+      
+    case 'SET_REFERRAL_CODE':
+      return {
+        ...state,
+        referralCode: action.payload.code
+      };
+      
+    case 'UPDATE_HELPERS':
+      return {
+        ...state,
+        referralHelpers: action.payload.updatedHelpers
+      };
+      
+    case 'ACTIVATE_SYNERGY':
+      console.log('Активация синергии:', action.payload);
+      return state;
+      
+    case 'CHECK_SYNERGIES':
+      console.log('Проверка синергий');
+      return state;
       
     case 'FORCE_CHECK_MINER_UNLOCK':
       console.log('gameReducer: Принудительная проверка разблокировки майнера');

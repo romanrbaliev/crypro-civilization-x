@@ -1,39 +1,37 @@
 
-import { useContext, useEffect } from 'react';
+import { useContext } from 'react';
 import { GameContext } from '../GameContext';
-import { ReferralHelper } from '../types';
-import useVisibilityOptimizer from '@/hooks/useVisibilityOptimizer';
+import { GameState, GameAction, ReferralHelper } from '../types';
 
-export const useGame = () => {
+/**
+ * Хук для доступа к состоянию игры и диспетчеру
+ */
+export function useGame() {
   const context = useContext(GameContext);
-  
   if (!context) {
-    console.error("GameContext не найден. Убедитесь, что компонент находится внутри GameProvider");
     throw new Error('useGame must be used within a GameProvider');
   }
+  return context;
+}
 
-  // Применяем оптимизатор видимости
-  const isPageVisible = useVisibilityOptimizer();
+/**
+ * Хук для манипуляции помощниками рефералов
+ */
+export function useHelpers() {
+  const { state, dispatch } = useGame();
   
-  // Добавим удобную функцию для принудительного обновления состояния игры
-  const forceUpdate = () => {
-    console.log("Принудительное обновление ресурсов");
-    context.dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-  };
-  
-  // Добавим функцию для обновления помощников из базы данных
+  /**
+   * Обновляет статус помощников в состоянии игры
+   */
   const updateHelpers = (updatedHelpers: ReferralHelper[]) => {
-    context.dispatch({ 
-      type: 'UPDATE_HELPERS', 
-      payload: { updatedHelpers } 
+    dispatch({
+      type: 'UPDATE_HELPERS',
+      payload: { updatedHelpers }
     });
   };
   
   return {
-    ...context,
-    forceUpdate,
-    updateHelpers,
-    isPageVisible,
-    resourceUpdateActive: false // Всегда возвращаем false, так как useFrequentUpdate больше не используется
+    helpers: state.referralHelpers || [],
+    updateHelpers
   };
-};
+}

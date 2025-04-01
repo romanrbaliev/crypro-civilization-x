@@ -2,7 +2,7 @@
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
-import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
+import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockManager';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
@@ -36,7 +36,11 @@ export const processStartGame = (state: GameState): GameState => {
   // Дополнительная проверка, что USDT остался заблокированным
   if (updatedState.resources.usdt) {
     // Проверяем условие разблокировки USDT
-    if (!updatedState.counters.applyKnowledge || updatedState.counters.applyKnowledge.value < 2) {
+    const applyKnowledgeValue = typeof updatedState.counters.applyKnowledge === 'object' 
+      ? updatedState.counters.applyKnowledge.value 
+      : updatedState.counters.applyKnowledge;
+      
+    if (!applyKnowledgeValue || applyKnowledgeValue < 2) {
       // Если условие не выполнено, принудительно блокируем USDT
       updatedState.resources.usdt.unlocked = false;
       updatedState.unlocks.usdt = false;
@@ -64,18 +68,7 @@ export const processLoadGame = (
       ...initialState,
       gameStarted: true,
       lastUpdate: Date.now(),
-      lastSaved: Date.now(),
-      resources: {
-        ...initialState.resources,
-        usdt: {
-          ...initialState.resources.usdt,
-          unlocked: false
-        }
-      },
-      unlocks: {
-        ...initialState.unlocks,
-        usdt: false
-      }
+      lastSaved: Date.now()
     };
     
     return newInitialState;
@@ -92,18 +85,7 @@ export const processLoadGame = (
       ...initialState,
       gameStarted: true,
       lastUpdate: Date.now(),
-      lastSaved: Date.now(),
-      resources: {
-        ...initialState.resources,
-        usdt: {
-          ...initialState.resources.usdt,
-          unlocked: false
-        }
-      },
-      unlocks: {
-        ...initialState.unlocks,
-        usdt: false
-      }
+      lastSaved: Date.now()
     };
     
     return newInitialState;
@@ -148,9 +130,12 @@ export const processLoadGame = (
       if (resourceKey === 'usdt') {
         loadedState.resources.usdt.unlocked = false;
         
-        if (loadedState.counters && 
-            loadedState.counters.applyKnowledge && 
-            loadedState.counters.applyKnowledge.value >= 2) {
+        // Проверяем значение счетчика, учитывая возможные разные форматы
+        const applyKnowledgeValue = typeof loadedState.counters.applyKnowledge === 'object' 
+          ? loadedState.counters.applyKnowledge.value 
+          : loadedState.counters.applyKnowledge;
+        
+        if (loadedState.counters && applyKnowledgeValue >= 2) {
           // Разблокируем только если условие выполнено
           loadedState.resources.usdt.unlocked = true;
           loadedState.unlocks.usdt = true;
@@ -167,7 +152,7 @@ export const processLoadGame = (
   
   // Проверка и добавление новых полей, которые могли отсутствовать в сохранении
   if (!loadedState.specializationSynergies) {
-    loadedState.specializationSynergies = { ...initialState.specializationSynergies };
+    loadedState.specializationSynergies = {};
     console.log('✅ Добавлены отсутствующие данные о синергиях специализаций в редьюсере');
   }
   
@@ -206,7 +191,7 @@ export const processLoadGame = (
   
   // Проверка наличия событий
   if (!loadedState.eventMessages) {
-    loadedState.eventMessages = { ...initialState.eventMessages };
+    loadedState.eventMessages = {};
     console.log('✅ Добавлены отсутствующие сообщения о событиях');
   }
   
@@ -219,8 +204,12 @@ export const processLoadGame = (
   
   // ВАЖНО: Финальная проверка статуса USDT после всех проверок разблокировок
   if (loadedState.resources.usdt) {
-    // Проверяем условие для разблокировки USDT
-    if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 2) {
+    // Проверяем условие для разблокировки USDT, учитывая различные типы данных
+    const applyKnowledgeValue = typeof loadedState.counters.applyKnowledge === 'object' 
+      ? loadedState.counters.applyKnowledge.value 
+      : loadedState.counters.applyKnowledge;
+    
+    if (!applyKnowledgeValue || applyKnowledgeValue < 2) {
       // Если условие не выполнено, принудительно блокируем USDT
       loadedState.resources.usdt.unlocked = false;
       loadedState.unlocks.usdt = false;
@@ -243,7 +232,7 @@ export const processPrestige = (state: GameState): GameState => {
   
   return {
     ...initialState,
-    prestigePoints: state.prestigePoints + Math.max(0, prestigePoints),
+    prestigePoints: (state.prestigePoints || 0) + Math.max(0, prestigePoints),
     gameStarted: true,
     lastUpdate: Date.now()
   };
@@ -264,7 +253,7 @@ export const processRestartComputers = (state: GameState): GameState => {
   return {
     ...state,
     eventMessages: {
-      ...state.eventMessages,
+      ...(state.eventMessages || {}),
       electricityShortage: false
     }
   };

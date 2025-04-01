@@ -1,5 +1,8 @@
 
-import { ThrottlerOptions } from '@nestjs/throttler';
+export interface ThrottlerOptions {
+  ttl?: number;
+  limit?: number;
+}
 
 export interface Building {
   id: string;
@@ -12,14 +15,19 @@ export interface Building {
   icon?: string;
   specialization?: string;
   effects?: { [effectId: string]: number };
-  consumption?: { [resourceId: string]: number }; // Добавлено поле consumption для расходуемых ресурсов
+  consumption?: { [resourceId: string]: number }; 
+  costMultiplier?: number;
+  productionBoost?: number;
+  requirements?: { [resourceId: string]: number };
+  resourceProduction?: { [resourceId: string]: number };
+  category?: string;
 }
 
 export interface Resource {
   id: string;
   name: string;
   description: string;
-  type: 'currency' | 'material' | 'science';
+  type: 'currency' | 'material' | 'science' | 'resource';
   value: number;
   baseProduction: number;
   production: number;
@@ -47,6 +55,7 @@ export interface Upgrade {
   };
   specialization?: string;
   tier?: number;
+  category?: string;
 }
 
 export interface Synergy {
@@ -57,6 +66,28 @@ export interface Synergy {
   effects: { [resourceId: string]: number };
   unlocked: boolean;
   applied: boolean;
+}
+
+export interface SpecializationSynergy {
+  id: string;
+  name: string;
+  description: string;
+  requiredCategories?: string[];
+  requiredCount?: number;
+  effects: { [resourceId: string]: number };
+  unlocked: boolean;
+  active: boolean;
+}
+
+export interface ReferralHelper {
+  id: string;
+  helperId: string;
+  userId: string;
+  buildingId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: number;
+  updatedAt: number;
+  boostValue?: number;
 }
 
 export interface GameState {
@@ -76,9 +107,22 @@ export interface GameState {
   eventLog: string[];
   settings: GameSettings;
   lastUpdate?: number;
+  lastSaved?: number;
   gameTime?: number;
   phase?: number;
   prestigePoints?: number;
+  eventMessages?: { [key: string]: any };
+  referrals?: any[];
+  referralHelpers?: ReferralHelper[];
+  specializationSynergies?: { [key: string]: SpecializationSynergy };
+  knowledge?: number;
+  btcPrice?: number;
+  miningPower?: number;
+  usdtBalance?: number;
+  btcBalance?: number;
+  version?: string;
+  featureFlags?: { [key: string]: boolean };
+  buildingUnlocked?: { [key: string]: boolean };
 }
 
 export interface GameSettings {
@@ -122,6 +166,18 @@ export type GameAction =
   | { type: 'CHECK_REFERRAL' }
   | { type: 'FORCE_CHECK_MINER_UNLOCK' }
   | { type: 'INCREMENT_COUNTER'; payload: { counterId: string; value: number } }
+  | { type: 'LOAD_GAME'; payload: GameState }
+  | { type: 'RESET_GAME' }
+  | { type: 'SET_BUILDING_UNLOCKED'; payload: { buildingId: string; unlocked: boolean } }
+  | { type: 'SET_UPGRADE_UNLOCKED'; payload: { upgradeId: string; unlocked: boolean } }
+  | { type: 'ADD_REFERRAL'; payload: { referral: any } }
+  | { type: 'RESPOND_TO_HELPER_REQUEST'; payload: { helperId: string; accepted: boolean } }
+  | { type: 'SET_REFERRAL_CODE'; payload: { code: string } }
+  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; hired: boolean; buildingId?: string } }
+  | { type: 'HIRE_REFERRAL_HELPER'; payload: { referralId: string; buildingId: string } }
+  | { type: 'UPDATE_HELPERS'; payload: { updatedHelpers: ReferralHelper[] } }
+  | { type: 'ACTIVATE_SYNERGY'; payload: { synergyId: string } }
+  | { type: 'CHECK_SYNERGIES' }
   | ResourceAction;
 
 export type GameDispatch = (action: GameAction) => void;

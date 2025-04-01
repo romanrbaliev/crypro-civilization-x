@@ -1,3 +1,4 @@
+
 import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
@@ -32,21 +33,23 @@ interface GameProviderProps {
 }
 
 export function GameProvider({ children }: GameProviderProps) {
-  const [initialGameState, initialDispatch] = useReducer(
-    gameReducer, 
-    { 
-      ...initialState, 
-      gameStarted: true, 
-      lastUpdate: Date.now(), 
-      lastSaved: Date.now(),
-      resources: {
-        ...initialState.resources,
-        knowledge: {
-          ...initialState.resources.knowledge,
-          unlocked: true
-        }
+  const initialGameStateWithDefaults: GameState = { 
+    ...initialState, 
+    gameStarted: true, 
+    lastUpdate: Date.now(), 
+    lastSaved: Date.now(),
+    resources: {
+      ...initialState.resources,
+      knowledge: {
+        ...initialState.resources.knowledge,
+        unlocked: true
       }
     }
+  };
+  
+  const [initialGameState, initialDispatch] = useReducer(
+    gameReducer, 
+    initialGameStateWithDefaults
   );
   
   const {
