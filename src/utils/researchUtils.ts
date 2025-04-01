@@ -1,5 +1,6 @@
 
 // Утилиты для работы с исследованиями и их эффектами
+import { GameState } from '@/context/types';
 
 /**
  * Преобразует идентификатор эффекта в читаемое название
@@ -105,4 +106,91 @@ export const checkUpgradeDependencies = (
   
   // Проверка, что все зависимые исследования приобретены
   return dependencies.every(depId => purchasedUpgrades[depId]);
+};
+
+/**
+ * Проверяет, изучены ли "Основы блокчейна"
+ */
+export const isBlockchainBasicsUnlocked = (state: GameState): boolean => {
+  // Проверяем все возможные варианты ID для исследования "Основы блокчейна"
+  const possibleIds = ['blockchainBasics', 'basicBlockchain', 'blockchain_basics'];
+  
+  // Проверяем, есть ли хотя бы одно исследование с таким ID и оно изучено
+  return possibleIds.some(id => 
+    state.upgrades[id] && state.upgrades[id].purchased
+  );
+};
+
+/**
+ * Получает название специализации по её ID
+ */
+export const getSpecializationName = (specializationId: string): string => {
+  const specializationNames: Record<string, string> = {
+    'mining': 'Майнинг',
+    'trading': 'Трейдинг',
+    'security': 'Безопасность',
+    'development': 'Разработка',
+    'defi': 'DeFi',
+    'nft': 'NFT',
+    'metaverse': 'Метавселенная',
+    'ai': 'ИИ'
+  };
+  
+  return specializationNames[specializationId] || specializationId;
+};
+
+/**
+ * Проверяет, разблокирована ли фаза 2
+ */
+export const isPhase2Unlocked = (state: GameState): boolean => {
+  // Основное условие для перехода на фазу 2: 
+  // криптокошелек 2 уровня
+  const cryptoWallet = state.buildings.cryptoWallet;
+  
+  // Проверяем уровень криптокошелька
+  if (!cryptoWallet || cryptoWallet.count < 2) {
+    return false;
+  }
+  
+  // Проверяем, изучено ли исследование "Основы блокчейна"
+  if (!isBlockchainBasicsUnlocked(state)) {
+    return false;
+  }
+  
+  // Проверка выполнения исследования "Безопасность криптокошельков" (walletSecurity)
+  const walletSecurity = state.upgrades.walletSecurity;
+  if (!walletSecurity || !walletSecurity.purchased) {
+    return false;
+  }
+  
+  // Если все условия выполнены, фаза 2 разблокирована
+  return true;
+};
+
+/**
+ * Получает список разблокированных зданий фазы 2
+ */
+export const getUnlockedPhase2Buildings = (state: GameState): string[] => {
+  const phase2Buildings = ['miner', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet'];
+  return phase2Buildings.filter(buildingId => 
+    state.buildings[buildingId] && state.buildings[buildingId].unlocked
+  );
+};
+
+/**
+ * Получает список разблокированных исследований фазы 2
+ */
+export const getUnlockedPhase2Upgrades = (state: GameState): string[] => {
+  const phase2Upgrades = [
+    'cryptoCurrencyBasics', 
+    'algorithmOptimization', 
+    'proofOfWork', 
+    'energyEfficientComponents', 
+    'cryptoTrading', 
+    'tradingBot'
+  ];
+  
+  return phase2Upgrades.filter(upgradeId => 
+    state.upgrades[upgradeId] && state.upgrades[upgradeId].unlocked
+  );
 };
