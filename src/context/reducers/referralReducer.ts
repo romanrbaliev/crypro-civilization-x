@@ -202,5 +202,3 @@ export const processReferral = (
     referredBy: code
   };
 };
-
-export { processAddReferral as processReferral };

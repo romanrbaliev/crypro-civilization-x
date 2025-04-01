@@ -1,354 +1,438 @@
-
-import React, { useState, useEffect } from "react";
-import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
-import { useNavigate } from "react-router-dom";
-import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
-import EventLog, { GameEvent } from "@/components/EventLog";
-import { generateId } from "@/utils/helpers";
-import Header from "@/components/Header";
-import EquipmentTab from "@/components/EquipmentTab";
-import ResearchTab from "@/components/ResearchTab";
-import ReferralsTab from "@/components/ReferralsTab";
-import SpecializationTab from "@/components/SpecializationTab";
-import ResourceList from "@/components/ResourceList";
-import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
-import UnlockStatusPopup from "@/components/UnlockStatusPopup";
+import React, { useState, useEffect, useCallback } from 'react';
+import { useGame } from '@/context/hooks/useGame';
+import { Building, Resource, Upgrade } from '@/context/types';
+import BuildingCard from '@/components/BuildingCard';
+import UpgradeCard from '@/components/UpgradeCard';
+import ResourceDisplay from '@/components/ResourceDisplay';
+import { initialPhase2Buildings } from '@/context/initialState';
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import ActionButtons from "@/components/ActionButtons";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/ui/tabs";
+} from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-import { resetAllGameData } from "@/context/utils/gameStorage";
-import { toast } from "@/hooks/use-toast";
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command"
+import { DataTableViewOptions } from "@/components/data-table-view-options"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
+import { AspectRatio } from "@/components/ui/aspect-ratio"
+import { NavigationMenu, NavigationMenuItem, NavigationMenuList, NavigationMenuContent, NavigationMenuLink, NavigationMenuTrigger, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ContextMenu, ContextMenuCheckboxItem, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuRadioGroup, ContextMenuRadioItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ProgressCircle } from '@/components/ProgressCircle';
+import { SkeletonCard } from '@/components/SkeletonCard';
+import { GameEventSystem } from '@/context/GameEventSystem';
+import { NewsFeed } from '@/components/NewsFeed';
+import { ReferralCode } from '@/components/ReferralCode';
+import { ReferralList } from '@/components/ReferralList';
+import { ReferralHelpers } from '@/components/ReferralHelpers';
+import { ReferralRequests } from '@/components/ReferralRequests';
+import { ReferralTab } from '@/components/ReferralsTab';
+import { SpecializationTab } from '@/components/SpecializationTab';
+import SynergyCard from '@/components/SynergyCard';
+import { useGameState } from '@/context/GameStateContext';
 
-const GameScreen = () => {
-  const { state, dispatch } = useGame();
-  const navigate = useNavigate();
-  const [eventLog, setEventLog] = useState<GameEvent[]>([]);
-  const [selectedTab, setSelectedTab] = useState("equipment");
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  
-  const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
-  const hasUnlockedResearch = state.unlocks.research === true;
-  const hasUnlockedSpecialization = state.unlocks.specialization === true;
-  
-  useEffect(() => {
-    dispatch({ type: "START_GAME" });
-  }, [dispatch]);
-  
-  useEffect(() => {
-    console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
-    console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
-  }, [state.unlocks]);
-  
-  const addEvent = (message: string, type: GameEvent["type"] = "info") => {
-    const newEvent: GameEvent = {
-      id: generateId(),
-      timestamp: Date.now(),
-      message,
-      type
-    };
-    
-    setEventLog(prev => {
-      const isDuplicate = prev.slice(0, 5).some(
-        event => event.message === message && Date.now() - event.timestamp < 3000
-      );
-      
-      if (isDuplicate) {
-        return prev;
-      }
-      
-      return [newEvent, ...prev];
-    });
-  };
-  
-  useEffect(() => {
-    const handleGameEvent = (event: Event) => {
-      if (event instanceof CustomEvent && event.detail) {
-        const { message, type } = event.detail;
-        addEvent(message, type);
-      }
-    };
-    
-    const handleDetailEvent = (event: Event) => {
-      if (event instanceof CustomEvent && event.detail) {
-        const { message, type } = event.detail;
-        addEvent(message, type);
-      }
-    };
-    
-    if (typeof window !== 'undefined' && window.gameEventBus) {
-      window.gameEventBus.addEventListener('game-event', handleGameEvent);
-      window.gameEventBus.addEventListener('game-event-detail', handleDetailEvent);
-      
-      return () => {
-        if (window.gameEventBus) {
-          window.gameEventBus.removeEventListener('game-event', handleGameEvent);
-          window.gameEventBus.removeEventListener('game-event-detail', handleDetailEvent);
-        }
-      };
-    }
-  }, []);
-  
-  useEffect(() => {
-    if (hasUnlockedBuildings) {
-      setSelectedTab("equipment");
-    } else if (hasUnlockedResearch) {
-      setSelectedTab("research");
-    } else {
-      setSelectedTab("referrals");
-    }
-    
-    console.log("Обновление выбранной вкладки:", {
-      hasUnlockedBuildings,
-      hasUnlockedResearch,
-      selectedTab
-    });
-  }, [hasUnlockedBuildings, hasUnlockedResearch]);
-  
-  const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
-  
-  const handleResetGame = () => {
-    dispatch({ type: "RESET_GAME" });
-    setResetConfirmOpen(false);
-    addEvent("Игра полностью сброшена", "info");
-  };
-  
-  const handleResetAll = async () => {
-    try {
-      await resetAllGameData();
-      toast({
-        title: "Сброс выполнен",
-        description: "Все сохранения успешно удалены. Страница будет перезагружена.",
-        variant: "success",
-      });
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      toast({
-        title: "Ошибка сброса",
-        description: "Не удалось удалить сохранения игры.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const renderTabButton = (id: string, label: string, icon: React.ReactNode) => {
-    return (
-      <Button 
-        variant={selectedTab === id ? "default" : "ghost"} 
-        className="justify-start rounded-none section-title h-6 px-3"
-        onClick={() => setSelectedTab(id)}
-      >
-        {icon}
-        {label}
-      </Button>
-    );
-  };
-  
-  return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
-        <div className="flex justify-between items-center h-full">
-          <div className="flex-1 flex items-center pl-2 gap-2">
-            <KnowledgeProductionPopup />
-            <UnlockStatusPopup />
-          </div>
-          <div className="flex items-center justify-between px-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  Как играть
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Как играть в Crypto Civilization</DialogTitle>
-                  <DialogDescription>
-                    Руководство по основным механикам игры
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <Tabs defaultValue="basics">
-                  <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="basics">Основы</TabsTrigger>
-                    <TabsTrigger value="resources">Ресурсы</TabsTrigger>
-                    <TabsTrigger value="buildings">Оборудование</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="basics" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Начало игры</h4>
-                    <p className="text-sm">
-                      1. Начните с изучения основ криптовалют, нажимая на кнопку "Изучить крипту".<br />
-                      2. Накопив достаточно знаний, вы сможете применить их для получения USDT.<br />
-                      3. Используйте USDT для приобретения оборудования, которое будет автоматически генерировать ресурсы.<br />
-                      4. Постепенно открывайте новые механики и возможности по мере развития.
-                    </p>
-                  </TabsContent>
-                  
-                  <TabsContent value="resources" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Основные ресурсы</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li><strong>Знания о крипте</strong> - базовый ресурс для исследований и обмена на USDT.</li>
-                      <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
-                      <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
-                      <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
-                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
-                    </ul>
-                  </TabsContent>
-                  
-                  <TabsContent value="buildings" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Типы оборудования</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li><strong>Практика</strong> - автоматически генерирует знания о криптовалютах.</li>
-                      <li><strong>Генератор</strong> - производит электричество для ваших устройств.</li>
-                      <li><strong>Домашний компьютер</strong> - обеспечивает вычислительную мощность.</li>
-                      <li><strong>Криптокошелек</strong> - увеличивает максимальное хранение USDT.</li>
-                      <li><strong>Интернет-канал</strong> - ускоряет получение знаний.</li>
-                    </ul>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-            
-            <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  Сбросить прогресс
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Сбросить прогресс?</DialogTitle>
-                  <DialogDescription>
-                    Это действие удалит все ваши достижения и начнет игру заново. Это действие нельзя отменить.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setResetConfirmOpen(false)}>
-                    Отмена
-                  </Button>
-                  <Button variant="destructive" onClick={handleResetGame}>
-                    Сбросить игру
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  <Settings className="h-3.5 w-3.5 mr-1" />
-                  Настройки
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Настройки</SheetTitle>
-                  <SheetDescription>
-                    Управление игрой и дополнительные опции
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="py-4">
-                  <h3 className="font-medium mb-2">Настройки игры</h3>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
-                      onClick={() => setResetConfirmOpen(true)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Сбросить прогресс
-                    </Button>
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <h3 className="font-medium mb-2">О игре</h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Версия: 0.1.0 (Альфа)<br />
-                    © 2023 Crypto Civilization
-                  </p>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-          <div className="flex-1"></div>
-        </div>
-      </header>
-      
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-2/5 border-r flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={unlockedResources} />
-          </div>
-          
-          <div className="border-t mt-auto">
-            <div className="flex flex-col">
-              {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedSpecialization && renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />)}
-              
-              {renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
-            </div>
-          </div>
-        </div>
-        
-        <div className="w-3/5 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-2 flex flex-col">
-            <div className="flex-1 overflow-auto">
-              {selectedTab === "equipment" && hasUnlockedBuildings && (
-                <EquipmentTab onAddEvent={addEvent} />
-              )}
-              
-              {selectedTab === "research" && hasUnlockedResearch && (
-                <ResearchTab onAddEvent={addEvent} />
-              )}
-              
-              {selectedTab === "specialization" && hasUnlockedSpecialization && (
-                <SpecializationTab onAddEvent={addEvent} />
-              )}
-              
-              {selectedTab === "referrals" && (
-                <ReferralsTab onAddEvent={addEvent} />
-              )}
-            </div>
-            
-            <ActionButtons onAddEvent={addEvent} />
-          </div>
-        </div>
-      </div>
-      
-      <div className="h-24 border-t bg-white flex-shrink-0">
-        <EventLog events={eventLog} />
-      </div>
-    </div>
-  );
-};
-
-export default GameScreen;
+const GameScreen: React.FC = () => {
+  const { state, dispatch, forceUpdate } = useGame();
+  const { toast } = useToast();
+  const [showNews, setShowNews] = useState(false);
+  const [showReferrals, setShowReferrals] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSpecialization, setShowSpecialization] = useState(false);
+  const [showSynergies, setShowSynergies] = useState(false);
+  const [showReferralTab, setShowReferralTab] = useState(false);
+  const [showReferralRequests, setShowReferralRequests] = useState(false);
+  const [showReferralHelpers, setShowReferralHelpers] = useState(false);
+  const [showReferralCode, setShowReferralCode] = useState(false);
+  const [showReferralList, setShowReferralList] = useState(false);
+  const [showMiningParams, setShowMiningParams] = useState(false);
+  const [showMiningPower, setShowMiningPower] = useState(false);
+  const [showBtcExchange, setShowBtcExchange] = useState(false);
+  const [showBtcBalance, setShowBtcBalance] = useState(false);
+  const [showUsdtBalance, setShowUsdtBalance] = useState(false);
+  const [showKnowledgeClicks, setShowKnowledgeClicks] = useState(false);
+  const [showApplyKnowledge, setShowApplyKnowledge] = useState(false);
+  const [showPractice, setShowPractice] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [showCryptoWallet, setShowCryptoWallet] = useState(false);
+  const [showHomeComputer, setShowHomeComputer] = useState(false);
+  const [showInternetChannel, setShowInternetChannel] = useState(false);
+  const [showMiner, setShowMiner] = useState(false);
+  const [showCryptoLibrary, setShowCryptoLibrary] = useState(false);
+  const [showCoolingSystem, setShowCoolingSystem] = useState(false);
+  const [showEnhancedWallet, setShowEnhancedWallet] = useState(false);
+  const [showBlockchainBasics, setShowBlockchainBasics] = useState(false);
+  const [showWalletSecurity, setShowWalletSecurity] = useState(false);
+  const [showCryptoCurrencyBasics, setShowCryptoCurrencyBasics] = useState(false);
+  const [showAlgorithmOptimization, setShowAlgorithmOptimization] = useState(false);
+  const [showProofOfWork, setShowProofOfWork] = useState(false);
+  const [showEnergyEfficientComponents, setShowEnergyEfficientComponents] = useState(false);
+  const [showCryptoTrading, setShowCryptoTrading] = useState(false);
+  const [showTradingBot, setShowTradingBot] = useState(false);
+  const [showMultiBuy, setShowMultiBuy] = useState(false);
+  const [showForceUpdate, setShowForceUpdate] = useState(false);
+  const [showResetGame, setShowResetGame] = useState(false);
+  const [showMiningEfficiency, setShowMiningEfficiency] = useState(false);
+  const [showEnergyEfficiency, setShowEnergyEfficiency] = useState(false);
+  const [showNetworkDifficulty, setShowNetworkDifficulty] = useState(false);
+  const [showExchangeRate, setShowExchangeRate] = useState(false);
+  const [showExchangeCommission, setShowExchangeCommission] = useState(false);
+  const [showVolatility, setShowVolatility] = useState(false);
+  const [showExchangePeriod, setShowExchangePeriod] = useState(false);
+  const [showBaseConsumption, setShowBaseConsumption] = useState(false);
+  const [showKnowledge, setShowKnowledge] = useState(false);
+  const [showComputingPower, setShowComputingPower] = useState(false);
+  const [showElectricity, setShowElectricity] = useState(false);
+  const [showBitcoin, setShowBitcoin] = useState(false);
+  const [showTotalBuildings, setShowTotalBuildings] = useState(false);
+  const [showApplyKnowledgeCounter, setShowApplyKnowledgeCounter] = useState(false);
+  const [showComputingPowerConsumptionReduction, setShowComputingPowerConsumptionReduction] = useState(false);
+  const [showKnowledgeEfficiencyBoost, setShowKnowledgeEfficiencyBoost] = useState(false);
+  const [showKnowledgeMaxBoost, setShowKnowledgeMaxBoost] = useState(false);
+  const [showUsdtMaxBoost, setShowUsdtMaxBoost] = useState(false);
+  const [showMiningEfficiencyBoost, setShowMiningEfficiencyBoost] = useState(false);
+  const [showEnergyEfficiencyBoost, setShowEnergyEfficiencyBoost] = useState(false);
+  const [showComputingPowerBoost, setShowComputingPowerBoost] = useState(false);
+  const [showKnowledgeBoost, setShowKnowledgeBoost] = useState(false);
+  const [showUsdtMax, setShowUsdtMax] = useState(false);
+  const [showBitcoinMax, setShowBitcoinMax] = useState(false);
+  const [showBtcExchangeBonus, setShowBtcExchangeBonus] = useState(false);
+  const [showUnlockTrading, setShowUnlockTrading] = useState(false);
+  const [showAutoBtcExchange, setShowAutoBtcExchange] = useState(false);
+  const [showKnowledgeClicksCounter, setShowKnowledgeClicksCounter] = useState(false);
+  const [showTotalBuildingsCounter, setShowTotalBuildingsCounter] = useState(false);
+  const [showApplyKnowledgeCounterValue, setShowApplyKnowledgeCounterValue] = useState(false);
+  const [showComputingPowerConsumptionReductionValue, setShowComputingPowerConsumptionReductionValue] = useState(false);
+  const [showKnowledgeEfficiencyBoostValue, setShowKnowledgeEfficiencyBoostValue] = useState(false);
+  const [showKnowledgeMaxBoostValue, setShowKnowledgeMaxBoostValue] = useState(false);
+  const [showUsdtMaxBoostValue, setShowUsdtMaxBoostValue] = useState(false);
+  const [showMiningEfficiencyBoostValue, setShowMiningEfficiencyBoostValue] = useState(false);
+  const [showEnergyEfficiencyBoostValue, setShowEnergyEfficiencyBoostValue] = useState(false);
+  const [showComputingPowerBoostValue, setShowComputingPowerBoostValue] = useState(false);
+  const [showKnowledgeBoostValue, setShowKnowledgeBoostValue] = useState(false);
+  const [showUsdtMaxValue, setShowUsdtMaxValue] = useState(false);
+  const [showBitcoinMaxValue, setShowBitcoinMaxValue] = useState(false);
+  const [showBtcExchangeBonusValue, setShowBtcExchangeBonusValue] = useState(false);
+  const [showUnlockTradingValue, setShowUnlockTradingValue] = useState(false);
+  const [showAutoBtcExchangeValue, setShowAutoBtcExchangeValue] = useState(false);
+  const [showKnowledgeClicksCounterValue, setShowKnowledgeClicksCounterValue] = useState(false);
+  const [showTotalBuildingsCounterValue, setShowTotalBuildingsCounterValue] = useState(false);
+  const [showApplyKnowledgeCounterUpdatedAt, setShowApplyKnowledgeCounterUpdatedAt] = useState(false);
+  const [showKnowledgeClicksCounterUpdatedAt, setShowKnowledgeClicksCounterUpdatedAt] = useState(false);
+  const [showTotalBuildingsCounterUpdatedAt, setShowTotalBuildingsCounterUpdatedAt] = useState(false);
+  const [showComputingPowerConsumptionReductionUpgrade, setShowComputingPowerConsumptionReductionUpgrade] = useState(false);
+  const [showKnowledgeEfficiencyBoostUpgrade, setShowKnowledgeEfficiencyBoostUpgrade] = useState(false);
+  const [showKnowledgeMaxBoostUpgrade, setShowKnowledgeMaxBoostUpgrade] = useState(false);
+  const [showUsdtMaxBoostUpgrade, setShowUsdtMaxBoostUpgrade] = useState(false);
+  const [showMiningEfficiencyBoostUpgrade, setShowMiningEfficiencyBoostUpgrade] = useState(false);
+  const [showEnergyEfficiencyBoostUpgrade, setShowEnergyEfficiencyBoostUpgrade] = useState(false);
+  const [showComputingPowerBoostUpgrade, setShowComputingPowerBoostUpgrade] = useState(false);
+  const [showKnowledgeBoostUpgrade, setShowKnowledgeBoostUpgrade] = useState(false);
+  const [showUsdtMaxUpgrade, setShowUsdtMaxUpgrade] = useState(false);
+  const [showBitcoinMaxUpgrade, setShowBitcoinMaxUpgrade] = useState(false);
+  const [showBtcExchangeBonusUpgrade, setShowBtcExchangeBonusUpgrade] = useState(false);
+  const [showUnlockTradingUpgrade, setShowUnlockTradingUpgrade] = useState(false);
+  const [showAutoBtcExchangeUpgrade, setShowAutoBtcExchangeUpgrade] = useState(false);
+  const [showComputingPowerConsumptionReductionBuilding, setShowComputingPowerConsumptionReductionBuilding] = useState(false);
+  const [showKnowledgeEfficiencyBoostBuilding, setShowKnowledgeEfficiencyBoostBuilding] = useState(false);
+  const [showKnowledgeMaxBoostBuilding, setShowKnowledgeMaxBoostBuilding] = useState(false);
+  const [showUsdtMaxBoostBuilding, setShowUsdtMaxBoostBuilding] = useState(false);
+  const [showMiningEfficiencyBoostBuilding, setShowMiningEfficiencyBoostBuilding] = useState(false);
+  const [showEnergyEfficiencyBoostBuilding, setShowEnergyEfficiencyBoostBuilding] = useState(false);
+  const [showComputingPowerBoostBuilding, setShowComputingPowerBoostBuilding] = useState(false);
+  const [showKnowledgeBoostBuilding, setShowKnowledgeBoostBuilding] = useState(false);
+  const [showUsdtMaxBuilding, setShowUsdtMaxBuilding] = useState(false);
+  const [showBitcoinMaxBuilding, setShowBitcoinMaxBuilding] = useState(false);
+  const [showBtcExchangeBonusBuilding, setShowBtcExchangeBonusBuilding] = useState(false);
+  const [showUnlockTradingBuilding, setShowUnlockTradingBuilding] = useState(false);
+  const [showAutoBtcExchangeBuilding, setShowAutoBtcExchangeBuilding] = useState(false);
+  const [showComputingPowerConsumptionReductionSynergy, setShowComputingPowerConsumptionReductionSynergy] = useState(false);
+  const [showKnowledgeEfficiencyBoostSynergy, setShowKnowledgeEfficiencyBoostSynergy] = useState(false);
+  const [showKnowledgeMaxBoostSynergy, setShowKnowledgeMaxBoostSynergy] = useState(false);
+  const [showUsdtMaxBoostSynergy, setShowUsdtMaxBoostSynergy] = useState(false);
+  const [showMiningEfficiencyBoostSynergy, setShowMiningEfficiencyBoostSynergy] = useState(false);
+  const [showEnergyEfficiencyBoostSynergy, setShowEnergyEfficiencyBoostSynergy] = useState(false);
+  const [showComputingPowerBoostSynergy, setShowComputingPowerBoostSynergy] = useState(false);
+  const [showKnowledgeBoostSynergy, setShowKnowledgeBoostSynergy] = useState(false);
+  const [showUsdtMaxSynergy, setShowUsdtMaxSynergy] = useState(false);
+  const [showBitcoinMaxSynergy, setShowBitcoinMaxSynergy] = useState(false);
+  const [showBtcExchangeBonusSynergy, setShowBtcExchangeBonusSynergy] = useState(false);
+  const [showUnlockTradingSynergy, setShowUnlockTradingSynergy] = useState(false);
+  const [showAutoBtcExchangeSynergy, setShowAutoBtcExchangeSynergy] = useState(false);
+  const [showComputingPowerConsumptionReductionSpecializationSynergy, setShowComputingPowerConsumptionReductionSpecializationSynergy] = useState(false);
+  const [showKnowledgeEfficiencyBoostSpecializationSynergy, setShowKnowledgeEfficiencyBoostSpecializationSynergy] = useState(false);
+  const [showKnowledgeMaxBoostSpecializationSynergy, setShowKnowledgeMaxBoostSpecializationSynergy] = useState(false);
+  const [showUsdtMaxBoostSpecializationSynergy, setShowUsdtMaxBoostSpecializationSynergy] = useState(false);
+  const [showMiningEfficiencyBoostSpecializationSynergy, setShowMiningEfficiencyBoostSpecializationSynergy] = useState(false);
+  const [showEnergyEfficiencyBoostSpecializationSynergy, setShowEnergyEfficiencyBoostSpecializationSynergy] = useState(false);
+  const [showComputingPowerBoostSpecializationSynergy, setShowComputingPowerBoostSpecializationSynergy] = useState(false);
+  const [showKnowledgeBoostSpecializationSynergy, setShowKnowledgeBoostSpecializationSynergy] = useState(false);
+  const [showUsdtMaxSpecializationSynergy, setShowUsdtMaxSpecializationSynergy] = useState(false);
+  const [showBitcoinMaxSpecializationSynergy, setShowBitcoinMaxSpecializationSynergy] = useState(false);
+  const [showBtcExchangeBonusSpecializationSynergy, setShowBtcExchangeBonusSpecializationSynergy] = useState(false);
+  const [showUnlockTradingSpecializationSynergy, setShowUnlockTradingSpecializationSynergy] = useState(false);
+  const [showAutoBtcExchangeSpecializationSynergy, setShowAutoBtcExchangeSpecializationSynergy] = useState(false);
+  const [showComputingPowerConsumptionReductionValueBuilding, setShowComputingPowerConsumptionReductionValueBuilding] = useState(false);
+  const [showKnowledgeEfficiencyBoostValueBuilding, setShowKnowledgeEfficiencyBoostValueBuilding] = useState(false);
+  const [showKnowledgeMaxBoostValueBuilding, setShowKnowledgeMaxBoostValueBuilding] = useState(false);
+  const [showUsdtMaxBoostValueBuilding, setShowUsdtMaxBoostValueBuilding] = useState(false);
+  const [showMiningEfficiencyBoostValueBuilding, setShowMiningEfficiencyBoostValueBuilding] = useState(false);
+  const [showEnergyEfficiencyBoostValueBuilding, setShowEnergyEfficiencyBoostValueBuilding] = useState(false);
+  const [showComputingPowerBoostValueBuilding, setShowComputingPowerBoostValueBuilding] = useState(false);
+  const [showKnowledgeBoostValueBuilding, setShowKnowledgeBoostValueBuilding] = useState(false);
+  const [showUsdtMaxValueBuilding, setShowUsdtMaxValueBuilding] = useState(false);
+  const [showBitcoinMaxValueBuilding, setShowBitcoinMaxValueBuilding] = useState(false);
+  const [showBtcExchangeBonusValueBuilding, setShowBtcExchangeBonusValueBuilding] = useState(false);
+  const [showUnlockTradingValueBuilding, setShowUnlockTradingValueBuilding] = useState(false);
+  const [showAutoBtcExchangeValueBuilding, setShowAutoBtcExchangeValueBuilding] = useState(false);
+  const [showComputingPowerConsumptionReductionValueUpgrade, setShowComputingPowerConsumptionReductionValueUpgrade] = useState(false);
+  const [showKnowledgeEfficiencyBoostValueUpgrade, setShowKnowledgeEfficiencyBoostValueUpgrade] = useState(false);
+  const [showKnowledgeMaxBoostValueUpgrade, setShowKnowledgeMaxBoostValueUpgrade] = useState(false);
+  const [showUsdtMaxBoostValueUpgrade, setShowUsdtMaxBoostValueUpgrade] = useState(false);
+  const [showMiningEfficiencyBoostValueUpgrade, setShowMiningEfficiencyBoostValueUpgrade] = useState(false);
+  const [showEnergyEfficiencyBoostValueUpgrade, setShowEnergyEfficiencyBoostValueUpgrade] = useState(false);
+  const [showComputingPowerBoostValueUpgrade, setShowComputingPowerBoostValueUpgrade] = useState(false);
+  const [showKnowledgeBoostValueUpgrade, setShowKnowledgeBoostValueUpgrade] = useState(false);
+  const [showUsdtMaxValueUpgrade, setShowUsdtMaxValueUpgrade] = useState(false);
+  const [showBitcoinMaxValueUpgrade, setShowBitcoinMaxValueUpgrade] = useState(false);
+  const [showBtcExchangeBonusValueUpgrade, setShowBtcExchangeBonusValueUpgrade] = useState(false);
+  const [showUnlockTradingValueUpgrade, setShowUnlockTradingValueUpgrade] = useState(false);
+  const [showAutoBtcExchangeValueUpgrade, setShowAutoBtcExchangeValueUpgrade] = useState(false);
+  const [showComputingPowerConsumptionReductionValueSynergy, setShowComputingPowerConsumptionReductionValueSynergy] = useState(false);
+  const [showKnowledgeEfficiencyBoostValueSynergy, setShowKnowledgeEfficiencyBoostValueSynergy] = useState(false);
+  const [showKnowledgeMaxBoostValueSynergy, setShowKnowledgeMaxBoostValueSynergy] = useState(false);
+  const [showUsdtMaxBoostValueSynergy, setShowUsdtMaxBoostValueSynergy] = useState(false);
+  const [showMiningEfficiencyBoostValueSynergy, setShowMiningEfficiencyBoostValueSynergy] = useState(false);
+  const [showEnergyEfficiencyBoostValueSynergy, setShowEnergyEfficiencyBoostValueSynergy] = useState(false);
+  const [showComputingPowerBoostValueSynergy, setShowComputingPowerBoostValueSynergy] = useState(false);
+  const [showKnowledgeBoostValueSynergy, setShowKnowledgeBoostValueSynergy] = useState(false);
+  const [showUsdtMaxValueSynergy, setShowUsdtMaxValueSynergy] = useState(false);
+  const [showBitcoinMaxValueSynergy, setShowBitcoinMaxValueSynergy] = useState(false);
+  const [showBtcExchangeBonusValueSynergy, setShowBtcExchangeBonusValueSynergy] = useState(false);
+  const [showUnlockTradingValueSynergy, setShowUnlockTradingValueSynergy] = useState(false);
+  const [showAutoBtcExchangeValueSynergy, setShowAutoBtcExchangeValueSynergy] = useState(false);
+  const [showComputingPowerConsumptionReductionValueSpecializationSynergy, setShowComputingPowerConsumptionReductionValueSpecializationSynergy] = useState(false);
+  const [showKnowledgeEfficiencyBoostValueSpecializationSynergy, setShowKnowledgeEfficiencyBoostValueSpecializationSynergy] = useState(false);
+  const [showKnowledgeMaxBoostValueSpecializationSynergy, setShowKnowledgeMaxBoostValueSpecializationSynergy] = useState(false);
+  const [showUsdtMaxBoostValueSpecializationSynergy, setShowUsdtMaxBoostValueSpecializationSynergy] = useState(false);
+  const [showMiningEfficiencyBoostValueSpecializationSynergy, setShowMiningEfficiencyBoostValueSpecializationSynergy] = useState(false);
+  const [showEnergyEfficiencyBoostValueSpecializationSynergy, setShowEnergyEfficiencyBoostValueSpecializationSynergy] = useState(false);
+  const [showComputingPowerBoostValueSpecializationSynergy, setShowComputingPowerBoostValueSpecializationSynergy] = useState(false);
+  const [showKnowledgeBoostValueSpecializationSynergy, setShowKnowledgeBoostValueSpecializationSynergy] = useState(false);
+  const [showUsdtMaxValueSpecializationSynergy, setShowUsdtMaxValueSpecializationSynergy] = useState(false);
+  const [showBitcoinMaxValueSpecializationSynergy, setShowBitcoinMaxValueSpecializationSynergy] = useState(false);
+  const [showBtcExchangeBonusValueSpecializationSynergy, setShowBtcExchangeBonusValueSpecializationSynergy] = useState(false);
+  const [showUnlockTradingValueSpecializationSynergy, setShowUnlockTradingValueSpecializationSynergy] = useState(false);
+  const [showAutoBtcExchangeValueSpecializationSynergy, setShowAutoBtcExchangeValueSpecializationSynergy] = useState(false);
+  const [showComputingPowerConsumptionReductionBuildingValue, setShowComputingPowerConsumptionReductionBuildingValue] = useState(false);
+  const [showKnowledgeEfficiencyBoostBuildingValue, setShowKnowledgeEfficiencyBoostBuildingValue] = useState(false);
+  const [showKnowledgeMaxBoostBuildingValue, setShowKnowledgeMaxBoostBuildingValue] = useState(false);
+  const [showUsdtMaxBoostBuildingValue, setShowUsdtMaxBoostBuildingValue] = useState(false);
+  const [showMiningEfficiencyBoostBuildingValue, setShowMiningEfficiencyBoostBuildingValue] = useState(false);
+  const [showEnergyEfficiencyBoostBuildingValue, setShowEnergyEfficiencyBoostBuildingValue] = useState(false);
+  const [showComputingPowerBoostBuildingValue, setShowComputingPowerBoostBuildingValue] = useState(false);
+  const [showKnowledgeBoostBuildingValue, setShowKnowledgeBoostBuildingValue] = useState(false);
+  const [showUsdtBuildingValue, setShowUsdtBuildingValue] = useState(false);
+  const [showBitcoinBuildingValue, setShowBitcoinBuildingValue] = useState(false);
+  const [showBtcExchangeBonusBuildingValue, setShowBtcExchangeBonusBuildingValue] = useState(false);
+  const [showUnlockTradingBuildingValue, setShowUnlockTradingBuildingValue] = useState(false);
+  const [showAutoBtcExchangeBuildingValue, setShowAutoBtcExchangeBuildingValue] = useState(false);
+  const [showComputingPowerConsumptionReductionUpgradeValue, setShowComputingPowerConsumptionReductionUpgradeValue] = useState(false);
+  const [showKnowledgeEfficiencyBoostUpgradeValue, setShowKnowledgeEfficiencyBoostUpgradeValue] = useState(false);
+  const [showKnowledgeMaxBoostUpgradeValue, setShowKnowledgeMaxBoostUpgradeValue] = useState(false);
+  const [showUsdtMaxBoostUpgradeValue, setShowUsdtMaxBoostValueUpgrade] = useState(false);
+  const [showMiningEfficiencyBoostUpgradeValue, setShowMiningEfficiencyBoostValueUpgrade] = useState(false);
+  const [showEnergyEfficiencyBoostUpgradeValue, setShowEnergyEfficiencyBoostValueUpgrade] = useState(false);
+  const [showComputingPowerBoostUpgradeValue, setShowComputingPowerBoostValueUpgrade] = useState(false);
+  const [showKnowledgeBoostUpgradeValue, setShowKnowledgeBoostValueUpgrade] = useState(false);
+  const [showUsdtUpgradeValue, setShowUsdtUpgradeValue] = useState(false);
+  const [showBitcoinUpgradeValue, setShowBitcoinUpgradeValue] = useState(false);
+  const [showBtcExchangeBonusUpgradeValue, setShowBtcExchangeBonusValueUpgrade] = useState(false);
+  const [showUnlockTradingUpgradeValue, setShowUnlockTradingUpgradeValue] = useState(false);
+  const [showAutoBtcExchangeUpgradeValue, setShowAutoBtcExchangeValueUpgrade] = useState(false);
+  const [showComputingPowerConsumptionReductionSynergyValue, setShowComputingPowerConsumptionReductionSynergyValue] = useState(false);
+  const [showKnowledgeEfficiencyBoostSynergyValue, setShowKnowledgeEfficiencyBoostSynergyValue] = useState(false);
+  const [showKnowledgeMaxBoostSynergyValue, setShowKnowledgeMaxBoostSynergyValue] = useState(false);
+  const [showUsdtMaxBoostSynergyValue, setShowUsdtMaxBoostValueSynergyValue] = useState(false);
+  const [showMiningEfficiencyBoostSynergyValue, setShowMiningEfficiencyBoostSynergyValue] = useState(false);
+  const [showEnergyEfficiencyBoostSynergyValue, setShowEnergyEfficiencyBoostSynergyValue] = useState(false);
+  const [showComputingPowerBoostSynergyValue, setShowComputingPowerBoostSynergyValue] = useState(false);
+  const [showKnowledgeBoostSynergyValue, setShowKnowledgeBoostSynergyValue] = useState(false);
+  const [showUsdtSynergyValue, setShowUsdtSynergyValue] = useState(false);
+  const [showBitcoinSynergyValue, setShowBitcoinSynergyValue] = useState(false);
+  const [showBtcExchangeBonusSynergyValue, setShowBtcExchangeBonusSynergyValue] = useState(false);
+  const [showUnlockTradingSynergyValue, setShowUnlockTradingSynergyValue] = useState(false);
+  const [showAutoBtcExchangeSynergyValue, setShowAutoBtcExchangeSynergyValue] = useState(false);
+  const [showComputingPowerConsumptionReductionSpecializationSynergyValue, setShowComputingPowerConsumptionReductionSpecializationSynergyValue] = useState(false);
+  const [showKnowledgeEfficiencyBoostSpecializationSynergyValue, setShowKnowledgeEfficiencyBoostSpecializationSynergyValue] = useState(false);
+  const [showKnowledgeMaxBoostSpecializationSynergyValue, setShowKnowledgeMaxBoostSpecializationSynergyValue] = useState(false);
+  const [showUsdtMaxBoostSpecializationSynergyValue, setShowUsdtMaxBoostSpecializationSynergyValue] = useState(false);
+  const [showMiningEfficiencyBoostSpecializationSynergyValue, setShowMiningEfficiencyBoostSpecializationSynergyValue] = useState(false);
+  const [showEnergyEfficiencyBoostSpecializationSynergyValue, setShowEnergyEfficiencyBoostSpecializationSynergyValue] = useState(false);
+  const [showComputingPowerBoostSpecializationSynergyValue, setShowComputingPowerBoostSpecializationSynergyValue] = useState(false);
+  const [showKnowledgeBoostSpecializationSynergyValue, setShowKnowledgeBoostSpecializationSynergyValue] = useState(false);
+  const [showUsdtSpecializationSynergyValue, setShowUsdtSpecializationSynergyValue] = useState(false);
+  const [showBitcoinSpecializationSynergyValue, setShowBitcoinSpecializationSynergyValue] = useState(false);
+  const [showBtcExchangeBonusSpecializationSynergyValue, setShowBtcExchangeBonusSpecializationSynergyValue] = useState(false);
+  const [showUnlockTradingSpecializationSynergyValue, setShowUnlockTradingSpecializationSynergyValue] = useState(false);
+  const [showAutoBtcExchangeSpecializationSynergyValue, setShowAutoBtcExchangeSpecializationSynergyValue] = useState(false);
+  const [showPracticeBuilding, setShowPracticeBuilding] = useState(false);
+  const [showGeneratorBuilding, setShowGeneratorBuilding] = useState(false);
+  const [showCryptoWalletBuilding, setShowCryptoWalletBuilding] = useState(false);
+  const [showHomeComputerBuilding, setShowHomeComputerBuilding] = useState(false);
+  const [showInternetChannelBuilding, setShowInternetChannelBuilding] = useState(false);
+  const [showMinerBuilding, setShowMinerBuilding] = useState(false);
+  const [showCryptoLibraryBuilding, setShowCryptoLibraryBuilding] = useState(false);
+  const [showCoolingSystemBuilding, setShowCoolingSystemBuilding] = useState(false);
+  const [showEnhancedWalletBuilding, setShowEnhancedWalletBuilding] = useState(false);
+  const [showBlockchainBasicsUpgrade, setShowBlockchainBasicsUpgrade] = useState(false);
+  const [showWalletSecurityUpgrade, setShowWalletSecurityUpgrade] = useState(false);
+  const [showCryptoCurrencyBasicsUpgrade, setShowCryptoCurrencyBasicsUpgrade] = useState(false);
+  const [showAlgorithmOptimizationUpgrade, setShowAlgorithmOptimizationUpgrade] = useState(false);
+  const [showProofOfWorkUpgrade, setShowProofOfWorkUpgrade] = useState(false);
+  const [showEnergyEfficientComponentsUpgrade, setShowEnergyEfficientComponentsUpgrade] = useState(false);
+  const [showCryptoTradingUpgrade, setShowCryptoTradingUpgrade] = useState(false);
+  const [showTradingBotUpgrade, setShowTradingBotUpgrade] = useState(false);
+  const [showBlockchainBasicsUpgradePurchased, setShowBlockchainBasicsUpgradePurchased] = useState(false);
+  const [showWalletSecurityUpgradePurchased, setShowWalletSecurityUpgradePurchased] = useState(false);
+  const [showCryptoCurrencyBasicsUpgradePurchased, setShowCryptoCurrencyBasicsUpgradePurchased] = useState(false);
+  const [showAlgorithmOptimizationUpgradePurchased, setShowAlgorithmOptimizationUpgradePurchased] = useState(false);
+  const [showProofOfWorkUpgradePurchased, setShowProofOfWorkUpgradePurchased] = useState(false);
+  const [showEnergyEfficientComponentsUpgradePurchased, setShowEnergyEfficientComponentsUpgradePurchased] = useState(false);
+  const [showCryptoTradingUpgradePurchased, setShowCryptoTradingUpgradePurchased] = useState(false);
+  const [showTradingBotUpgradePurchased, setShowTradingBotUpgradePurchased] = useState(false);
+  const [showBlockchainBasicsUpgradeUnlocked, setShowBlockchainBasicsUpgradeUnlocked] = useState(false);
+  const [showWalletSecurityUpgradeUnlocked, setShowWalletSecurityUpgradeUnlocked] = useState(false);
+  const [showCryptoCurrencyBasicsUpgradeUnlocked, setShowCryptoCurrencyBasicsUpgradeUnlocked] = useState(false);
+  const [showAlgorithmOptimizationUpgradeUnlocked, setShowAlgorithmOptimizationUpgradeUnlocked] = useState(false);
+  const [showProofOfWorkUpgradeUnlocked, setShowProofOfWorkUpgradeUnlocked] = useState(false);
+  const [showEnergyEfficientComponentsUpgradeUnlocked, setShowEnergyEfficientComponentsUpgradeUnlocked] = useState(false);
+  const [showCryptoTradingUpgradeUnlocked, setShowCryptoTradingUpgradeUnlocked] = useState(false);
+  const [showTradingBotUpgradeUnlocked, setShowTradingBotUpgradeUnlocked] = useState(false);
+  const [showPracticeBuildingCount, setShowPracticeBuildingCount] = useState(false);
+  const [showGeneratorBuildingCount, setShowGeneratorBuildingCount] = useState(false);
+  const [showCryptoWalletBuildingCount, setShowCryptoWalletBuildingCount] = useState(false);
+  const [showHomeComputerBuildingCount, setShowHomeComputerBuildingCount] = useState(false);
+  const [showInternetChannelBuildingCount, setShowInternetChannelBuildingCount] = useState(false);
+  const [showMinerBuildingCount, setShowMinerBuildingCount] = useState(false);
+  const [showCryptoLibraryBuildingCount, setShowCryptoLibraryBuildingCount] = useState(false);
+  const [showCoolingSystemBuildingCount, setShowCoolingSystemBuildingCount] = useState(false);
+  const [showEnhancedWalletBuildingCount, setShowEnhancedWalletBuildingCount] = useState(false);
+  const [showPracticeBuildingUnlocked, setShowPracticeBuildingUnlocked] = useState(false);
+  const [showGeneratorBuildingUnlocked, setShowGeneratorBuildingUnlocked] = useState(false);
+  const [showCryptoWalletBuildingUnlocked, setShowCryptoWalletBuildingUnlocked] = useState(false);
+  const [showHomeComputerBuildingUnlocked, setShowHomeComputerBuildingUnlocked] = useState(false);
+  const [showInternetChannelBuildingUnlocked, setShowInternetChannelBuildingUnlocked] = useState(false);
+  const [showMinerBuildingUnlocked, setShowMinerBuildingUnlocked] = useState(false);
+  const [showCryptoLibraryBuildingUnlocked, setShowCryptoLibraryBuildingUnlocked] = useState(false);
+  const [showCoolingSystemBuildingUnlocked, setShowCoolingSystemBuildingUnlocked] = useState(false);
+  const [showEnhancedWalletBuildingUnlocked, setShowEnhancedWalletBuildingUnlocked] = useState(false);
+  const [showPracticeBuildingCost, setShowPracticeBuildingCost] = useState(false);
+  const [showGeneratorBuildingCost, setShowGeneratorBuildingCost] = useState(false);
+  const [showCryptoWalletBuildingCost, setShowCryptoWalletBuildingCost] = useState(false);
+  const [showHomeComputerBuildingCost, setShowHomeComputerBuildingCost] = useState(false);
+  const [showInternetChannelBuildingCost, setShowInternetChannelBuildingCost] = useState(false);
+  const [showMinerBuildingCost, setShowMinerBuildingCost] = useState(false);
+  const [showCryptoLibraryBuildingCost, setShowCryptoLibraryBuildingCost] = useState(false);
+  const [showCoolingSystemBuildingCost, setShowCoolingSystemBuildingCost] = useState(false);
+  const [showEnhancedWalletBuildingCost, setShowEnhancedWalletBuildingCost] = useState(false);
+  const [showBlockchainBasicsUpgradeCost, setShowBlockchainBasicsUpgradeCost] = useState(false);
+  const [showWalletSecurityUpgradeCost, setShowWalletSecurityUpgradeCost] = useState(false);
+  const [showCryptoCurrencyBasicsUpgradeCost, setShowCryptoCurrencyBasicsUpgradeCost] = useState(false);
+  const [showAlgorithmOptimizationUpgradeCost, setShowAlgorithmOptimizationUpgradeCost] = useState(false);
+  const [showProofOfWorkUpgradeCost, setShowProofOfWorkUpgradeCost] = useState(false);
+  const [showEnergyEfficientComponentsUpgradeCost, setShowEnergyEfficientComponentsUpgradeCost] = useState(false);
+  const [showCryptoTradingUpgradeCost, setShowCryptoTradingUpgradeCost] = useState(false);
+  const [showTradingBotUpgradeCost, setShowTradingBotUpgradeCost] = useState(false);
+  const [showPracticeBuildingProduction, setShowPracticeBuildingProduction] = useState(false);
+  const [showGeneratorBuildingProduction, setShowGeneratorBuildingProduction] = useState(false);
+  const [showCryptoWalletBuildingProduction, setShowCryptoWalletBuildingProduction] = useState(false);
+  const [showHomeComputerBuildingProduction, setShowHomeComputerBuildingProduction] = useState(false);
+  const [showInternetChannelBuildingProduction, setShowInternetChannelBuildingProduction] = useState(false);
+  const [showMinerBuildingProduction, setShowMinerBuildingProduction] = useState(false);
+  const [showCryptoLibraryBuildingProduction, setShowCryptoLibraryBuildingProduction] = useState(false);
+  const [showCoolingSystemBuildingProduction, setShowCoolingSystemBuildingProduction] = useState(false);
+  const [showEnhancedWalletBuildingProduction, setShowEnhancedWalletBuildingProduction] = useState(false);
+  const [showPracticeBuildingConsumption, setShowPracticeBuildingConsumption] = useState(false);
+  const [showGeneratorBuildingConsumption, setShowGeneratorBuildingConsumption] = useState(false);
+  const [showCryptoWalletBuildingConsumption, setShowCryptoWalletBuildingConsumption] = useState(false

@@ -9,6 +9,16 @@ export const initialState: GameState = {
   btcBalance: 0,
   
   gameStarted: false,
+  multiBuy: false,
+  referralBonusApplied: false,
+  eventLog: [],
+  settings: {
+    soundEnabled: true,
+    musicEnabled: true,
+    notificationsEnabled: true,
+    multibuy: false
+  },
+  
   gameTime: 0,
   lastUpdate: Date.now(),
   lastSaved: Date.now(),
@@ -21,6 +31,7 @@ export const initialState: GameState = {
   featureFlags: {},
   buildingUnlocked: {},
   
+  synergies: {},
   unlocks: {
     knowledge: true,
   },
@@ -219,7 +230,7 @@ export const initialState: GameState = {
         knowledge: 250
       },
       effects: {
-        unlockTrading: 1  // Изменено с boolean на number
+        unlockTrading: 1
       },
       purchased: false,
       unlocked: false,
@@ -233,104 +244,15 @@ export const initialState: GameState = {
         knowledge: 500
       },
       effects: {
-        autoBtcExchange: 1  // Изменено с boolean на number
+        autoBtcExchange: 1
       },
       purchased: false,
       unlocked: false,
       requiredUpgrades: ['cryptoTrading']
     }
   },
-  miningParams: {
-    miningEfficiency: 1,
-    networkDifficulty: 1,
-    energyEfficiency: 0,
-    exchangeRate: 20000,
-    exchangeCommission: 0.05,
-    volatility: 0.2,
-    exchangePeriod: 3600,
-    baseConsumption: 1
-  },
-  counters: {
-    knowledgeClicks: { value: 0, updatedAt: Date.now() },
-  },
   specializationSynergies: {},
-  referralCode: null,
+  counters: {},
   referrals: [],
   referralHelpers: []
-};
-
-export const initialPhase2Buildings = {
-  miner: {
-    id: 'miner',
-    name: 'Майнер',
-    description: 'Автоматически добывает Bitcoin, используя электричество и вычислительную мощность',
-    cost: {
-      usdt: 150
-    },
-    costMultiplier: 1.15,
-    production: {
-      bitcoin: 0.00005
-    },
-    consumption: {
-      electricity: 1,
-      computingPower: 5
-    },
-    count: 0,
-    unlocked: false,
-    productionBoost: 0
-  },
-  cryptoLibrary: {
-    id: 'cryptoLibrary',
-    name: 'Криптобиблиотека',
-    description: 'Увеличивает скорость получения знаний и их максимальное количество',
-    cost: {
-      usdt: 200,
-      knowledge: 200
-    },
-    costMultiplier: 1.15,
-    production: {},
-    effects: {
-      knowledgeBoost: 0.5,
-      knowledgeMax: 100
-    },
-    count: 0,
-    unlocked: false,
-    productionBoost: 0
-  },
-  coolingSystem: {
-    id: 'coolingSystem',
-    name: 'Система охлаждения',
-    description: 'Снижает потребление энергии компьютерами на 20%',
-    cost: { 
-      usdt: 200,
-      electricity: 50 
-    },
-    costMultiplier: 1.15,
-    production: {},
-    effects: {
-      computingPowerConsumptionReduction: 0.2
-    },
-    count: 0,
-    unlocked: false,
-    productionBoost: 0
-  },
-  enhancedWallet: {
-    id: 'enhancedWallet',
-    name: 'Улучшенный кошелек',
-    description: 'Значительно увеличивает максимальное хранение USDT и Bitcoin',
-    cost: {
-      usdt: 300,
-      knowledge: 250
-    },
-    costMultiplier: 1.15,
-    production: {},
-    effects: {
-      usdtMax: 150,
-      bitcoinMax: 1,
-      btcExchangeBonus: 0.08
-    },
-    count: 0,
-    unlocked: false,
-    productionBoost: 0
-  }
 };

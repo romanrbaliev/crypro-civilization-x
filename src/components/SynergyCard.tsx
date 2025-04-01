@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface SynergyCardProps {
   synergy: SpecializationSynergy;
-  onActivate?: (synergyId: string) => void; // Делаем этот проп опциональным
+  onActivate?: (synergyId: string) => void;
 }
 
 const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
@@ -43,6 +43,11 @@ const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
         {Object.entries(synergy.effects || {}).map(([key, value]) => (
           <li key={key} className="text-xs">
             {key}: {value}
+          </li>
+        ))}
+        {synergy.bonus && Object.entries(synergy.bonus).map(([key, value]) => (
+          <li key={`bonus-${key}`} className="text-xs font-semibold text-green-600">
+            Бонус {key}: {value}
           </li>
         ))}
       </ul>

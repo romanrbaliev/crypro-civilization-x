@@ -1,8 +1,8 @@
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
-// Вспомогательная функция для получения значения счетчика
-const getCounterValue = (state: GameState, counterId: string): number => {
+// Вспомогательная функция для безопасного получения значения счетчика
+function getCounterValue(state: GameState, counterId: string): number {
   const counter = state.counters[counterId];
   if (!counter) return 0;
   
@@ -11,7 +11,7 @@ const getCounterValue = (state: GameState, counterId: string): number => {
   }
   
   return typeof counter === 'number' ? counter : 0;
-};
+}
 
 // Функция для отладки статуса разблокировок
 export function debugUnlockStatus(state: GameState) {

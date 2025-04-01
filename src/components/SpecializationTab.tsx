@@ -52,7 +52,7 @@ const SpecializationTab: React.FC = () => {
   const handleSelectSpecialization = (specialization: string) => {
     dispatch({
       type: 'CHOOSE_SPECIALIZATION',
-      payload: { specialization }
+      payload: { specialization } // Исправлено: roleId -> specialization
     });
   };
   

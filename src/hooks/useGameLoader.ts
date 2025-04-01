@@ -5,18 +5,6 @@ import { initialState } from '@/context/initialState';
 import { loadGame } from '@/utils/gameLoader';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
-// Вспомогательная функция для получения значения счетчика
-const getCounterValue = (state: GameState, counterId: string): number => {
-  const counter = state.counters[counterId];
-  if (!counter) return 0;
-  
-  if (typeof counter === 'object' && 'value' in counter) {
-    return counter.value;
-  }
-  
-  return typeof counter === 'number' ? counter : 0;
-};
-
 export function useGameLoader(
   hasConnection: boolean,
   setLoadingMessage: (message: string) => void

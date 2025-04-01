@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -721,9 +720,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           type: "UPDATE_REFERRAL_STATUS",
           payload: {
             referralId,
-            activated: true,
-            hired: false,
-            buildingId: null
+            hired: true,
+            buildingId: buildingId,
           }
         });
       }
@@ -888,7 +886,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
         title: accepted ? "Вы приняли предложение" : "Вы отклонили предложение",
         description: accepted 
           ? `Теперь вы помогаете зданию "${buildingName}" и получаете бонус +10% к производительности` 
-          : "Предложение отклонено",
+          : "Предло��ение отклонено",
       });
       
       onAddEvent(
