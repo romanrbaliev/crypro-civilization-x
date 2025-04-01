@@ -57,7 +57,11 @@ export class GameStateService {
       console.log("GameStateService: Выполняется полная синхронизация состояния");
       
       // Обновляем производство и потребление ресурсов
-      let newState = this.resourceProductionService.recalculateAllResources(state);
+      // Используем существующий метод calculateResourceProduction вместо recalculateAllResources
+      let newState = {
+        ...state,
+        resources: this.resourceProductionService.calculateResourceProduction(state)
+      };
       
       // Обновляем все максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);

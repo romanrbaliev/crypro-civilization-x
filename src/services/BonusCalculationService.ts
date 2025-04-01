@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -88,11 +87,11 @@ export class BonusCalculationService {
           const synergy = state.specializationSynergies[synergyId];
           
           // Применяем бонусы только от активированных синергий
-          if (synergy && synergy.active && synergy.effects) {
+          if (synergy && synergy.active && synergy.bonus) { // Используем bonus вместо effects
             // Проверяем наличие бонуса производства для указанного ресурса
             const boostKey = `${resourceId}ProductionBoost`;
-            if (synergy.effects[boostKey]) {
-              const boost = synergy.effects[boostKey];
+            if (synergy.bonus[boostKey]) {
+              const boost = synergy.bonus[boostKey];
               multiplier += boost;
               console.log(`BonusCalculation: Синергия ${synergy.name} добавляет +${boost * 100}% к производству ${resourceId}`);
             }
@@ -229,5 +228,15 @@ export class BonusCalculationService {
     }
     
     return Math.max(1.0, multiplier); // Не позволяем множителю быть меньше базового
+  }
+  
+  /**
+   * Рассчитывает все бонусы для указанного ресурса
+   */
+  calculateResourceBonuses(state: GameState, resourceId: string): { productionMultiplier: number; maxMultiplier: number } {
+    return {
+      productionMultiplier: this.calculateProductionMultiplier(state, resourceId),
+      maxMultiplier: this.calculateMaxValueMultiplier(state, resourceId)
+    };
   }
 }

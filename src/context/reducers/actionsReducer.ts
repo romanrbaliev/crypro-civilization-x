@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -25,8 +26,12 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     ? applyKnowledgeCounter.value + 1
     : applyKnowledgeCounter + 1;
   
-  // Обновляем счетчик
-  newCounters.applyKnowledge = { value: newApplyKnowledgeValue };
+  // Обновляем счетчик с корректными полями id и name
+  newCounters.applyKnowledge = { 
+    id: 'applyKnowledge', 
+    name: 'Применение знаний', 
+    value: newApplyKnowledgeValue 
+  };
   
   console.log(`Счетчик применения знаний обновлен: ${newApplyKnowledgeValue}`);
   

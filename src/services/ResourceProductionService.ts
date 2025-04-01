@@ -224,8 +224,9 @@ export class ResourceProductionService {
       
       const resource = resources[resourceId];
       
-      // Получаем бонусы для ресурса
-      const { productionMultiplier, maxMultiplier } = this.bonusCalculationService.calculateResourceBonuses(state, resourceId);
+      // Получаем множители для ресурса, используя отдельные методы вместо calculateResourceBonuses
+      const productionMultiplier = this.bonusCalculationService.calculateProductionMultiplier(state, resourceId);
+      const maxMultiplier = this.bonusCalculationService.calculateMaxValueMultiplier(state, resourceId);
       
       // Применяем множитель к производству
       const finalProduction = resource.production * productionMultiplier;

@@ -38,8 +38,9 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onBuy, onSell }) 
       case 'generator':
         effects += '+0.5 электричества/сек, ';
         break;
-      case 'cryptoWallet':
-        effects += '+50 к макс. USDT, +25% к макс. Знаниям, ';
+      case 'cryptoWallet': 
+        // Убеждаемся, что эффекты отображаются корректно
+        effects += '+50 к макс. USDT, +25% к макс. знаниям, ';
         break;
       case 'internetConnection':
         effects += '+20% к скорости получения знаний, +5% к эффективности производства вычисл. мощности, ';
@@ -51,7 +52,7 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onBuy, onSell }) 
         effects += '+150 к макс. USDT, +1 к макс. BTC, +8% к эффективности конвертации BTC на USDT, ';
         break;
       case 'cryptoLibrary':
-        effects += '+50% к скорости получения знаний, +100 к макс. Знаниям, ';
+        effects += '+50% к скорости получения знаний, +100 к макс. знаниям, ';
         break;
       case 'homeComputer':
         effects += '+2 вычисл. мощности/сек при потреблении 1 электр./сек, ';

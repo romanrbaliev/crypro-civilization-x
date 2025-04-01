@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -106,7 +105,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         cryptoWallet: true
       };
       
-      console.log("Криптокошелек разблокирован");
+      console.log("Кри��токошелек разблокирован");
     }
     
     // 4. Разблокируем исследование "Основы криптовалют"
@@ -147,6 +146,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
       
       console.log("Майнер разблокирован");
+      safeDispatchGameEvent("Разблокирован майнер для добычи Bitcoin", "success");
     }
     
     // Альтернативное название здания - autoMiner
@@ -162,6 +162,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
       
       console.log("Автомайнер разблокирован");
+      safeDispatchGameEvent("Разблокирован автомайнер для добычи Bitcoin", "success");
     }
     
     // Принудительно инициализируем ресурс Bitcoin если не существует
@@ -186,10 +187,16 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
       
       console.log("Bitcoin инициализирован");
+    } else {
+      // Разблокируем существующий ресурс Bitcoin
+      newState.resources.bitcoin = {
+        ...newState.resources.bitcoin,
+        unlocked: true
+      };
     }
     
     // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Основы криптовалют: +10% к эффективности применения знаний", "info");
+    safeDispatchGameEvent("Основы криптовалют: +10% к эффективности применения знаний, разблокирован майнер", "info");
   }
   
   if (upgradeId === 'cryptoWalletSecurity' || upgradeId === 'walletSecurity') {
