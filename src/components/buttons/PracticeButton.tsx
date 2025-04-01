@@ -9,6 +9,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// ВАЖНО: Этот компонент больше не используется, т.к. Практика теперь
+// отображается только как здание в разделе Оборудование
+// Компонент сохранен для обратной совместимости, но не используется в интерфейсе
+
 interface PracticeButtonProps {
   onClick: () => void;
   disabled: boolean;

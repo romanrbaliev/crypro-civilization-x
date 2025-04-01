@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -23,26 +24,6 @@ const isApplyKnowledgeUnlocked = (state: GameState): boolean => {
   return count >= 3;
 };
 
-// Функция для проверки, разблокирована ли практика на основе счетчика и флага unlocks
-const isPracticeUnlocked = (state: GameState): boolean => {
-  // Проверяем наличие флага практики в unlocks
-  if (state.unlocks.practice === true) return true;
-  
-  // Проверяем существование здания практики и его разблокировку
-  if (state.buildings.practice && state.buildings.practice.unlocked) return true;
-  
-  // Проверяем наличие счетчика применения знаний
-  const counter = state.counters.applyKnowledge;
-  
-  if (!counter) return false;
-  
-  // Получаем значение счетчика
-  const count = typeof counter === 'object' ? counter.value : counter;
-  
-  // Практика разблокируется после 2-х использований "Применить знания"
-  return count >= 2;
-};
-
 export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const { state, dispatch } = useGame();
   const [currentExchangeRate, setCurrentExchangeRate] = useState(state.miningParams?.exchangeRate || 20000);
@@ -54,31 +35,8 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Кнопка скрывается, если скорость производства знаний >= 10/сек
   const shouldHideLearnButton = resources.knowledge?.perSecond >= 10;
   
-  // Проверка наличия и разблокировки здания практики
-  const practiceBuildingExists = !!buildings.practice;
-  const practiceBuildingUnlocked = practiceBuildingExists && buildings.practice.unlocked;
-  
-  // Проверка разблокировки флага практики
-  const practiceUnlockFlag = unlocks.practice === true;
-  
   // Проверка разблокировки кнопки "Применить знания"
   const applyKnowledgeUnlocked = isApplyKnowledgeUnlocked(state);
-  
-  // Объединенная проверка разблокировки практики
-  const practiceIsUnlocked = practiceUnlockFlag || practiceBuildingUnlocked || isPracticeUnlocked(state);
-  
-  console.log("Проверка разблокировки практики в useActionButtons:", {
-    practiceUnlockFlag,
-    practiceBuildingUnlocked,
-    practiceIsUnlocked,
-    applyKnowledgeCounter: state.counters.applyKnowledge
-  });
-  
-  // Получение текущей стоимости и уровня практики
-  const practiceCurrentLevel = practiceBuildingExists ? buildings.practice.count : 0;
-  const practiceBaseCost = 10; // Базовая стоимость согласно таблице
-  const practiceCostMultiplier = 1.12; // Множитель стоимости согласно таблице
-  const practiceCurrentCost = Math.floor(practiceBaseCost * Math.pow(practiceCostMultiplier, practiceCurrentLevel));
   
   // Проверка наличия автомайнера
   const hasAutoMiner = buildings.autoMiner && buildings.autoMiner.count > 0;
@@ -152,17 +110,6 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     }, 100);
   }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value, resources.usdt?.value, resources.usdt?.unlocked, state.counters.applyKnowledge]);
   
-  // Обработчик покупки практики
-  const handlePractice = useCallback(() => {
-    if (resources.usdt?.value >= practiceCurrentCost) {
-      console.log("Вызов action PRACTICE_PURCHASE");
-      dispatch({ type: "PRACTICE_PURCHASE" });
-      onAddEvent(`Куплена практика (уровень ${practiceCurrentLevel + 1})`, "success");
-    } else {
-      onAddEvent("Недостаточно USDT для покупки практики", "error");
-    }
-  }, [dispatch, onAddEvent, resources.usdt?.value, practiceCurrentCost, practiceCurrentLevel]);
-  
   // Обработчик обмена Bitcoin на USDT
   const handleExchangeBitcoin = useCallback(() => {
     // Безопасно получаем текущее количество Bitcoin для отображения в сообщении
@@ -208,13 +155,8 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   return {
     handleLearnClick,
     handleApplyAllKnowledge,
-    handlePractice,
     handleExchangeBitcoin,
     isButtonEnabled,
-    practiceIsUnlocked,
-    practiceBuildingExists,
-    practiceCurrentCost,
-    practiceCurrentLevel,
     hasAutoMiner,
     currentExchangeRate,
     shouldHideLearnButton,

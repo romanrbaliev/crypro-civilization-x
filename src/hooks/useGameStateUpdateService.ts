@@ -16,23 +16,21 @@ export const useGameStateUpdateService = () => {
     const now = Date.now();
     const timeSinceLastUpdate = now - lastUpdateRef.current;
     
-    // Строгое ограничение скорости обновления ресурсов - точно 1000 мс
-    if (timeSinceLastUpdate < 1000) {
-      return; // Обновление происходит не чаще раза в секунду
-    }
+    // ВАЖНО: Жестко фиксируем интервал обновления на 1000 мс (1 секунда)
+    // Это гарантирует, что скорость накопления ресурсов точно соответствует отображаемым значениям
+    const fixedDeltaTime = 1000;
     
-    // Отправляем действие для обновления ресурсов
-    // Передаем точное время, прошедшее с последнего обновления
+    // Отправляем действие для обновления ресурсов с фиксированным временным интервалом
     dispatch({ 
       type: 'UPDATE_RESOURCES',
-      payload: { deltaTime: timeSinceLastUpdate }
+      payload: { deltaTime: fixedDeltaTime }
     });
     
     // Обновляем время последнего обновления
     lastUpdateRef.current = now;
     
     // Логирование для отладки
-    console.log(`useGameStateUpdateService: Обновление ресурсов через ${timeSinceLastUpdate}мс`);
+    console.log(`useGameStateUpdateService: Обновление ресурсов, используем фиксированный интервал ${fixedDeltaTime}мс`);
   };
   
   // Эффект для настройки интервала обновления состояния
