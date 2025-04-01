@@ -1,4 +1,3 @@
-
 /**
  * Сервис для расчета бонусов от исследований, зданий и других источников
  */
@@ -62,18 +61,6 @@ export class BonusCalculationService {
             const boost = Number(effects.knowledgeMaxBoost);
             maxMultiplier += boost;
             console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к максимуму знаний`);
-          }
-          
-          // Исправлено: Обрабатываем специальные эффекты для конкретных исследований
-          if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
-            if (resourceId === 'knowledge') {
-              // Увеличиваем производство знаний на 10% (исправлено)
-              const boost = 0.1; // 10%
-              productionMultiplier += boost;
-              // Увеличиваем максимум знаний на 50%
-              maxMultiplier += 0.5;
-              console.log(`BonusCalculation: Основы блокчейна увеличивают производство знаний на +10%, максимум на +50%`);
-            }
           }
         }
       }
@@ -190,18 +177,29 @@ export class BonusCalculationService {
     if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
       console.log("BonusCalculationService: Применяем специальные эффекты 'Основы блокчейна'");
       
-      // 1. Увеличиваем макс. хранение знаний на 50%
+      // 1. Увеличиваем макс. хранение знаний на 50% от базового значения
       if (updatedState.resources.knowledge) {
-        const currentMax = updatedState.resources.knowledge.max || 100;
-        // Исправление: Увеличиваем только на 50%, а не в 1.5 раза
-        const newMax = currentMax * 1.5;
+        const baseMax = 100; // Базовое максимальное значение знаний
+        const newMax = baseMax * 1.5; // +50% от базового значения
         
         updatedState.resources.knowledge = {
           ...updatedState.resources.knowledge,
           max: newMax
         };
         
-        console.log(`BonusCalculationService: Максимум знаний увеличен с ${currentMax} до ${newMax}`);
+        console.log(`BonusCalculationService: Максимум знаний установлен на ${newMax} (базовый + 50%)`);
+      }
+      
+      // Добавляем эффект для учета 10% бонуса к производству знаний
+      if (updatedState.upgrades[upgradeId]) {
+        updatedState.upgrades[upgradeId] = {
+          ...updatedState.upgrades[upgradeId],
+          effects: {
+            ...(updatedState.upgrades[upgradeId].effects || {}),
+            knowledgeBoost: 0.1,  // +10% к производству знаний
+            knowledgeMaxBoost: 0.5 // +50% к максимуму знаний (для отображения эффекта)
+          }
+        };
       }
       
       // 2. Разблокируем криптокошелек
@@ -218,15 +216,6 @@ export class BonusCalculationService {
         };
         
         console.log("BonusCalculationService: Криптокошелек разблокирован");
-      }
-      
-      // 3. Разблокируем исследование "Основы криптовалют"
-      if (updatedState.upgrades.cryptoCurrencyBasics) {
-        updatedState.upgrades.cryptoCurrencyBasics = {
-          ...updatedState.upgrades.cryptoCurrencyBasics,
-          unlocked: true
-        };
-        console.log("BonusCalculationService: Исследование 'Основы криптовалют' разблокировано");
       }
     }
     
@@ -257,6 +246,20 @@ export class BonusCalculationService {
         };
         
         console.log("BonusCalculationService: Майнер разблокирован");
+      } else if (updatedState.buildings.autoMiner) {
+        // Альтернативное название здания
+        updatedState.buildings.autoMiner = {
+          ...updatedState.buildings.autoMiner,
+          unlocked: true
+        };
+        
+        // Добавляем флаг разблокировки в unlocks
+        updatedState.unlocks = {
+          ...updatedState.unlocks,
+          autoMiner: true
+        };
+        
+        console.log("BonusCalculationService: Автомайнер разблокирован");
       }
     }
     

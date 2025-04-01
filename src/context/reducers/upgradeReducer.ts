@@ -69,15 +69,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     
     // 1. Увеличиваем макс. хранение знаний на 50%
     if (newState.resources.knowledge) {
-      const currentMax = newState.resources.knowledge.max || 100;
-      const newMax = currentMax * 1.5;
+      const baseMax = 100; // Базовое значение
+      const newMax = baseMax * 1.5; // Именно +50% от базового значения, а не умножение текущего на 1.5
       
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
         max: newMax
       };
       
-      console.log(`Максимум знаний увеличен с ${currentMax} до ${newMax}`);
+      console.log(`Максимум знаний установлен на ${newMax}`);
     }
     
     // 2. Увеличиваем скорость производства знаний на 10%
@@ -118,6 +118,52 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Основы блокчейна: +50% к макс. хранению знаний, +10% к скорости их получения", "success");
+  }
+  
+  if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
+    console.log("Применяем эффекты 'Основы криптовалют'");
+    
+    // 1. Добавляем бонус эффективности применения знаний
+    newState.upgrades.cryptoCurrencyBasics = {
+      ...newState.upgrades.cryptoCurrencyBasics,
+      effects: {
+        ...(newState.upgrades.cryptoCurrencyBasics.effects || {}),
+        knowledgeEfficiencyBoost: 0.1
+      }
+    };
+    
+    // 2. Разблокируем майнер (проверяем оба возможных ID)
+    if (newState.buildings.miner) {
+      newState.buildings.miner = {
+        ...newState.buildings.miner,
+        unlocked: true
+      };
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        miner: true
+      };
+      
+      console.log("Майнер разблокирован");
+    }
+    
+    // Альтернативное название здания - autoMiner
+    if (newState.buildings.autoMiner) {
+      newState.buildings.autoMiner = {
+        ...newState.buildings.autoMiner,
+        unlocked: true
+      };
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        autoMiner: true
+      };
+      
+      console.log("Автомайнер разблокирован");
+    }
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Основы криптовалют: +10% к эффективности применения знаний", "info");
   }
   
   if (upgradeId === 'cryptoWalletSecurity' || upgradeId === 'walletSecurity') {

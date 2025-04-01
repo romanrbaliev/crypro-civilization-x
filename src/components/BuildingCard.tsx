@@ -30,15 +30,20 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onBuy, onSell }) 
       }
     }
     
-    // Проверяем наличие специальных эффектов
-    if (building.id === 'cryptoWallet') {
-      effects += '+50 к макс. USDT, +25% к макс. Знаниям, ';
-    } else if (building.id === 'internetConnection') {
-      effects += '+20% к скорости получения знаний, ';
-    } else if (building.id === 'coolingSystem') {
-      effects += '-20% к потреблению вычислительной мощности, ';
-    } else if (building.id === 'improvedWallet') {
-      effects += '+150 к макс. USDT, +1 к макс. BTC, ';
+    // Проверяем наличие специальных эффектов по buildingId
+    switch (building.id) {
+      case 'cryptoWallet':
+        effects += '+50 к макс. USDT, +25% к макс. Знаниям, ';
+        break;
+      case 'internetConnection':
+        effects += '+20% к скорости получения знаний, ';
+        break;
+      case 'coolingSystem':
+        effects += '-20% к потреблению вычислительной мощности, ';
+        break;
+      case 'improvedWallet':
+        effects += '+150 к макс. USDT, +1 к макс. BTC, ';
+        break;
     }
     
     // Удаляем последнюю запятую и пробел
