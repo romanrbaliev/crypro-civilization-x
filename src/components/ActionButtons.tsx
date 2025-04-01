@@ -16,12 +16,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const {
     handleLearnClick,
     handleApplyAllKnowledge,
-    handlePractice,
     handleExchangeBitcoin,
     isButtonEnabled,
-    practiceIsUnlocked,
-    practiceBuildingExists,
-    practiceCurrentCost,
     hasAutoMiner,
     applyKnowledgeUnlocked
   } = useActionButtons({ onAddEvent });
@@ -44,18 +40,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
             className="w-full text-xs"
           >
             Обменять BTC
-          </Button>
-        )}
-        
-        {practiceIsUnlocked && isUsdtUnlocked && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePractice}
-            disabled={!isButtonEnabled("usdt", practiceCurrentCost)}
-            className="w-full text-xs"
-          >
-            Практика ({practiceCurrentCost} USDT)
           </Button>
         )}
         
