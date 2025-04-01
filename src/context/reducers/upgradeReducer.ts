@@ -57,25 +57,28 @@ export const processPurchaseUpgrade = (
   // ЦЕНТРАЛИЗОВАННАЯ РАЗБЛОКИРОВКА связанных зданий
   newState = unlockRelatedBuildings(newState, upgradeId);
   
-  // После покупки исследования проверяем все возможные разблокировки в централизованной системе
-  newState = checkAllUnlocks(newState);
-  
   // Особая обработка для "Основы блокчейна" - сразу применяем эффекты
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применяем эффекты Основ блокчейна немедленно");
     
-    // Обновляем максимум знаний
+    // Обновляем максимум знаний (+50%)
     if (newState.resources.knowledge) {
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
-        max: newState.resources.knowledge.max * 1.5, // +50% к максимуму
-        baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1 // +10% к производству знаний
+        max: newState.resources.knowledge.max * 1.5
       };
       
       console.log(`Обновлен максимум знаний: ${newState.resources.knowledge.max}`);
-      console.log(`Обновлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
+    } else {
+      console.warn("Не найден ресурс знания при обработке эффектов Основ блокчейна");
     }
+    
+    // Применяем эффекты улучшения
+    newState = applyUpgradeEffects(newState, upgradeId, newState.upgrades[upgradeId]);
   }
+  
+  // После покупки исследования проверяем все возможные разблокировки в централизованной системе
+  newState = checkAllUnlocks(newState);
   
   return newState;
 };

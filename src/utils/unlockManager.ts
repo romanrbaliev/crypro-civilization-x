@@ -109,8 +109,9 @@ export const checkResourceUnlocks = (state: GameState): GameState => {
     const resources = { ...state.resources };
     const unlocks = { ...state.unlocks };
     
-    // Разблокировка электричества при наличии генератора
-    if (unlocks.generator && !unlocks.electricity) {
+    // Разблокировка электричества ТОЛЬКО при наличии построенного генератора
+    // Изменено! Теперь проверяем, что счетчик генератора > 0, а не просто разблокирован
+    if (state.buildings.generator && state.buildings.generator.count > 0 && !unlocks.electricity) {
       console.log('unlockManager: Разблокировано электричество');
       unlocks.electricity = true;
       

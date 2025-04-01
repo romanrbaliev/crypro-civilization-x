@@ -96,26 +96,27 @@ export class EffectService {
     
     // Добавляем особую обработку для исследования "Основы блокчейна"
     if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-      // Исправляем основную проблему - делаем явное изменение базового производства знаний
+      console.log("EffectService: Обработка исследования 'Основы блокчейна'");
+      
       if (newState.resources.knowledge) {
-        console.log("EffectService: Обработка исследования 'Основы блокчейна' - добавляем +10% к базовому производству знаний");
+        // Увеличиваем максимум знаний на 50%
+        const currentMax = newState.resources.knowledge.max;
+        const newMax = currentMax * 1.5;
         
-        // Инициализируем базовое производство, если оно не установлено
-        if (typeof newState.resources.knowledge.baseProduction !== 'number') {
-          newState.resources.knowledge.baseProduction = 0;
-        }
+        // Применяем бонус к производству знаний (+10%)
+        newState.resources.knowledge = {
+          ...newState.resources.knowledge,
+          max: newMax,
+          baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1
+        };
         
-        // Добавляем +10% к базовому производству
-        newState.resources.knowledge.baseProduction += 0.1;
-        console.log(`EffectService: Установлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
-        
-        // Также увеличиваем максимум знаний на 50%
-        newState.resources.knowledge.max = newState.resources.knowledge.max * 1.5;
-        console.log(`EffectService: Увеличен максимум знаний на 50%: ${newState.resources.knowledge.max}`);
+        console.log(`EffectService: Максимум знаний увеличен с ${currentMax} до ${newMax}`);
+        console.log(`EffectService: Базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
+      } else {
+        console.warn("EffectService: Не найден ресурс знания при применении эффектов");
       }
     }
     
-    // Базовые эффекты от всех исследований применяются в BonusCalculationService
     return newState;
   }
 

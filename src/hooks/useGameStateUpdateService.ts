@@ -43,7 +43,7 @@ export const useGameStateUpdateService = () => {
       clearInterval(intervalIdRef.current);
     }
     
-    // Устанавливаем новый интервал для обновления ресурсов
+    // Устанавливаем новый интервал для обновления ресурсов - строго 1 раз в секунду
     intervalIdRef.current = window.setInterval(updateResources, updateInterval);
     
     // Выполняем начальное обновление
