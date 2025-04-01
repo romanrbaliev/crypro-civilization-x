@@ -1,81 +1,107 @@
 
-import { GameState } from '../types';
-import { checkUnlocks } from '../utils/resourceUtils';
+// Импорты оставляем без изменений
+import { GameState, ResourceAction } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { checkSpecialUnlocks } from '@/utils/unlockSystem';
 
-// Обработка инкремента ресурсов
-export const processIncrementResource = (
-  state: GameState,
-  payload: { resourceId: string; amount?: number }
-): GameState => {
-  const { resourceId, amount = 1 } = payload;
+// Функция для применения всех знаний и конвертации их в USDT
+export const applyAllKnowledge = (state: GameState, action: ResourceAction): GameState => {
+  console.log('applyAllKnowledge: Функция вызвана', action);
   
-  // Если ресурс не существует, возвращаем текущее состояние
-  if (!state.resources[resourceId]) {
+  // Получаем текущее значение знаний
+  const knowledgeValue = state.resources.knowledge?.value || 0;
+  
+  // ИСПРАВЛЕНО: Получаем ставку конвертации из payload или используем дефолтное значение
+  const conversionRate = action.payload?.conversionRate || 1;
+  console.log(`applyAllKnowledge: Ставка конвертации знаний: ${conversionRate}`);
+  
+  // Проверяем, достаточно ли знаний для конвертации (минимум 10)
+  if (knowledgeValue < 10) {
+    console.log('applyAllKnowledge: Недостаточно знаний для конвертации');
     return state;
   }
   
-  const currentValue = state.resources[resourceId].value;
-  const maxValue = state.resources[resourceId].max;
+  // Рассчитываем, сколько групп по 10 знаний можно конвертировать
+  const conversions = Math.floor(knowledgeValue / 10);
+  const knowledgeToConvert = conversions * 10;
+  const remainingKnowledge = knowledgeValue - knowledgeToConvert;
   
-  // Вычисляем новое значение, но не выше максимального
-  let newValue = currentValue + amount;
-  if (maxValue !== Infinity && newValue > maxValue) {
-    newValue = maxValue;
+  // ИСПРАВЛЕНО: Используем переданную ставку конвертации для расчета USDT
+  // Получаем 1*conversionRate USDT за каждые 10 знаний
+  const obtainedUsdt = conversions * conversionRate;
+  
+  console.log(`applyAllKnowledge: Конвертировано ${knowledgeToConvert} знаний (${conversions} групп) в ${obtainedUsdt} USDT`);
+  console.log(`applyAllKnowledge: Осталось ${remainingKnowledge} знаний`);
+  
+  // Создаем копию состояния для модификации
+  const newState = { ...state };
+  
+  // Обновляем значение знаний
+  if (newState.resources.knowledge) {
+    newState.resources.knowledge = {
+      ...newState.resources.knowledge,
+      value: remainingKnowledge
+    };
   }
   
-  // Не позволяем опуститься ниже нуля
-  if (newValue < 0) {
-    newValue = 0;
+  // Проверяем, существует ли уже ресурс USDT
+  if (newState.resources.usdt) {
+    // Обновляем значение USDT
+    newState.resources.usdt = {
+      ...newState.resources.usdt,
+      value: (newState.resources.usdt.value || 0) + obtainedUsdt,
+      unlocked: true
+    };
+  } else {
+    // Создаем ресурс USDT, если он не существует
+    newState.resources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, привязанный к доллару США',
+      type: 'currency',
+      icon: 'usdt',
+      value: obtainedUsdt,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true
+    };
+    
+    // Добавляем флаг разблокировки USDT
+    newState.unlocks = {
+      ...newState.unlocks,
+      usdt: true
+    };
+    
+    console.log('applyAllKnowledge: USDT разблокирован');
   }
   
-  // Выводим сообщение в консоль для отладки
-  console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue}`);
-  
-  // Отправляем событие для возможного отображения в интерфейсе
-  if (amount > 0) {
-    safeDispatchGameEvent(`Получено ${amount} ${state.resources[resourceId].name}`, "info");
-  } else if (amount < 0) {
-    safeDispatchGameEvent(`Потрачено ${Math.abs(amount)} ${state.resources[resourceId].name}`, "info");
-  }
-  
-  const newState = {
-    ...state,
-    resources: {
-      ...state.resources,
-      [resourceId]: {
-        ...state.resources[resourceId],
-        value: newValue
-      }
-    },
-    // Обновляем lastUpdate, чтобы не было двойного обновления
-    lastUpdate: Date.now()
-  };
-  
-  // Используем новую систему проверки специальных разблокировок
-  return checkSpecialUnlocks(newState);
-};
-
-// Обработка разблокировки ресурса
-export const processUnlockResource = (
-  state: GameState,
-  payload: { resourceId: string }
-): GameState => {
-  const { resourceId } = payload;
-  
-  if (!state.resources[resourceId]) {
-    return state;
-  }
-  
-  return {
-    ...state,
-    resources: {
-      ...state.resources,
-      [resourceId]: {
-        ...state.resources[resourceId],
-        unlocked: true
-      }
+  // Увеличиваем счетчик применений знаний
+  const currentApplyCount = typeof newState.counters.applyKnowledge === 'object'
+    ? (newState.counters.applyKnowledge?.value || 0)
+    : (newState.counters.applyKnowledge || 0);
+    
+  newState.counters = {
+    ...newState.counters,
+    applyKnowledge: {
+      value: currentApplyCount + 1,
+      updatedAt: Date.now()
     }
   };
+  
+  console.log(`applyAllKnowledge: Счетчик применений знаний увеличен до ${currentApplyCount + 1}`);
+  
+  // Проверяем разблокировку фазы 2 (после первого применения знаний)
+  if (currentApplyCount === 0) {
+    newState.unlocks = {
+      ...newState.unlocks,
+      phase2: true
+    };
+    
+    console.log('applyAllKnowledge: Фаза 2 разблокирована');
+    safeDispatchGameEvent("Фаза 2 разблокирована!", "success");
+  }
+  
+  // Возвращаем обновленное состояние
+  return newState;
 };

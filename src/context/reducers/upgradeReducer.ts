@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -97,7 +96,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       }
     };
     
-    // 3. Разблокируем криптокошелек
+    // 3. Разблокируем крип��окошелек
     if (newState.buildings.cryptoWallet) {
       newState.buildings.cryptoWallet = {
         ...newState.buildings.cryptoWallet,
@@ -140,8 +139,14 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       }
     };
     
-    // 2. Разблокируем майнер (проверяем оба возможных ID и принудительно разблокируем)
+    // 2. ИСПРАВЛЕНО: Более подробная диагностика при разблокировке майнера
     console.log("Принудительно разблокируем майнер после изучения 'Основы криптовалют'");
+    console.log("Текущее состояние майнера:", {
+      minerExists: !!newState.buildings.miner,
+      minerUnlocked: newState.buildings.miner?.unlocked,
+      autoMinerExists: !!newState.buildings.autoMiner,
+      autoMinerUnlocked: newState.buildings.autoMiner?.unlocked
+    });
     
     // Разблокируем майнер по первому ID (miner)
     if (newState.buildings.miner) {
@@ -150,12 +155,9 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         unlocked: true
       };
       
-      newState.unlocks = {
-        ...newState.unlocks,
-        miner: true
-      };
-      
       console.log("Майнер (ID: miner) принудительно разблокирован");
+    } else {
+      console.warn("ВНИМАНИЕ: Здание miner не найдено в state.buildings!");
     }
     
     // Разблокируем альтернативный майнер (autoMiner)
@@ -165,16 +167,20 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         unlocked: true
       };
       
-      newState.unlocks = {
-        ...newState.unlocks,
-        autoMiner: true
-      };
-      
       console.log("Автомайнер (ID: autoMiner) принудительно разблокирован");
     }
     
+    // ИСПРАВЛЕНО: Устанавливаем флаги разблокировки в общем объекте unlocks
+    newState.unlocks = {
+      ...newState.unlocks,
+      miner: true,
+      autoMiner: true
+    };
+    
     // Принудительно инициализируем ресурс Bitcoin если не существует
     if (!newState.resources.bitcoin) {
+      console.log("ВНИМАНИЕ: Ресурс Bitcoin не найден, создаем новый");
+      
       newState.resources.bitcoin = {
         id: 'bitcoin',
         name: 'Bitcoin',
@@ -189,11 +195,6 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         unlocked: true
       };
       
-      newState.unlocks = {
-        ...newState.unlocks,
-        bitcoin: true
-      };
-      
       console.log("Bitcoin инициализирован");
     } else {
       // Разблокируем существующий ресурс Bitcoin
@@ -202,13 +203,25 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         unlocked: true
       };
       
-      newState.unlocks = {
-        ...newState.unlocks,
-        bitcoin: true
-      };
-      
       console.log("Существующий Bitcoin разблокирован");
     }
+    
+    newState.unlocks = {
+      ...newState.unlocks,
+      bitcoin: true
+    };
+    
+    // ИСПРАВЛЕНО: Выводим информацию о состоянии после разблокировки
+    console.log("Состояние после обработки 'Основы криптовалют':", {
+      minerUnlocked: newState.buildings.miner?.unlocked,
+      autoMinerUnlocked: newState.buildings.autoMiner?.unlocked,
+      bitcoinUnlocked: newState.resources.bitcoin?.unlocked,
+      unlockFlags: {
+        miner: newState.unlocks.miner,
+        autoMiner: newState.unlocks.autoMiner,
+        bitcoin: newState.unlocks.bitcoin
+      }
+    });
     
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Основы криптовалют: +10% к эффективности применения знаний, разблокирован майнер", "info");

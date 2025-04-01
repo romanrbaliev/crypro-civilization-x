@@ -41,8 +41,13 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Проверка наличия автомайнера
   const hasAutoMiner = buildings.autoMiner && buildings.autoMiner.count > 0;
   
-  // Проверка наличия улучшений для эффективности применения знаний
-  const cryptoCurrencyBasicsPurchased = upgrades.cryptoCurrencyBasics && upgrades.cryptoCurrencyBasics.purchased;
+  // ИСПРАВЛЕНО: Более явная проверка наличия улучшения "Основы криптовалют"
+  // Проверяем все возможные ID для этого исследования
+  const cryptoCurrencyBasicsPurchased = 
+    (upgrades.cryptoCurrencyBasics && upgrades.cryptoCurrencyBasics.purchased) ||
+    (upgrades.cryptoBasics && upgrades.cryptoBasics.purchased);
+  
+  // ИСПРАВЛЕНО: Значение бонуса выделено отдельной переменной для удобства отладки
   const knowledgeEfficiencyBonus = cryptoCurrencyBasicsPurchased ? 0.1 : 0; // +10% если исследование куплено
   
   // Обработчик нажатия кнопки "Изучить крипту"
@@ -71,19 +76,26 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       knowledgeValue: resources.knowledge?.value,
       usdtValue: resources.usdt?.value,
       usdtUnlocked: resources.usdt?.unlocked,
-      applyKnowledgeCounter: state.counters.applyKnowledge
+      applyKnowledgeCounter: state.counters.applyKnowledge,
+      cryptoBasicsPurchased: cryptoCurrencyBasicsPurchased,
+      knowledgeEfficiencyBonus: knowledgeEfficiencyBonus
     });
     
-    // Вызываем действие для применения всех знаний
-    dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
-    
-    // Базовая награда за применение знаний
+    // ИСПРАВЛЕНО: Сначала вычисляем базовую ставку конвертации
+    // и явно передаём её в действие APPLY_ALL_KNOWLEDGE
     let usdtRate = 1;
     
     // Применяем бонус если есть исследование "Основы криптовалют"
     if (cryptoCurrencyBasicsPurchased) {
       usdtRate = 1 + knowledgeEfficiencyBonus; // 1.1 при наличии бонуса
+      console.log(`Применяем бонус к конвертации знаний: ${usdtRate.toFixed(2)}`);
     }
+    
+    // Вызываем действие для применения всех знаний с передачей ставки конвертации
+    dispatch({ 
+      type: "APPLY_ALL_KNOWLEDGE", 
+      payload: { conversionRate: usdtRate } 
+    });
     
     // Количество применённых знаний
     const knowledgeValue = resources.knowledge?.value || 0;
