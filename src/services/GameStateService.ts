@@ -213,7 +213,10 @@ export class GameStateService {
   private updateResourceProduction(state: GameState): GameState {
     try {
       // Обновляем все ресурсы на основе их производства
-      return this.resourceProductionService.calculateResourceProduction(state);
+      return {
+        ...state,
+        resources: this.resourceProductionService.calculateResourceProduction(state)
+      };
     } catch (error) {
       console.error("GameStateService: Ошибка при обновлении производства ресурсов", error);
       // В случае ошибки возвращаем исходное состояние
