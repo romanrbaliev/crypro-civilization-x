@@ -28,9 +28,6 @@ export const useGameStateUpdateService = () => {
     
     // Обновляем время последнего обновления
     lastUpdateRef.current = now;
-    
-    // Логирование для отладки
-    console.log(`useGameStateUpdateService: Обновление ресурсов, используем фиксированный интервал ${fixedDeltaTime}мс`);
   };
   
   // Эффект для настройки интервала обновления состояния
@@ -38,6 +35,7 @@ export const useGameStateUpdateService = () => {
     if (!state.gameStarted) return;
     
     // Всегда используем строго фиксированный интервал в 1000 мс
+    // Этот интервал задает частоту обновления ресурсов и соответствует отображаемому значению "/сек"
     const updateInterval = 1000;
     
     // Очищаем предыдущий интервал, если он был
@@ -52,7 +50,7 @@ export const useGameStateUpdateService = () => {
     updateResources();
     
     // Логирование для отладки
-    console.log(`useGameStateUpdateService: Интервал обновления установлен на ${updateInterval}мс`);
+    console.log(`useGameStateUpdateService: Интервал обновления установлен строго на ${updateInterval}мс для точного соответствия отображению`);
     
     return () => {
       if (intervalIdRef.current !== null) {

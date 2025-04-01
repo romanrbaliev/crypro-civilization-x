@@ -52,7 +52,7 @@ export const initialState: GameState = {
       },
       costMultiplier: 1.12, // k=1.12 согласно базе знаний
       production: {
-        knowledge: 1 // 1 знание/сек согласно базе знаний
+        knowledge: 1 // ИСПРАВЛЕНО: 1 знание/сек согласно базе знаний
       },
       count: 0,
       unlocked: false,

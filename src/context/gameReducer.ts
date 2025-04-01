@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -154,6 +155,26 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "PURCHASE_UPGRADE": {
       // Покупаем улучшение
       newState = processPurchaseUpgrade(state, action.payload);
+      
+      // Специальная обработка для "Основы блокчейна"
+      if (
+        action.payload.upgradeId === 'blockchainBasics' || 
+        action.payload.upgradeId === 'basicBlockchain' || 
+        action.payload.upgradeId === 'blockchain_basics'
+      ) {
+        console.log(`Применяем эффекты улучшения "Основы блокчейна":`);
+        console.log(`1. Увеличиваем максимум знаний на 50%`);
+        console.log(`2. Увеличиваем скорость производства знаний на 10%`);
+        
+        // Обновляем максимум знаний (увеличиваем на 50%)
+        if (newState.resources.knowledge) {
+          newState.resources.knowledge = {
+            ...newState.resources.knowledge,
+            max: newState.resources.knowledge.max * 1.5
+          };
+        }
+      }
+      
       // Обрабатываем изменения через сервис
       return gameStateService.processUpgradePurchase(newState, action.payload.upgradeId);
     }

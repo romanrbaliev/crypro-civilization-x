@@ -18,6 +18,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   }
   
   // Ограничиваем максимальное время обновления, чтобы избежать больших скачков
+  // Этот шаг важен для предотвращения огромных приростов при возвращении на страницу
   const cappedElapsedSeconds = Math.min(elapsedSeconds, 5);
   
   console.log(`Обновление ресурсов, прошло ${elapsedSeconds.toFixed(2)} сек., используем ${cappedElapsedSeconds.toFixed(2)} сек.`);
@@ -185,9 +186,9 @@ const updateResourceValues = (
     // Рассчитываем производство за прошедшее время
     const deltaProduction = productionPerSecond * elapsedSeconds;
     
-    // Логируем изменение значения (только для отладки)
-    if (resourceId === 'knowledge' && deltaProduction !== 0) {
-      console.log(`Знания: ${resource.value.toFixed(2)} + ${deltaProduction.toFixed(2)} = ${(resource.value + deltaProduction).toFixed(2)}, perSecond: ${productionPerSecond.toFixed(3)}`);
+    // Логируем изменение значения
+    if (deltaProduction !== 0) {
+      console.log(`${resource.name}: ${resource.value.toFixed(2)} + ${deltaProduction.toFixed(2)} = ${(resource.value + deltaProduction).toFixed(2)}, perSecond: ${productionPerSecond.toFixed(3)}`);
     }
     
     // Рассчитываем новое значение на основе производства за секунду

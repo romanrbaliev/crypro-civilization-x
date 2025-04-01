@@ -70,9 +70,10 @@ export class ResourceProductionService {
           case 'practice': {
             // Практика производит знания
             if (resources.knowledge) {
-              // ИСПРАВЛЕНО: Практика дает строго 0.21 знания в секунду за каждый уровень
+              // ИСПРАВЛЕНО: Практика дает строго 1 знание в секунду за каждый уровень
+              // согласно таблице разблокировки контента
               const practiceCount = building.count;
-              const knowledgePerPractice = 0.21;
+              const knowledgePerPractice = 1; // Исправлено с 0.21 на 1
               const totalKnowledgeFromPractice = practiceCount * knowledgePerPractice;
               
               // Добавляем производство к базовому
