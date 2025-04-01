@@ -254,9 +254,16 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
     } else {
       // Если параметры майнинга не были инициализированы
+      // Создаем объект с полным набором необходимых полей
       newState.miningParams = {
         miningEfficiency: 1.15,
-        energyEfficiency: 0
+        energyEfficiency: 0,
+        networkDifficulty: 1,
+        exchangeRate: 20000,
+        exchangeCommission: 0.01,
+        volatility: 0.05,
+        exchangePeriod: 3600,
+        baseConsumption: 1
       };
     }
     
@@ -284,9 +291,16 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
     } else {
       // Если параметры майнинга не были инициализированы
+      // Создаем объект с полным набором необходимых полей
       newState.miningParams = {
         miningEfficiency: 1.25,
-        energyEfficiency: 0
+        energyEfficiency: 0,
+        networkDifficulty: 1,
+        exchangeRate: 20000,
+        exchangeCommission: 0.01,
+        volatility: 0.05,
+        exchangePeriod: 3600,
+        baseConsumption: 1
       };
     }
     
@@ -314,9 +328,16 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
     } else {
       // Если параметры майнинга не были инициализированы
+      // Создаем объект с полным набором необходимых полей
       newState.miningParams = {
         miningEfficiency: 1,
-        energyEfficiency: 0.1
+        energyEfficiency: 0.1,
+        networkDifficulty: 1,
+        exchangeRate: 20000,
+        exchangeCommission: 0.01,
+        volatility: 0.05,
+        exchangePeriod: 3600,
+        baseConsumption: 1
       };
     }
     
