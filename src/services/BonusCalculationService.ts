@@ -87,15 +87,19 @@ export class BonusCalculationService {
         }
       }
       
-      // Проверяем "Основы криптовалют" для эффективности применения знаний
-      if (resourceId === 'knowledge' && resourceId === 'knowledgeEfficiency') {
-        const cryptoCurrencyBasics = state.upgrades.cryptoCurrencyBasics || state.upgrades.cryptoBasics;
-        
-        if (cryptoCurrencyBasics && cryptoCurrencyBasics.purchased) {
-          const knowledgeEffBoost = cryptoCurrencyBasics.effects?.knowledgeEfficiencyBoost || 0.1; // 10% бонус к эффективности знаний
-          multiplier += knowledgeEffBoost;
-          console.log(`BonusCalculation: Основы криптовалют добавляет +${knowledgeEffBoost * 100}% к эффективности применения знаний`);
-        }
+      // Исправление: проверяем "Основы криптовалют" для эффективности применения знаний
+      // Заменяем некорректное условие на правильное
+      if (resourceId === 'knowledge' && state.upgrades.cryptoCurrencyBasics?.purchased && state.upgrades.cryptoCurrencyBasics?.effects?.knowledgeEfficiencyBoost) {
+        const knowledgeEffBoost = state.upgrades.cryptoCurrencyBasics.effects.knowledgeEfficiencyBoost || 0.1; // 10% бонус к эффективности знаний
+        // Этот бонус на самом деле не влияет на производство знаний, а только на их эффективность при обмене
+        console.log(`BonusCalculation: Основы криптовалют дают +${knowledgeEffBoost * 100}% к эффективности применения знаний`);
+      }
+      
+      // Альтернативное имя улучшения
+      if (resourceId === 'knowledge' && state.upgrades.cryptoBasics?.purchased && state.upgrades.cryptoBasics?.effects?.knowledgeEfficiencyBoost) {
+        const knowledgeEffBoost = state.upgrades.cryptoBasics.effects.knowledgeEfficiencyBoost || 0.1;
+        // Этот бонус на самом деле не влияет на производство знаний
+        console.log(`BonusCalculation: Основы криптовалют дают +${knowledgeEffBoost * 100}% к эффективности применения знаний`);
       }
       
       // Проверяем наличие бонусов от специализаций
