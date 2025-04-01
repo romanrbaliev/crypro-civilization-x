@@ -2,7 +2,6 @@
 import { useContext, useEffect } from 'react';
 import { GameContext } from '../GameContext';
 import { ReferralHelper } from '../types';
-import { useFrequentUpdate } from '@/hooks/useFrequentUpdate';
 import useVisibilityOptimizer from '@/hooks/useVisibilityOptimizer';
 
 export const useGame = () => {
@@ -15,19 +14,6 @@ export const useGame = () => {
 
   // Применяем оптимизатор видимости
   const isPageVisible = useVisibilityOptimizer();
-
-  // Используем хук частого обновления для основного ресурса, 
-  // передавая контекст напрямую вместо получения его заново
-  const { setActive, isActive } = useFrequentUpdate({ 
-    state: context.state, 
-    dispatch: context.dispatch,
-    resourceId: 'knowledge'
-  });
-  
-  // Активируем/деактивируем частые обновления в зависимости от видимости страницы
-  useEffect(() => {
-    setActive(isPageVisible);
-  }, [isPageVisible, setActive]);
   
   // Добавим удобную функцию для принудительного обновления состояния игры
   const forceUpdate = () => {
@@ -48,6 +34,6 @@ export const useGame = () => {
     forceUpdate,
     updateHelpers,
     isPageVisible,
-    resourceUpdateActive: isActive
+    resourceUpdateActive: false // Всегда возвращаем false, так как useFrequentUpdate больше не используется
   };
 };
