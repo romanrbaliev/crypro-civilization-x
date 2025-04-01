@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { updateResourceMaxValues } from '@/context/utils/resourceUtils';
 
@@ -14,7 +13,7 @@ export class ResourceCalculationService {
     console.log('ResourceCalculationService: Пересчет всех ресурсов');
     
     try {
-      // Создаем копию состояния
+      // Создаем копию состояния для изменения
       let newState = { ...state };
       
       // 1. Рассчитываем максимальные значения для ресурсов
@@ -384,4 +383,3 @@ export class ResourceCalculationService {
     );
   }
 }
-

@@ -1,64 +1,36 @@
-
 import { GameState, ResourceAction } from '../types';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 /**
  * Обрабатывает действие применения всех знаний
  */
-export const applyAllKnowledge = (state: GameState, action: any): GameState => {
+export const applyAllKnowledge = (state: GameState, action: ResourceAction): GameState => {
   // Получаем текущее количество знаний
-  const currentKnowledge = state.resources.knowledge?.value || 0;
+  const knowledgeValue = state.resources.knowledge?.value || 0;
   
-  // Если знаний недостаточно, ничего не делаем
-  if (currentKnowledge < 10) {
+  // Если нет знаний, ничего не делаем
+  if (knowledgeValue <= 0) {
+    safeDispatchGameEvent('Нет знаний для применения', "warning");
     return state;
   }
   
-  // Определяем, сколько знаний можно конвертировать
-  // (округляем вниз до ближайшего кратного 10)
-  const knowledgeToConvert = Math.floor(currentKnowledge / 10) * 10;
+  // Создаем копию состояния
+  let newState = { ...state };
   
-  // Определяем базовое количество USDT, которое получим
-  const baseUsdtAmount = knowledgeToConvert / 10;
+  // Рассчитываем, сколько USDT можно получить за знания
+  const knowledgeToUsdtRate = 10; // 10 знаний = 1 USDT
+  const appliedKnowledge = Math.floor(knowledgeValue / knowledgeToUsdtRate) * knowledgeToUsdtRate;
+  const usdtGain = appliedKnowledge / knowledgeToUsdtRate;
   
-  // Проверяем наличие бонусов эффективности
-  const efficiencyBonus = 
-    state.upgrades.cryptoCurrencyBasics?.purchased ? 0.1 : 0 +
-    (state.upgrades.cryptoBasics?.purchased ? 0.1 : 0);
+  // Проверяем, есть ли что применять
+  if (appliedKnowledge <= 0) {
+    safeDispatchGameEvent('Недостаточно знаний для применения', "warning");
+    return state;
+  }
   
-  // Рассчитываем финальное количество USDT с учетом бонуса
-  const finalUsdtAmount = baseUsdtAmount * (1 + efficiencyBonus);
-  
-  // Обновляем состояние ресурсов
-  const newState = {
-    ...state,
-    resources: {
-      ...state.resources,
-      knowledge: {
-        ...state.resources.knowledge,
-        value: currentKnowledge - knowledgeToConvert
-      }
-    },
-    counters: {
-      ...state.counters,
-      applyKnowledge: {
-        value: typeof state.counters.applyKnowledge === 'object' 
-          ? (state.counters.applyKnowledge.value || 0) + 1 
-          : (state.counters.applyKnowledge || 0) + 1,
-        updatedAt: Date.now()
-      }
-    }
-  };
-  
-  // Проверяем наличие ресурса USDT
-  if (newState.resources.usdt) {
-    // Если ресурс USDT существует, обновляем его значение
-    newState.resources.usdt = {
-      ...newState.resources.usdt,
-      value: (newState.resources.usdt.value || 0) + finalUsdtAmount,
-      unlocked: true
-    };
-  } else {
-    // Если ресурса USDT еще нет, создаем его
+  // Проверяем, разблокирован ли USDT
+  if (!state.resources.usdt) {
+    // Создаем ресурс USDT, если его нет
     newState.resources = {
       ...newState.resources,
       usdt: {
@@ -67,7 +39,7 @@ export const applyAllKnowledge = (state: GameState, action: any): GameState => {
         description: 'Стабильная криптовалюта, привязанная к доллару США',
         type: 'currency',
         icon: 'dollar-sign',
-        value: finalUsdtAmount,
+        value: usdtGain,
         baseProduction: 0,
         production: 0,
         perSecond: 0,
@@ -75,13 +47,50 @@ export const applyAllKnowledge = (state: GameState, action: any): GameState => {
         unlocked: true
       }
     };
+    
+    // Устанавливаем флаг разблокировки
+    newState.unlocks = {
+      ...newState.unlocks,
+      usdt: true
+    };
+    
+    safeDispatchGameEvent('Разблокирован ресурс: USDT', 'success');
+  } else {
+    // Если USDT уже существует, просто увеличиваем его значение
+    const currentUsdtValue = newState.resources.usdt.value || 0;
+    newState.resources = {
+      ...newState.resources,
+      usdt: {
+        ...newState.resources.usdt,
+        value: currentUsdtValue + usdtGain
+      }
+    };
   }
   
-  // Обновляем флаг разблокировки USDT
-  newState.unlocks = {
-    ...newState.unlocks,
-    usdt: true
+  // Обновляем значение знаний
+  newState.resources = {
+    ...newState.resources,
+    knowledge: {
+      ...newState.resources.knowledge,
+      value: knowledgeValue - appliedKnowledge
+    }
   };
+  
+  // Увеличиваем счетчик применения знаний
+  const applyKnowledgeCount = typeof newState.counters.applyKnowledge === 'object' 
+    ? (newState.counters.applyKnowledge.value || 0) 
+    : (newState.counters.applyKnowledge || 0);
+  
+  newState.counters = {
+    ...newState.counters,
+    applyKnowledge: {
+      value: applyKnowledgeCount + 1,
+      updatedAt: Date.now()
+    }
+  };
+  
+  // Отправляем уведомление
+  safeDispatchGameEvent(`Применено ${appliedKnowledge} знаний, получено ${usdtGain} USDT`, 'success');
   
   return newState;
 };

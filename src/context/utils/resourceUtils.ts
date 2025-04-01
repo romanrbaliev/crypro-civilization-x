@@ -1,4 +1,5 @@
 import { GameState, Resource, Building } from '../types';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Вспомогательная функция для безопасного получения значения счетчика
 function getCounterValue(state: GameState, counterId: string): number {
@@ -249,4 +250,90 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
 
 export const checkActionUnlocks = (state: GameState): GameState => {
   return state;
+};
+
+// Добавим функцию для проверки наличия достаточных ресурсов
+export const hasEnoughResources = (resources: any, costs: any): boolean => {
+  if (!costs) return true;
+  
+  for (const resourceId in costs) {
+    const resource = resources[resourceId];
+    const cost = costs[resourceId];
+    if (!resource || resource.value < cost) {
+      return false;
+    }
+  }
+  
+  return true;
+};
+
+// Добавим функцию для обновления макс. значений ресурсов
+export const updateResourceMaxValues = (state: GameState): GameState => {
+  // Для примера реализации - обновление максимумов для основных ресурсов
+  let updatedState = { ...state };
+  
+  // Проверка наличия ресурсов
+  if (updatedState.resources.knowledge) {
+    // Базовый максимум для знаний
+    let knowledgeMax = 100;
+    
+    // Бонусы от исследований
+    for (const upgradeId in updatedState.upgrades) {
+      const upgrade = updatedState.upgrades[upgradeId];
+      if (upgrade.purchased && upgrade.effects && upgrade.effects.knowledgeMaxBoost) {
+        knowledgeMax *= (1 + upgrade.effects.knowledgeMaxBoost);
+      }
+    }
+    
+    // Бонусы от зданий
+    for (const buildingId in updatedState.buildings) {
+      const building = updatedState.buildings[buildingId];
+      if (building.count > 0) {
+        if (buildingId === 'cryptoLibrary') {
+          knowledgeMax += 100 * building.count;
+        } else if (buildingId === 'cryptoWallet') {
+          knowledgeMax *= (1 + 0.25 * building.count);
+        }
+      }
+    }
+    
+    // Обновление макс. знаний
+    updatedState.resources.knowledge = {
+      ...updatedState.resources.knowledge,
+      max: knowledgeMax
+    };
+  }
+  
+  // Обновление макс. USDT
+  if (updatedState.resources.usdt) {
+    let usdtMax = 50; // Базовый максимум
+    
+    // Бонусы от зданий
+    for (const buildingId in updatedState.buildings) {
+      const building = updatedState.buildings[buildingId];
+      if (building.count > 0) {
+        if (buildingId === 'cryptoWallet') {
+          usdtMax += 50 * building.count;
+        } else if (buildingId === 'enhancedWallet') {
+          usdtMax += 150 * building.count;
+        }
+      }
+    }
+    
+    // Бонусы от исследований
+    for (const upgradeId in updatedState.upgrades) {
+      const upgrade = updatedState.upgrades[upgradeId];
+      if (upgrade.purchased && upgrade.effects && upgrade.effects.usdtMaxBoost) {
+        usdtMax *= (1 + upgrade.effects.usdtMaxBoost);
+      }
+    }
+    
+    // Обновление макс. USDT
+    updatedState.resources.usdt = {
+      ...updatedState.resources.usdt,
+      max: usdtMax
+    };
+  }
+  
+  return updatedState;
 };
