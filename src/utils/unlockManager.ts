@@ -1,3 +1,4 @@
+
 // Импортируем необходимые функции и типы
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -5,6 +6,8 @@ import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 // Функция для отладки статуса разблокировок
 export function debugUnlockStatus(state: GameState) {
   let log: string[] = [];
+  let unlocked: string[] = [];
+  let locked: string[] = [];
   
   // Общая информация
   log.push(`Текущая фаза: ${state.phase}`);
@@ -24,6 +27,12 @@ export function debugUnlockStatus(state: GameState) {
   for (const buildingId in state.buildings) {
     const building = state.buildings[buildingId];
     log.push(`${building.name} (${buildingId}): разблокирован=${building.unlocked ? '✅' : '❌'}, количество=${building.count}`);
+    
+    if (building.unlocked) {
+      unlocked.push(`Здание: ${building.name}`);
+    } else {
+      locked.push(`Здание: ${building.name}`);
+    }
   }
   
   // Исследования
@@ -31,6 +40,12 @@ export function debugUnlockStatus(state: GameState) {
   for (const upgradeId in state.upgrades) {
     const upgrade = state.upgrades[upgradeId];
     log.push(`${upgrade.name} (${upgradeId}): разблокирован=${upgrade.unlocked ? '✅' : '❌'}, куплен=${upgrade.purchased ? '✅' : '❌'}`);
+    
+    if (upgrade.unlocked) {
+      unlocked.push(`Исследование: ${upgrade.name}`);
+    } else {
+      locked.push(`Исследование: ${upgrade.name}`);
+    }
   }
   
   // Ресурсы
@@ -38,11 +53,24 @@ export function debugUnlockStatus(state: GameState) {
   for (const resourceId in state.resources) {
     const resource = state.resources[resourceId];
     log.push(`${resource.name} (${resourceId}): разблокирован=${resource.unlocked ? '✅' : '❌'}, значение=${resource.value.toFixed(2)}`);
+    
+    if (resource.unlocked) {
+      unlocked.push(`Ресурс: ${resource.name}`);
+    } else {
+      locked.push(`Ресурс: ${resource.name}`);
+    }
   }
   
   // Вывод в консоль
   console.log('--- Отладка разблокировок ---');
   log.forEach(line => console.log(line));
+  
+  // Возвращаем структурированные данные
+  return {
+    unlocked,
+    locked,
+    steps: log
+  };
 }
 
 // Проверяет все возможные разблокировки
@@ -54,6 +82,27 @@ export const checkAllUnlocks = (state: GameState): GameState => {
   newState = checkUpgradeUnlocks(newState);
   newState = checkActionUnlocks(newState);
   newState = checkSpecialUnlocks(newState);
+  
+  return newState;
+};
+
+// Добавляем функцию rebuildAllUnlocks
+export const rebuildAllUnlocks = (state: GameState): GameState => {
+  console.log('Полная перепроверка всех разблокировок');
+  // Сброс всех флагов unlocks
+  let newState = { ...state };
+  
+  // Базовая инициализация (знания всегда разблокированы)
+  newState.unlocks = {
+    knowledge: true
+  };
+  
+  // Проверяем разблокировки шаг за шагом
+  newState = checkSpecialUnlocks(newState);
+  newState = checkResourceUnlocks(newState);
+  newState = checkBuildingUnlocks(newState);
+  newState = checkUpgradeUnlocks(newState);
+  newState = checkActionUnlocks(newState);
   
   return newState;
 };

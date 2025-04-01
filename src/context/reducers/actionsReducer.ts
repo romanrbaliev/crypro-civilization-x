@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { processIncrementResource } from './resourceReducer';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';

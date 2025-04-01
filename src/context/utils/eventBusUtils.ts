@@ -2,13 +2,10 @@
 // Вспомогательная функция для безопасного доступа к шине событий
 export function safeDispatchGameEvent(
   message: string,
-  type: "info" | "error" | "success" | "warning" | "milestone" = "info"
+  type: "info" | "error" | "success" | "warning" = "info"
 ): void {
   if (typeof window !== 'undefined') {
     try {
-      // Преобразуем тип "milestone" в "info" для совместимости
-      const eventType = type === "milestone" ? "info" : type;
-      
       // Проверка и создание шины событий, если не существует
       if (!window.gameEventBus) {
         console.log('🔄 Создаем глобальную шину событий gameEventBus');
@@ -17,7 +14,7 @@ export function safeDispatchGameEvent(
       
       // Создание и отправка события
       const customEvent = new CustomEvent('game-event', { 
-        detail: { message, type: eventType } 
+        detail: { message, type } 
       });
       window.gameEventBus.dispatchEvent(customEvent);
       console.log(`📢 Событие: ${type} - ${message}`);
