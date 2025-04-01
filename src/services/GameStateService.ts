@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -136,7 +135,7 @@ export class GameStateService {
       if (!newState.buildings.miner && !newState.buildings.autoMiner) {
         console.log("GameStateService: Майнер отсутствует в списке зданий, создаем его");
         
-        // Создаем майнер с базовыми параметрами - без свойства category, которого нет в интерфейсе Building
+        // Создаем майнер с базовыми параметрами - без свойств, которых нет в интерфейсе Building
         newState.buildings.miner = {
           id: 'miner',
           name: 'Майнер',
@@ -146,7 +145,6 @@ export class GameStateService {
           count: 0,
           unlocked: true,
           type: 'production',
-          icon: 'cpu',
           production: {
             bitcoin: 0.00005
           },
