@@ -82,8 +82,8 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   const currentApplyCounter = state.counters.applyKnowledge || { id: 'applyKnowledge', name: 'Применения знаний', value: 0 };
   const applyCount = typeof currentApplyCounter === 'object' ? currentApplyCounter.value : currentApplyCounter;
   
-  // Создаем новое состояние с обновленным счетчиком
-  let updatedState = {
+  // Создаем копию состояния, которую будем модифицировать
+  let updatedState: GameState = {
     ...state,
     counters: {
       ...state.counters,
@@ -104,7 +104,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
         ...updatedState.unlocks,
         usdt: true
       }
-    };
+    } as GameState;
     
     // Разблокируем ресурс USDT
     if (updatedState.resources.usdt) {
@@ -117,7 +117,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
             unlocked: true
           }
         }
-      };
+      } as GameState;
     } else {
       // Создаем ресурс USDT, если его нет
       updatedState = {
@@ -138,7 +138,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
             unlocked: true
           }
         }
-      };
+      } as GameState;
     }
     
     // Отправляем событие о разблокировке USDT
@@ -155,7 +155,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
         ...updatedState.unlocks,
         practice: true
       }
-    };
+    } as GameState;
     
     // Разблокируем здание практики
     if (updatedState.buildings.practice) {
@@ -168,7 +168,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
             unlocked: true
           }
         }
-      };
+      } as GameState;
     }
     
     // Отправляем событие о разблокировке практики
@@ -196,8 +196,8 @@ export const processLearnKnowledgeAction = (state: GameState): GameState => {
   const currentClicksCounter = state.counters.knowledgeClicks || { id: 'knowledgeClicks', name: 'Клики знаний', value: 0 };
   const clicksCount = typeof currentClicksCounter === 'object' ? currentClicksCounter.value : currentClicksCounter;
   
-  // Создаем новое состояние с обновленным счетчиком
-  let updatedState = {
+  // Создаем копию состояния, которую будем модифицировать
+  let updatedState: GameState = {
     ...state,
     counters: {
       ...state.counters,
@@ -219,7 +219,7 @@ export const processLearnKnowledgeAction = (state: GameState): GameState => {
         ...updatedState.unlocks,
         applyKnowledge: true
       }
-    };
+    } as GameState;
     
     // Отправляем событие о разблокировке кнопки "Применить знания"
     safeDispatchGameEvent('Разблокировано: Применить знания', 'success');
@@ -250,8 +250,8 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   const currentApplyCounter = state.counters.applyKnowledge || { id: 'applyKnowledge', name: 'Применения знаний', value: 0 };
   const applyCount = typeof currentApplyCounter === 'object' ? currentApplyCounter.value : currentApplyCounter;
   
-  // Создаем новое состояние с обновленным счетчиком
-  let updatedState = {
+  // Создаем копию состояния, которую будем модифицировать
+  let updatedState: GameState = {
     ...state,
     counters: {
       ...state.counters,
@@ -273,7 +273,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
         ...updatedState.unlocks,
         usdt: true
       }
-    };
+    } as GameState;
     
     // Разблокируем ресурс USDT
     if (updatedState.resources.usdt) {
@@ -286,7 +286,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
             unlocked: true
           }
         }
-      };
+      } as GameState;
     } else {
       // Создаем ресурс USDT, если его нет
       updatedState = {
@@ -307,7 +307,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
             unlocked: true
           }
         }
-      };
+      } as GameState;
     }
     
     // Отправляем событие о разблокировке USDT
@@ -324,7 +324,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
         ...updatedState.unlocks,
         practice: true
       }
-    };
+    } as GameState;
     
     // Разблокируем здание практики
     if (updatedState.buildings.practice) {
@@ -337,7 +337,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
             unlocked: true
           }
         }
-      };
+      } as GameState;
     }
     
     // Отправляем событие о разблокировке практики
@@ -358,3 +358,4 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   return updatedState;
 };
+
