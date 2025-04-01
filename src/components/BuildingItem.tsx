@@ -82,7 +82,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const renderProduction = () => {
-    // Всегда показываем эффекты здания независимо от того, куплено оно или нет
+    // Исправлено: Всегда показываем эффекты здания
     if (!building.production) {
       return null;
     }

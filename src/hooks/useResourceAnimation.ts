@@ -16,7 +16,7 @@ export function useResourceAnimation(value: number, resourceId: string): number 
   const lastValueRef = useRef<number>(value);
   
   // Константа для определения скорости анимации
-  const animationDuration = 300; // мс, для плавного накопления
+  const animationDuration = 300; // мс, более быстрая анимация для ощущения мгновенной реакции
   
   useEffect(() => {
     // Проверяем, действительно ли изменилось значение
@@ -24,18 +24,9 @@ export function useResourceAnimation(value: number, resourceId: string): number 
       return; // Пропускаем очень маленькие изменения
     }
     
-    // Если значение уменьшилось, применяем его сразу без анимации
-    if (value < lastValueRef.current) {
-      setAnimatedValue(value);
-      lastValueRef.current = value;
-      targetValueRef.current = value;
-      startValueRef.current = value;
-      return;
-    }
-    
     lastValueRef.current = value;
     
-    // Если значение увеличилось, запускаем анимацию
+    // Если значение изменилось, запускаем анимацию
     if (value !== targetValueRef.current) {
       // Останавливаем предыдущую анимацию, если она была
       if (frameRef.current) {
