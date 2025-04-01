@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -87,8 +86,10 @@ export class BonusCalculationService {
           updatedState.resources.knowledge = {
             ...updatedState.resources.knowledge,
             max: updatedState.resources.knowledge.max * 1.5,
+            baseProduction: (updatedState.resources.knowledge.baseProduction || 0) + 0.1
           };
           console.log(`BonusCalculationService: Применен бонус "Основы блокчейна": максимум знаний увеличен до ${updatedState.resources.knowledge.max}`);
+          console.log(`BonusCalculationService: Применен бонус "Основы блокчейна": базовое производство знаний увеличено до ${updatedState.resources.knowledge.baseProduction}`);
         }
         break;
         

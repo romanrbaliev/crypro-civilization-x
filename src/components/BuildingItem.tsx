@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -99,8 +98,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         );
       }
       
-      const resource = state.resources[resourceId];
-      if (!resource) return null;
+      const resource = state.resources[resourceId] || { name: resourceId };
       
       return (
         <div key={resourceId} className="text-green-600 text-[11px]">
@@ -116,8 +114,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
     
     return Object.entries(building.consumption).map(([resourceId, amount]) => {
-      const resource = state.resources[resourceId];
-      if (!resource) return null;
+      const resource = state.resources[resourceId] || { name: resourceId };
       
       return (
         <div key={resourceId} className="text-red-500 text-[11px]">

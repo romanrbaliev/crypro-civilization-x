@@ -22,7 +22,8 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   const isNegativeRate = perSecond < 0;
   
   // Расчет процента заполнения (плавно обновляется)
-  const fillPercentage = max === Infinity ? 0 : Math.min(100, Math.max(0, (animatedValue / max) * 100));
+  // Проверяем, что max определен и не равен Infinity
+  const fillPercentage = max === Infinity || max === 0 ? 0 : Math.min(100, Math.max(0, (animatedValue / max) * 100));
   
   // Определяем классы для отображения прогресса
   const progressColorClass = fillPercentage > 90 

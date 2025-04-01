@@ -64,16 +64,17 @@ export const processPurchaseUpgrade = (
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применяем эффекты Основ блокчейна немедленно");
     
-    // Обновляем максимум знанй
+    // Обновляем максимум знаний
     if (newState.resources.knowledge) {
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
-        max: newState.resources.knowledge.max * 1.5 // +50% к максимуму
+        max: newState.resources.knowledge.max * 1.5, // +50% к максимуму
+        baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1 // +10% к производству знаний
       };
+      
+      console.log(`Обновлен максимум знаний: ${newState.resources.knowledge.max}`);
+      console.log(`Обновлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
     }
-    
-    // Принудительно запускаем пересчет ресурсов через GameStateService
-    // Эта логика будет применена в gameReducer через GameStateService
   }
   
   return newState;
@@ -112,10 +113,10 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
         // Добавляем или увеличиваем базовое производство на 10%
         baseProduction: ((newState.resources.knowledge.baseProduction || 0) + 0.1)
       };
+      
+      console.log(`Новый максимум знаний: ${newState.resources.knowledge?.max}`);
+      console.log(`Новое базовое производство знаний: ${newState.resources.knowledge?.baseProduction}`);
     }
-    
-    console.log(`Новый максимум знаний: ${newState.resources.knowledge?.max}`);
-    console.log(`Новое базовое производство знаний: ${newState.resources.knowledge?.baseProduction}`);
   }
   
   // Применяем общие эффекты улучшения
@@ -174,7 +175,7 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
           }
         };
         
-        console.log(`Применен эффект miningEfficiencyBoost: увеличение с ${currentEfficiency} до ${newEfficiency}`);
+        console.log(`Применен эффект miningEfficiencyBoost: ��величение с ${currentEfficiency} до ${newEfficiency}`);
       }
       
       if (effectId === 'electricityEfficiencyBoost') {

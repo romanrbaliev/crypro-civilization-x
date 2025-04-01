@@ -108,6 +108,10 @@ export class EffectService {
         // Добавляем +10% к базовому производству
         newState.resources.knowledge.baseProduction += 0.1;
         console.log(`EffectService: Установлено базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
+        
+        // Также увеличиваем максимум знаний на 50%
+        newState.resources.knowledge.max = newState.resources.knowledge.max * 1.5;
+        console.log(`EffectService: Увеличен максимум знаний на 50%: ${newState.resources.knowledge.max}`);
       }
     }
     
