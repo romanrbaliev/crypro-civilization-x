@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 
 /**
@@ -55,6 +56,11 @@ export class BonusCalculationService {
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству знаний`);
               }
+              if (resourceId === 'computingPower' && building.effects?.computingPowerBoost) {
+                const boost = building.effects.computingPowerBoost * building.count; // 5% за каждое интернет-соединение
+                multiplier += boost;
+                console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству выч. мощности`);
+              }
               break;
             case 'cryptoLibrary':
               if (resourceId === 'knowledge' && building.effects?.knowledgeBoost) {
@@ -78,6 +84,41 @@ export class BonusCalculationService {
           const knowledgeBoost = blockchainBasics.effects?.knowledgeBoost || 0.1; // 10% бонус к производству знаний
           multiplier += knowledgeBoost;
           console.log(`BonusCalculation: Основы блокчейна добавляет +${knowledgeBoost * 100}% к производству знаний`);
+        }
+      }
+      
+      // Проверяем "Основы криптовалют" для эффективности применения знаний
+      if (resourceId === 'knowledge' && resourceId === 'knowledgeEfficiency') {
+        const cryptoCurrencyBasics = state.upgrades.cryptoCurrencyBasics || state.upgrades.cryptoBasics;
+        
+        if (cryptoCurrencyBasics && cryptoCurrencyBasics.purchased) {
+          const knowledgeEffBoost = cryptoCurrencyBasics.effects?.knowledgeEfficiencyBoost || 0.1; // 10% бонус к эффективности знаний
+          multiplier += knowledgeEffBoost;
+          console.log(`BonusCalculation: Основы криптовалют добавляет +${knowledgeEffBoost * 100}% к эффективности применения знаний`);
+        }
+      }
+      
+      // Проверяем наличие бонусов от специализаций
+      if (state.specialization) {
+        switch (state.specialization) {
+          case 'analyst':
+            if (resourceId === 'knowledge') {
+              multiplier += 0.25; // +25% к производству знаний
+              console.log(`BonusCalculation: Специализация Аналитик даёт +25% к производству знаний`);
+            }
+            break;
+          case 'miner':
+            if (resourceId === 'bitcoin') {
+              multiplier += 0.25; // +25% к эффективности майнинга
+              console.log(`BonusCalculation: Специализация Майнер даёт +25% к эффективности майнинга`);
+            }
+            break;
+          case 'influencer':
+            if (resourceId === 'knowledge') {
+              multiplier += 0.1; // +10% к производству знаний
+              console.log(`BonusCalculation: Специализация Инфлюенсер даёт +10% к производству знаний`);
+            }
+            break;
         }
       }
       
@@ -145,27 +186,38 @@ export class BonusCalculationService {
         }
       }
       
+      // Особые случаи для USDT - улучшение "Безопасность криптокошельков"
+      if (resourceId === 'usdt') {
+        const walletSecurity = state.upgrades.walletSecurity || state.upgrades.cryptoWalletSecurity;
+                                
+        if (walletSecurity && walletSecurity.purchased) {
+          const usdtMaxBoost = walletSecurity.effects?.usdtMaxBoost || 0.25; // 25% бонус к макс. USDT
+          multiplier += usdtMaxBoost;
+          console.log(`BonusCalculation: Безопасность криптокошельков добавляет +${usdtMaxBoost * 100}% к максимуму USDT`);
+        }
+      }
+      
       // Проверяем наличие бонусов от зданий
       for (const buildingId in state.buildings) {
         const building = state.buildings[buildingId];
         
-        // Применяем бонусы только от построенных зданий
-        if (building && building.count > 0 && building.effects) {
-          // Проверяем наличие бонуса максимума для указанного ресурса
-          const maxBoostKey = `${resourceId}MaxBoost`;
-          if (building.effects[maxBoostKey]) {
-            const boost = building.effects[maxBoostKey] * building.count;
-            multiplier += boost;
-            console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к максимуму ${resourceId}`);
-          }
-          
-          // Особые случаи для отдельных зданий
+        if (building && building.count > 0) {
+          // Специальные случаи для зданий
           switch (buildingId) {
             case 'cryptoWallet':
-              if (resourceId === 'knowledge' && building.effects?.knowledgeMaxBoost) {
-                const boost = building.effects.knowledgeMaxBoost * building.count; // 25% за каждый кошелек
+              if (resourceId === 'knowledge') {
+                // +25% к максимуму знаний за каждый кошелек
+                const boost = 0.25 * building.count;
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к максимуму знаний`);
+              }
+              break;
+              
+            case 'cryptoLibrary':
+              if (resourceId === 'knowledge') {
+                // +100 фиксированная величина к максимуму знаний за каждую библиотеку
+                // Этот эффект учитывается отдельно при покупке здания
+                console.log(`BonusCalculation: ${building.name} (x${building.count}) учитываются отдельные фиксированные бонусы к максимуму знаний`);
               }
               break;
           }
@@ -177,14 +229,14 @@ export class BonusCalculationService {
       return 1.0;
     }
     
-    return Math.max(1.0, multiplier); // Не позволяем множителю быть меньше базового
+    return Math.max(0, multiplier); // Не позволяем множителю быть отрицательным
   }
   
   /**
-   * Рассчитывает бонус эффективности применения знаний
+   * Рассчитывает снижение потребления ресурсов
    */
-  calculateKnowledgeEfficiencyMultiplier(state: GameState): number {
-    let multiplier = 1.0;
+  calculateConsumptionReduction(state: GameState, resourceId: string): number {
+    let reduction = 0;
     
     try {
       // Проверяем наличие бонусов от исследований
@@ -193,40 +245,80 @@ export class BonusCalculationService {
         
         // Применяем бонусы только от купленных улучшений
         if (upgrade && upgrade.purchased && upgrade.effects) {
-          // Проверяем наличие бонуса эффективности применения знаний
-          if (upgrade.effects.knowledgeEfficiencyBoost) {
-            const boost = upgrade.effects.knowledgeEfficiencyBoost;
-            multiplier += boost;
-            console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к эффективности применения знаний`);
+          // Проверяем наличие бонуса снижения потребления для указанного ресурса
+          const reductionKey = `${resourceId}ConsumptionReduction`;
+          if (upgrade.effects[reductionKey]) {
+            const reductionValue = upgrade.effects[reductionKey];
+            reduction += reductionValue;
+            console.log(`BonusCalculation: ${upgrade.name} снижает потребление ${resourceId} на ${reductionValue * 100}%`);
           }
         }
       }
       
-      // Проверяем особый случай исследования "Основы криптовалют"
-      if (state.upgrades.cryptoCurrencyBasics?.purchased) {
-        const boost = state.upgrades.cryptoCurrencyBasics.effects?.knowledgeEfficiencyBoost || 0.1;
-        // Если уже учли выше, то не добавляем дважды
-        if (multiplier === 1.0) {
-          multiplier += boost;
-          console.log(`BonusCalculation: Основы криптовалют добавляет +${boost * 100}% к эффективности применения знаний`);
+      // Специальный случай для электричества - "Энергоэффективные компоненты"
+      if (resourceId === 'electricity' && state.miningParams) {
+        const energyEfficiency = state.miningParams.energyEfficiency || 0;
+        reduction += energyEfficiency;
+        console.log(`BonusCalculation: Энергоэффективность снижает потребление электричества на ${energyEfficiency * 100}%`);
+      }
+      
+      // Проверяем наличие бонусов от зданий
+      for (const buildingId in state.buildings) {
+        const building = state.buildings[buildingId];
+        
+        // Применяем бонусы только от построенных зданий
+        if (building && building.count > 0 && building.effects) {
+          // Проверяем наличие бонуса снижения потребления для указанного ресурса
+          const reductionKey = `${resourceId}ConsumptionReduction`;
+          if (building.effects[reductionKey]) {
+            const reductionValue = building.effects[reductionKey] * building.count;
+            reduction += reductionValue;
+            console.log(`BonusCalculation: ${building.name} (x${building.count}) снижает потребление ${resourceId} на ${reductionValue * 100}%`);
+          }
+        }
+      }
+      
+      // Специальный случай для вычислительной мощности - "Система охлаждения"
+      if (resourceId === 'computingPower') {
+        const coolingSystem = state.buildings.coolingSystem;
+        if (coolingSystem && coolingSystem.count > 0 && coolingSystem.effects?.computingPowerConsumptionReduction) {
+          const coolingReduction = coolingSystem.effects.computingPowerConsumptionReduction * coolingSystem.count;
+          reduction += coolingReduction;
+          console.log(`BonusCalculation: Система охлаждения (x${coolingSystem.count}) снижает потребление вычислительной мощности на ${coolingReduction * 100}%`);
         }
       }
     } catch (error) {
-      console.warn('Ошибка при расчете множителя эффективности применения знаний:', error);
-      // При ошибках возвращаем базовый множитель
-      return 1.0;
+      console.warn('Ошибка при расчете снижения потребления:', error);
     }
     
-    return Math.max(1.0, multiplier); // Не позволяем множителю быть меньше базового
+    // Ограничиваем снижение потребления до 90%
+    return Math.min(0.9, reduction);
   }
   
   /**
-   * Рассчитывает все бонусы для указанного ресурса
+   * Рассчитывает бонус обмена BTC
    */
-  calculateResourceBonuses(state: GameState, resourceId: string): { productionMultiplier: number; maxMultiplier: number } {
-    return {
-      productionMultiplier: this.calculateProductionMultiplier(state, resourceId),
-      maxMultiplier: this.calculateMaxValueMultiplier(state, resourceId)
-    };
+  calculateBtcExchangeBonus(state: GameState): number {
+    let bonus = 0;
+    
+    try {
+      // Проверяем специализацию "Трейдер"
+      if (state.specialization === 'trader') {
+        bonus += 0.15; // +15% к эффективности обмена
+        console.log(`BonusCalculation: Специализация Трейдер даёт +15% к эффективности обмена BTC`);
+      }
+      
+      // Проверяем улучшенный кошелек
+      const enhancedWallet = state.buildings.enhancedWallet;
+      if (enhancedWallet && enhancedWallet.count > 0 && enhancedWallet.effects?.btcExchangeBonus) {
+        const walletBonus = enhancedWallet.effects.btcExchangeBonus * enhancedWallet.count;
+        bonus += walletBonus;
+        console.log(`BonusCalculation: Улучшенный кошелек (x${enhancedWallet.count}) даёт +${walletBonus * 100}% к эффективности обмена BTC`);
+      }
+    } catch (error) {
+      console.warn('Ошибка при расчете бонуса обмена BTC:', error);
+    }
+    
+    return bonus;
   }
 }

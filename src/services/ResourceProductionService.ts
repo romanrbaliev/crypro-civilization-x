@@ -49,43 +49,8 @@ export class ResourceProductionService {
         resource.perSecond = resource.production * productionBonus;
       }
       
-      // Если есть майнер и он активен, начисляем bitcoin
-      if (state.buildings.autoMiner && state.buildings.autoMiner.count > 0 && 
-          state.buildings.autoMiner.unlocked && updatedResources.bitcoin) {
-        
-        // Проверяем наличие необходимых ресурсов
-        const hasElectricity = 
-          updatedResources.electricity && 
-          updatedResources.electricity.value >= state.buildings.autoMiner.count;
-        
-        const hasComputingPower = 
-          updatedResources.computingPower && 
-          updatedResources.computingPower.value >= state.buildings.autoMiner.count * 5;
-        
-        if (hasElectricity && hasComputingPower) {
-          // Базовая скорость майнинга
-          const baseMiningRate = 0.00005;
-          // Количество майнеров
-          const minerCount = state.buildings.autoMiner.count;
-          // Эффективность майнинга из параметров
-          const miningEfficiency = state.miningParams?.miningEfficiency || 1;
-          
-          // Рассчитываем итоговую скорость майнинга с учетом эффективности
-          const bitcoinPerSecond = baseMiningRate * minerCount * miningEfficiency;
-          
-          // Обновляем скорость майнинга Bitcoin
-          updatedResources.bitcoin.perSecond = bitcoinPerSecond;
-          
-          // Обновляем потребление ресурсов майнерами
-          updatedResources.electricity.perSecond -= minerCount;
-          updatedResources.computingPower.perSecond -= minerCount * 5;
-          
-          console.log(`ResourceProductionService: майнинг Bitcoin=${bitcoinPerSecond.toFixed(6)}/сек`);
-        } else {
-          // Если недостаточно ресурсов, устанавливаем нулевую скорость
-          updatedResources.bitcoin.perSecond = 0;
-        }
-      }
+      // Особый расчет для майнинга Bitcoin
+      this.calculateBitcoinMining(updatedResources, state);
       
       return updatedResources;
     } catch (error) {
@@ -101,39 +66,119 @@ export class ResourceProductionService {
     resources: { [key: string]: Resource },
     buildings: { [key: string]: Building }
   ): void {
-    // Сначала рассчитаем базовое производство от всех зданий
-    for (const buildingId in buildings) {
-      const building = buildings[buildingId];
+    // Обрабатываем стандартные генераторы ресурсов
+    Object.values(buildings).forEach(building => {
+      if (!building.unlocked || building.count <= 0) return;
       
-      // Пропускаем неразблокированные здания и здания с количеством 0
-      if (!building.unlocked || !building.count || building.count <= 0) {
-        continue;
-      }
-      
-      // Для каждого ресурса, который производит здание
-      const production = building.production || {};
-      for (const resourceId in production) {
-        // Пропускаем эффекты влияющие на максимум
-        if (resourceId.includes('Max')) continue;
-        
-        if (resources[resourceId] && resources[resourceId].unlocked) {
-          // Рассчитываем базовое производство
-          const productionAmount = Number(production[resourceId]) * building.count;
+      // Обрабатываем здания с заданным производством
+      switch (building.id) {
+        case 'practice':
+          // Практика: +1 знание/сек за каждое здание
+          if (resources.knowledge) {
+            resources.knowledge.production += building.count;
+            resources.knowledge.baseProduction = (resources.knowledge.baseProduction || 0) + building.count;
+          }
+          break;
           
-          // Увеличиваем базовое производство ресурса
-          resources[resourceId].production += productionAmount;
+        case 'generator':
+          // Генератор: +0.5 электричества/сек за каждый генератор
+          if (resources.electricity) {
+            const electricityProduction = 0.5 * building.count;
+            resources.electricity.production += electricityProduction;
+            resources.electricity.baseProduction = (resources.electricity.baseProduction || 0) + electricityProduction;
+          }
+          break;
           
-          // Также устанавливаем базовое значение производства, если его еще нет
-          if (resources[resourceId].baseProduction === undefined) {
-            resources[resourceId].baseProduction = 0;
+        case 'homeComputer':
+          // Домашний компьютер: +2 вычисл. мощности/сек за каждый компьютер
+          // Расход 1 электр./сек за каждый компьютер
+          if (resources.computingPower) {
+            const cpuProduction = 2 * building.count;
+            resources.computingPower.production += cpuProduction;
+            resources.computingPower.baseProduction = (resources.computingPower.baseProduction || 0) + cpuProduction;
           }
           
-          resources[resourceId].baseProduction += productionAmount;
-          
-          console.log(`ResourceProductionService: ${building.name} (${building.count} шт.) производит ${productionAmount} ${resourceId}/сек`);
-        }
+          if (resources.electricity) {
+            resources.electricity.perSecond -= building.count; // Расход электричества
+          }
+          break;
       }
+    });
+  }
+  
+  /**
+   * Особый расчет для майнинга Bitcoin
+   */
+  private calculateBitcoinMining(
+    resources: { [key: string]: Resource },
+    state: GameState
+  ): void {
+    // Проверяем наличие майнера/автомайнера
+    const miner = state.buildings.miner || state.buildings.autoMiner;
+    if (!miner || miner.count <= 0 || !miner.unlocked || !resources.bitcoin) {
+      return;
     }
+    
+    // Проверяем наличие необходимых ресурсов
+    const hasElectricity = 
+      resources.electricity && 
+      resources.electricity.value >= miner.count;
+    
+    const hasComputingPower = 
+      resources.computingPower && 
+      resources.computingPower.value >= miner.count * 5;
+    
+    if (hasElectricity && hasComputingPower) {
+      // Базовая скорость майнинга
+      const baseMiningRate = 0.00005;
+      // Количество майнеров
+      const minerCount = miner.count;
+      // Эффективность майнинга из параметров
+      const miningEfficiency = state.miningParams?.miningEfficiency || 1;
+      
+      // Рассчитываем итоговую скорость майнинга с учетом эффективности
+      const bitcoinPerSecond = baseMiningRate * minerCount * miningEfficiency;
+      
+      // Обновляем скорость майнинга Bitcoin
+      resources.bitcoin.perSecond = bitcoinPerSecond;
+      
+      // Расчет потребления ресурсов с учетом энергоэффективности
+      const energyEfficiency = state.miningParams?.energyEfficiency || 0;
+      const coolingSystemEffect = this.calculateCoolingSystemEffect(state);
+      
+      // Базовый расход электричества с учетом эффективности
+      const electricityConsumption = minerCount * (1 - energyEfficiency);
+      // Базовый расход вычислительной мощности с учетом системы охлаждения
+      const computingPowerConsumption = minerCount * 5 * (1 - coolingSystemEffect);
+      
+      // Обновляем потребление ресурсов майнерами
+      resources.electricity.perSecond -= electricityConsumption;
+      resources.computingPower.perSecond -= computingPowerConsumption;
+      
+      console.log(`ResourceProductionService: майнинг Bitcoin=${bitcoinPerSecond.toFixed(6)}/сек`);
+      console.log(`ResourceProductionService: потребление электричества=${electricityConsumption.toFixed(2)}/сек`);
+      console.log(`ResourceProductionService: потребление выч.мощности=${computingPowerConsumption.toFixed(2)}/сек`);
+    } else {
+      // Если недостаточно ресурсов, устанавливаем нулевую скорость
+      resources.bitcoin.perSecond = 0;
+    }
+  }
+  
+  /**
+   * Рассчитывает эффект от системы охлаждения
+   */
+  private calculateCoolingSystemEffect(state: GameState): number {
+    const coolingSystem = state.buildings.coolingSystem;
+    if (!coolingSystem || coolingSystem.count <= 0) {
+      return 0;
+    }
+    
+    // -20% к потреблению вычислительной мощности за каждую систему охлаждения
+    // (но не более 90%)
+    const reductionPerSystem = 0.2;
+    const totalReduction = Math.min(0.9, reductionPerSystem * coolingSystem.count);
+    
+    return totalReduction;
   }
   
   /**
@@ -159,6 +204,16 @@ export class ResourceProductionService {
             totalBonus += 0.1;
             bonusDetails.push(`Основы блокчейна: +10%`);
           }
+          
+          // Проверяем другие исследования, влияющие на знания
+          Object.values(state.upgrades)
+            .filter(upgrade => upgrade.purchased && upgrade.effects)
+            .forEach(upgrade => {
+              if (upgrade.effects.knowledgeBoost) {
+                totalBonus += upgrade.effects.knowledgeBoost;
+                bonusDetails.push(`${upgrade.name}: +${(upgrade.effects.knowledgeBoost * 100).toFixed(0)}%`);
+              }
+            });
         }
       } catch (error) {
         console.error('ResourceProductionService: Ошибка при расчете бонусов от исследований', error);
@@ -168,17 +223,37 @@ export class ResourceProductionService {
       try {
         if (resourceId === 'knowledge') {
           // Интернет-канал: +20% к скорости получения знаний за каждый
-          if (state.buildings.internetConnection && 
-              state.buildings.internetConnection.count > 0 && 
-              state.buildings.internetConnection.unlocked) {
-            const internetConnectionCount = state.buildings.internetConnection.count;
-            const internetBonus = 0.2 * internetConnectionCount;
+          if (state.buildings.internetChannel && 
+              state.buildings.internetChannel.count > 0 && 
+              state.buildings.internetChannel.unlocked) {
+            const internetChannelCount = state.buildings.internetChannel.count;
+            const internetBonus = 0.2 * internetChannelCount;
             totalBonus += internetBonus;
-            bonusDetails.push(`Интернет-канал (${internetConnectionCount} шт.): +${(internetBonus * 100).toFixed(0)}%`);
+            bonusDetails.push(`Интернет-канал (${internetChannelCount} шт.): +${(internetBonus * 100).toFixed(0)}%`);
+          }
+          
+          // Криптобиблиотека: +50% к скорости получения знаний за каждую
+          if (state.buildings.cryptoLibrary && 
+              state.buildings.cryptoLibrary.count > 0 && 
+              state.buildings.cryptoLibrary.unlocked) {
+            const cryptoLibraryCount = state.buildings.cryptoLibrary.count;
+            const libraryBonus = 0.5 * cryptoLibraryCount;
+            totalBonus += libraryBonus;
+            bonusDetails.push(`Криптобиблиотека (${cryptoLibraryCount} шт.): +${(libraryBonus * 100).toFixed(0)}%`);
           }
         }
         
-        // Другие бонусы от зданий могут быть добавлены здесь
+        if (resourceId === 'computingPower') {
+          // Интернет-канал: +5% к эффективности производства вычисл. мощности за каждый
+          if (state.buildings.internetChannel && 
+              state.buildings.internetChannel.count > 0 && 
+              state.buildings.internetChannel.unlocked) {
+            const internetChannelCount = state.buildings.internetChannel.count;
+            const cpuBonus = 0.05 * internetChannelCount;
+            totalBonus += cpuBonus;
+            bonusDetails.push(`Интернет-канал (${internetChannelCount} шт.): +${(cpuBonus * 100).toFixed(0)}%`);
+          }
+        }
       } catch (error) {
         console.error('ResourceProductionService: Ошибка при расчете бонусов от зданий', error);
       }
@@ -195,6 +270,14 @@ export class ResourceProductionService {
           else if (state.specialization === 'influencer') {
             totalBonus += 0.1;
             bonusDetails.push(`Специализация Инфлюенсер: +10%`);
+          }
+        }
+        
+        if (resourceId === 'bitcoin') {
+          // Майнер: +25% к эффективности майнинга
+          if (state.specialization === 'miner') {
+            totalBonus += 0.25;
+            bonusDetails.push(`Специализация Майнер: +25%`);
           }
         }
       } catch (error) {

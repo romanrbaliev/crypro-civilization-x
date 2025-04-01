@@ -63,7 +63,90 @@ export class EffectService {
     
     let newState = { ...state };
     
-    // Специфичные эффекты для разных зданий обрабатываются в BonusCalculationService
+    // Обработка специфических эффектов от зданий
+    switch (buildingId) {
+      case 'cryptoWallet':
+        // Увеличиваем максимум USDT и знаний
+        if (newState.resources.usdt) {
+          const baseUsdtMax = 50; // Базовый максимум для одного кошелька
+          const walletCount = building.count;
+          const usdtMaxBonus = baseUsdtMax * walletCount;
+
+          newState.resources.usdt = {
+            ...newState.resources.usdt,
+            max: Math.max(newState.resources.usdt.max || 50, 50 + usdtMaxBonus)
+          };
+          
+          console.log(`EffectService: Максимум USDT увеличен до ${newState.resources.usdt.max}`);
+        }
+        
+        if (newState.resources.knowledge) {
+          const knowledgeBasicMax = 100; // Базовый максимум знаний
+          const knowledgeMaxBoost = 0.25 * building.count; // +25% за каждый кошелек
+          
+          newState.resources.knowledge = {
+            ...newState.resources.knowledge,
+            max: Math.max(
+              newState.resources.knowledge.max || knowledgeBasicMax,
+              knowledgeBasicMax * (1 + knowledgeMaxBoost)
+            )
+          };
+          
+          console.log(`EffectService: Максимум знаний увеличен до ${newState.resources.knowledge.max}`);
+        }
+        break;
+        
+      case 'internetChannel':
+        // Увеличиваем скорость получения знаний на 20%
+        // и эффективность вычислительной мощности на 5%
+        // Эти эффекты будут применены в BonusCalculationService
+        break;
+        
+      case 'cryptoLibrary':
+        // Увеличиваем максимум знаний на 100 за каждую библиотеку
+        if (newState.resources.knowledge) {
+          const knowledgeMaxBonus = 100 * building.count;
+          
+          newState.resources.knowledge = {
+            ...newState.resources.knowledge,
+            max: (newState.resources.knowledge.max || 100) + knowledgeMaxBonus
+          };
+          
+          console.log(`EffectService: Максимум знаний увеличен до ${newState.resources.knowledge.max} (библиотека)`);
+        }
+        break;
+        
+      case 'enhancedWallet':
+        // Увеличиваем максимум USDT на 150 и BTC на 1
+        if (newState.resources.usdt) {
+          const usdtMaxBonus = 150 * building.count;
+          
+          newState.resources.usdt = {
+            ...newState.resources.usdt,
+            max: (newState.resources.usdt.max || 50) + usdtMaxBonus
+          };
+          
+          console.log(`EffectService: Максимум USDT увеличен до ${newState.resources.usdt.max} (улучшенный кошелек)`);
+        }
+        
+        if (newState.resources.bitcoin) {
+          const btcMaxBonus = 1 * building.count;
+          
+          newState.resources.bitcoin = {
+            ...newState.resources.bitcoin,
+            max: (newState.resources.bitcoin.max || 0.01) + btcMaxBonus
+          };
+          
+          console.log(`EffectService: Максимум BTC увеличен до ${newState.resources.bitcoin.max}`);
+        }
+        break;
+        
+      case 'coolingSystem':
+        // Снижаем потребление вычислительной мощности на 20%
+        // Этот эффект будет применен в BonusCalculationService
+        break;
+    }
+    
     return newState;
   }
 
@@ -117,6 +200,67 @@ export class EffectService {
       }
     }
     
+    // Обработка других исследований
+    switch (upgradeId) {
+      case 'walletSecurity':
+      case 'cryptoWalletSecurity':
+        // Увеличиваем максимум USDT на 25%
+        if (newState.resources.usdt) {
+          const currentMax = newState.resources.usdt.max || 50;
+          const newMax = currentMax * 1.25;
+          
+          newState.resources.usdt = {
+            ...newState.resources.usdt,
+            max: newMax
+          };
+          
+          console.log(`EffectService: Максимум USDT увеличен с ${currentMax} до ${newMax}`);
+        }
+        break;
+        
+      case 'cryptoCurrencyBasics':
+      case 'cryptoBasics':
+        // Увеличиваем эффективность применения знаний на 10%
+        // Этот эффект будет применен в BonusCalculationService
+        break;
+        
+      case 'algorithmOptimization':
+        // Увеличиваем эффективность майнинга на 15%
+        if (newState.miningParams) {
+          newState.miningParams = {
+            ...newState.miningParams,
+            miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
+          };
+          
+          console.log(`EffectService: Эффективность майнинга увеличена до ${newState.miningParams.miningEfficiency}`);
+        }
+        break;
+        
+      case 'proofOfWork':
+        // Увеличиваем эффективность майнинга на 25%
+        if (newState.miningParams) {
+          newState.miningParams = {
+            ...newState.miningParams,
+            miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.25
+          };
+          
+          console.log(`EffectService: Эффективность майнинга увеличена до ${newState.miningParams.miningEfficiency}`);
+        }
+        break;
+        
+      case 'energyEfficientComponents':
+        // Снижаем потребление электричества на 10%
+        if (newState.miningParams) {
+          newState.miningParams = {
+            ...newState.miningParams,
+            energyEfficiency: (newState.miningParams.energyEfficiency || 0) + 0.1
+          };
+          
+          console.log(`EffectService: Энергоэффективность увеличена до ${newState.miningParams.energyEfficiency}`);
+        }
+        break;
+    }
+    
     return newState;
   }
 
@@ -142,8 +286,34 @@ export class EffectService {
   private applySpecializationEffects(state: GameState): GameState {
     console.log(`EffectService: Применение эффектов от специализации ${state.specialization}`);
     
-    // Эффекты от специализации обрабатываются в BonusCalculationService
-    return state;
+    let newState = { ...state };
+    
+    // Применяем эффекты в зависимости от выбранной специализации
+    switch (state.specialization) {
+      case 'miner':
+        // +25% к эффективности майнинга
+        if (newState.miningParams) {
+          newState.miningParams = {
+            ...newState.miningParams,
+            miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.25
+          };
+          
+          console.log(`EffectService: Эффективность майнинга увеличена до ${newState.miningParams.miningEfficiency} (специализация)`);
+        }
+        break;
+        
+      case 'trader':
+        // +15% к эффективности обмена BTC на USDT
+        // Этот эффект должен применяться при обмене валюты
+        break;
+        
+      case 'analyst':
+        // +25% к производству знаний
+        // Этот эффект будет применен в BonusCalculationService
+        break;
+    }
+    
+    return newState;
   }
 
   /**

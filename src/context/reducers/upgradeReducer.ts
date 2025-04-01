@@ -110,15 +110,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log("Криптокошелек разблокирован");
     }
     
-    // 4. Разблокируем исследование "Основы криптовалют" и "Безопасность криптокошельков"
-    if (newState.upgrades.cryptoCurrencyBasics) {
-      newState.upgrades.cryptoCurrencyBasics = {
-        ...newState.upgrades.cryptoCurrencyBasics,
-        unlocked: true
-      };
-      console.log("Исследование 'Основы криптовалют' разблокировано");
-    }
-    
+    // 4. Разблокируем исследование "Безопасность криптокошельков"
     if (newState.upgrades.walletSecurity || newState.upgrades.cryptoWalletSecurity) {
       const securityUpgradeId = newState.upgrades.walletSecurity ? 'walletSecurity' : 'cryptoWalletSecurity';
       
@@ -137,10 +129,10 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     console.log("Применяем эффекты 'Основы криптовалют'");
     
     // 1. Добавляем бонус эффективности применения знаний
-    newState.upgrades.cryptoCurrencyBasics = {
-      ...newState.upgrades.cryptoCurrencyBasics,
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
       effects: {
-        ...(newState.upgrades.cryptoCurrencyBasics.effects || {}),
+        ...(newState.upgrades[upgradeId].effects || {}),
         knowledgeEfficiencyBoost: 0.1
       }
     };
@@ -227,6 +219,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log(`Максимум USDT увеличен с ${currentMax} до ${newMax}`);
     }
     
+    // Добавляем эффекты, если их нет
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
+      effects: {
+        ...(newState.upgrades[upgradeId].effects || {}),
+        usdtMaxBoost: 0.25
+      }
+    };
+    
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Безопасность кошельков: +25% к макс. хранению USDT", "info");
   }
@@ -241,6 +242,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
       };
     }
+    
+    // Добавляем эффекты, если их нет
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
+      effects: {
+        ...(newState.upgrades[upgradeId].effects || {}),
+        miningEfficiencyBoost: 0.15
+      }
+    };
     
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Оптимизация алгоритмов: +15% к эффективности майнинга", "info");
@@ -257,6 +267,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
     }
     
+    // Добавляем эффекты, если их нет
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
+      effects: {
+        ...(newState.upgrades[upgradeId].effects || {}),
+        miningEfficiencyBoost: 0.25
+      }
+    };
+    
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Proof of Work: +25% к эффективности майнинга", "info");
   }
@@ -272,6 +291,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
     }
     
+    // Добавляем эффекты, если их нет
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
+      effects: {
+        ...(newState.upgrades[upgradeId].effects || {}),
+        electricityConsumptionReduction: 0.1
+      }
+    };
+    
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Энергоэффективные компоненты: -10% к потреблению электричества", "info");
   }
@@ -285,6 +313,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       trading: true
     };
     
+    // Добавляем эффекты, если их нет
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
+      effects: {
+        ...(newState.upgrades[upgradeId].effects || {}),
+        unlockTrading: true
+      }
+    };
+    
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Криптовалютный трейдинг: разблокирована возможность обмена криптовалютами", "info");
   }
@@ -296,6 +333,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     newState.unlocks = {
       ...newState.unlocks,
       autoTrading: true
+    };
+    
+    // Добавляем эффекты, если их нет
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
+      effects: {
+        ...(newState.upgrades[upgradeId].effects || {}),
+        autoBtcExchange: true
+      }
     };
     
     // Отправляем уведомление об эффекте

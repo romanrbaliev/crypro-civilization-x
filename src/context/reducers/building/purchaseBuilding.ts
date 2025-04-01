@@ -63,6 +63,73 @@ export const processPurchaseBuilding = (
   };
   
   // Применяем специальные эффекты от зданий
+  if (buildingId === 'practice' && newState.buildings.practice.count === 1) {
+    // Автоматическое получение 1 знаний/сек
+    if (!newState.resources.knowledge?.baseProduction) {
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        baseProduction: 1,
+        production: 1
+      };
+    }
+  }
+  
+  if (buildingId === 'generator' && newState.buildings.generator.count === 1) {
+    // Разблокируем электричество, если ещё не разблокировано
+    if (!newState.unlocks.electricity) {
+      newState = {
+        ...newState,
+        unlocks: {
+          ...newState.unlocks,
+          electricity: true
+        }
+      };
+      
+      // Создаем ресурс электричества, если его нет
+      if (!newState.resources.electricity) {
+        newState.resources.electricity = {
+          id: 'electricity',
+          name: 'Электричество',
+          description: 'Электроэнергия для питания устройств',
+          type: 'resource',
+          icon: 'zap',
+          value: 0,
+          baseProduction: 0.5, // Производит 0.5 электричества/сек
+          production: 0.5,
+          perSecond: 0.5,
+          max: 100,
+          unlocked: true
+        };
+        
+        safeDispatchGameEvent('Разблокировано электричество!', 'success');
+      } else {
+        newState.resources.electricity = {
+          ...newState.resources.electricity,
+          unlocked: true,
+          baseProduction: 0.5,
+          production: 0.5,
+          perSecond: 0.5
+        };
+      }
+    } else {
+      // Если электричество уже разблокировано, увеличиваем производство
+      newState.resources.electricity = {
+        ...newState.resources.electricity,
+        baseProduction: (newState.resources.electricity.baseProduction || 0) + 0.5,
+        production: (newState.resources.electricity.production || 0) + 0.5,
+        perSecond: (newState.resources.electricity.perSecond || 0) + 0.5
+      };
+    }
+  } else if (buildingId === 'generator' && newState.buildings.generator.count > 1) {
+    // Увеличиваем производство электричества для каждого дополнительного генератора
+    newState.resources.electricity = {
+      ...newState.resources.electricity,
+      baseProduction: (newState.resources.electricity.baseProduction || 0) + 0.5,
+      production: (newState.resources.electricity.production || 0) + 0.5,
+      perSecond: (newState.resources.electricity.perSecond || 0) + 0.5
+    };
+  }
+  
   if (buildingId === 'cryptoWallet' && newState.buildings.cryptoWallet.count > 0) {
     // Применяем эффекты криптокошелька (+50 к макс. USDT, +25% к макс. знаниям)
     console.log('Применение эффектов криптокошелька');
@@ -121,19 +188,79 @@ export const processPurchaseBuilding = (
     }
   }
   
+  if (buildingId === 'homeComputer' && newState.buildings.homeComputer.count > 0) {
+    // Разблокируем вычислительную мощность, если ещё не разблокирована
+    if (!newState.unlocks.computingPower) {
+      newState = {
+        ...newState,
+        unlocks: {
+          ...newState.unlocks,
+          computingPower: true
+        }
+      };
+      
+      // Создаем ресурс computingPower, если его нет
+      if (!newState.resources.computingPower) {
+        newState.resources.computingPower = {
+          id: 'computingPower',
+          name: 'Вычислительная мощность',
+          description: 'Вычислительная мощность для майнинга',
+          type: 'resource',
+          icon: 'cpu',
+          value: 0,
+          baseProduction: 2, // +2 вычисл. мощности/сек
+          production: 2,
+          perSecond: 2,
+          max: 1000,
+          unlocked: true
+        };
+        
+        safeDispatchGameEvent('Разблокирована вычислительная мощность!', 'success');
+      } else {
+        newState.resources.computingPower = {
+          ...newState.resources.computingPower,
+          unlocked: true,
+          baseProduction: 2,
+          production: 2,
+          perSecond: 2
+        };
+      }
+      
+      // Домашний компьютер потребляет 1 электр./сек
+      if (newState.resources.electricity) {
+        newState.resources.electricity = {
+          ...newState.resources.electricity,
+          perSecond: (newState.resources.electricity.perSecond || 0) - 1
+        };
+      }
+    } else {
+      // Если вычислительная мощность уже разблокирована, увеличиваем производство
+      newState.resources.computingPower = {
+        ...newState.resources.computingPower,
+        baseProduction: (newState.resources.computingPower.baseProduction || 0) + 2,
+        production: (newState.resources.computingPower.production || 0) + 2,
+        perSecond: (newState.resources.computingPower.perSecond || 0) + 2
+      };
+      
+      // Каждый домашний компьютер потребляет 1 электр./сек
+      if (newState.resources.electricity) {
+        newState.resources.electricity = {
+          ...newState.resources.electricity,
+          perSecond: (newState.resources.electricity.perSecond || 0) - 1
+        };
+      }
+    }
+  }
+  
   // Специальный случай для интернет-канала
   if (buildingId === 'internetChannel' && newState.buildings.internetChannel.count > 0) {
     console.log('Применение эффектов интернет-канала');
     
-    // +20% к скорости получения знаний, +5% к эффективности производства вычисл. мощности
-    const channelCount = newState.buildings.internetChannel.count;
-    const knowledgeBoost = 0.2 * channelCount; // +20% за каждый канал
-    const cpuBoost = 0.05 * channelCount; // +5% за каждый канал
-    
-    // Обновляем бонусы, если они еще не определены
+    // Добавляем эффекты, если их нет
     newState.buildings.internetChannel = {
       ...newState.buildings.internetChannel,
       effects: {
+        ...(newState.buildings.internetChannel.effects || {}),
         knowledgeBoost: 0.2,
         computingPowerBoost: 0.05
       }
@@ -144,9 +271,66 @@ export const processPurchaseBuilding = (
     }
   }
   
+  // Специальный случай для криптобиблиотеки
+  if (buildingId === 'cryptoLibrary' && newState.buildings.cryptoLibrary.count > 0) {
+    console.log('Применение эффектов криптобиблиотеки');
+    
+    // +50% к скорости получения знаний, +100 к макс. Знаниям
+    const libraryCount = newState.buildings.cryptoLibrary.count;
+    const knowledgeMaxBonus = 100 * libraryCount;
+    
+    // Добавляем эффекты, если их нет
+    newState.buildings.cryptoLibrary = {
+      ...newState.buildings.cryptoLibrary,
+      effects: {
+        ...(newState.buildings.cryptoLibrary.effects || {}),
+        knowledgeBoost: 0.5
+      }
+    };
+    
+    // Обновляем максимум знаний
+    if (newState.resources.knowledge) {
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        max: (newState.resources.knowledge.max || 100) + knowledgeMaxBonus
+      };
+    }
+    
+    if (newState.buildings.cryptoLibrary.count === 1) {
+      safeDispatchGameEvent('Криптобиблиотека: +50% к скорости получения знаний, +100 к макс. знаниям', 'info');
+    }
+  }
+  
+  // Специальный случай для системы охлаждения
+  if (buildingId === 'coolingSystem' && newState.buildings.coolingSystem.count > 0) {
+    console.log('Применение эффектов системы охлаждения');
+    
+    // Добавляем эффекты, если их нет
+    newState.buildings.coolingSystem = {
+      ...newState.buildings.coolingSystem,
+      effects: {
+        ...(newState.buildings.coolingSystem.effects || {}),
+        computingPowerConsumptionReduction: 0.2
+      }
+    };
+    
+    if (newState.buildings.coolingSystem.count === 1) {
+      safeDispatchGameEvent('Система охлаждения: -20% к потреблению вычислительной мощности всеми устройствами', 'info');
+    }
+  }
+  
   // Специальный случай для улучшенного кошелька
   if (buildingId === 'enhancedWallet' && newState.buildings.enhancedWallet.count > 0) {
     console.log('Применение эффектов улучшенного кошелька');
+    
+    // Добавляем эффекты, если их нет
+    newState.buildings.enhancedWallet = {
+      ...newState.buildings.enhancedWallet,
+      effects: {
+        ...(newState.buildings.enhancedWallet.effects || {}),
+        btcExchangeBonus: 0.08
+      }
+    };
     
     // +150 к макс. хранению USDT, +1 к макс. BTC
     const walletCount = newState.buildings.enhancedWallet.count;
@@ -171,38 +355,6 @@ export const processPurchaseBuilding = (
     
     if (newState.buildings.enhancedWallet.count === 1) {
       safeDispatchGameEvent('Улучшенный кошелёк: +150 к макс. USDT, +1 к макс. BTC, +8% к эффективности конвертации BTC', 'info');
-    }
-  }
-  
-  // Специальный случай для криптобиблиотеки
-  if (buildingId === 'cryptoLibrary' && newState.buildings.cryptoLibrary.count > 0) {
-    console.log('Применение эффектов криптобиблиотеки');
-    
-    // +50% к скорости получения знаний, +100 к макс. Знаниям
-    const libraryCount = newState.buildings.cryptoLibrary.count;
-    const knowledgeBoost = 0.5 * libraryCount;
-    const knowledgeMaxBonus = 100 * libraryCount;
-    
-    // Обновляем максимум знаний
-    if (newState.resources.knowledge) {
-      newState.resources.knowledge = {
-        ...newState.resources.knowledge,
-        max: (newState.resources.knowledge.max || 100) + knowledgeMaxBonus
-      };
-    }
-    
-    if (newState.buildings.cryptoLibrary.count === 1) {
-      safeDispatchGameEvent('Криптобиблиотека: +50% к скорости получения знаний, +100 к макс. знаниям', 'info');
-    }
-  }
-  
-  // Специальный случай для системы охлаждения
-  if (buildingId === 'coolingSystem' && newState.buildings.coolingSystem.count > 0) {
-    console.log('Применение эффектов системы охлаждения');
-    
-    // -20% к потреблению вычислительной мощности всеми устройствами
-    if (newState.buildings.coolingSystem.count === 1) {
-      safeDispatchGameEvent('Система охлаждения: -20% к потреблению вычислительной мощности всеми устройствами', 'info');
     }
   }
   
@@ -249,6 +401,23 @@ export const processPurchaseBuilding = (
           baseConsumption: 1
         };
       }
+      
+      safeDispatchGameEvent('Разблокирован Bitcoin!', 'success');
+    }
+    
+    // Майнер потребляет 1 электр. и 5 вычисл. мощности
+    if (newState.resources.electricity) {
+      newState.resources.electricity = {
+        ...newState.resources.electricity,
+        perSecond: (newState.resources.electricity.perSecond || 0) - 1
+      };
+    }
+    
+    if (newState.resources.computingPower) {
+      newState.resources.computingPower = {
+        ...newState.resources.computingPower,
+        perSecond: (newState.resources.computingPower.perSecond || 0) - 5
+      };
     }
   }
   
