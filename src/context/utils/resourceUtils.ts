@@ -37,7 +37,8 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
           resource.max = 1000; // Базовый максимум для вычислительной мощности
           break;
         case "btc":
-          resource.max = 1; // Устанавливаем базовый максимум для BTC
+        case "bitcoin":
+          resource.max = 0.01; // Устанавливаем базовый максимум для BTC
           break;
         default:
           resource.max = 100; // Базовый максимум для других ресурсов
@@ -50,18 +51,18 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       usdtMax: 0,
       electricityMax: 0,
       computingPowerMax: 0,
-      btcMax: 0
+      btcMax: 0,
+      knowledgeMaxPercent: 0,
+      usdtMaxPercent: 0
     };
     
     // Проходим по всем зданиям только один раз и считаем все бонусы
     Object.entries(state.buildings).forEach(([buildingId, building]) => {
-      if (building.count > 0) {
-        // Получаем production с проверкой на null/undefined
-        const production = building.production || {};
-        
+      if (building.count > 0 && building.effects) {
         // Для каждого эффекта здания
-        Object.entries(production).forEach(([effectType, amount]) => {
-          if (effectType.includes('Max')) {
+        Object.entries(building.effects).forEach(([effectType, amount]) => {
+          // Обрабатываем абсолютные бонусы (usdtMax, knowledgeMax и т.д.)
+          if (effectType.endsWith('Max') && !effectType.endsWith('Boost')) {
             const resourceId = effectType.replace('Max', '');
             // Важно! Умножаем на количество зданий
             const totalBonus = Number(amount) * building.count;
@@ -79,16 +80,24 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
             } else if (resourceId === 'computingPower') {
               buildingBoosts.computingPowerMax += totalBonus;
               console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. вычислительной мощности на ${totalBonus}`);
-            } else if (resourceId === 'btc') {
+            } else if (resourceId === 'btc' || resourceId === 'bitcoin') {
               buildingBoosts.btcMax += totalBonus;
               console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. BTC на ${totalBonus}`);
-            } else {
-              // Для других ресурсов создаем динамические поля
-              if (!buildingBoosts[resourceId + 'Max']) {
-                buildingBoosts[resourceId + 'Max'] = 0;
-              }
-              buildingBoosts[resourceId + 'Max'] += totalBonus;
-              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. ${resourceId} на ${totalBonus}`);
+            }
+          }
+          
+          // Обрабатываем процентные бонусы (knowledgeMaxBoost, usdtMaxBoost и т.д.)
+          else if (effectType.endsWith('MaxBoost')) {
+            const resourceId = effectType.replace('MaxBoost', '');
+            // Умножаем процентный бонус на количество зданий
+            const totalBoostPercent = Number(amount) * building.count;
+            
+            if (resourceId === 'knowledge') {
+              buildingBoosts.knowledgeMaxPercent += totalBoostPercent;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. знаний на ${totalBoostPercent * 100}%`);
+            } else if (resourceId === 'usdt') {
+              buildingBoosts.usdtMaxPercent += totalBoostPercent;
+              console.log(`Здание ${building.name} (${building.count} шт.) увеличивает макс. USDT на ${totalBoostPercent * 100}%`);
             }
           }
         });
@@ -105,16 +114,13 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
     
     // Проходим по всем исследованиям только один раз
     Object.values(state.upgrades).forEach(upgrade => {
-      if (upgrade.purchased) {
-        // Безопасно получаем effects/effect с проверкой на null/undefined
-        const effects = upgrade.effects || upgrade.effect || {};
-        
-        Object.entries(effects).forEach(([effectType, amount]) => {
-          if (effectType.includes('Max') && !effectType.includes('Boost')) {
+      if (upgrade.purchased && upgrade.effects) {
+        Object.entries(upgrade.effects).forEach(([effectType, amount]) => {
+          // Обрабатываем абсолютные бонусы
+          if (effectType.endsWith('Max') && !effectType.endsWith('Boost')) {
             const resourceId = effectType.replace('Max', '');
             const addedAmount = Number(amount);
             
-            // Учитываем абсолютные бонусы
             if (resourceId === 'knowledge') {
               upgradeBoosts.knowledgeMax += addedAmount;
               console.log(`Исследование ${upgrade.name} увеличивает макс. знаний на ${addedAmount}`);
@@ -123,6 +129,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
               console.log(`Исследование ${upgrade.name} увеличивает макс. USDT на ${addedAmount}`);
             }
           } 
+          // Обрабатываем процентные бонусы
           else if (effectType === 'knowledgeMaxBoost') {
             const boost = Number(amount);
             upgradeBoosts.knowledgeMaxPercent += boost;
@@ -131,7 +138,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
           else if (effectType === 'usdtMaxBoost') {
             const boost = Number(amount);
             upgradeBoosts.usdtMaxPercent += boost;
-            console.log(`Исследование ${upgrade.name} увел��чивает макс. USDT на ${boost * 100}%`);
+            console.log(`Исследование ${upgrade.name} увеличивает макс. USDT на ${boost * 100}%`);
           }
         });
       }
@@ -141,23 +148,23 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
     if (newResources.knowledge) {
       const baseKnowledgeMax = 100; // Базовое значение
       const absoluteBonus = buildingBoosts.knowledgeMax + upgradeBoosts.knowledgeMax; // Абсолютный бонус
-      const percentBonus = baseKnowledgeMax * upgradeBoosts.knowledgeMaxPercent; // Процентный бонус
+      const percentBonus = baseKnowledgeMax * (buildingBoosts.knowledgeMaxPercent + upgradeBoosts.knowledgeMaxPercent); // Процентный бонус
       
       // Финальное значение - база + абсолютный бонус + процентный бонус от базы
       newResources.knowledge.max = baseKnowledgeMax + absoluteBonus + percentBonus;
       
-      console.log(`Итоговый максимум знаний: ${newResources.knowledge.max.toFixed(2)} (база: 100, от зданий: ${buildingBoosts.knowledgeMax}, от улучшений: ${upgradeBoosts.knowledgeMax}, процентный бонус: ${percentBonus.toFixed(2)})`);
+      console.log(`Итоговый максимум знаний: ${newResources.knowledge.max.toFixed(2)} (база: 100, от зданий: +${buildingBoosts.knowledgeMax} абс., +${buildingBoosts.knowledgeMaxPercent * 100}% отн., от улучшений: +${upgradeBoosts.knowledgeMax} абс., +${upgradeBoosts.knowledgeMaxPercent * 100}% отн.)`);
     }
     
     if (newResources.usdt) {
       const baseUsdtMax = 50; // Базовое значение
       const absoluteBonus = buildingBoosts.usdtMax + upgradeBoosts.usdtMax; // Абсолютный бонус
-      const percentBonus = baseUsdtMax * upgradeBoosts.usdtMaxPercent; // Процентный бонус
+      const percentBonus = baseUsdtMax * (buildingBoosts.usdtMaxPercent + upgradeBoosts.usdtMaxPercent); // Процентный бонус
       
       // Финальное значение - база + абсолютный бонус + процентный бонус от базы
       newResources.usdt.max = baseUsdtMax + absoluteBonus + percentBonus;
       
-      console.log(`Итоговый максимум USDT: ${newResources.usdt.max.toFixed(2)} (база: 50, от зданий: ${buildingBoosts.usdtMax}, от улучшений: ${upgradeBoosts.usdtMax}, процентный бонус: ${percentBonus.toFixed(2)})`);
+      console.log(`Итоговый максимум USDT: ${newResources.usdt.max.toFixed(2)} (база: 50, от зданий: +${buildingBoosts.usdtMax} абс., +${buildingBoosts.usdtMaxPercent * 100}% отн., от улучшений: +${upgradeBoosts.usdtMax} абс., +${upgradeBoosts.usdtMaxPercent * 100}% отн.)`);
     }
     
     if (newResources.electricity) {
@@ -170,37 +177,25 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
       console.log(`Итоговый максимум вычислительной мощности: ${newResources.computingPower.max}`);
     }
     
-    if (newResources.btc) {
-      const baseBtcMax = 1; // Базовое значение
+    if (newResources.btc || newResources.bitcoin) {
+      const btcResource = newResources.btc || newResources.bitcoin;
+      const baseBtcMax = 0.01; // Базовое значение
       const absoluteBonus = buildingBoosts.btcMax || 0; // Абсолютный бонус от зданий
       
-      // Криптокошелек увеличивает максимальное количество BTC
+      // Криптокошелек и улучшенный кошелек увеличивают максимальное количество BTC
+      let walletBonus = 0;
       if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0) {
         const walletCount = state.buildings.cryptoWallet.count;
-        const walletBonus = walletCount * 0.5; // Каждый кошелек добавляет 0.5 BTC максимума
-        newResources.btc.max = baseBtcMax + absoluteBonus + walletBonus;
-      } else {
-        newResources.btc.max = baseBtcMax + absoluteBonus;
+        walletBonus += walletCount * 0.002; // Каждый кошелек добавляет небольшую часть к BTC максимуму
+      }
+      if (state.buildings.enhancedWallet && state.buildings.enhancedWallet.count > 0) {
+        const enhancedCount = state.buildings.enhancedWallet.count;
+        walletBonus += enhancedCount * 0.1; // Улучшенный кошелек добавляет больше
       }
       
-      console.log(`Итоговый максимум BTC: ${newResources.btc.max.toFixed(4)}`);
+      btcResource.max = baseBtcMax + absoluteBonus + walletBonus;
+      console.log(`Итоговый максимум BTC: ${btcResource.max.toFixed(4)}`);
     }
-    
-    // Для других ресурсов применяем собранные бонусы
-    Object.keys(buildingBoosts).forEach(boostKey => {
-      if (boostKey.endsWith('Max')) {
-        const resourceId = boostKey.replace('Max', '');
-        // Применяем только если это не один из основных ресурсов, которые уже обработаны выше
-        if (resourceId !== 'knowledge' && resourceId !== 'usdt' && 
-            resourceId !== 'electricity' && resourceId !== 'computingPower') {
-          if (newResources[resourceId]) {
-            const baseMax = 100; // Предполагаемое базовое значение для других ресурсов
-            newResources[resourceId].max = baseMax + buildingBoosts[boostKey];
-            console.log(`Итоговый максимум ${resourceId}: ${newResources[resourceId].max}`);
-          }
-        }
-      }
-    });
     
     // Проверяем, что значения ресурсов не превышают максимум
     Object.keys(newResources).forEach(resourceId => {

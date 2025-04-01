@@ -51,6 +51,8 @@ export const processPurchaseBuilding = (
   };
   
   console.log(`Куплено здание ${building.name} за:`, calculatedCost);
+  console.log(`Эффекты здания ${building.name}:`, building.effects || {});
+  
   safeDispatchGameEvent(`Приобретено здание "${building.name}"`, "success");
   
   // Создаем новое состояние с обновленными ресурсами и зданиями
@@ -67,11 +69,22 @@ export const processPurchaseBuilding = (
   // Обновляем максимальные значения ресурсов
   newState = updateResourceMaxValues(newState);
   
+  // Специальный случай для криптокошелька - выводим уведомление об эффекте
+  if (buildingId === 'cryptoWallet' && newState.buildings.cryptoWallet.count === 1) {
+    safeDispatchGameEvent('Криптокошелёк: +50 к макс. USDT, +25% к макс. знаниям', 'info');
+  }
+  
+  // Специальный случай для улучшенного кошелька
+  if (buildingId === 'enhancedWallet' && newState.buildings.enhancedWallet.count === 1) {
+    safeDispatchGameEvent('Улучшенный кошелёк: +150 к макс. USDT, +1 к макс. BTC', 'info');
+  }
+  
   // Специальный случай для автомайнера - сразу инициализируем ресурс Bitcoin
-  if (buildingId === 'autoMiner' && newState.buildings.autoMiner.count === 1) {
+  if ((buildingId === 'autoMiner' || buildingId === 'miner') && 
+      (newState.buildings.autoMiner?.count === 1 || newState.buildings.miner?.count === 1)) {
     // Проверяем, есть ли Bitcoin и разблокирован ли он
     if (!newState.resources.bitcoin?.unlocked) {
-      console.log("Инициализация Bitcoin после покупки первого автомайнера");
+      console.log("Инициализация Bitcoin после покупки первого автомайнера/майнера");
       newState = {
         ...newState,
         resources: {
@@ -91,7 +104,7 @@ export const processPurchaseBuilding = (
           }
         },
         unlocks: {
-          ...state.unlocks,
+          ...newState.unlocks,
           bitcoin: true
         }
       };
@@ -112,5 +125,6 @@ export const processPurchaseBuilding = (
     }
   }
   
-  return newState;
+  // Обязательно обновляем максимальные значения ресурсов после всех изменений
+  return updateResourceMaxValues(newState);
 };

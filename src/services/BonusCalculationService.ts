@@ -40,7 +40,7 @@ export class BonusCalculationService {
         // Применяем бонусы только от построенных зданий
         if (building && building.count > 0 && building.effects) {
           // Проверяем наличие бонуса производства для указанного ресурса
-          const boostKey = `${resourceId}ProductionBoost`;
+          const boostKey = `${resourceId}Boost`;
           if (building.effects[boostKey]) {
             const boost = building.effects[boostKey] * building.count;
             multiplier += boost;
@@ -49,16 +49,16 @@ export class BonusCalculationService {
           
           // Особые случаи для отдельных зданий
           switch (buildingId) {
-            case 'internetConnection':
-              if (resourceId === 'knowledge') {
-                const boost = 0.2 * building.count; // 20% за каждое интернет-соединение
+            case 'internetChannel':
+              if (resourceId === 'knowledge' && building.effects?.knowledgeBoost) {
+                const boost = building.effects.knowledgeBoost * building.count; // 20% за каждое интернет-соединение
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству знаний`);
               }
               break;
             case 'cryptoLibrary':
-              if (resourceId === 'knowledge') {
-                const boost = 0.5 * building.count; // 50% за каждую библиотеку
+              if (resourceId === 'knowledge' && building.effects?.knowledgeBoost) {
+                const boost = building.effects.knowledgeBoost * building.count; // 50% за каждую библиотеку
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству знаний`);
               }
@@ -150,32 +150,22 @@ export class BonusCalculationService {
         const building = state.buildings[buildingId];
         
         // Применяем бонусы только от построенных зданий
-        if (building && building.count > 0) {
+        if (building && building.count > 0 && building.effects) {
+          // Проверяем наличие бонуса максимума для указанного ресурса
+          const maxBoostKey = `${resourceId}MaxBoost`;
+          if (building.effects[maxBoostKey]) {
+            const boost = building.effects[maxBoostKey] * building.count;
+            multiplier += boost;
+            console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к максимуму ${resourceId}`);
+          }
+          
           // Особые случаи для отдельных зданий
           switch (buildingId) {
             case 'cryptoWallet':
-              if (resourceId === 'knowledge') {
-                const boost = 0.25 * building.count; // 25% за каждый кошелек
+              if (resourceId === 'knowledge' && building.effects?.knowledgeMaxBoost) {
+                const boost = building.effects.knowledgeMaxBoost * building.count; // 25% за каждый кошелек
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к максимуму знаний`);
-              } else if (resourceId === 'usdt') {
-                // Увеличиваем не процентно, а абсолютным значением, поэтому не трогаем multiplier
-                console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +50 к максимуму USDT`);
-              }
-              break;
-            case 'improvedWallet':
-              if (resourceId === 'usdt') {
-                // Увеличиваем не процентно, а абсолютным значением, поэтому не трогаем multiplier
-                console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +150 к максимуму USDT`);
-              } else if (resourceId === 'bitcoin') {
-                // Увеличиваем не процентно, а абсолютным значением, поэтому не трогаем multiplier
-                console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +1 к максимуму BTC`);
-              }
-              break;
-            case 'cryptoLibrary':
-              if (resourceId === 'knowledge') {
-                // Увеличиваем не процентно, а абсолютным значением
-                console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +100 к максимуму знаний`);
               }
               break;
           }

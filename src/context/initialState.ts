@@ -1,15 +1,12 @@
 import { GameState } from './types';
 
-// Правильно установленное начальное состояние игры
 export const initialState: GameState = {
-  // Базовые счетчики игровых ресурсов
   knowledge: 0,
   btcPrice: 20000,
   miningPower: 0,
   usdtBalance: 0,
   btcBalance: 0,
   
-  // Свойства игры
   gameStarted: false,
   gameTime: 0,
   lastUpdate: Date.now(),
@@ -24,7 +21,7 @@ export const initialState: GameState = {
   buildingUnlocked: {},
   
   unlocks: {
-    knowledge: true, // Знания доступны с самого начала
+    knowledge: true,
   },
   resources: {
     knowledge: {
@@ -34,7 +31,7 @@ export const initialState: GameState = {
       type: 'resource',
       icon: 'book',
       value: 0,
-      baseProduction: 0, // Базовое производство
+      baseProduction: 0,
       production: 0,
       perSecond: 0,
       max: 100,
@@ -42,7 +39,6 @@ export const initialState: GameState = {
     }
   },
   buildings: {
-    // Все здания изначально заблокированы
     practice: {
       id: 'practice',
       name: 'Практика',
@@ -50,9 +46,9 @@ export const initialState: GameState = {
       cost: {
         usdt: 10
       },
-      costMultiplier: 1.12, // k=1.12 согласно базе знаний
+      costMultiplier: 1.12,
       production: {
-        knowledge: 1 // ИСПРАВЛЕНО: 1 знание/сек согласно базе знаний
+        knowledge: 1
       },
       count: 0,
       unlocked: false,
@@ -65,9 +61,9 @@ export const initialState: GameState = {
       cost: {
         usdt: 20
       },
-      costMultiplier: 1.12, // k=1.12 согласно базе знаний
+      costMultiplier: 1.12,
       production: {
-        electricity: 0.5 // 0.5 электричества/сек согласно базе знаний
+        electricity: 0.5
       },
       count: 0,
       unlocked: false,
@@ -79,13 +75,13 @@ export const initialState: GameState = {
       description: 'Позволяет хранить больше USDT и увеличивает максимум знаний',
       cost: {
         usdt: 30,
-        knowledge: 50 // Добавляем стоимость в знаниях согласно базе знаний
+        knowledge: 50
       },
-      costMultiplier: 1.15, // k=1.15 согласно базе знаний
-      production: {}, // Добавляем пустой объект production, так как это здание не производит ресурсы
+      costMultiplier: 1.15,
+      production: {},
       effects: {
-        usdtMax: 50, // +50 к макс. USDT
-        knowledgeMaxBoost: 0.25 // +25% к макс. Знаниям
+        usdtMax: 50,
+        knowledgeMaxBoost: 0.25
       },
       count: 0,
       unlocked: false,
@@ -98,12 +94,12 @@ export const initialState: GameState = {
       cost: {
         usdt: 55
       },
-      costMultiplier: 1.15, // k=1.15 согласно базе знаний
+      costMultiplier: 1.15,
       production: {
-        computingPower: 2 // +2 вычисл. мощности/сек
+        computingPower: 2
       },
       consumption: {
-        electricity: 1 // потребляет 1 электр./сек
+        electricity: 1
       },
       count: 0,
       unlocked: false,
@@ -116,12 +112,12 @@ export const initialState: GameState = {
       cost: {
         usdt: 75
       },
-      costMultiplier: 1.15, // k=1.15 согласно базе знаний
-      production: {}, // Добавляем пустой объект production, так как это здание не производит ресурсы
+      costMultiplier: 1.15,
       effects: {
-        knowledgeBoost: 0.2, // +20% к скорости получения знаний
-        computingPowerBoost: 0.05 // +5% к эффективности производства вычисл. мощности
+        knowledgeBoost: 0.2,
+        computingPowerBoost: 0.05
       },
+      production: {},
       count: 0,
       unlocked: false,
       productionBoost: 0
@@ -136,8 +132,8 @@ export const initialState: GameState = {
         knowledge: 100
       },
       effects: {
-        knowledgeMaxBoost: 0.5, // +50% к макс. хранению знаний
-        knowledgeBoost: 0.1 // +10% к скорости производства знаний
+        knowledgeMaxBoost: 0.5,
+        knowledgeBoost: 0.1
       },
       purchased: false,
       unlocked: false
@@ -150,7 +146,7 @@ export const initialState: GameState = {
         knowledge: 175
       },
       effects: {
-        usdtMaxBoost: 0.25 // +25% к макс. USDT
+        usdtMaxBoost: 0.25
       },
       purchased: false,
       unlocked: false,
@@ -164,7 +160,7 @@ export const initialState: GameState = {
         knowledge: 200
       },
       effects: {
-        knowledgeEfficiencyBoost: 0.1 // +10% к эффективности применения знаний (конвертация 10 знаний в 1.1 USDT)
+        knowledgeEfficiencyBoost: 0.1
       },
       purchased: false,
       unlocked: false
@@ -178,7 +174,7 @@ export const initialState: GameState = {
         knowledge: 100
       },
       effects: {
-        miningEfficiency: 0.15 // +15% к эффективности майнинга
+        miningEfficiency: 0.15
       },
       purchased: false,
       unlocked: false,
@@ -193,7 +189,7 @@ export const initialState: GameState = {
         knowledge: 200
       },
       effects: {
-        miningEfficiency: 0.25 // +25% к эффективности майнинга
+        miningEfficiency: 0.25
       },
       purchased: false,
       unlocked: false,
@@ -207,7 +203,7 @@ export const initialState: GameState = {
         knowledge: 400
       },
       effects: {
-        energyEfficiency: 0.1 // -10% к потреблению электричества всеми устройствами
+        energyEfficiency: 0.1
       },
       purchased: false,
       unlocked: false,
@@ -222,7 +218,7 @@ export const initialState: GameState = {
         knowledge: 250
       },
       effects: {
-        unlockTrading: true // Открывает раздел Трейдинг
+        unlockTrading: true
       },
       purchased: false,
       unlocked: false,
@@ -236,7 +232,7 @@ export const initialState: GameState = {
         knowledge: 500
       },
       effects: {
-        autoBtcExchange: true // Автоматизирует обмен BTC
+        autoBtcExchange: true
       },
       purchased: false,
       unlocked: false,
@@ -244,10 +240,10 @@ export const initialState: GameState = {
     }
   },
   miningParams: {
-    miningEfficiency: 1, // Базовая эффективность майнинга 
+    miningEfficiency: 1,
     networkDifficulty: 1,
     energyEfficiency: 0,
-    exchangeRate: 20000, // Базовый курс BTC/USDT
+    exchangeRate: 20000,
     exchangeCommission: 0.05,
     volatility: 0.2,
     exchangePeriod: 3600,
@@ -262,7 +258,6 @@ export const initialState: GameState = {
   referralHelpers: []
 };
 
-// Добавляем экспорт зданий для фазы 2
 export const initialPhase2Buildings = {
   miner: {
     id: 'miner',
@@ -271,13 +266,13 @@ export const initialPhase2Buildings = {
     cost: {
       usdt: 150
     },
-    costMultiplier: 1.15, // k=1.15 согласно базе знаний
+    costMultiplier: 1.15,
     production: {
-      bitcoin: 0.00005 // 0.00005 BTC/сек согласно базе знаний
+      bitcoin: 0.00005
     },
     consumption: {
-      electricity: 1, // потребляет 1 электр./сек
-      computingPower: 5 // потребляет 5 вычисл. мощности/сек
+      electricity: 1,
+      computingPower: 5
     },
     count: 0,
     unlocked: false,
@@ -291,11 +286,11 @@ export const initialPhase2Buildings = {
       usdt: 200,
       knowledge: 200
     },
-    costMultiplier: 1.15, // k=1.15 согласно базе знаний
-    production: {}, // Добавляем пустой объект production
+    costMultiplier: 1.15,
+    production: {},
     effects: {
-      knowledgeBoost: 0.5, // +50% к скорости получения знаний
-      knowledgeMax: 100 // +100 к макс. Знаниям
+      knowledgeBoost: 0.5,
+      knowledgeMax: 100
     },
     count: 0,
     unlocked: false,
@@ -309,10 +304,10 @@ export const initialPhase2Buildings = {
       usdt: 200,
       electricity: 50 
     },
-    costMultiplier: 1.15, // k=1.15 согласно базе знаний
-    production: {}, // Добавляем пустой объект production
+    costMultiplier: 1.15,
+    production: {},
     effects: {
-      computingPowerConsumptionReduction: 0.2 // -20% к потреблению вычислительной мощности
+      computingPowerConsumptionReduction: 0.2
     },
     count: 0,
     unlocked: false,
@@ -326,12 +321,12 @@ export const initialPhase2Buildings = {
       usdt: 300,
       knowledge: 250
     },
-    costMultiplier: 1.15, // k=1.15 согласно базе знаний
-    production: {}, // Добавляем пустой объект production
+    costMultiplier: 1.15,
+    production: {},
     effects: {
-      usdtMax: 150, // +150 к макс. хранению USDT
-      bitcoinMax: 1, // +1 к макс. BTC
-      btcExchangeBonus: 0.08 // +8% к эффективности конвертации BTC на USDT
+      usdtMax: 150,
+      bitcoinMax: 1,
+      btcExchangeBonus: 0.08
     },
     count: 0,
     unlocked: false,

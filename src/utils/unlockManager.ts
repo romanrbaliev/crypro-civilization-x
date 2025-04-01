@@ -1,4 +1,3 @@
-// Импортируем необходимые функции и типы
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -167,6 +166,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
       newState.buildings.generator.unlocked = true;
       newState.unlocks.generator = true;
       safeDispatchGameEvent('Разблокировано: Генератор', 'success');
+      safeDispatchGameEvent('Разблокировано: Исследования', 'success'); // Добавляем уведомление о разблокировке исследований
     }
   }
   
@@ -178,7 +178,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
     if (newState.upgrades.blockchainBasics) {
       newState.upgrades.blockchainBasics.unlocked = true;
       newState.unlocks.blockchainBasics = true;
-      // Разблокируем исследования вместе с основам�� блокчейна
+      // Разблокируем исследования вместе с основами блокчейна
       newState.unlocks.research = true;
       safeDispatchGameEvent('Разблокировано: Основы блокчейна', 'success');
       safeDispatchGameEvent('Разблокировано: Исследования', 'success');
