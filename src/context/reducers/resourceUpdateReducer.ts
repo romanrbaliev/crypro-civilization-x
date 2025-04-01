@@ -144,8 +144,8 @@ export const processResourceUpdate = (state: GameState): GameState => {
       value: 0,
       baseProduction: 0,
       production: 0,
-      perSecond: state.buildings.autoMiner?.count > 0 && state.buildings.autoMiner?.unlocked ? 
-        0.00005 * state.buildings.autoMiner.count * (state.miningParams?.miningEfficiency || 1) : 0,
+      perSecond: state.buildings.miner?.count > 0 ? 
+        0.00005 * state.buildings.miner.count * (state.miningParams?.miningEfficiency || 1) : 0,
       max: 0.01,
       unlocked: true
     };
