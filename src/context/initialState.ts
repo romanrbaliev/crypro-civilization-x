@@ -1,4 +1,3 @@
-
 import { GameState } from './types';
 
 export const initialState: GameState = {
@@ -255,4 +254,80 @@ export const initialState: GameState = {
   counters: {},
   referrals: [],
   referralHelpers: []
+};
+
+export const initialPhase2Buildings = {
+  miner: {
+    id: 'miner',
+    name: 'Майнер',
+    description: 'Автоматически добывает Bitcoin',
+    cost: {
+      usdt: 150
+    },
+    costMultiplier: 1.15,
+    production: {
+      bitcoin: 0.00005
+    },
+    consumption: {
+      electricity: 1,
+      computingPower: 5
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
+  },
+  cryptoLibrary: {
+    id: 'cryptoLibrary',
+    name: 'Криптобиблиотека',
+    description: 'Увеличивает скорость получения знаний и максимальное количество хранимых знаний',
+    cost: {
+      usdt: 200,
+      knowledge: 200
+    },
+    costMultiplier: 1.15,
+    production: {},
+    effects: {
+      knowledgeBoost: 0.5,
+      knowledgeMaxBoost: 100
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
+  },
+  coolingSystem: {
+    id: 'coolingSystem',
+    name: 'Система охлаждения',
+    description: 'Снижает потребление вычислительной мощности всеми устройствами',
+    cost: {
+      usdt: 200,
+      electricity: 50
+    },
+    costMultiplier: 1.15,
+    production: {},
+    effects: {
+      computingPowerEfficiency: 0.2
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
+  },
+  enhancedWallet: {
+    id: 'enhancedWallet',
+    name: 'Улучшенный кошелек',
+    description: 'Позволяет хранить больше USDT и BTC, повышает эффективность обмена BTC',
+    cost: {
+      usdt: 300,
+      knowledge: 250
+    },
+    costMultiplier: 1.15,
+    production: {},
+    effects: {
+      usdtMaxBoost: 150,
+      bitcoinMaxBoost: 1,
+      btcExchangeBoost: 0.08
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
+  }
 };
