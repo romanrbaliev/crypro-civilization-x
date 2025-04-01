@@ -1,75 +1,38 @@
 
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
-import { checkBuildingUnlocks as checkBuildingUnlocksFromUnlockManager } from '@/utils/unlockManager';
+import { initialPhase2Buildings } from '../../initialState';
 
-// Проверка условий разблокировки зданий (обертка над функцией из unlockManager)
+/**
+ * Проверяет и обрабатывает разблокировку зданий на основе прогресса игры
+ */
 export const checkBuildingUnlocks = (state: GameState): GameState => {
-  console.log("Проверка разблокировки зданий через централизованную систему...");
+  let newState = { ...state };
   
-  // Добавляем дополнительный лог для улучшения отладки
-  console.log("Текущие здания и их статус разблокировки:", Object.entries(state.buildings)
-    .map(([id, building]) => `${id}: ${building.unlocked ? 'Разблокировано' : 'Заблокировано'}`));
-  
-  // Создаем копию состояния перед передачей в централизованную систему разблокировок
-  const newState = { ...state };
-  
-  // ВАЖНО: Практика должна быть видна в оборудовании всегда, когда она разблокирована
-  if (newState.unlocks.practice && newState.buildings.practice && !newState.buildings.practice.unlocked) {
-    console.log("Исправление: практика должна быть разблокирована в зданиях");
-    newState.buildings.practice.unlocked = true;
-  }
-  
-  // ВАЖНО: Электричество должно быть разблокировано ТОЛЬКО после ПОКУПКИ генератора
-  // Проверяем явно, что count > 0, а не просто unlocked
-  if (newState.buildings.generator && newState.buildings.generator.count === 0 
-      && newState.unlocks.electricity) {
-    console.log("Исправление: электричество должно быть разблокировано только после ПОКУПКИ генератора");
+  // Проверяем, нужно ли активировать фазу 2
+  if ((state.resources.usdt?.value >= 25 || state.resources.electricity?.unlocked) && 
+      state.phase < 2) {
     
-    // Убираем разблокировку электричества, если генератор ещё не куплен
-    newState.unlocks.electricity = false;
+    console.log("unlockBuildings: Активируем фазу 2");
     
-    if (newState.resources.electricity) {
-      newState.resources.electricity = {
-        ...newState.resources.electricity,
-        unlocked: false
-      };
-    }
-  }
-  
-  // Явно проверяем, что если генератор куплен, то электричество должно быть разблокировано
-  if (newState.buildings.generator && newState.buildings.generator.count > 0 
-      && !newState.unlocks.electricity) {
-    console.log("Исправление: электричество должно быть разблокировано после покупки генератора");
+    // Обновляем фазу
+    newState.phase = 2;
     
-    // Разблокируем электричество
-    newState.unlocks.electricity = true;
-    
-    if (newState.resources.electricity) {
-      newState.resources.electricity = {
-        ...newState.resources.electricity,
-        unlocked: true
-      };
-    } else {
-      // Создаем ресурс электричества если его нет
-      newState.resources.electricity = {
-        id: 'electricity',
-        name: 'Электричество',
-        description: 'Электроэнергия для питания устройств',
-        type: 'resource',
-        icon: 'zap',
-        value: 0,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 100,
-        unlocked: true
-      };
+    // Добавляем здания из фазы 2, если они еще не добавлены
+    if (initialPhase2Buildings) {
+      for (const [buildingId, building] of Object.entries(initialPhase2Buildings)) {
+        // Если здание еще не существует в состоянии, добавляем его
+        if (!newState.buildings[buildingId]) {
+          console.log(`unlockBuildings: Добавляем здание фазы 2: ${buildingId}`);
+          newState.buildings[buildingId] = { ...building };
+        }
+      }
     }
     
-    // Добавляем уведомление о разблокировке электричества
-    safeDispatchGameEvent("Разблокирован новый ресурс: Электричество!", "success");
+    // Уведомляем пользователя
+    safeDispatchGameEvent('Открыта фаза 2: Основы криптоэкономики', 'milestone');
   }
   
-  return checkBuildingUnlocksFromUnlockManager(newState);
+  // Возвращаем обновленное состояние
+  return newState;
 };
