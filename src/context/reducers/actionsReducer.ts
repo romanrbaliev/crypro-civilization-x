@@ -133,8 +133,19 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   }
   
   // Получаем курс обмена (по умолчанию 10 знаний = 1 USDT)
-  // В будущем можно добавить влияние исследований на курс
   const exchangeRate = 10; // Знаний на 1 USDT
+  
+  // Проверяем бонус к эффективности применения знаний
+  let efficiencyBonus = 1; // По умолчанию без бонуса
+  
+  // Проверяем, куплено ли улучшение "Основы криптовалют" и есть ли у него эффект knowledgeEfficiencyBoost
+  if (state.upgrades.cryptoCurrencyBasics?.purchased) {
+    const effects = state.upgrades.cryptoCurrencyBasics.effects || {};
+    if (effects.knowledgeEfficiencyBoost) {
+      efficiencyBonus += effects.knowledgeEfficiencyBoost; // +10% к эффективности
+      console.log(`ProcessApplyAllKnowledge: Применяется бонус эффективности: +${effects.knowledgeEfficiencyBoost * 100}%`);
+    }
+  }
   
   // Количество знаний для обмена (максимум кратно курсу обмена)
   const knowledgeToExchange = Math.floor(state.resources.knowledge.value / exchangeRate) * exchangeRate;
@@ -145,8 +156,9 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     return state;
   }
   
-  // Количество USDT, которое будет получено
-  const usdtGained = knowledgeToExchange / exchangeRate;
+  // Количество USDT, которое будет получено с учетом бонуса эффективности
+  const usdtGained = (knowledgeToExchange / exchangeRate) * efficiencyBonus;
+  console.log(`ProcessApplyAllKnowledge: Обмен ${knowledgeToExchange} знаний на ${usdtGained} USDT (бонус: ${efficiencyBonus})`);
   
   // Обновляем счетчик применений знаний - только один раз, независимо от количества знаний
   const newCounter = {

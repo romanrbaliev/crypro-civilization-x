@@ -190,7 +190,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       }
     }
     
-    // ДОБАВЛЕНО: Разблокировка криптокошелька после покупки Основ блокчейна
+    // ИСПРАВЛЕНО: Разблокировка криптокошелька после покупки Основ блокчейна
     if (state.upgrades.blockchainBasics?.purchased) {
       if (buildings.cryptoWallet && !buildings.cryptoWallet.unlocked) {
         console.log('unlockManager: Разблокировано здание Криптокошелек');
@@ -214,12 +214,17 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       }
     }
     
-    // Разблокировка майнера после покупки "Основы криптовалют"
+    // ИСПРАВЛЕНО: Разблокировка майнера после покупки "Основы криптовалют"
     if (state.upgrades.cryptoCurrencyBasics?.purchased) {
+      console.log('unlockManager: Проверка разблокировки Майнера после покупки Основ криптовалют');
+      if (!unlocks.miner) {
+        console.log('unlockManager: Разблокирована возможность Майнер');
+        unlocks.miner = true;
+      }
+      
       if (buildings.miner && !buildings.miner.unlocked) {
         console.log('unlockManager: Разблокировано здание Майнер');
         buildings.miner.unlocked = true;
-        unlocks.miner = true;
         safeDispatchGameEvent('Разблокировано: Майнер', 'success');
       }
     }

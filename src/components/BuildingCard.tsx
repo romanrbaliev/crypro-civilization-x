@@ -1,171 +1,131 @@
 
 import React from 'react';
-import { Building as BuildingIcon, Info } from 'lucide-react';
+import { useGameState } from '@/context/GameStateContext';
 import { formatNumber } from '@/utils/helpers';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Button } from './ui/button';
+import { getResourceIcon } from '@/utils/resourceIcons';
+import { Building } from '@/context/types';
+import { LucideIcon } from 'lucide-react';
 
 interface BuildingCardProps {
-  id: string;
-  name: string;
-  description: string;
-  cost: Record<string, number>;
-  count: number;
-  effects?: React.ReactNode;
-  canBuy: boolean;
+  building: Building;
   onBuy: () => void;
   onSell?: () => void;
-  costMultiplier?: number; // Используем costMultiplier вместо costScaling
-  production?: Record<string, number>;
-  consumption?: Record<string, number>;
 }
 
-const BuildingCard: React.FC<BuildingCardProps> = ({
-  id,
-  name,
-  description,
-  cost,
-  count,
-  effects,
-  canBuy,
-  onBuy,
-  onSell,
-  costMultiplier = 1, // Используем costMultiplier вместо costScaling
-  production = {},
-  consumption = {}
-}) => {
-  // Форматирование стоимости
-  const formatCost = () => {
-    const costEntries = Object.entries(cost);
-    if (costEntries.length === 0) return '';
-    
-    return costEntries.map(([resource, amount]) => {
-      let displayAmount = amount;
-      
-      // Масштабируем стоимость с учетом количества
-      if (count > 0 && costMultiplier > 1) {
-        displayAmount = amount * Math.pow(costMultiplier, count);
-      }
-      
-      return `${formatNumber(displayAmount)} ${resource}`;
-    }).join(', ');
-  };
+const BuildingCard: React.FC<BuildingCardProps> = ({ building, onBuy, onSell }) => {
+  const { state } = useGameState();
   
-  // Формируем текст эффектов здания
-  const getEffectsText = () => {
-    const effectsList = [];
+  // Получаем описание эффектов здания
+  const getEffectsDescription = (building: Building): string => {
+    let effects = '';
     
-    // Добавляем производство ресурсов
-    Object.entries(production).forEach(([resource, amount]) => {
-      if (amount <= 0) return; // Пропускаем нулевые или отрицательные значения
-      
-      const readableResource = resource === 'knowledge' ? 'знаний' : 
-                              resource === 'usdt' ? 'USDT' :
-                              resource === 'electricity' ? 'электричества' :
-                              resource === 'computingPower' ? 'вычисл. мощности' : resource;
-                              
-      effectsList.push(`+${amount}/сек ${readableResource}`);
-    });
-    
-    // Добавляем потребление ресурсов
-    Object.entries(consumption).forEach(([resource, amount]) => {
-      if (amount <= 0) return; // Пропускаем нулевые или отрицательные значения
-      
-      const readableResource = resource === 'knowledge' ? 'знаний' : 
-                              resource === 'usdt' ? 'USDT' :
-                              resource === 'electricity' ? 'электричества' :
-                              resource === 'computingPower' ? 'вычисл. мощности' : resource;
-                              
-      effectsList.push(`-${amount}/сек ${readableResource}`);
-    });
-    
-    // Особые эффекты для зданий
-    if (id === 'practice') {
-      effectsList.push(`+${count}/сек знаний`);
-    } else if (id === 'generator') {
-      effectsList.push(`+${0.5 * count}/сек электричества`);
-    } else if (id === 'homeComputer') {
-      effectsList.push(`+${2 * count}/сек вычисл. мощности`);
-      effectsList.push(`-${count}/сек электричества`);
-    } else if (id === 'cryptoWallet') {
-      effectsList.push(`+50 макс. USDT`);
-      effectsList.push(`+25% макс. знаний`);
-    } else if (id === 'internetConnection') {
-      effectsList.push(`+20% к производству знаний`);
-      effectsList.push(`+5% к вычисл. мощности`);
-    } else if (id === 'miner') {
-      effectsList.push(`+0.00005/сек Bitcoin`);
-      effectsList.push(`-1/сек электричества`);
-      effectsList.push(`-5/сек вычисл. мощности`);
+    // Проверяем наличие производства ресурсов
+    if (building.production) {
+      const productionEntries = Object.entries(building.production);
+      if (productionEntries.length > 0) {
+        productionEntries.forEach(([resourceId, amount]) => {
+          const resourceName = state.resources[resourceId]?.name || resourceId;
+          effects += `+${amount} ${resourceName}/сек, `;
+        });
+      }
     }
     
-    return effectsList.length > 0 ? effectsList.join(', ') : 'Нет эффектов';
+    // Проверяем наличие специальных эффектов
+    if (building.id === 'cryptoWallet') {
+      effects += '+50 к макс. USDT, +25% к макс. Знаниям, ';
+    } else if (building.id === 'internetConnection') {
+      effects += '+20% к скорости получения знаний, ';
+    } else if (building.id === 'coolingSystem') {
+      effects += '-20% к потреблению вычислительной мощности, ';
+    } else if (building.id === 'improvedWallet') {
+      effects += '+150 к макс. USDT, +1 к макс. BTC, ';
+    }
+    
+    // Удаляем последнюю запятую и пробел
+    if (effects) {
+      effects = effects.slice(0, -2);
+    }
+    
+    return effects || 'Нет активных эффектов';
   };
-
+  
+  // Проверка, достаточно ли ресурсов для покупки
+  const canAfford = (): boolean => {
+    if (!building.cost) return true;
+    
+    for (const [resourceId, baseCost] of Object.entries(building.cost)) {
+      const resource = state.resources[resourceId];
+      if (!resource) return false;
+      
+      // Рассчитываем текущую стоимость с учетом множителя
+      const currentCost = calculateCurrentCost(baseCost);
+      
+      if (resource.value < currentCost) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+  
+  // Рассчет текущей стоимости здания с учетом множителя и количества уже купленных зданий
+  const calculateCurrentCost = (baseCost: number): number => {
+    const count = building.count || 0;
+    const multiplier = building.costMultiplier || 1.15;
+    return Math.floor(baseCost * Math.pow(multiplier, count));
+  };
+  
   return (
-    <div className="border rounded p-3 bg-white shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex items-center">
-          <div className="mr-2 p-1 bg-gray-100 rounded">
-            <BuildingIcon className="h-4 w-4 text-gray-600" />
-          </div>
-          <h3 className="font-medium text-sm">{name}</h3>
-        </div>
-        <div className="text-xs font-semibold bg-gray-100 px-2 py-0.5 rounded">
-          {count}
-        </div>
-      </div>
-      
-      <div className="text-xs text-gray-500 mb-2 h-8 overflow-hidden">
-        {description}
-      </div>
-      
-      <div className="text-xs font-medium mb-2">
-        <div className="flex items-center">
-          <span className="mr-1">Эффекты:</span>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-3 w-3 text-gray-400" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs max-w-xs">При количестве: {count}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="mt-1 text-emerald-600">{getEffectsText()}</div>
-      </div>
-      
-      <div className="flex gap-2 mt-auto">
-        <Button 
-          className="flex-1 h-7 text-xs py-0"
-          variant={canBuy ? "default" : "outline"} 
-          onClick={onBuy}
-          disabled={!canBuy}
-        >
-          Купить ({formatCost()})
-        </Button>
-        
-        {onSell && count > 0 && (
-          <Button 
-            className="h-7 w-7 p-0 text-xs"
-            variant="outline" 
-            onClick={onSell}
+    <div className="border p-3 rounded-md mb-2 bg-white">
+      <div className="flex justify-between items-center">
+        <h3 className="font-medium">
+          {building.name} {building.count ? `(${building.count})` : ''}
+        </h3>
+        <div className="flex gap-2">
+          {onSell && building.count > 0 && (
+            <button
+              onClick={onSell}
+              className="px-2 py-1 bg-red-500 text-white rounded text-xs"
+            >
+              Продать
+            </button>
+          )}
+          <button
+            onClick={onBuy}
+            disabled={!canAfford()}
+            className={`px-2 py-1 rounded text-xs ${
+              canAfford() ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+            }`}
           >
-            -
-          </Button>
-        )}
+            Купить
+          </button>
+        </div>
+      </div>
+      <p className="text-sm text-gray-600 mt-1">{building.description}</p>
+      
+      {/* Отображение эффектов */}
+      <div className="mt-2">
+        <p className="text-xs font-medium">Эффекты:</p>
+        <p className="text-xs text-gray-600">{getEffectsDescription(building)}</p>
+      </div>
+      
+      {/* Отображение стоимости */}
+      <div className="mt-2">
+        <p className="text-xs font-medium">Стоимость:</p>
+        <div className="text-xs text-gray-600">
+          {building.cost && Object.entries(building.cost).map(([resourceId, baseCost]) => {
+            const cost = calculateCurrentCost(Number(baseCost));
+            const resourceName = state.resources[resourceId]?.name || resourceId;
+            const Icon = getResourceIcon(resourceId) as LucideIcon;
+            
+            return (
+              <div key={resourceId} className="flex items-center">
+                {Icon && <Icon size={12} className="mr-1" />}
+                <span>{resourceName}: {formatNumber(cost)}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

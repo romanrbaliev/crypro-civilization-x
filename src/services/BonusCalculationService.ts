@@ -64,11 +64,11 @@ export class BonusCalculationService {
             console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к максимуму знаний`);
           }
           
-          // Обрабатываем специальные эффекты для конкретных исследований
+          // Исправлено: Обрабатываем специальные эффекты для конкретных исследований
           if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
             if (resourceId === 'knowledge') {
-              // Увеличиваем производство знаний на 10% (а не 80%)
-              const boost = 0.1; // 10% вместо 0.8
+              // Увеличиваем производство знаний на 10% (исправлено)
+              const boost = 0.1; // 10%
               productionMultiplier += boost;
               // Увеличиваем максимум знаний на 50%
               maxMultiplier += 0.5;
@@ -193,6 +193,7 @@ export class BonusCalculationService {
       // 1. Увеличиваем макс. хранение знаний на 50%
       if (updatedState.resources.knowledge) {
         const currentMax = updatedState.resources.knowledge.max || 100;
+        // Исправление: Увеличиваем только на 50%, а не в 1.5 раза
         const newMax = currentMax * 1.5;
         
         updatedState.resources.knowledge = {

@@ -173,6 +173,19 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             max: newState.resources.knowledge.max * 1.5
           };
         }
+        
+        // Разблокируем Криптокошелек
+        if (newState.buildings.cryptoWallet) {
+          newState.buildings.cryptoWallet = {
+            ...newState.buildings.cryptoWallet,
+            unlocked: true
+          };
+          
+          newState.unlocks = {
+            ...newState.unlocks,
+            cryptoWallet: true
+          };
+        }
       }
       
       // Специальная обработка для "Основы криптовалют"
@@ -180,6 +193,17 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
         console.log(`Применяем эффекты улучшения "Основы криптовалют":`);
         console.log(`1. Увеличиваем эффективность применения знаний на 10%`);
         console.log(`2. Разблокируем майнер`);
+        
+        // Добавляем эффект увеличения эффективности применения знаний
+        if (newState.upgrades.cryptoCurrencyBasics) {
+          newState.upgrades.cryptoCurrencyBasics = {
+            ...newState.upgrades.cryptoCurrencyBasics,
+            effects: {
+              ...(newState.upgrades.cryptoCurrencyBasics.effects || {}),
+              knowledgeEfficiencyBoost: 0.1
+            }
+          };
+        }
         
         // Разблокируем майнер
         if (newState.buildings.miner) {
@@ -192,6 +216,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
             ...newState.unlocks,
             miner: true
           };
+          
+          console.log("gameReducer: Майнер разблокирован");
         }
       }
       

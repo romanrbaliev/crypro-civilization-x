@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -87,7 +86,7 @@ export class GameStateService {
       
       if (state.resources.usdt && state.resources.usdt.value >= 11 &&
           (!state.buildings.generator || !state.buildings.generator.unlocked)) {
-        console.log("GameStateService: Применение принудительной проверки разблокировки генератора");
+        console.log("GameStateService: Применение принудительной прове��ки разблокировки генератора");
         state = this.unlockService.checkAllUnlocks(state);
       }
       
@@ -137,25 +136,40 @@ export class GameStateService {
     
     try {
       // Проверить разблокировки через UnlockService
-      state = this.unlockService.checkAllUnlocks(state);
+      let newState = this.unlockService.checkAllUnlocks(state);
+      
+      // Особая обработка для "Основы криптовалют" - разблокировка майнера
+      if (upgradeId === 'cryptoCurrencyBasics' && newState.buildings.miner) {
+        console.log("GameStateService: Принудительная разблокировка майнера");
+        
+        newState.buildings.miner = {
+          ...newState.buildings.miner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          miner: true
+        };
+      }
       
       // Обновить максимальные значения ресурсов
-      state = this.updateResourceMaxValues(state);
+      newState = this.updateResourceMaxValues(newState);
       
       // Пересчитать бонусы
-      state = this.bonusCalculationService.applyUpgradeBonuses(state, upgradeId);
+      newState = this.bonusCalculationService.applyUpgradeBonuses(newState, upgradeId);
       
       // Пересчитать производство ресурсов
-      const updatedResources = this.recalculateResources(state);
+      const updatedResources = this.recalculateResources(newState);
       
       // Объединить обновленные ресурсы с состоянием
-      state = {
-        ...state,
+      newState = {
+        ...newState,
         resources: updatedResources
       };
       
       console.log(`GameStateService: Обработка покупки улучшения ${upgradeId} завершена успешно`);
-      return state;
+      return newState;
     } catch (error) {
       console.error(`GameStateService: Ошибка при обработке покупки улучшения ${upgradeId}`, error);
       return state;
@@ -249,24 +263,43 @@ export class GameStateService {
       
       // Базовый максимум + увеличение от криптокошельков + увеличение от улучшенных кошельков
       const defaultMaxUsdt = 50;
-      const walletBonus = cryptoWalletCount * 25;
-      const improvedWalletBonus = improvedWalletCount * 50;
-      const currentMax = updatedResources.usdt.max || defaultMaxUsdt;
+      const walletBonus = cryptoWalletCount * 50;
+      const improvedWalletBonus = improvedWalletCount * 150;
       
       updatedResources.usdt.max = defaultMaxUsdt + walletBonus + improvedWalletBonus;
       console.log(`GameStateService: Обновлен максимум USDT: ${updatedResources.usdt.max} (база: ${defaultMaxUsdt}, кошельки: +${walletBonus}, улучшенные: +${improvedWalletBonus})`);
     }
     
-    // Обновляем макс. значение знаний на основе криптобиблиотек
+    // Обновляем макс. значение знаний
     if (updatedResources.knowledge) {
+      // Получаем базовое значение
+      let baseMaxKnowledge = 100;
+      let totalMultiplier = 1.0;
+      
+      // Проверяем наличие исследования "Основы блокчейна"
+      if (state.upgrades.blockchainBasics?.purchased) {
+        // Увеличиваем общий множитель на 50%
+        totalMultiplier += 0.5;
+        console.log(`GameStateService: Множитель максимума знаний от Основ блокчейна: +50%`);
+      }
+      
+      // Учитываем бонус от криптокошельков (+25% каждый)
+      const cryptoWalletCount = state.buildings.cryptoWallet?.count || 0;
+      if (cryptoWalletCount > 0) {
+        const walletBonus = 0.25 * cryptoWalletCount;
+        totalMultiplier += walletBonus;
+        console.log(`GameStateService: Множитель максимума знаний от Криптокошельков: +${walletBonus * 100}%`);
+      }
+      
+      // Добавляем бонус от криптобиблиотек (фиксированное значение)
       const cryptoLibraryCount = state.buildings.cryptoLibrary?.count || 0;
+      const libraryBonus = cryptoLibraryCount * 100;
       
-      // Базовый максимум + увеличение от криптобиблиотек
-      const defaultMaxKnowledge = 100;
-      const libraryBonus = cryptoLibraryCount * 50;
+      // Рассчитываем итоговый максимум
+      const finalMax = (baseMaxKnowledge * totalMultiplier) + libraryBonus;
+      updatedResources.knowledge.max = finalMax;
       
-      updatedResources.knowledge.max = defaultMaxKnowledge + libraryBonus;
-      console.log(`GameStateService: Обновлен максимум знаний: ${updatedResources.knowledge.max} (база: ${defaultMaxKnowledge}, библиотеки: +${libraryBonus})`);
+      console.log(`GameStateService: Обновлен максимум знаний: ${finalMax} (база: ${baseMaxKnowledge}, множитель: ${totalMultiplier}, библиотеки: +${libraryBonus})`);
     }
     
     return {
