@@ -136,20 +136,25 @@ export class GameStateService {
       if (!newState.buildings.miner && !newState.buildings.autoMiner) {
         console.log("GameStateService: Майнер отсутствует в списке зданий, создаем его");
         
-        // Создаем майнер с базовыми параметрами - ИСПРАВЛЕНО: заменили baseCost на cost
+        // Создаем майнер с базовыми параметрами - без свойства category, которого нет в интерфейсе Building
         newState.buildings.miner = {
           id: 'miner',
           name: 'Майнер',
           description: 'Автоматически добывает Bitcoin',
-          cost: { usdt: 150 }, // Исправлено: заменили baseCost на cost
+          cost: { usdt: 150 },
           costMultiplier: 1.15,
           count: 0,
           unlocked: true,
           type: 'production',
-          category: 'mining',
           icon: 'cpu',
-          production: {}, // Добавляем требуемые свойства из интерфейса Building
-          productionBoost: 0 // Добавляем требуемое свойство из интерфейса Building
+          production: {
+            bitcoin: 0.00005
+          },
+          consumption: {
+            electricity: 1,
+            computingPower: 5
+          },
+          productionBoost: 0
         };
       }
       
