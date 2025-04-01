@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Building as BuildingIcon, Info, Star } from 'lucide-react';
-import { formatNumber } from '@/utils/formatters';
+import { formatNumber } from '@/utils/helpers';
 import {
   Popover,
   PopoverContent,
@@ -25,7 +25,7 @@ interface BuildingCardProps {
   canBuy: boolean;
   onBuy: () => void;
   onSell?: () => void;
-  costScaling?: number;
+  costMultiplier?: number; // Изменяем costScaling на costMultiplier
   production?: Record<string, number>;
   consumption?: Record<string, number>;
 }
@@ -40,7 +40,7 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
   canBuy,
   onBuy,
   onSell,
-  costScaling = 1,
+  costMultiplier = 1, // Изменяем costScaling на costMultiplier
   production = {},
   consumption = {}
 }) => {
@@ -53,8 +53,8 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
       let displayAmount = amount;
       
       // Масштабируем стоимость с учетом количества
-      if (count > 0 && costScaling > 1) {
-        displayAmount = amount * Math.pow(costScaling, count);
+      if (count > 0 && costMultiplier > 1) { // Изменяем costScaling на costMultiplier
+        displayAmount = amount * Math.pow(costMultiplier, count); // Изменяем costScaling на costMultiplier
       }
       
       return `${formatNumber(displayAmount)} ${resource}`;

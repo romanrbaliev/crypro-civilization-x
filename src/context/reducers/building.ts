@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -28,8 +27,8 @@ export const processPurchaseBuilding = (
   let currentCost = { ...building.cost };
   
   // Масштабируем стоимость в зависимости от количества
-  if (building.count > 0 && building.costScaling) {
-    const scaling = building.costScaling;
+  if (building.count > 0 && building.costMultiplier) {
+    const scaling = building.costMultiplier;
     for (const resourceId in currentCost) {
       if (typeof currentCost[resourceId] === 'number' && typeof scaling === 'number') {
         currentCost[resourceId] = currentCost[resourceId] * Math.pow(scaling, building.count);
@@ -181,8 +180,8 @@ export const processSellBuilding = (
   let sellValue = { ...building.cost };
   
   // Масштабируем стоимость в зависимости от количества
-  if (building.count > 1 && building.costScaling) {
-    const scaling = building.costScaling;
+  if (building.count > 1 && building.costMultiplier) {
+    const scaling = building.costMultiplier;
     for (const resourceId in sellValue) {
       if (typeof sellValue[resourceId] === 'number' && typeof scaling === 'number') {
         sellValue[resourceId] = sellValue[resourceId] * Math.pow(scaling, building.count - 1) * 0.5; // 50% возврат
@@ -259,7 +258,7 @@ export const processChooseSpecialization = (
   }
   
   // Проверяем, была ли уже выбрана специализация
-  if (state.specialization && !state.prestigeCount) {
+  if (state.specialization && !state.prestigePoints) {
     console.log('Специализация уже выбрана. Для изменения требуется престиж.');
     return state;
   }
@@ -299,4 +298,3 @@ export const processChooseSpecialization = (
     specialization: specializationType
   };
 };
-

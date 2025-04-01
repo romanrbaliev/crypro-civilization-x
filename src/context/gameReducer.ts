@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -360,7 +359,9 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     }
     
     case "CHOOSE_SPECIALIZATION": 
-      newState = processChooseSpecialization(state, action.payload);
+      newState = processChooseSpecialization(state, {
+        specializationType: action.payload.roleId // Преобразуем roleId в specializationType
+      });
       return gameStateService.processGameStateUpdate(newState);
     
     default:

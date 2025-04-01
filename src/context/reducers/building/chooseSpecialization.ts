@@ -6,9 +6,9 @@ import { roles } from '@/utils/gameConfig';
 // Обработка выбора специализации
 export const processChooseSpecialization = (
   state: GameState,
-  payload: { roleId: string }
+  payload: { specializationType: string } // Изменяем с roleId на specializationType для совместимости
 ): GameState => {
-  const { roleId } = payload;
+  const { specializationType: roleId } = payload; // Извлекаем roleId из specializationType
   
   // Проверяем, существует ли роль и доступна ли она на текущей фазе
   if (!roles[roleId] || roles[roleId].phase > state.phase) {
