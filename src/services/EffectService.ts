@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -93,6 +92,28 @@ export class EffectService {
           };
           
           console.log(`EffectService: Максимум знаний увеличен до ${newState.resources.knowledge.max}`);
+        }
+        break;
+      
+      case 'homeComputer':
+        // Убедимся, что компьютер потребляет электричество
+        if (newState.buildings.homeComputer) {
+          // Проверим, есть ли потребление электричества
+          if (!newState.buildings.homeComputer.consumption || 
+              !newState.buildings.homeComputer.consumption.electricity ||
+              newState.buildings.homeComputer.consumption.electricity <= 0) {
+            
+            // Устанавливаем корректное потребление
+            newState.buildings.homeComputer = {
+              ...newState.buildings.homeComputer,
+              consumption: {
+                ...newState.buildings.homeComputer.consumption,
+                electricity: 1
+              }
+            };
+            
+            console.log(`EffectService: Установлено потребление электричества для компьютера: 1 эл./сек`);
+          }
         }
         break;
         
@@ -197,6 +218,56 @@ export class EffectService {
         console.log(`EffectService: Базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
       } else {
         console.warn("EffectService: Не найден ресурс знания при применении эффектов");
+      }
+    }
+    
+    // Добавляем особую обработку для исследования "Основы криптовалют"
+    if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
+      console.log("EffectService: Обработка исследования 'Основы криптовалют'");
+      
+      // Разблокируем майнер, если он есть
+      if (newState.buildings.miner) {
+        newState.buildings.miner = {
+          ...newState.buildings.miner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          miner: true
+        };
+        
+        console.log("EffectService: Майнер разблокирован");
+      }
+      
+      // Разблокируем автомайнер, если он есть
+      if (newState.buildings.autoMiner) {
+        newState.buildings.autoMiner = {
+          ...newState.buildings.autoMiner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          autoMiner: true
+        };
+        
+        console.log("EffectService: Автомайнер разблокирован");
+      }
+      
+      // Разблокируем ресурс биткоин, если он есть
+      if (newState.resources.bitcoin) {
+        newState.resources.bitcoin = {
+          ...newState.resources.bitcoin,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          bitcoin: true
+        };
+        
+        console.log("EffectService: Биткоин разблокирован");
       }
     }
     

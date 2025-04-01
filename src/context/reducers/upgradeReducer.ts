@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -82,7 +83,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log(`Максимум знаний установлен на ${newMax}`);
     }
     
-    // 2. Увеличиваем скорость производства знаний на 10% (исправлено с 20%)
+    // 2. Увеличиваем скорость производства знаний на 10% (исправлено)
     // Обновляем эффекты улучшения, чтобы BonusCalculationService правильно их учитывал
     newState.upgrades[upgradeId] = {
       ...newState.upgrades[upgradeId],
