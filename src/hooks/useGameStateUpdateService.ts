@@ -16,12 +16,13 @@ export const useGameStateUpdateService = () => {
     const now = Date.now();
     const timeSinceLastUpdate = now - lastUpdateRef.current;
     
-    // Ограничиваем скорость обновления ресурсов
+    // Строгое ограничение скорости обновления ресурсов - точно 1000 мс
     if (timeSinceLastUpdate < 1000) {
       return; // Обновление происходит не чаще раза в секунду
     }
     
     // Отправляем действие для обновления ресурсов
+    // Передаем точное время, прошедшее с последнего обновления
     dispatch({ 
       type: 'UPDATE_RESOURCES',
       payload: { deltaTime: timeSinceLastUpdate }
@@ -29,14 +30,17 @@ export const useGameStateUpdateService = () => {
     
     // Обновляем время последнего обновления
     lastUpdateRef.current = now;
+    
+    // Логирование для отладки
+    console.log(`useGameStateUpdateService: Обновление ресурсов через ${timeSinceLastUpdate}мс`);
   };
   
   // Эффект для настройки интервала обновления состояния
   useEffect(() => {
     if (!state.gameStarted) return;
     
-    // Определяем частоту обновления в зависимости от видимости страницы
-    const updateInterval = isPageVisible ? 1000 : 5000; // 1 секунда при видимости, 5 секунд в фоне
+    // Всегда используем строго фиксированный интервал в 1000 мс
+    const updateInterval = 1000;
     
     // Очищаем предыдущий интервал, если он был
     if (intervalIdRef.current !== null) {
@@ -48,6 +52,9 @@ export const useGameStateUpdateService = () => {
     
     // Выполняем начальное обновление
     updateResources();
+    
+    // Логирование для отладки
+    console.log(`useGameStateUpdateService: Интервал обновления установлен на ${updateInterval}мс`);
     
     return () => {
       if (intervalIdRef.current !== null) {
@@ -67,6 +74,8 @@ export const useGameStateUpdateService = () => {
       
       // Проверяем статус оборудования
       dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
+      
+      console.log("useGameStateUpdateService: Обновление ресурсов при возвращении на страницу");
     }
   }, [isPageVisible]);
 };

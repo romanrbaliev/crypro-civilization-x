@@ -14,7 +14,14 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   // Создаем копию состояния перед передачей в централизованную систему разблокировок
   const newState = { ...state };
   
+  // ВАЖНО: Практика должна быть видна в оборудовании всегда, когда она разблокирована
+  if (newState.unlocks.practice && newState.buildings.practice && !newState.buildings.practice.unlocked) {
+    console.log("Исправление: практика должна быть разблокирована в зданиях");
+    newState.buildings.practice.unlocked = true;
+  }
+  
   // Дополнительная проверка, чтобы электричество не разблокировалось до покупки генератора
+  // Изменено! Теперь проверяем count > 0, а не просто разблокировку
   if (newState.buildings.generator && newState.buildings.generator.count === 0 
       && newState.unlocks.electricity) {
     console.log("Исправление: электричество должно быть разблокировано только после покупки генератора");

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Building as BuildingIcon } from "lucide-react";
 import BuildingItem from "@/components/BuildingItem";
@@ -12,16 +13,18 @@ interface EquipmentTabProps {
 const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
-  // Фильтрация зданий
+  // Отображаем все разблокированные здания включая практику
   const unlockedBuildings = Object.values(state.buildings)
-    .filter(b => b.unlocked && b.id !== "practice")
-    // Дополнительная проверка для системы охлаждения - теперь она должна корректно отображаться
+    .filter(b => b.unlocked)
+    // Дополнительная проверка для системы охлаждения
     .filter(b => {
       if (b.id === "coolingSystem") {
         return state.buildings.homeComputer && state.buildings.homeComputer.count >= 2;
       }
       return true;
     });
+
+  console.log("EquipmentTab: Разблокированные здания:", unlockedBuildings.map(b => b.id));
 
   return (
     <div className="building-container">

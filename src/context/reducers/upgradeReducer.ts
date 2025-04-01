@@ -63,12 +63,17 @@ export const processPurchaseUpgrade = (
     
     // Обновляем максимум знаний (+50%)
     if (newState.resources.knowledge) {
+      const currentMax = newState.resources.knowledge.max;
+      const newMax = currentMax * 1.5;
+      
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
-        max: newState.resources.knowledge.max * 1.5
+        max: newMax,
+        baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1
       };
       
-      console.log(`Обновлен максимум знаний: ${newState.resources.knowledge.max}`);
+      console.log(`Обновлен максимум знаний: ${currentMax} -> ${newMax}`);
+      console.log(`Базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
     } else {
       console.warn("Не найден ресурс знания при обработке эффектов Основ блокчейна");
     }
@@ -87,6 +92,29 @@ export const processPurchaseUpgrade = (
 function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgrade): GameState {
   let newState = { ...state };
   
+  // Исправление для основ блокчейна - применяем эффекты явно и гарантированно
+  if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
+    console.log("Применение эффектов 'Основы блокчейна': +50% к максимуму знаний и +10% к получению знаний");
+    
+    // Увеличиваем максимальное количество знаний на 50%
+    if (newState.resources.knowledge) {
+      const currentMax = newState.resources.knowledge.max;
+      const newMax = currentMax * 1.5;
+      
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        max: newMax,
+        // Добавляем или увеличиваем базовое производство на 10%
+        baseProduction: ((newState.resources.knowledge.baseProduction || 0) + 0.1)
+      };
+      
+      console.log(`Новый максимум знаний: ${newMax} (было: ${currentMax})`);
+      console.log(`Новое базовое производство знаний: ${newState.resources.knowledge?.baseProduction}`);
+      
+      safeDispatchGameEvent(`Увеличен максимум знаний до ${newMax.toFixed(0)}`, "success");
+    }
+  }
+  
   // Применяем эффекты для конкретных улучшений
   if (upgradeId === 'algorithmOptimization') {
     console.log("Применение эффектов 'Оптимизация алгоритмов': +15% к эффективности майнинга");
@@ -102,24 +130,6 @@ function applyUpgradeEffects(state: GameState, upgradeId: string, upgrade: Upgra
   if (upgradeId === 'cryptoCurrencyBasics') {
     console.log("Применение эффектов 'Основы криптовалют': +10% к эффективности");
     // Эффекты этого исследования обрабатываются в processApplyKnowledge
-  }
-  
-  // Исправление для основ блокчейна - применяем эффекты явно
-  if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
-    console.log("Применение эффектов 'Основы блокчейна': +50% к максимуму знаний и +10% к получению знаний");
-    
-    // Увеличиваем максимальное количество знаний на 50%
-    if (newState.resources.knowledge) {
-      newState.resources.knowledge = {
-        ...newState.resources.knowledge,
-        max: newState.resources.knowledge.max * 1.5,
-        // Добавляем или увеличиваем базовое производство на 10%
-        baseProduction: ((newState.resources.knowledge.baseProduction || 0) + 0.1)
-      };
-      
-      console.log(`Новый максимум знаний: ${newState.resources.knowledge?.max}`);
-      console.log(`Новое базовое производство знаний: ${newState.resources.knowledge?.baseProduction}`);
-    }
   }
   
   // Применяем общие эффекты улучшения

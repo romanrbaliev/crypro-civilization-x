@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -110,7 +109,7 @@ export const checkResourceUnlocks = (state: GameState): GameState => {
     const unlocks = { ...state.unlocks };
     
     // Разблокировка электричества ТОЛЬКО при наличии построенного генератора
-    // Изменено! Теперь проверяем, что счетчик генератора > 0, а не просто разблокирован
+    // ВАЖНО: Проверяем, что счетчик генератора > 0, а не просто разблокирован
     if (state.buildings.generator && state.buildings.generator.count > 0 && !unlocks.electricity) {
       console.log('unlockManager: Разблокировано электричество');
       unlocks.electricity = true;
@@ -183,10 +182,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       }
     }
     
-    // Дополнительная проверка, чтобы избежать преждевременной разблокировки зданий
-    // Проверяем, что все разблокированные здания действительно должны быть разблокированы
-    
-    // Открытие очередных зданий только на основе четких условий
+    // Валидация, чтобы избежать преждевременной разблокировки зданий
     for (const buildingId in buildings) {
       const building = buildings[buildingId];
       
@@ -212,10 +208,13 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
           if (!resources.electricity || resources.electricity.value < 50) {
             building.unlocked = false;
             unlocks.homeComputer = false;
+          } else if (!building.unlocked && resources.electricity && resources.electricity.value >= 50) {
+            // Если условия выполнены и здание еще не разблокировано, разблокируем его
+            building.unlocked = true;
+            unlocks.homeComputer = true;
+            safeDispatchGameEvent('Разблокировано: Домашний компьютер', 'success');
           }
           break;
-          
-        // Можно добавить другие здания по мере необходимости
       }
     }
     
@@ -250,9 +249,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         }
       }
     } else {
-      // Иначе разблокируем доступные исследования
-      
-      // Разблокировка "Основы блокчейна" (нужен генератор)
+      // Разблокировка "Основы блокчейна" (нужен генератор с count > 0)
       if (state.buildings.generator && state.buildings.generator.count > 0) {
         if (upgrades.blockchainBasics && !upgrades.blockchainBasics.unlocked) {
           console.log('unlockManager: Разблокировано исследование Основы блокчейна');
@@ -264,9 +261,17 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       // Другие исследования можно добавить здесь...
     }
     
+    // Проверяем, нужно ли разблокировать исследования
+    // Исследования разблокируются после покупки хотя бы одной практики
+    if (state.buildings.practice && state.buildings.practice.count > 0 && !unlocks.research) {
+      unlocks.research = true;
+      safeDispatchGameEvent('Разблокированы исследования', 'success');
+    }
+    
     return {
       ...newState,
-      upgrades
+      upgrades,
+      unlocks
     };
   } catch (error) {
     console.error('unlockManager: Ошибка при проверке разблокировок исследований', error);
