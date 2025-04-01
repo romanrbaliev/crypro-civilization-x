@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -442,8 +443,10 @@ export class EffectService {
     return newState;
   }
 
-  // Проверка и применение эффекта майнинга
-  export function updateMiningEfficiency(state: GameState): GameState {
+  /**
+   * Проверка и применение эффекта майнинга
+   */
+  public updateMiningEfficiency(state: GameState): GameState {
     if (!state.miningParams) {
       // Если miningParams отсутствует, создаем его
       state = {
