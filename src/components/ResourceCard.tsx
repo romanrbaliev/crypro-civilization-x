@@ -54,6 +54,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
     return Math.min(percentage, 100); // Не более 100%
   };
   
+  // Безопасное форматирование значений
+  const safeFormattedValue = formatResourceValue(value, id);
+  const safeFormattedMax = max !== Infinity && max > 0 ? formatResourceValue(max, id) : "∞";
+  const safeFormattedPerSecond = formatResourceValue(perSecond, id);
+  
   return (
     <Card className="mb-2 bg-white relative">
       <CardContent className="p-3">
@@ -63,10 +68,10 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
             <span className="text-sm font-medium">{name}</span>
           </div>
           <div className="text-sm font-medium">
-            {formatResourceValue(value, id)}
+            {safeFormattedValue}
             {max !== Infinity && max > 0 && (
               <span className="text-gray-500 text-xs">
-                /{formatResourceValue(max, id)}
+                /{safeFormattedMax}
               </span>
             )}
           </div>
@@ -84,7 +89,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
         <div className="flex justify-between items-center mt-1 text-xs">
           <span className="text-gray-500">Производство:</span>
           <span className={perSecond >= 0 ? "text-green-600" : "text-red-500"}>
-            {perSecond >= 0 ? "+" : ""}{formatResourceValue(perSecond, id)}/сек
+            {perSecond >= 0 ? "+" : ""}{safeFormattedPerSecond}/сек
           </span>
         </div>
       </CardContent>

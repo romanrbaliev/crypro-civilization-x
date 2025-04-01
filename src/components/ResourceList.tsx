@@ -23,13 +23,14 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   const handleFillUsdt = () => {
     if (state.resources.usdt && state.resources.usdt.unlocked) {
       // Используем максимальное значение USDT из состояния
-      const maxUsdt = state.resources.usdt.max;
+      const maxUsdt = state.resources.usdt.max || 0;
+      const currentValue = state.resources.usdt.value || 0;
       
       dispatch({
         type: "INCREMENT_RESOURCE",
         payload: {
           resourceId: "usdt",
-          amount: maxUsdt - state.resources.usdt.value
+          amount: maxUsdt - currentValue
         }
       });
     }
@@ -54,8 +55,8 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
             <div className="py-1">
               <ResourceDisplay 
                 resource={resource} 
-                formattedValue={formatResourceValue(resource.value, resource.id)}
-                formattedPerSecond={formatResourceValue(resource.perSecond, resource.id)}
+                formattedValue={formatResourceValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
+                formattedPerSecond={formatResourceValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
               />
             </div>
             {index < unlockedResources.length - 1 && (

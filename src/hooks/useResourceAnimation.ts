@@ -19,6 +19,12 @@ export function useResourceAnimation(value: number, resourceId: string): number 
   const animationDuration = 300; // мс, более быстрая анимация для ощущения мгновенной реакции
   
   useEffect(() => {
+    // Защита от null и undefined
+    if (value === null || value === undefined) {
+      setAnimatedValue(0);
+      return;
+    }
+    
     // Проверяем, действительно ли изменилось значение
     if (Math.abs(value - lastValueRef.current) < 0.001) {
       return; // Пропускаем очень маленькие изменения

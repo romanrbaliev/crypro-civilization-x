@@ -16,7 +16,9 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   const resourceRef = useRef<HTMLDivElement>(null);
   
   // Используем хук анимации для плавного обновления отображаемого значения
-  const animatedValue = useResourceAnimation(value, id);
+  // Проверяем, что значение определено перед передачей его в хук
+  const safeValue = value !== null && value !== undefined ? value : 0;
+  const animatedValue = useResourceAnimation(safeValue, id);
   
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
@@ -34,18 +36,19 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
         : Math.floor(max).toString();
   
   // Форматирование скорости производства с учетом K и M для тысяч и миллионов
+  const safePerSecond = perSecond !== null && perSecond !== undefined ? perSecond : 0;
   const formattedPerSecond = propFormattedPerSecond || (
-    Math.abs(perSecond) >= 1000000 
-      ? (perSecond / 1000000).toFixed(1).replace('.0', '') + "M" 
-      : Math.abs(perSecond) >= 1000 
-        ? (perSecond / 1000).toFixed(1).replace('.0', '') + "K"
-        : formatResourceValue(perSecond, id)
+    Math.abs(safePerSecond) >= 1000000 
+      ? (safePerSecond / 1000000).toFixed(1).replace('.0', '') + "M" 
+      : Math.abs(safePerSecond) >= 1000 
+        ? (safePerSecond / 1000).toFixed(1).replace('.0', '') + "K"
+        : formatResourceValue(safePerSecond, id)
   );
   
   // Эффект для выделения изменений
   useEffect(() => {
     // Если значение изменилось существенно, выделяем это изменение
-    if (Math.abs(value - prevValueRef.current) > 0.1) {
+    if (safeValue !== null && prevValueRef.current !== null && Math.abs(safeValue - prevValueRef.current) > 0.1) {
       const element = resourceRef.current?.querySelector(`#resource-value-${id}`);
       if (element) {
         // Добавляем класс для анимации, затем удаляем его
@@ -54,14 +57,14 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
           element.classList.remove('resource-changed');
         }, 500);
       }
-      prevValueRef.current = value;
+      prevValueRef.current = safeValue;
     }
-  }, [value, id]);
+  }, [safeValue, id]);
 
   // Добавляем отладочную информацию при наведении
-  const safeValue = value !== null && value !== undefined ? value.toFixed(2) : "0.00";
-  const safePerSecond = perSecond !== null && perSecond !== undefined ? perSecond.toFixed(3) : "0.000";
-  const debugInfo = `ID: ${id}, Значение: ${safeValue}, Производство: ${safePerSecond}/сек`;
+  const debugValue = safeValue !== null ? safeValue.toFixed(2) : "0.00";
+  const debugPerSecond = safePerSecond !== null ? safePerSecond.toFixed(3) : "0.000";
+  const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
 
   return (
     <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
@@ -74,7 +77,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
       </div>
       
       {/* Отображаем скорость только если она не равна нулю */}
-      {perSecond !== 0 && (
+      {safePerSecond !== 0 && (
         <div className="flex items-center justify-end">
           <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
             {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
