@@ -107,7 +107,11 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       value: newState.counters.applyKnowledge.value + 1
     };
   } else {
-    newState.counters.applyKnowledge += 1;
+    newState.counters.applyKnowledge = {
+      id: 'applyKnowledge',
+      name: 'Применения знаний',
+      value: (newState.counters.applyKnowledge as unknown as number) + 1
+    };
   }
   
   console.log(`Счетчик применений знаний: ${typeof newState.counters.applyKnowledge === 'object' ? newState.counters.applyKnowledge.value : newState.counters.applyKnowledge}`);
