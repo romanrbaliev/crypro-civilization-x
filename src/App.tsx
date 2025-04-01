@@ -13,6 +13,7 @@ import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { checkSupabaseConnection, createSavesTableIfNotExists, getUserIdentifier } from "./api/gameDataService";
 import "./index.css";
 
+// Создаем клиент для запросов
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -41,6 +42,7 @@ if (typeof window !== 'undefined') {
   window.__cloudflareRetryCount = window.__cloudflareRetryCount || 0;
   
   ensureGameEventBus();
+  console.log("Инициализация игры, создание GameEventBus");
 }
 
 const App = () => {
@@ -97,6 +99,7 @@ const App = () => {
     window.addEventListener('offline', handleOnlineStatusChange);
     
     tryConnectToSupabase();
+    console.log("App компонент инициализирован, проверка соединения запущена");
     
     return () => {
       window.removeEventListener('online', handleOnlineStatusChange);
@@ -157,6 +160,14 @@ const App = () => {
     
     setTimeout(syncHelperData, 2000);
   }, []);
+  
+  // Добавим отладочную информацию
+  console.log("Текущее состояние приложения:", {
+    isOnline,
+    isSupabaseConnected,
+    isInitialized,
+    cloudflareError
+  });
   
   if (isInitialized && cloudflareError) {
     return (
@@ -226,7 +237,6 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <GameProvider>
         <TooltipProvider>
-          <Toaster />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<StartScreen />} />
@@ -234,6 +244,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          <Toaster />
         </TooltipProvider>
       </GameProvider>
     </QueryClientProvider>

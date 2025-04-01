@@ -24,12 +24,16 @@ export function Game() {
     if (!state.gameStarted) {
       dispatch({ type: 'START_GAME' });
     }
+    
+    // Отладочная информация
+    console.log("Game компонент инициализирован, состояние игры:", state.gameStarted ? "Запущена" : "Не запущена");
   }, [state.gameStarted, dispatch]);
   
   // Принудительно обновляем состояние игры при монтировании компонента
   useEffect(() => {
     if (state.gameStarted) {
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+      console.log("Принудительное обновление ресурсов выполнено");
     }
   }, []);
   
