@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -97,7 +96,7 @@ export class EffectService {
         break;
         
       case 'internetChannel':
-        // Увеличиваем скорость получения знаний на 20%
+        // Увеличиваем скоро��ть получения знаний на 20%
         // и эффективность вычислительной мощности на 5%
         // Эти эффекты будут применены в BonusCalculationService
         break;
@@ -183,21 +182,109 @@ export class EffectService {
       
       if (newState.resources.knowledge) {
         // Увеличиваем максимум знаний на 50%
-        const currentMax = newState.resources.knowledge.max;
+        const currentMax = newState.resources.knowledge.max || 100;
         const newMax = currentMax * 1.5;
         
         // Применяем бонус к производству знаний (+10%)
+        const currentProduction = newState.resources.knowledge.perSecond || 0;
+        const boost = currentProduction * 0.1; // 10% от текущего производства
+        
         newState.resources.knowledge = {
           ...newState.resources.knowledge,
           max: newMax,
-          baseProduction: (newState.resources.knowledge.baseProduction || 0) + 0.1
+          baseProduction: (newState.resources.knowledge.baseProduction || 0) + boost,
+          production: (newState.resources.knowledge.production || 0) + boost,
+          perSecond: (newState.resources.knowledge.perSecond || 0) + boost
         };
         
-        console.log(`EffectService: Максимум знаний увеличен с ${currentMax} до ${newMax}`);
-        console.log(`EffectService: Базовое производство знаний: ${newState.resources.knowledge.baseProduction}`);
+        console.log(`EffectService: Максимум знаний у��еличен с ${currentMax} до ${newMax}`);
+        console.log(`EffectService: Производство знаний увеличено на ${boost} (10%)`);
       } else {
         console.warn("EffectService: Не найден ресурс знания при применении эффектов");
       }
+      
+      // Проверяем криптокошелек для разблокировки
+      if (newState.buildings.cryptoWallet && !newState.buildings.cryptoWallet.unlocked) {
+        newState.buildings.cryptoWallet = {
+          ...newState.buildings.cryptoWallet,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          cryptoWallet: true
+        };
+        
+        console.log("EffectService: Криптокошелек разблокирован");
+      }
+    }
+    
+    // Особая обработка для исследования "Основы криптовалют"
+    if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
+      console.log("EffectService: Особая обработка для исследования 'Основы криптовалют'");
+      
+      // Проверяем и разблокируем майнер по всем возможным ID
+      if (newState.buildings.miner) {
+        newState.buildings.miner = {
+          ...newState.buildings.miner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          miner: true
+        };
+        
+        console.log("EffectService: Майнер (ID: miner) принудительно разблокирован");
+      }
+      
+      if (newState.buildings.autoMiner) {
+        newState.buildings.autoMiner = {
+          ...newState.buildings.autoMiner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          autoMiner: true
+        };
+        
+        console.log("EffectService: Автомайнер (ID: autoMiner) принудительно разблокирован");
+      }
+      
+      // Проверяем и разблокируем Bitcoin
+      if (!newState.resources.bitcoin) {
+        // Создаем ресурс если не существует
+        newState.resources.bitcoin = {
+          id: 'bitcoin',
+          name: 'Bitcoin',
+          description: 'Bitcoin - первая и основная криптовалюта',
+          type: 'currency',
+          icon: 'bitcoin',
+          value: 0,
+          baseProduction: 0,
+          production: 0,
+          perSecond: 0,
+          max: 0.01,
+          unlocked: true
+        };
+        
+        console.log("EffectService: Ресурс Bitcoin создан");
+      } else {
+        // Разблокируем существующий ресурс
+        newState.resources.bitcoin = {
+          ...newState.resources.bitcoin,
+          unlocked: true
+        };
+        
+        console.log("EffectService: Существующий ресурс Bitcoin разблокирован");
+      }
+      
+      // Устанавливаем флаг разблокировки Bitcoin
+      newState.unlocks = {
+        ...newState.unlocks,
+        bitcoin: true
+      };
     }
     
     // Обработка других исследований
@@ -291,7 +378,7 @@ export class EffectService {
     // Применяем эффекты в зависимости от выбранной специализации
     switch (state.specialization) {
       case 'miner':
-        // +25% к эффективности майнинга
+        // +25% к эффективности май��инга
         if (newState.miningParams) {
           newState.miningParams = {
             ...newState.miningParams,

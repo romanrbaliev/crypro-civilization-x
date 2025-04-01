@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -82,13 +83,28 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log(`Максимум знаний установлен на ${newMax}`);
     }
     
-    // 2. Увеличиваем скорость производства знаний на 10% (исправлено с 20%)
+    // 2. Увеличиваем скорость производства знаний на 10% 
+    // ВАЖНО: Напрямую изменяем perSecond и production в дополнение к эффектам
+    if (newState.resources.knowledge) {
+      const currentProduction = newState.resources.knowledge.perSecond || 0;
+      const boost = currentProduction * 0.1;
+      
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        baseProduction: (newState.resources.knowledge.baseProduction || 0) + boost,
+        production: (newState.resources.knowledge.production || 0) + boost,
+        perSecond: (newState.resources.knowledge.perSecond || 0) + boost
+      };
+      
+      console.log(`Производство знаний увеличено на 10%: было ${currentProduction}, добавлено ${boost}`);
+    }
+    
     // Обновляем эффекты улучшения, чтобы BonusCalculationService правильно их учитывал
     newState.upgrades[upgradeId] = {
       ...newState.upgrades[upgradeId],
       effects: {
         ...(newState.upgrades[upgradeId].effects || {}),
-        knowledgeBoost: 0.1, // Установлено 10% вместо 20%
+        knowledgeBoost: 0.1, // Установлено 10%
         knowledgeMaxBoost: 0.5
       }
     };
@@ -136,7 +152,10 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       }
     };
     
-    // 2. Разблокируем майнер (проверяем оба возможных ID)
+    // 2. Разблокируем майнер (проверяем оба возможных ID и принудительно разблокируем)
+    console.log("Принудительно разблокируем майнер после изучения 'Основы криптовалют'");
+    
+    // Разблокируем майнер по первому ID (miner)
     if (newState.buildings.miner) {
       newState.buildings.miner = {
         ...newState.buildings.miner,
@@ -148,11 +167,10 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         miner: true
       };
       
-      console.log("Майнер разблокирован");
-      safeDispatchGameEvent("Разблокирован майнер для добычи Bitcoin", "success");
+      console.log("Майнер (ID: miner) принудительно разблокирован");
     }
     
-    // Альтернативное название здания - autoMiner
+    // Разблокируем альтернативный майнер (autoMiner)
     if (newState.buildings.autoMiner) {
       newState.buildings.autoMiner = {
         ...newState.buildings.autoMiner,
@@ -164,8 +182,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         autoMiner: true
       };
       
-      console.log("Автомайнер разблокирован");
-      safeDispatchGameEvent("Разблокирован автомайнер для добычи Bitcoin", "success");
+      console.log("Автомайнер (ID: autoMiner) принудительно разблокирован");
     }
     
     // Принудительно инициализируем ресурс Bitcoin если не существует
@@ -201,6 +218,8 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         ...newState.unlocks,
         bitcoin: true
       };
+      
+      console.log("Существующий Bitcoin разблокирован");
     }
     
     // Отправляем уведомление об эффекте

@@ -27,6 +27,9 @@ export class GameStateService {
       // Обновляем ресурсы на основе их производства
       let newState = this.updateResourceProduction(state);
       
+      // Проверяем необходимость разблокировки майнера после покупки Основ криптовалют
+      newState = this.checkCryptoUpgradeUnlocks(newState);
+      
       // Обновляем все максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
       
@@ -46,6 +49,89 @@ export class GameStateService {
       // В случае ошибки возвращаем исходное состояние
       return state;
     }
+  }
+  
+  /**
+   * Проверяет необходимость разблокировки майнера и Bitcoin после покупки улучшения Основы криптовалют
+   */
+  private checkCryptoUpgradeUnlocks(state: GameState): GameState {
+    // Проверяем, куплено ли улучшение "Основы криптовалют"
+    const hasCryptoBasics = 
+      (state.upgrades.cryptoCurrencyBasics?.purchased === true) || 
+      (state.upgrades.cryptoBasics?.purchased === true);
+    
+    if (hasCryptoBasics) {
+      console.log("GameStateService: Обнаружено исследование 'Основы криптовалют', проверяем разблокировку майнера");
+      
+      let newState = {...state};
+      
+      // Принудительно разблокируем майнер по всем возможным ID
+      if (newState.buildings.miner) {
+        newState.buildings.miner = {
+          ...newState.buildings.miner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          miner: true
+        };
+        
+        console.log("GameStateService: Майнер (ID: miner) принудительно разблокирован");
+      }
+      
+      if (newState.buildings.autoMiner) {
+        newState.buildings.autoMiner = {
+          ...newState.buildings.autoMiner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          autoMiner: true
+        };
+        
+        console.log("GameStateService: Автомайнер (ID: autoMiner) принудительно разблокирован");
+      }
+      
+      // Принудительно разблокируем Bitcoin
+      if (!newState.resources.bitcoin) {
+        // Создаем ресурс если не существует
+        newState.resources.bitcoin = {
+          id: 'bitcoin',
+          name: 'Bitcoin',
+          description: 'Bitcoin - первая и основная криптовалюта',
+          type: 'currency',
+          icon: 'bitcoin',
+          value: 0,
+          baseProduction: 0,
+          production: 0,
+          perSecond: 0,
+          max: 0.01,
+          unlocked: true
+        };
+        
+        console.log("GameStateService: Ресурс Bitcoin создан");
+      } else {
+        // Разблокируем существующий ресурс
+        newState.resources.bitcoin = {
+          ...newState.resources.bitcoin,
+          unlocked: true
+        };
+        
+        console.log("GameStateService: Существующий ресурс Bitcoin разблокирован");
+      }
+      
+      // Устанавливаем флаг разблокировки Bitcoin
+      newState.unlocks = {
+        ...newState.unlocks,
+        bitcoin: true
+      };
+      
+      return newState;
+    }
+    
+    return state;
   }
   
   /**
@@ -90,7 +176,7 @@ export class GameStateService {
    */
   processBuildingPurchase(state: GameState, buildingId: string): GameState {
     try {
-      // Обновляем все ресурсы после покупки здания
+      // Обновляем все ресурсы по��ле покупки здания
       let newState = this.updateResourceProduction(state);
       
       // Обновляем все максимальные значения ресурсов
@@ -123,18 +209,11 @@ export class GameStateService {
       // Обновляем производство ресурсов
       let newState = this.updateResourceProduction(state);
       
-      // Обновляем все максимальные значения ресурсов
-      newState = updateResourceMaxValues(newState);
-      
-      // Проверить разблокировки через UnlockService
-      newState = this.unlockService.checkAllUnlocks(newState);
-      
-      // Особая обработка для "Основы криптовалют" - принудительная разблокировка майнера
-      if ((upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') && 
-          (newState.buildings.miner || newState.buildings.autoMiner)) {
-        console.log("GameStateService: Принудительная разблокировка майнера");
+      // Проверяем необходимость разблокировки майнера после покупки Основ криптовалют
+      if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
+        console.log("GameStateService: Особая обработка для улучшения 'Основы криптовалют'");
         
-        // Разблокируем майнер по обоим возможным ID
+        // Принудительно разблокируем майнер по всем возможным ID
         if (newState.buildings.miner) {
           newState.buildings.miner = {
             ...newState.buildings.miner,
@@ -145,6 +224,8 @@ export class GameStateService {
             ...newState.unlocks,
             miner: true
           };
+          
+          console.log("GameStateService: Майнер (ID: miner) принудительно разблокирован");
         }
         
         if (newState.buildings.autoMiner) {
@@ -157,16 +238,13 @@ export class GameStateService {
             ...newState.unlocks,
             autoMiner: true
           };
+          
+          console.log("GameStateService: Автомайнер (ID: autoMiner) принудительно разблокирован");
         }
         
         // Принудительно разблокируем Bitcoin
-        newState.unlocks = {
-          ...newState.unlocks,
-          bitcoin: true
-        };
-        
-        // Если Bitcoin не существует, создаем его
         if (!newState.resources.bitcoin) {
+          // Создаем ресурс если не существует
           newState.resources.bitcoin = {
             id: 'bitcoin',
             name: 'Bitcoin',
@@ -180,18 +258,32 @@ export class GameStateService {
             max: 0.01,
             unlocked: true
           };
+          
+          console.log("GameStateService: Ресурс Bitcoin создан");
         } else {
-          // Иначе разблокируем существующий
-          newState.resources.bitcoin.unlocked = true;
+          // Разблокируем существующий ресурс
+          newState.resources.bitcoin = {
+            ...newState.resources.bitcoin,
+            unlocked: true
+          };
+          
+          console.log("GameStateService: Существующий ресурс Bitcoin разблокирован");
         }
         
-        console.log("GameStateService: Майнер принудительно разблокирован");
+        // Устанавливаем флаг разблокировки Bitcoin
+        newState.unlocks = {
+          ...newState.unlocks,
+          bitcoin: true
+        };
+        
+        // Отправляем уведомление пользователю
+        safeDispatchGameEvent("Майнер и Bitcoin разблокированы!", "info");
       }
       
-      // Обновить максимальные значения ресурсов
+      // Обновляем все максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
       
-      // Обновляем lastUpdate ��ля отслеживания времени
+      // Обновляем lastUpdate для отслеживания времени
       newState = {
         ...newState,
         lastUpdate: Date.now()
