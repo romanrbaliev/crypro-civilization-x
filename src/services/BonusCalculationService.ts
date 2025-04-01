@@ -171,7 +171,7 @@ export class BonusCalculationService {
     console.log(`Применение бонусов от улучшения ${upgradeId}`);
     
     // Создаем копию состояния
-    const updatedState = { ...state };
+    let updatedState = { ...state };
     const upgrade = updatedState.upgrades[upgradeId];
     
     if (!upgrade || !upgrade.purchased) {
@@ -233,7 +233,7 @@ export class BonusCalculationService {
     console.log("Пересчет всех бонусов");
     
     // Создаем копию состояния
-    const updatedState = { ...state };
+    let updatedState = { ...state };
     
     // Пересчитываем бонусы для каждого ресурса
     const resourceIds = Object.keys(updatedState.resources);
