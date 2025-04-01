@@ -1,4 +1,5 @@
 
+// Импортируем необходимые типы и функции
 import { GameState } from '../types';
 import { checkAllUnlocks } from '@/utils/unlockSystem';
 import { ResourceProductionService } from '@/services/ResourceProductionService';
@@ -7,10 +8,15 @@ import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 // Создаем экземпляр сервиса для использования
 const resourceProductionService = new ResourceProductionService();
 
+// Экспортируем функцию updateResources, чтобы исправить ошибки импорта
+export const updateResources = (state: GameState): GameState => {
+  return processResourceUpdate(state);
+};
+
 // Обработчик обновления состояния ресурсов и производства
 export const processResourceUpdate = (state: GameState): GameState => {
   const now = Date.now();
-  const elapsedSeconds = (now - state.lastUpdate) / 1000;
+  const elapsedSeconds = state.lastUpdate ? (now - state.lastUpdate) / 1000 : 0;
   
   // Проверка необходимости запускать обработку
   if (elapsedSeconds <= 0 || !state.gameStarted) {
@@ -28,7 +34,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Начальные данные
   let newResources = { ...state.resources };
-  let eventMessages = { ...state.eventMessages };
+  let eventMessages = state.eventMessages || [];
   let miningParams = { ...state.miningParams };
   
   // Используем экземпляр сервиса для расчета производства ресурсов
@@ -77,10 +83,10 @@ export const processResourceUpdate = (state: GameState): GameState => {
       const resourceType = {
         'usdt': 'currency',
         'bitcoin': 'currency',
-        'knowledge': 'resource',
-        'electricity': 'resource',
-        'computingPower': 'resource'
-      }[resourceId] || 'resource';
+        'knowledge': 'science',
+        'electricity': 'material',
+        'computingPower': 'material'
+      }[resourceId] || 'science';
       
       newResources[resourceId] = {
         ...state.resources[resourceId],
@@ -106,7 +112,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
       id: 'electricity',
       name: 'Электричество',
       description: 'Электроэнергия для питания устройств',
-      type: 'resource',
+      type: 'material',
       icon: 'zap',
       value: 0,
       baseProduction: 0,
@@ -122,7 +128,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
       id: 'computingPower',
       name: 'Вычислительная мощность',
       description: 'Вычислительная мощность для майнинга',
-      type: 'resource',
+      type: 'material',
       icon: 'cpu',
       value: 0,
       baseProduction: 0,
@@ -163,7 +169,7 @@ export const processResourceUpdate = (state: GameState): GameState => {
     resources: newResources,
     lastUpdate: now,
     eventMessages: eventMessages,
-    gameTime: state.gameTime + cappedElapsedSeconds, // Используем ограниченное время для обновления игрового времени
+    gameTime: (state.gameTime || 0) + cappedElapsedSeconds, // Используем ограниченное время для обновления игрового времени
     miningParams: miningParams
   };
   

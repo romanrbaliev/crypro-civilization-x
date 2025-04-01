@@ -1,3 +1,4 @@
+
 import { ThrottlerOptions } from '@nestjs/throttler';
 
 export interface Building {
@@ -11,6 +12,7 @@ export interface Building {
   icon?: string;
   specialization?: string;
   effects?: { [effectId: string]: number };
+  consumption?: { [resourceId: string]: number }; // Добавлено поле consumption для расходуемых ресурсов
 }
 
 export interface Resource {
@@ -73,12 +75,17 @@ export interface GameState {
   referralBonusApplied: boolean;
   eventLog: string[];
   settings: GameSettings;
+  lastUpdate?: number;
+  gameTime?: number;
+  phase?: number;
+  prestigePoints?: number;
 }
 
 export interface GameSettings {
   soundEnabled: boolean;
   musicEnabled: boolean;
   notificationsEnabled: boolean;
+  multibuy?: boolean;
 }
 
 export interface MiningParams {

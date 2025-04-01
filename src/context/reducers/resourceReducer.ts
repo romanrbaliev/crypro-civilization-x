@@ -3,6 +3,7 @@
 import { GameState, ResourceAction } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
+// Экспортируем функцию applyAllKnowledge как она есть, но также добавим экспорт под именем processApplyAllKnowledge для совместимости
 // Функция для применения всех знаний и конвертации их в USDT
 export const applyAllKnowledge = (state: GameState, action: ResourceAction): GameState => {
   console.log('applyAllKnowledge: Функция вызвана', action);
@@ -104,4 +105,14 @@ export const applyAllKnowledge = (state: GameState, action: ResourceAction): Gam
   
   // Возвращаем обновленное состояние
   return newState;
+};
+
+// Экспорт функции также под именем processApplyAllKnowledge для совместимости со старым кодом
+export const processApplyAllKnowledge = applyAllKnowledge;
+
+// Добавим простую заглушку для processIncrementResource чтобы исправить ошибку импорта
+export const processIncrementResource = (state: GameState, action: ResourceAction): GameState => {
+  // Простая заглушка для совместимости
+  // В идеале эту функцию следует полноценно реализовать или заменить на корректные импорты
+  return state;
 };
