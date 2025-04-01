@@ -30,6 +30,15 @@ const KnowledgeProductionPopup = () => {
           const { steps, finalValue } = debugKnowledgeProduction(state);
           setCalculationSteps(steps);
           setFinalValue(finalValue);
+          
+          // Сравниваем с текущим значением в state
+          const currentPerSecond = state.resources.knowledge?.perSecond || 0;
+          console.log(`KnowledgeProductionPopup: Расчетное значение=${finalValue.toFixed(2)}, текущее=${currentPerSecond.toFixed(2)}`);
+          
+          // Проверяем расхождение
+          if (Math.abs(finalValue - currentPerSecond) > 0.01) {
+            console.warn(`KnowledgeProductionPopup: Обнаружено расхождение в расчетах знаний: ${Math.abs(finalValue - currentPerSecond).toFixed(2)}`);
+          }
         } catch (error) {
           console.error('Ошибка в debugKnowledgeProduction:', error);
           setCalculationSteps(['Произошла ошибка при расчете: ' + error]);
@@ -79,8 +88,10 @@ const KnowledgeProductionPopup = () => {
               calculationSteps.map((step, index) => (
                 <div key={index} className={
                   step.includes('Статус помощника') ? 'bg-blue-50 p-1 rounded my-1' : 
-                  step.includes('Итого:') ? 'font-bold mt-2' : 
-                  step.includes('Общий бонус') ? 'font-semibold' : ''
+                  step.includes('Итого:') || step.includes('Итоговая скорость:') ? 'font-bold mt-2' : 
+                  step.includes('Общий бонус') ? 'font-semibold' :
+                  step.includes('⚠️') ? 'text-red-500 font-bold' :
+                  step.includes('✅') ? 'text-green-500 font-bold' : ''
                 }>
                   {step}
                 </div>

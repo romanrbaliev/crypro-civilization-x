@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -57,7 +56,6 @@ export class GameStateService {
       console.log("GameStateService: Выполняется полная синхронизация состояния");
       
       // Обновляем производство и потребление ресурсов
-      // Используем существующий метод calculateResourceProduction вместо recalculateAllResources
       let newState = {
         ...state,
         resources: this.resourceProductionService.calculateResourceProduction(state)
@@ -193,7 +191,7 @@ export class GameStateService {
       // Обновить максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
       
-      // Обновляем lastUpdate для отслеживания времени
+      // Обновляем lastUpdate ��ля отслеживания времени
       newState = {
         ...newState,
         lastUpdate: Date.now()

@@ -1,257 +1,253 @@
 
-import { GameState } from '@/context/types';
+import { GameState, Resource, Building, SpecializationSynergy } from '@/context/types';
 import { BonusCalculationService } from './BonusCalculationService';
 
 /**
- * Сервис для расчёта производства ресурсов на основе зданий, улучшений и бонусов
+ * Сервис для расчета производства ресурсов и применения бонусов
  */
 export class ResourceProductionService {
   private bonusCalculationService: BonusCalculationService;
-
+  
   constructor() {
     this.bonusCalculationService = new BonusCalculationService();
   }
-
+  
   /**
-   * Пересчитывает все ресурсы и возвращает обновленное состояние ресурсов
+   * Рассчитывает производство всех ресурсов и возвращает обновленное состояние ресурсов
    */
-  calculateResourceProduction(state: GameState): { [key: string]: any } {
-    console.log("ResourceProductionService: Расчет производства ресурсов");
-    
-    // Создаем копию ресурсов для изменения
-    const updatedResources = { ...state.resources };
-    
-    // Сбрасываем значения производства для всех ресурсов
-    this.resetResourceProduction(updatedResources);
-    
-    // Производство от зданий с учетом их количества
-    this.calculateBuildingProduction(state, updatedResources);
-    
-    // Обработка базового производства от улучшений
-    this.calculateBaseProduction(state, updatedResources);
-    
-    // Проверка на наличие и состояние критических ресурсов (знания, USDT)
-    this.ensureCriticalResources(state, updatedResources);
-    
-    // Применение заключительных бонусов и множителей
-    this.applyFinalBonuses(state, updatedResources);
-    
-    return updatedResources;
-  }
-
-  /**
-   * Сбрасывает значения производства для всех ресурсов
-   */
-  private resetResourceProduction(resources: { [key: string]: any }): void {
-    for (const resourceId in resources) {
-      const resource = resources[resourceId];
-      if (resource) {
-        // Обнуляем производство и perSecond, но сохраняем baseProduction
-        resource.production = 0;
-        resource.perSecond = 0;
-        // НЕ сбрасываем baseProduction, так как оно устанавливается отдельно
+  calculateResourceProduction(state: GameState): { [key: string]: Resource } {
+    try {
+      // Создаем глубокую копию ресурсов для предотвращения мутаций
+      const updatedResources = JSON.parse(JSON.stringify(state.resources));
+      
+      // Устанавливаем базовую скорость производства для всех ресурсов от зданий
+      for (const resourceId in updatedResources) {
+        // Сбрасываем производство и скорость в секунду перед расчетом
+        updatedResources[resourceId].perSecond = 0;
+        updatedResources[resourceId].production = 0;
       }
+      
+      // Рассчитываем базовое производство от зданий
+      this.calculateBuildingProduction(updatedResources, state.buildings);
+      
+      // Рассчитываем бонусы и умножители для каждого ресурса
+      for (const resourceId in updatedResources) {
+        const resource = updatedResources[resourceId];
+        if (!resource.unlocked) continue;
+        
+        // Получаем все бонусы для этого ресурса
+        const productionBonus = this.calculateResourceProductionBonus(state, resourceId);
+        
+        // Логируем детали расчета для отладки
+        if (resourceId === 'knowledge') {
+          console.log(`ResourceProductionService: базовое производство знаний=${resource.production}`);
+          console.log(`ResourceProductionService: бонус производства знаний=${productionBonus.toFixed(2)}`);
+          console.log(`ResourceProductionService: скорость производства знаний=${(resource.production * productionBonus).toFixed(2)}/сек`);
+        }
+        
+        // Применяем все бонусы к базовому производству
+        resource.perSecond = resource.production * productionBonus;
+      }
+      
+      // Если есть майнер и он активен, начисляем bitcoin
+      if (state.buildings.autoMiner && state.buildings.autoMiner.count > 0 && 
+          state.buildings.autoMiner.unlocked && updatedResources.bitcoin) {
+        
+        // Проверяем наличие необходимых ресурсов
+        const hasElectricity = 
+          updatedResources.electricity && 
+          updatedResources.electricity.value >= state.buildings.autoMiner.count;
+        
+        const hasComputingPower = 
+          updatedResources.computingPower && 
+          updatedResources.computingPower.value >= state.buildings.autoMiner.count * 5;
+        
+        if (hasElectricity && hasComputingPower) {
+          // Базовая скорость майнинга
+          const baseMiningRate = 0.00005;
+          // Количество майнеров
+          const minerCount = state.buildings.autoMiner.count;
+          // Эффективность майнинга из параметров
+          const miningEfficiency = state.miningParams?.miningEfficiency || 1;
+          
+          // Рассчитываем итоговую скорость майнинга с учетом эффективности
+          const bitcoinPerSecond = baseMiningRate * minerCount * miningEfficiency;
+          
+          // Обновляем скорость майнинга Bitcoin
+          updatedResources.bitcoin.perSecond = bitcoinPerSecond;
+          
+          // Обновляем потребление ресурсов майнерами
+          updatedResources.electricity.perSecond -= minerCount;
+          updatedResources.computingPower.perSecond -= minerCount * 5;
+          
+          console.log(`ResourceProductionService: майнинг Bitcoin=${bitcoinPerSecond.toFixed(6)}/сек`);
+        } else {
+          // Если недостаточно ресурсов, устанавливаем нулевую скорость
+          updatedResources.bitcoin.perSecond = 0;
+        }
+      }
+      
+      return updatedResources;
+    } catch (error) {
+      console.error("ResourceProductionService: Ошибка при расчете производства", error);
+      return state.resources;
     }
   }
-
+  
   /**
-   * Рассчитывает производство ресурсов от зданий
+   * Рассчитывает базовое производство ресурсов от всех зданий
    */
-  private calculateBuildingProduction(state: GameState, resources: { [key: string]: any }): void {
-    const { buildings } = state;
-    
-    // Проходим по всем зданиям и добавляем их вклад в производство соответствующих ресурсов
+  private calculateBuildingProduction(
+    resources: { [key: string]: Resource },
+    buildings: { [key: string]: Building }
+  ): void {
+    // Сначала рассчитаем базовое производство от всех зданий
     for (const buildingId in buildings) {
       const building = buildings[buildingId];
       
-      if (building && building.count > 0 && building.unlocked) {
-        // Обработка производства от каждого типа здания
-        switch (buildingId) {
-          case 'practice': {
-            // Практика производит знания
-            if (resources.knowledge) {
-              // Практика дает строго 1 знание в секунду за каждый уровень
-              const practiceCount = building.count;
-              const knowledgePerPractice = 1; // Строго 1 знание в секунду
-              const totalKnowledgeFromPractice = practiceCount * knowledgePerPractice;
-              
-              // Добавляем производство к базовому
-              resources.knowledge.production += totalKnowledgeFromPractice;
-              
-              console.log(`ResourceProductionService: Производство знаний от практики: ${totalKnowledgeFromPractice.toFixed(2)}/сек за ${practiceCount} шт.`);
-            }
-            break;
+      // Пропускаем неразблокированные здания и здания с количеством 0
+      if (!building.unlocked || !building.count || building.count <= 0) {
+        continue;
+      }
+      
+      // Для каждого ресурса, который производит здание
+      const production = building.production || {};
+      for (const resourceId in production) {
+        // Пропускаем эффекты влияющие на максимум
+        if (resourceId.includes('Max')) continue;
+        
+        if (resources[resourceId] && resources[resourceId].unlocked) {
+          // Рассчитываем базовое производство
+          const productionAmount = Number(production[resourceId]) * building.count;
+          
+          // Увеличиваем базовое производство ресурса
+          resources[resourceId].production += productionAmount;
+          
+          // Также устанавливаем базовое значение производства, если его еще нет
+          if (resources[resourceId].baseProduction === undefined) {
+            resources[resourceId].baseProduction = 0;
           }
           
-          case 'generator': {
-            // Генератор производит электричество
-            if (resources.electricity) {
-              // Генератор дает строго 0.5 электричества в секунду за каждый уровень
-              const generatorCount = building.count;
-              const electricityPerGenerator = 0.5;
-              const totalElectricityFromGenerators = generatorCount * electricityPerGenerator;
-              
-              // Добавляем производство к базовому
-              resources.electricity.production += totalElectricityFromGenerators;
-              
-              console.log(`ResourceProductionService: Производство электричества от генераторов: ${totalElectricityFromGenerators.toFixed(2)}/сек за ${generatorCount} шт.`);
-            }
-            break;
-          }
+          resources[resourceId].baseProduction += productionAmount;
           
-          case 'homeComputer': {
-            // Домашний компьютер производит вычислительную мощность
-            if (resources.computingPower && resources.electricity) {
-              // Компьютер дает строго 2 вычисл. мощности в секунду и потребляет 1 электричества
-              const computerCount = building.count;
-              const powerPerComputer = 2;
-              const totalPowerFromComputers = computerCount * powerPerComputer;
-              
-              // Добавляем производство к базовому
-              resources.computingPower.production += totalPowerFromComputers;
-              
-              // Потребление электричества компьютерами
-              const electricityPerComputer = 1;
-              const totalElectricityConsumption = computerCount * electricityPerComputer;
-              
-              // Вычитаем потребление из производства электричества
-              resources.electricity.production -= totalElectricityConsumption;
-              
-              console.log(`ResourceProductionService: Производство вычислительной мощности: ${totalPowerFromComputers.toFixed(2)}/сек за ${computerCount} шт.`);
-              console.log(`ResourceProductionService: Потребление электричества компьютерами: ${totalElectricityConsumption.toFixed(2)}/сек`);
-            }
-            break;
-          }
-          
-          case 'autoMiner': {
-            // Автомайнер производит Bitcoin, но потребляет электричество и вычисл. мощность
-            if (resources.bitcoin && resources.electricity && resources.computingPower) {
-              // Майнер производит 0.00005 Bitcoin за каждый уровень
-              const minerCount = building.count;
-              const bitcoinPerMiner = 0.00005;
-              const miningEfficiency = state.miningParams?.miningEfficiency || 1;
-              
-              // Применяем эффективность майнинга
-              const totalBitcoinFromMiners = minerCount * bitcoinPerMiner * miningEfficiency;
-              
-              // Добавляем производство Bitcoin
-              resources.bitcoin.production += totalBitcoinFromMiners;
-              
-              // Потребление ресурсов автомайнерами
-              const electricityPerMiner = 1;
-              const computingPowerPerMiner = 5;
-              
-              const totalElectricityConsumption = minerCount * electricityPerMiner;
-              const totalComputingPowerConsumption = minerCount * computingPowerPerMiner;
-              
-              // Вычитаем потребление
-              resources.electricity.production -= totalElectricityConsumption;
-              resources.computingPower.production -= totalComputingPowerConsumption;
-              
-              console.log(`ResourceProductionService: Производство Bitcoin: ${totalBitcoinFromMiners.toFixed(8)}/сек за ${minerCount} шт.`);
-              console.log(`ResourceProductionService: Потребление электричества майнерами: ${totalElectricityConsumption.toFixed(2)}/сек`);
-              console.log(`ResourceProductionService: Потребление вычислительной мощности: ${totalComputingPowerConsumption.toFixed(2)}/сек`);
-            }
-            break;
-          }
-          
-          // Добавляем и другие здания по мере необходимости
+          console.log(`ResourceProductionService: ${building.name} (${building.count} шт.) производит ${productionAmount} ${resourceId}/сек`);
         }
       }
     }
   }
-
+  
   /**
-   * Рассчитывает базовое производство ресурсов от улучшений и других источников
+   * Рассчитывает бонус производства для указанного ресурса
    */
-  private calculateBaseProduction(state: GameState, resources: { [key: string]: any }): void {
-    // Обработка базового производства знаний (от исследований)
-    if (resources.knowledge) {
-      // Базовое производство знаний (возможно установлено "Основами блокчейна")
-      const baseKnowledgeProduction = resources.knowledge.baseProduction || 0;
+  private calculateResourceProductionBonus(state: GameState, resourceId: string): number {
+    try {
+      // Начинаем с бонуса 100% (множитель 1.0)
+      let totalBonus = 1.0;
+      const bonusDetails = [];
       
-      // Добавляем базовое производство к общему
-      resources.knowledge.production += baseKnowledgeProduction;
+      // Собираем бонусы от исследований
+      try {
+        // Для знаний: проверяем "Основы блокчейна"
+        if (resourceId === 'knowledge') {
+          const blockchainBasicsPurchased = 
+            (state.upgrades.blockchainBasics?.purchased) ||
+            (state.upgrades.basicBlockchain?.purchased) ||
+            (state.upgrades.blockchain_basics?.purchased);
+          
+          if (blockchainBasicsPurchased) {
+            // Основы блокчейна дают +10% к скорости получения знаний
+            totalBonus += 0.1;
+            bonusDetails.push(`Основы блокчейна: +10%`);
+          }
+        }
+      } catch (error) {
+        console.error('ResourceProductionService: Ошибка при расчете бонусов от исследований', error);
+      }
       
-      console.log(`ResourceProductionService: Базовое производство знаний: ${baseKnowledgeProduction.toFixed(2)}/сек`);
-    }
-    
-    // Здесь можно добавить обработку базового производства для других ресурсов
-  }
-
-  /**
-   * Убеждаемся, что критические ресурсы существуют и корректно настроены
-   */
-  private ensureCriticalResources(state: GameState, resources: { [key: string]: any }): void {
-    // Список критически важных ресурсов и их настройки
-    const criticalResourcesList = [
-      { id: 'knowledge', name: 'Знания', baseProduction: 0, max: 100 },
-      { id: 'usdt', name: 'USDT', baseProduction: 0, max: 50 },
-      { id: 'electricity', name: 'Электричество', baseProduction: 0, max: 100 },
-      { id: 'computingPower', name: 'Вычислительная мощность', baseProduction: 0, max: 1000 },
-      { id: 'bitcoin', name: 'Bitcoin', baseProduction: 0, max: 0.01 }
-    ];
-    
-    for (const critResource of criticalResourcesList) {
-      // Проверяем только для разблокированных ресурсов
-      if (!state.unlocks[critResource.id] && critResource.id !== 'knowledge') continue;
-      
-      if (!resources[critResource.id]) {
-        console.warn(`ResourceProductionService: Критический ресурс ${critResource.id} отсутствует, создаем...`);
+      // Бонусы от зданий
+      try {
+        if (resourceId === 'knowledge') {
+          // Интернет-канал: +20% к скорости получения знаний за каждый
+          if (state.buildings.internetConnection && 
+              state.buildings.internetConnection.count > 0 && 
+              state.buildings.internetConnection.unlocked) {
+            const internetConnectionCount = state.buildings.internetConnection.count;
+            const internetBonus = 0.2 * internetConnectionCount;
+            totalBonus += internetBonus;
+            bonusDetails.push(`Интернет-канал (${internetConnectionCount} шт.): +${(internetBonus * 100).toFixed(0)}%`);
+          }
+        }
         
-        // Создаем базовую структуру для ресурса
-        resources[critResource.id] = {
-          id: critResource.id,
-          name: critResource.name,
-          value: 0,
-          production: 0,
-          perSecond: 0,
-          baseProduction: critResource.baseProduction,
-          max: critResource.max,
-          unlocked: true
-        };
-      }
-    }
-  }
-
-  /**
-   * Применяет финальные бонусы и рассчитывает итоговые скорости производства
-   */
-  private applyFinalBonuses(state: GameState, resources: { [key: string]: any }): void {
-    // Проходим по всем ресурсам
-    for (const resourceId in resources) {
-      if (!resources[resourceId]) continue;
-      
-      const resource = resources[resourceId];
-      
-      // Получаем множители для ресурса, используя отдельные методы вместо calculateResourceBonuses
-      const productionMultiplier = this.bonusCalculationService.calculateProductionMultiplier(state, resourceId);
-      const maxMultiplier = this.bonusCalculationService.calculateMaxValueMultiplier(state, resourceId);
-      
-      // Применяем множитель к производству
-      const finalProduction = resource.production * productionMultiplier;
-      
-      // Устанавливаем perSecond как итоговое производство в секунду
-      resource.perSecond = finalProduction;
-      
-      // Обновляем максимальное значение ресурса с учетом множителя
-      if (resource.max !== undefined && maxMultiplier > 1) {
-        const baseMax = resourceId === 'knowledge' ? 100 :
-                      resourceId === 'usdt' ? 50 :
-                      resourceId === 'electricity' ? 100 :
-                      resourceId === 'computingPower' ? 1000 :
-                      resourceId === 'bitcoin' ? 0.01 : resource.max;
-                      
-        resource.max = baseMax * maxMultiplier;
+        // Другие бонусы от зданий могут быть добавлены здесь
+      } catch (error) {
+        console.error('ResourceProductionService: Ошибка при расчете бонусов от зданий', error);
       }
       
-      // Логируем для ключевых ресурсов
+      // Бонусы от специализации
+      try {
+        if (resourceId === 'knowledge') {
+          // Аналитик: +25% к знаниям
+          if (state.specialization === 'analyst') {
+            totalBonus += 0.25;
+            bonusDetails.push(`Специализация Аналитик: +25%`);
+          } 
+          // Инфлюенсер: +10% к знаниям
+          else if (state.specialization === 'influencer') {
+            totalBonus += 0.1;
+            bonusDetails.push(`Специализация Инфлюенсер: +10%`);
+          }
+        }
+      } catch (error) {
+        console.error('ResourceProductionService: Ошибка при расчете бонусов от специализации', error);
+      }
+      
+      // Бонусы от помощников и рефералов
+      try {
+        // Бонус от активных рефералов: +5% за каждого
+        const activeReferrals = state.referrals 
+          ? Object.values(state.referrals).filter(ref => ref.active).length 
+          : 0;
+        
+        if (activeReferrals > 0) {
+          const referralBonus = activeReferrals * 0.05;
+          totalBonus += referralBonus;
+          bonusDetails.push(`Активные рефералы (${activeReferrals} шт.): +${(referralBonus * 100).toFixed(0)}%`);
+        }
+        
+        // Бонус от помощников на практике: +15% за каждого
+        if (resourceId === 'knowledge') {
+          const helpers = state.referralHelpers || {};
+          let helperBonus = 0;
+          let activeHelpers = 0;
+          
+          for (const helperId in helpers) {
+            const helper = helpers[helperId];
+            if (helper.status === 'active' && helper.buildingId === 'practice') {
+              helperBonus += 0.15;
+              activeHelpers++;
+            }
+          }
+          
+          if (activeHelpers > 0) {
+            totalBonus += helperBonus;
+            bonusDetails.push(`Помощники на практике (${activeHelpers} шт.): +${(helperBonus * 100).toFixed(0)}%`);
+          }
+        }
+      } catch (error) {
+        console.error('ResourceProductionService: Ошибка при расчете бонусов от рефералов и помощников', error);
+      }
+      
+      // Логируем итоговый бонус для знаний
       if (resourceId === 'knowledge') {
-        console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${finalProduction.toFixed(2)}/сек (базовое: ${resource.production.toFixed(2)}, множитель: ${productionMultiplier.toFixed(2)})`);
-        console.log(`ResourceProductionService: Максимум ${resourceId}: ${resource.max.toFixed(2)} (множитель: ${maxMultiplier.toFixed(2)})`);
-      } else if (resource.perSecond !== 0) {
-        console.log(`ResourceProductionService: Итоговое производство ${resourceId}: ${finalProduction.toFixed(2)}/сек`);
+        console.log(`ResourceProductionService: Расчет бонусов для knowledge:`);
+        bonusDetails.forEach(detail => console.log(`- ${detail}`));
+        console.log(`ResourceProductionService: Итоговый множитель для knowledge: ${totalBonus.toFixed(2)}`);
       }
+      
+      return totalBonus;
+    } catch (error) {
+      console.error(`ResourceProductionService: Ошибка при расчете бонуса для ${resourceId}`, error);
+      return 1.0; // В случае ошибки возвращаем множитель 1 (без бонусов)
     }
   }
 }

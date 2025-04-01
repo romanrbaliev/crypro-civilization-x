@@ -41,13 +41,13 @@ export const debugKnowledgeProduction = (state: GameState) => {
     if (blockchainBasicsPurchased) {
       researchMultiplier += 0.1; // +10%
       steps.push(`• Основы блокчейна: +10%`);
+    } else {
+      steps.push('Нет бонусов от исследований');
     }
-    
-    steps.push(`Множитель от исследований: ×${researchMultiplier.toFixed(2)}`);
     
     // Шаг 3: Применяем бонусы от зданий
     steps.push('\nБонусы от зданий:');
-    let buildingBonusMultiplier = 1;
+    let buildingBonusMultiplier = 0;
     
     // Проверяем интернет-канал
     if (state.buildings.internetConnection && state.buildings.internetConnection.count > 0) {
@@ -55,11 +55,13 @@ export const debugKnowledgeProduction = (state: GameState) => {
       const internetConnectionBonus = 0.2 * internetConnectionCount; // +20% за каждый уровень
       buildingBonusMultiplier += internetConnectionBonus;
       steps.push(`• Интернет-канал (${internetConnectionCount} шт.): +${(internetConnectionBonus * 100).toFixed(0)}%`);
+    } else {
+      steps.push('Нет бонусов от зданий');
     }
     
     // Шаг 4: Применяем бонусы от специализации
     steps.push('\nБонусы от специализации:');
-    let specializationMultiplier = 1;
+    let specializationMultiplier = 0;
     
     if (state.specialization === 'analyst') {
       specializationMultiplier += 0.25; // +25%
@@ -85,15 +87,18 @@ export const debugKnowledgeProduction = (state: GameState) => {
     }
     
     // Проверяем помощников
+    steps.push('\nБонусы от помощников:');
     let helperBonus = 0;
     const helpers = state.referralHelpers || {};
     let hasActiveHelpers = false;
+    let activeHelperCount = 0;
     
     for (const helperId in helpers) {
       const helper = helpers[helperId];
       if (helper.status === 'active' && helper.buildingId === 'practice') {
         hasActiveHelpers = true;
         helperBonus += 0.15; // +15% за каждого помощника на практике
+        activeHelperCount++;
         steps.push(`• Статус помощника ${helper.helper_id}: ${helper.status} (+15%)`);
       }
     }
@@ -102,23 +107,25 @@ export const debugKnowledgeProduction = (state: GameState) => {
       steps.push('Нет активных помощников');
     }
     
-    // Общий бонус от рефералов и помощников
-    const socialMultiplier = 1 + referralBonus + helperBonus;
+    // Общий бонус от всех факторов
+    const totalMultiplier = 1 + researchMultiplier - 1 + buildingBonusMultiplier + specializationMultiplier + referralBonus + helperBonus;
     
     // Шаг 6: Итоговый расчет
-    steps.push('\nНет активных рефералов или помощников.');
-    
     steps.push('\nИтоговый расчет:');
     steps.push(`Базовое производство: ${baseProduction.toFixed(2)} знаний/сек`);
-    steps.push(`С учетом исследований: ${baseProduction.toFixed(2)} × ${researchMultiplier.toFixed(2)} = ${(baseProduction * researchMultiplier).toFixed(2)} знаний/сек`);
+    steps.push(`Общий бонус производства: ×${totalMultiplier.toFixed(2)}`);
+    steps.push(`Итоговая скорость: ${baseProduction.toFixed(2)} × ${totalMultiplier.toFixed(2)} = ${(baseProduction * totalMultiplier).toFixed(2)} знаний/сек`);
     
-    finalValue = baseProduction * researchMultiplier;
+    finalValue = baseProduction * totalMultiplier;
     
     // Добавляем сравнение с текущим значением в состоянии
     steps.push(`\nТекущее значение в state.resources.knowledge.perSecond: ${state.resources.knowledge.perSecond.toFixed(2)} знаний/сек`);
     
     if (Math.abs(state.resources.knowledge.perSecond - finalValue) > 0.01) {
       steps.push(`⚠️ Обнаружено расхождение в расчетах и текущем значении!`);
+      steps.push(`Разница: ${Math.abs(state.resources.knowledge.perSecond - finalValue).toFixed(2)}`);
+    } else {
+      steps.push(`✅ Текущее значение соответствует расчетам`);
     }
     
   } catch (error) {
@@ -128,4 +135,3 @@ export const debugKnowledgeProduction = (state: GameState) => {
   
   return { steps, finalValue };
 };
-
