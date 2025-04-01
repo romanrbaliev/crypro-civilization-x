@@ -33,7 +33,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Проверяем, должна ли кнопка изучения быть скрыта
   // Кнопка скрывается, если скорость производства знаний >= 10/сек
-  const shouldHideLearnButton = resources.knowledge?.perSecond >= 10;
+  const shouldHideLearnButton = (resources.knowledge?.perSecond || 0) >= 10;
   
   // Проверка разблокировки кнопки "Применить знания"
   const applyKnowledgeUnlocked = isApplyKnowledgeUnlocked(state);
@@ -123,6 +123,13 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     const commissionAmount = usdtAmountBeforeCommission * commission;
     const finalUsdtAmount = usdtAmountBeforeCommission - commissionAmount;
     
+    // Форматирование чисел с защитой от null
+    const safeFormatBitcoin = (value: number) => 
+      value !== null && value !== undefined ? value.toFixed(8) : "0.00000000";
+      
+    const safeFormatUsdt = (value: number) => 
+      value !== null && value !== undefined ? value.toFixed(2) : "0.00";
+    
     console.log("handleExchangeBitcoin: Вызов обмена Bitcoin", {
       bitcoinAmount,
       bitcoinPrice,
@@ -134,7 +141,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Более детальное сообщение для журнала событий
     onAddEvent(
-      `Обменяны ${bitcoinAmount.toFixed(8)} Bitcoin на ${finalUsdtAmount.toFixed(2)} USDT по курсу ${bitcoinPrice}`, 
+      `Обменяны ${safeFormatBitcoin(bitcoinAmount)} Bitcoin на ${safeFormatUsdt(finalUsdtAmount)} USDT по курсу ${bitcoinPrice}`, 
       "success"
     );
   }, [dispatch, onAddEvent, currentExchangeRate, resources.bitcoin?.value, state.miningParams?.exchangeCommission]);
@@ -142,7 +149,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   // Функция проверки доступности кнопки
   const isButtonEnabled = useCallback((resourceId: string, cost: number) => {
     const resource = resources[resourceId];
-    return resource && resource.value >= cost;
+    return resource && (resource.value || 0) >= cost;
   }, [resources]);
   
   // Обновление курса обмена Bitcoin

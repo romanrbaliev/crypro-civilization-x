@@ -19,7 +19,7 @@ interface ResourceCardProps {
 }
 
 const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
-  const { id, name, value, max, perSecond } = resource;
+  const { id, name, value = 0, max = Infinity, perSecond = 0 } = resource;
   
   const getResourceIcon = (iconName: string) => {
     // Используем иконки из lucide-react напрямую

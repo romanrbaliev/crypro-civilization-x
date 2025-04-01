@@ -33,7 +33,12 @@ const KnowledgeProductionPopup = () => {
           
           // Сравниваем с текущим значением в state
           const currentPerSecond = state.resources.knowledge?.perSecond || 0;
-          console.log(`KnowledgeProductionPopup: Расчетное значение=${finalValue.toFixed(2)}, текущее=${currentPerSecond.toFixed(2)}`);
+          
+          // Защита от null при вызове toFixed
+          const formattedFinalValue = finalValue !== null && finalValue !== undefined ? finalValue.toFixed(2) : "0.00";
+          const formattedCurrentPerSecond = currentPerSecond !== null && currentPerSecond !== undefined ? currentPerSecond.toFixed(2) : "0.00";
+          
+          console.log(`KnowledgeProductionPopup: Расчетное значение=${formattedFinalValue}, текущее=${formattedCurrentPerSecond}`);
           
           // Проверяем расхождение
           if (Math.abs(finalValue - currentPerSecond) > 0.01) {
@@ -78,7 +83,9 @@ const KnowledgeProductionPopup = () => {
           
           <div className="flex justify-between mb-3">
             <span className="text-sm">Производство знаний:</span>
-            <span className="font-semibold text-sm">{loading ? '...' : `${finalValue.toFixed(2)}/сек`}</span>
+            <span className="font-semibold text-sm">
+              {loading ? '...' : `${finalValue !== null ? finalValue.toFixed(2) : '0.00'}/сек`}
+            </span>
           </div>
           
           <div className="mt-2 p-2 bg-gray-50 rounded border text-xs text-gray-600 max-h-80 overflow-y-auto whitespace-pre-line">

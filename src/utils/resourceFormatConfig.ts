@@ -64,7 +64,9 @@ export const getResourceFormat = (resourceId: string): ResourceFormatConfig => {
 /**
  * Форматирование числового значения ресурса
  */
-export const formatResourceValue = (value: number, resourceId: string): string => {
+export const formatResourceValue = (value: number | null | undefined, resourceId: string): string => {
+  // Проверка на null или undefined
+  if (value === null || value === undefined) return "0";
   if (value === Infinity) return "∞";
   if (isNaN(value)) return "0";
   

@@ -11,7 +11,7 @@ interface ResourceDisplayProps {
 }
 
 const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedValue: propFormattedValue, formattedPerSecond: propFormattedPerSecond }) => {
-  const { id, name, value, max, perSecond } = resource;
+  const { id, name, value = 0, max = Infinity, perSecond = 0 } = resource;
   const prevValueRef = useRef(value);
   const resourceRef = useRef<HTMLDivElement>(null);
   
@@ -59,7 +59,9 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   }, [value, id]);
 
   // Добавляем отладочную информацию при наведении
-  const debugInfo = `ID: ${id}, Значение: ${value.toFixed(2)}, Производство: ${perSecond.toFixed(3)}/сек`;
+  const safeValue = value !== null && value !== undefined ? value.toFixed(2) : "0.00";
+  const safePerSecond = perSecond !== null && perSecond !== undefined ? perSecond.toFixed(3) : "0.000";
+  const debugInfo = `ID: ${id}, Значение: ${safeValue}, Производство: ${safePerSecond}/сек`;
 
   return (
     <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
