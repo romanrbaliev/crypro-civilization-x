@@ -90,8 +90,6 @@ export class BonusCalculationService {
         }
       }
       
-      // Другие источники бонусов можно добавить здесь
-      
     } catch (error) {
       console.error(`Ошибка при расчёте бонусов для ресурса ${resourceId}:`, error);
     }
@@ -121,8 +119,6 @@ export class BonusCalculationService {
         }
       }
       
-      // Другие источники бонусов
-      
     } catch (error) {
       console.error("Ошибка при расчёте эффективности майнинга:", error);
     }
@@ -144,12 +140,48 @@ export class BonusCalculationService {
         efficiency -= 0.1;
       }
       
-      // Другие исследования
-      
     } catch (error) {
       console.error("Ошибка при расчёте энергоэффективности:", error);
     }
     
     return Math.max(0.5, efficiency); // Минимальное значение 0.5 (не меньше 50% потребления)
+  }
+
+  /**
+   * Применяет бонусы от улучшения к состоянию игры
+   * @param state Состояние игры
+   * @param upgradeId ID улучшения
+   * @returns Обновленное состояние игры
+   */
+  applyUpgradeBonuses(state: any, upgradeId: string): any {
+    console.log(`Применение бонусов от улучшения ${upgradeId}`);
+    
+    // В будущем здесь может быть более сложная логика
+    // для применения различных бонусов от разных улучшений
+    
+    return state;
+  }
+
+  /**
+   * Пересчитывает все бонусы для всех ресурсов
+   * @param state Состояние игры
+   * @returns Обновленное состояние игры
+   */
+  recalculateAllBonuses(state: any): any {
+    console.log("Пересчет всех бонусов");
+    
+    // Создаем копию состояния
+    const updatedState = { ...state };
+    
+    // Пересчитываем бонусы для каждого ресурса
+    const resourceIds = Object.keys(updatedState.resources);
+    for (const resourceId of resourceIds) {
+      if (updatedState.resources[resourceId].unlocked) {
+        const bonuses = this.calculateResourceBonuses(updatedState, resourceId);
+        console.log(`Бонусы для ресурса ${resourceId}:`, bonuses);
+      }
+    }
+    
+    return updatedState;
   }
 }

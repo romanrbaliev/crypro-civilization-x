@@ -33,13 +33,32 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   // Обновляем счетчик применений знаний
   const newCounter = {
-    ...state.counters,
-    applyKnowledge: state.counters.applyKnowledge 
-      ? (typeof state.counters.applyKnowledge === 'object' 
-          ? { ...state.counters.applyKnowledge, value: state.counters.applyKnowledge.value + 1 }
-          : state.counters.applyKnowledge + 1)
-      : { id: 'applyKnowledge', name: 'Применение знаний', value: 1 }
+    ...state.counters
   };
+  
+  // Корректное обновление счетчика с учетом типа Counter
+  if (state.counters.applyKnowledge) {
+    if (typeof state.counters.applyKnowledge === 'object') {
+      newCounter.applyKnowledge = {
+        ...state.counters.applyKnowledge,
+        value: state.counters.applyKnowledge.value + 1
+      };
+    } else {
+      // Если счетчик почему-то был числом, создаем объект
+      newCounter.applyKnowledge = {
+        id: 'applyKnowledge',
+        name: 'Применение знаний',
+        value: (typeof state.counters.applyKnowledge === 'number' ? state.counters.applyKnowledge : 0) + 1
+      };
+    }
+  } else {
+    // Создаем счетчик если его нет
+    newCounter.applyKnowledge = {
+      id: 'applyKnowledge',
+      name: 'Применение знаний',
+      value: 1
+    };
+  }
   
   // Создаем копию ресурсов для изменения
   const updatedResources = { ...state.resources };
@@ -58,8 +77,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   // Проверка, был ли этот первый обмен знаний (для разблокировки USDT)
   const isFirstApply = !state.counters.applyKnowledge || 
-                      (typeof state.counters.applyKnowledge === 'object' && state.counters.applyKnowledge.value === 0) ||
-                      state.counters.applyKnowledge === 0;
+                      (typeof state.counters.applyKnowledge === 'object' && state.counters.applyKnowledge.value === 0);
   
   // Если это первая конвертация, разблокируем USDT
   if (isFirstApply) {
