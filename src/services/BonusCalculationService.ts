@@ -40,6 +40,13 @@ export class BonusCalculationService {
             }
           }
           
+          // Применяем увеличение производства общее (например, knowledgeBoost)
+          if (resourceId === 'knowledge' && effects.knowledgeBoost !== undefined) {
+            const boost = Number(effects.knowledgeBoost);
+            productionMultiplier += boost;
+            console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к производству знаний`);
+          }
+          
           // Применяем бонусы к максимальному значению
           if (effects[`${resourceId}MaxBoost`] !== undefined) {
             const boost = Number(effects[`${resourceId}MaxBoost`]);
@@ -48,6 +55,13 @@ export class BonusCalculationService {
             if (resourceId === 'knowledge') {
               console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к максимуму ${resourceId}`);
             }
+          }
+          
+          // Применяем бонусы к максимуму общие (например, knowledgeMaxBoost)
+          if (resourceId === 'knowledge' && effects.knowledgeMaxBoost !== undefined) {
+            const boost = Number(effects.knowledgeMaxBoost);
+            maxMultiplier += boost;
+            console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к максимуму знаний`);
           }
           
           // Обрабатываем специальные эффекты для конкретных исследований
@@ -156,10 +170,58 @@ export class BonusCalculationService {
   applyUpgradeBonuses(state: any, upgradeId: string): any {
     console.log(`Применение бонусов от улучшения ${upgradeId}`);
     
-    // В будущем здесь может быть более сложная логика
-    // для применения различных бонусов от разных улучшений
+    // Создаем копию состояния
+    const updatedState = { ...state };
+    const upgrade = updatedState.upgrades[upgradeId];
     
-    return state;
+    if (!upgrade || !upgrade.purchased) {
+      return updatedState;
+    }
+    
+    // Обрабатываем специальные эффекты для конкретных улучшений
+    if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
+      console.log("BonusCalculationService: Применяем специальные эффекты 'Основы блокчейна'");
+      
+      // 1. Увеличиваем макс. хранение знаний на 50%
+      if (updatedState.resources.knowledge) {
+        const currentMax = updatedState.resources.knowledge.max || 100;
+        const newMax = currentMax * 1.5;
+        
+        updatedState.resources.knowledge = {
+          ...updatedState.resources.knowledge,
+          max: newMax
+        };
+        
+        console.log(`BonusCalculationService: Максимум знаний увеличен с ${currentMax} до ${newMax}`);
+      }
+      
+      // 2. Разблокируем криптокошелек
+      if (updatedState.buildings.cryptoWallet) {
+        updatedState.buildings.cryptoWallet = {
+          ...updatedState.buildings.cryptoWallet,
+          unlocked: true
+        };
+        
+        // Добавляем флаг разблокировки в unlocks
+        updatedState.unlocks = {
+          ...updatedState.unlocks,
+          cryptoWallet: true
+        };
+        
+        console.log("BonusCalculationService: Криптокошелек разблокирован");
+      }
+      
+      // 3. Разблокируем исследование "Основы криптовалют"
+      if (updatedState.upgrades.cryptoCurrencyBasics) {
+        updatedState.upgrades.cryptoCurrencyBasics = {
+          ...updatedState.upgrades.cryptoCurrencyBasics,
+          unlocked: true
+        };
+        console.log("BonusCalculationService: Исследование 'Основы криптовалют' разблокировано");
+      }
+    }
+    
+    return updatedState;
   }
 
   /**
@@ -180,6 +242,15 @@ export class BonusCalculationService {
         const bonuses = this.calculateResourceBonuses(updatedState, resourceId);
         console.log(`Бонусы для ресурса ${resourceId}:`, bonuses);
       }
+    }
+    
+    // Применяем специальные эффекты для всех купленных улучшений
+    const purchasedUpgrades = Object.entries(updatedState.upgrades)
+      .filter(([_, upgrade]) => (upgrade as any).purchased)
+      .map(([id]) => id);
+    
+    for (const upgradeId of purchasedUpgrades) {
+      updatedState = this.applyUpgradeBonuses(updatedState, upgradeId);
     }
     
     return updatedState;

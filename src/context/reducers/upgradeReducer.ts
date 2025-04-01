@@ -81,7 +81,40 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     }
     
     // 2. Увеличиваем скорость производства знаний на 10%
-    // Это будет обрабатываться сервисом BonusCalculationService
+    // Обновляем эффекты улучшения, чтобы BonusCalculationService правильно их учитывал
+    newState.upgrades[upgradeId] = {
+      ...newState.upgrades[upgradeId],
+      effects: {
+        ...(newState.upgrades[upgradeId].effects || {}),
+        knowledgeBoost: 0.1,
+        knowledgeMaxBoost: 0.5
+      }
+    };
+    
+    // 3. Разблокируем криптокошелек
+    if (newState.buildings.cryptoWallet) {
+      newState.buildings.cryptoWallet = {
+        ...newState.buildings.cryptoWallet,
+        unlocked: true
+      };
+      
+      // Добавляем флаг разблокировки в unlocks
+      newState.unlocks = {
+        ...newState.unlocks,
+        cryptoWallet: true
+      };
+      
+      console.log("Криптокошелек разблокирован");
+    }
+    
+    // 4. Разблокируем исследование "Основы криптовалют"
+    if (newState.upgrades.cryptoCurrencyBasics) {
+      newState.upgrades.cryptoCurrencyBasics = {
+        ...newState.upgrades.cryptoCurrencyBasics,
+        unlocked: true
+      };
+      console.log("Исследование 'Основы криптовалют' разблокировано");
+    }
     
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Основы блокчейна: +50% к макс. хранению знаний, +10% к скорости их получения", "success");

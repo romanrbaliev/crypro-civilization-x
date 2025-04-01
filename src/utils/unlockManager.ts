@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -47,17 +48,17 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
       return state;
     }
     
-    // Проверка разблокировки USDT (нужно 3+ кликов на "Изучить крипту")
-    if (counters.knowledgeClicks) {
-      const knowledgeClicks = typeof counters.knowledgeClicks === 'object' 
-        ? counters.knowledgeClicks.value 
-        : counters.knowledgeClicks;
+    // ИСПРАВЛЕНО: Проверка разблокировки USDT (нужно 1+ применений знаний)
+    if (counters.applyKnowledge) {
+      const applyCount = typeof counters.applyKnowledge === 'object' 
+        ? counters.applyKnowledge.value 
+        : counters.applyKnowledge;
         
-      console.log(`unlockManager: Проверка разблокировки USDT, кликов: ${knowledgeClicks}`);
+      console.log(`unlockManager: Проверка разблокировки USDT, применений знаний: ${applyCount}`);
       
-      if (knowledgeClicks >= 3) {
+      if (applyCount >= 1) {
         if (!newUnlocks.usdt) {
-          console.log('unlockManager: Разблокирован USDT');
+          console.log('unlockManager: Разблокирован USDT - применено знаний');
           newUnlocks.usdt = true;
         }
       }
@@ -168,53 +169,48 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       safeDispatchGameEvent('Разблокировано: Практика', 'success');
     }
     
-    // Разблокировка "Генератор" (нужно 11+ USDT)
-    if (resources.usdt && resources.usdt.unlocked && resources.usdt.value >= 11) {
-      if (!unlocks.generator) {
-        console.log('unlockManager: Разблокирована возможность Генератор');
-        unlocks.generator = true;
-      }
+    // ИСПРАВЛЕНО: Разблокировка "Генератор" (нужно 11+ USDT)
+    // После разблокировки генератор остается разблокированным навсегда
+    if (resources.usdt && resources.usdt.unlocked) {
+      const hasEnoughUsdt = resources.usdt.value >= 11;
+      const isAlreadyUnlocked = buildings.generator?.count > 0;
       
-      if (buildings.generator && !buildings.generator.unlocked) {
-        console.log('unlockManager: Разблокировано здание Генератор');
-        buildings.generator.unlocked = true;
-        safeDispatchGameEvent('Разблокировано: Генератор', 'success');
+      // Разблокируем, если достаточно USDT или если уже есть хотя бы один генератор
+      if (hasEnoughUsdt || isAlreadyUnlocked) {
+        if (!unlocks.generator) {
+          console.log('unlockManager: Разблокирована возможность Генератор');
+          unlocks.generator = true;
+        }
+        
+        if (buildings.generator && !buildings.generator.unlocked) {
+          console.log('unlockManager: Разблокировано здание Генератор');
+          buildings.generator.unlocked = true;
+          safeDispatchGameEvent('Разблокировано: Генератор', 'success');
+        }
       }
     }
     
-    // Валидация, чтобы избежать преждевременной разблокировки зданий
-    for (const buildingId in buildings) {
-      const building = buildings[buildingId];
+    // ДОБАВЛЕНО: Разблокировка криптокошелька после покупки Основ блокчейна
+    if (state.upgrades.blockchainBasics?.purchased) {
+      if (buildings.cryptoWallet && !buildings.cryptoWallet.unlocked) {
+        console.log('unlockManager: Разблокировано здание Криптокошелек');
+        buildings.cryptoWallet.unlocked = true;
+        unlocks.cryptoWallet = true;
+        safeDispatchGameEvent('Разблокировано: Криптокошелек', 'success');
+      }
+    }
+    
+    // Проверка разблокировки домашнего компьютера (50+ электричества)
+    if (resources.electricity && resources.electricity.unlocked && resources.electricity.value >= 50) {
+      if (!unlocks.homeComputer) {
+        console.log('unlockManager: Разблокирована возможность Домашний компьютер');
+        unlocks.homeComputer = true;
+      }
       
-      // Для каждого здания проверяем конкретные условия разблокировки
-      switch(buildingId) {
-        case 'practice':
-          // Проверяем только счетчик applyKnowledge
-          if (!unlocks.practice) {
-            building.unlocked = false;
-          }
-          break;
-          
-        case 'generator':
-          // Строгая проверка наличия достаточного количества USDT
-          if (!resources.usdt || !resources.usdt.unlocked || resources.usdt.value < 11) {
-            building.unlocked = false;
-            unlocks.generator = false;
-          }
-          break;
-          
-        case 'homeComputer':
-          // Проверяем наличие достаточного количества электричества
-          if (!resources.electricity || resources.electricity.value < 50) {
-            building.unlocked = false;
-            unlocks.homeComputer = false;
-          } else if (!building.unlocked && resources.electricity && resources.electricity.value >= 50) {
-            // Если условия выполнены и здание еще не разблокировано, разблокируем его
-            building.unlocked = true;
-            unlocks.homeComputer = true;
-            safeDispatchGameEvent('Разблокировано: Домашний компьютер', 'success');
-          }
-          break;
+      if (buildings.homeComputer && !buildings.homeComputer.unlocked) {
+        console.log('unlockManager: Разблокировано здание Домашний компьютер');
+        buildings.homeComputer.unlocked = true;
+        safeDispatchGameEvent('Разблокировано: Домашний компьютер', 'success');
       }
     }
     
@@ -258,7 +254,14 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         }
       }
       
-      // Другие исследования можно добавить здесь...
+      // ДОБАВЛЕНО: Разблокировка "Основы криптовалют" после покупки Основ блокчейна
+      if (state.upgrades.blockchainBasics?.purchased) {
+        if (upgrades.cryptoCurrencyBasics && !upgrades.cryptoCurrencyBasics.unlocked) {
+          console.log('unlockManager: Разблокировано исследование Основы криптовалют');
+          upgrades.cryptoCurrencyBasics.unlocked = true;
+          safeDispatchGameEvent('Разблокировано исследование: Основы криптовалют', 'success');
+        }
+      }
     }
     
     // Проверяем, нужно ли разблокировать исследования
