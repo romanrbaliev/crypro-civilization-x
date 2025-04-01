@@ -191,7 +191,11 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     }
     
     // ИСПРАВЛЕНО: Разблокировка криптокошелька после покупки Основ блокчейна
-    if (state.upgrades.blockchainBasics?.purchased) {
+    const hasBlockchainBasics = state.upgrades.blockchainBasics?.purchased || 
+                               state.upgrades.basicBlockchain?.purchased || 
+                               state.upgrades.blockchain_basics?.purchased;
+                               
+    if (hasBlockchainBasics) {
       if (buildings.cryptoWallet && !buildings.cryptoWallet.unlocked) {
         console.log('unlockManager: Разблокировано здание Криптокошелек');
         buildings.cryptoWallet.unlocked = true;
@@ -215,17 +219,36 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     }
     
     // ИСПРАВЛЕНО: Разблокировка майнера после покупки "Основы криптовалют"
-    if (state.upgrades.cryptoCurrencyBasics?.purchased) {
+    const hasCryptoBasics = state.upgrades.cryptoCurrencyBasics?.purchased || 
+                           state.upgrades.cryptoBasics?.purchased;
+                           
+    if (hasCryptoBasics) {
       console.log('unlockManager: Проверка разблокировки Майнера после покупки Основ криптовалют');
+      
+      // Принудительно разблокируем майнер
       if (!unlocks.miner) {
         console.log('unlockManager: Разблокирована возможность Майнер');
         unlocks.miner = true;
       }
       
+      // Проверяем оба возможных ID для майнера
       if (buildings.miner && !buildings.miner.unlocked) {
         console.log('unlockManager: Разблокировано здание Майнер');
         buildings.miner.unlocked = true;
         safeDispatchGameEvent('Разблокировано: Майнер', 'success');
+      }
+      
+      // Альтернативное ID для майнера
+      if (buildings.autoMiner && !buildings.autoMiner.unlocked) {
+        console.log('unlockManager: Разблокировано здание Автомайнер');
+        buildings.autoMiner.unlocked = true;
+        safeDispatchGameEvent('Разблокировано: Автомайнер', 'success');
+      }
+      
+      // Разблокируем Bitcoin как ресурс
+      if (!unlocks.bitcoin) {
+        unlocks.bitcoin = true;
+        console.log('unlockManager: Разблокирован Bitcoin');
       }
     }
     

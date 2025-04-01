@@ -32,6 +32,12 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onBuy, onSell }) 
     
     // Проверяем наличие специальных эффектов по buildingId
     switch (building.id) {
+      case 'practice':
+        effects += '+1 знаний/сек, ';
+        break;
+      case 'generator':
+        effects += '+0.5 электричества/сек, ';
+        break;
       case 'cryptoWallet':
         effects += '+50 к макс. USDT, +25% к макс. Знаниям, ';
         break;
@@ -46,6 +52,13 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, onBuy, onSell }) 
         break;
       case 'cryptoLibrary':
         effects += '+50% к скорости получения знаний, +100 к макс. Знаниям, ';
+        break;
+      case 'homeComputer':
+        effects += '+2 вычисл. мощности/сек при потреблении 1 электр./сек, ';
+        break;
+      case 'miner':
+      case 'autoMiner':
+        effects += 'Добывает 0.00005 BTC/сек, используя 1 электр. и 5 вычисл. мощности, ';
         break;
     }
     

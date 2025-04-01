@@ -63,6 +63,8 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     upgrades: updatedUpgrades
   };
   
+  console.log(`Покупка улучшения: ${upgrade.name} [ID: ${upgradeId}]`);
+  
   // Применяем специальные эффекты для конкретных улучшений
   if (upgradeId === 'blockchainBasics' || upgradeId === 'basicBlockchain' || upgradeId === 'blockchain_basics') {
     console.log("Применяем специальные эффекты 'Основы блокчейна'");
@@ -160,6 +162,30 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       };
       
       console.log("Автомайнер разблокирован");
+    }
+    
+    // Принудительно инициализируем ресурс Bitcoin если не существует
+    if (!newState.resources.bitcoin) {
+      newState.resources.bitcoin = {
+        id: 'bitcoin',
+        name: 'Bitcoin',
+        description: 'Bitcoin - первая и основная криптовалюта',
+        type: 'currency',
+        icon: 'bitcoin',
+        value: 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 0.01,
+        unlocked: true
+      };
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        bitcoin: true
+      };
+      
+      console.log("Bitcoin инициализирован");
     }
     
     // Отправляем уведомление об эффекте

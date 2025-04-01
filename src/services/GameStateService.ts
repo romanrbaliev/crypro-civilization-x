@@ -3,9 +3,11 @@ import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
 import { UnlockService } from './UnlockService';
+import { updateResourceMaxValues } from '@/context/utils/resourceUtils';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 /**
- * Централизованный сервис для управления состоянием игры
+ * Централизованный сервис для обработки изменений состояния игры
  */
 export class GameStateService {
   private resourceProductionService: ResourceProductionService;
@@ -17,127 +19,113 @@ export class GameStateService {
     this.bonusCalculationService = new BonusCalculationService();
     this.unlockService = new UnlockService();
   }
-
+  
   /**
-   * Обработка общего обновления состояния игры
+   * Обрабатывает обновление состояния игры
    */
   processGameStateUpdate(state: GameState): GameState {
-    console.log("GameStateService: Начало обработки обновления состояния");
-    
     try {
-      // Проверить разблокировки через UnlockService
-      state = this.unlockService.checkAllUnlocks(state);
+      // Обновляем ресурсы на основе их производства
+      let newState = this.updateResourceProduction(state);
       
-      // Обновить максимальные значения ресурсов
-      state = this.updateResourceMaxValues(state);
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
       
-      // Пересчитать производство ресурсов
-      const updatedResources = this.recalculateResources(state);
+      // Проверяем все разблокировки
+      newState = this.unlockService.checkAllUnlocks(newState);
       
-      // Объединить обновленные ресурсы с состоянием
-      state = {
-        ...state,
-        resources: updatedResources
+      // Обновляем lastUpdate для отслеживания времени
+      newState = {
+        ...newState,
+        lastUpdate: Date.now()
       };
-      
-      // Принудительная проверка условий для критических разблокировок
-      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 1) {
-        // Проверяем и разблокируем USDT, если счетчик applyKnowledge >= 1
-        if (!state.resources.usdt || !state.resources.usdt.unlocked) {
-          console.log("GameStateService: Принудительная проверка разблокировки USDT");
-          // Обновляем ресурс USDT
-          const updatedResources = { ...state.resources };
-          if (!updatedResources.usdt) {
-            updatedResources.usdt = {
-              id: 'usdt',
-              name: 'USDT',
-              description: 'Стейблкоин, привязанный к стоимости доллара США',
-              value: 0,
-              baseProduction: 0,
-              production: 0,
-              perSecond: 0,
-              max: 50,
-              unlocked: true,
-              type: 'currency',
-              icon: 'dollar'
-            };
-          } else {
-            updatedResources.usdt = {
-              ...updatedResources.usdt,
-              unlocked: true
-            };
-          }
-          state = {
-            ...state,
-            resources: updatedResources,
-            unlocks: {
-              ...state.unlocks,
-              usdt: true
-            }
-          };
-          console.log("GameStateService: USDT принудительно разблокирован:", state.resources.usdt);
-        }
-      }
-      
-      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2 &&
-          (!state.buildings.practice || !state.buildings.practice.unlocked)) {
-        console.log("GameStateService: Применение принудительной проверки разблокировки практики");
-        state = this.unlockService.checkAllUnlocks(state);
-      }
-      
-      if (state.resources.usdt && state.resources.usdt.value >= 11 &&
-          (!state.buildings.generator || !state.buildings.generator.unlocked)) {
-        console.log("GameStateService: Применение принудительной прове��ки разблокировки генератора");
-        state = this.unlockService.checkAllUnlocks(state);
-      }
       
       console.log("GameStateService: Обработка обновления состояния завершена успешно");
-      return state;
+      return newState;
     } catch (error) {
       console.error("GameStateService: Ошибка при обработке обновления состояния", error);
+      // В случае ошибки возвращаем исходное состояние
       return state;
     }
   }
   
   /**
-   * Обработка покупки здания
+   * Выполняет полную синхронизацию состояния
    */
-  processBuildingPurchase(state: GameState, buildingId: string): GameState {
-    console.log(`GameStateService: Обработка покупки здания ${buildingId}`);
-    
+  performFullStateSync(state: GameState): GameState {
     try {
-      // Проверить разблокировки через UnlockService
-      state = this.unlockService.checkAllUnlocks(state);
+      console.log("GameStateService: Выполняется полная синхронизация состояния");
       
-      // Обновить максимальные значения ресурсов
-      state = this.updateResourceMaxValues(state);
+      // Обновляем производство и потребление ресурсов
+      let newState = this.resourceProductionService.recalculateAllResources(state);
       
-      // Пересчитать производство ресурсов
-      const updatedResources = this.recalculateResources(state);
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
       
-      // Объединить обновленные ресурсы с состоянием
-      state = {
-        ...state,
-        resources: updatedResources
+      // Полная перепроверка всех разблокировок
+      newState = this.unlockService.rebuildAllUnlocks(newState);
+      
+      // Принудительная проверка всех зданий, требующих ресурсы для работы
+      newState = this.checkEquipmentStatus(newState);
+      
+      // Обновляем lastUpdate для отслеживания времени
+      newState = {
+        ...newState,
+        lastUpdate: Date.now()
       };
       
-      console.log(`GameStateService: Обработка покупки здания ${buildingId} завершена успешно`);
-      return state;
+      console.log("GameStateService: Полная синхронизация состояния завершена успешно");
+      return newState;
     } catch (error) {
-      console.error(`GameStateService: Ошибка при обработке покупки здания ${buildingId}`, error);
+      console.error("GameStateService: Ошибка при полной синхронизации состояния", error);
+      // В случае ошибки возвращаем исходное состояние
       return state;
     }
   }
   
   /**
-   * Обработка покупки улучшения
+   * Обрабатывает покупку здания
+   */
+  processBuildingPurchase(state: GameState, buildingId: string): GameState {
+    try {
+      // Обновляем все ресурсы после покупки здания
+      let newState = this.updateResourceProduction(state);
+      
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      
+      // Проверяем все разблокировки
+      newState = this.unlockService.checkAllUnlocks(newState);
+      
+      // Обновляем lastUpdate для отслеживания времени
+      newState = {
+        ...newState,
+        lastUpdate: Date.now()
+      };
+      
+      return newState;
+    } catch (error) {
+      console.error("GameStateService: Ошибка при обработке покупки здания", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
+    }
+  }
+  
+  /**
+   * Обрабатывает покупку улучшения
    */
   processUpgradePurchase(state: GameState, upgradeId: string): GameState {
-    console.log(`GameStateService: Обработка покупки улучшения ${upgradeId}`);
-    
     try {
+      console.log(`GameStateService: Обработка покупки улучшения ${upgradeId}`);
+      
+      // Обновляем производство ресурсов
+      let newState = this.updateResourceProduction(state);
+      
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      
       // Проверить разблокировки через UnlockService
-      let newState = this.unlockService.checkAllUnlocks(state);
+      newState = this.unlockService.checkAllUnlocks(newState);
       
       // Особая обработка для "Основы криптовалют" - принудительная разблокировка майнера
       if ((upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') && 
@@ -169,130 +157,144 @@ export class GameStateService {
           };
         }
         
+        // Принудительно разблокируем Bitcoin
+        newState.unlocks = {
+          ...newState.unlocks,
+          bitcoin: true
+        };
+        
+        // Если Bitcoin не существует, создаем его
+        if (!newState.resources.bitcoin) {
+          newState.resources.bitcoin = {
+            id: 'bitcoin',
+            name: 'Bitcoin',
+            description: 'Bitcoin - первая и основная криптовалюта',
+            type: 'currency',
+            icon: 'bitcoin',
+            value: 0,
+            baseProduction: 0,
+            production: 0,
+            perSecond: 0,
+            max: 0.01,
+            unlocked: true
+          };
+        } else {
+          // Иначе разблокируем существующий
+          newState.resources.bitcoin.unlocked = true;
+        }
+        
         console.log("GameStateService: Майнер принудительно разблокирован");
       }
       
       // Обновить максимальные значения ресурсов
-      newState = this.updateResourceMaxValues(newState);
+      newState = updateResourceMaxValues(newState);
       
-      // Пересчитать бонусы
-      newState = this.bonusCalculationService.applyUpgradeBonuses(newState, upgradeId);
-      
-      // Пересчитать производство ресурсов
-      const updatedResources = this.recalculateResources(newState);
-      
-      // Объединить обновленные ресурсы с состоянием
+      // Обновляем lastUpdate для отслеживания времени
       newState = {
         ...newState,
-        resources: updatedResources
+        lastUpdate: Date.now()
       };
       
-      console.log(`GameStateService: Обработка покупки улучшения ${upgradeId} завершена успешно`);
       return newState;
     } catch (error) {
-      console.error(`GameStateService: Ошибка при обработке покупки улучшения ${upgradeId}`, error);
+      console.error("GameStateService: Ошибка при обработке покупки улучшения", error);
+      // В случае ошибки возвращаем исходное состояние
       return state;
     }
   }
   
   /**
-   * Выполняет полную синхронизацию состояния, включая пересчет всех параметров
+   * Обновляет производство ресурсов
    */
-  performFullStateSync(state: GameState): GameState {
-    console.log("GameStateService: Выполнение полной синхронизации состояния");
-    
+  private updateResourceProduction(state: GameState): GameState {
     try {
-      // Логируем счетчики перед обработкой
-      console.log("GameStateService: Текущие счетчики:", {
-        applyKnowledge: state.counters.applyKnowledge?.value,
-        knowledgeClicks: state.counters.knowledgeClicks?.value
-      });
-      
-      // Логируем состояние ресурсов перед обработкой
-      console.log("GameStateService: Текущие ресурсы:", {
-        knowledge: state.resources.knowledge?.value,
-        usdt: state.resources.usdt?.value,
-        usdtUnlocked: state.resources.usdt?.unlocked
-      });
-      
-      // Перестроить разблокировки с нуля через UnlockService
-      state = this.unlockService.rebuildAllUnlocks(state);
-      
-      // Обновить максимальные значения ресурсов
-      state = this.updateResourceMaxValues(state);
-      
-      // Пересчитать все бонусы
-      state = this.bonusCalculationService.recalculateAllBonuses(state);
-      
-      // Пересчитать производство ресурсов
-      const updatedResources = this.recalculateResources(state);
-      
-      // Объединить обновленные ресурсы с состоянием
-      state = {
-        ...state,
-        resources: updatedResources
-      };
-      
-      // Проверяем, должен ли быть разблокирован USDT
-      if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 1) {
-        console.log("GameStateService: Принудительная разблокировка USDT в performFullStateSync");
-        if (state.resources.usdt) {
-          state.resources.usdt.unlocked = true;
-        }
-        state.unlocks.usdt = true;
-      }
-      
-      // Логируем итоговое состояние после полной синхронизации
-      console.log("GameStateService: Состояние после полной синхронизации:", {
-        applyKnowledge: state.counters.applyKnowledge?.value,
-        usdt: state.resources.usdt?.value,
-        usdtUnlocked: state.resources.usdt?.unlocked
-      });
-      
-      console.log("GameStateService: Полная синхронизация состояния завершена успешно");
-      return state;
-    } catch (error) {
-      console.error("GameStateService: Ошибка при полной синхронизации состояния", error);
-      return state;
-    }
-  }
-  
-  /**
-   * Пересчитывает производство ресурсов
-   */
-  private recalculateResources(state: GameState): { [key: string]: any } {
-    try {
+      // Обновляем все ресурсы на основе их производства
       return this.resourceProductionService.calculateResourceProduction(state);
     } catch (error) {
-      console.error("GameStateService: Ошибка при пересчете производства ресурсов", error);
-      return state.resources;
+      console.error("GameStateService: Ошибка при обновлении производства ресурсов", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
     }
   }
   
   /**
-   * Обновляет максимальные значения ресурсов на основе зданий и улучшений
+   * Проверяет статус оборудования, зависящего от ресурсов
    */
-  private updateResourceMaxValues(state: GameState): GameState {
-    const updatedResources = { ...state.resources };
+  private checkEquipmentStatus(state: GameState): GameState {
+    try {
+      // TODO: Проверка статуса оборудования, зависящего от ресурсов
+      // Например, отключение майнеров при нехватке электричества
+      return state;
+    } catch (error) {
+      console.error("GameStateService: Ошибка при проверке статуса оборудования", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
+    }
+  }
+  
+  /**
+   * Рассчитывает максимальное значение для указанного ресурса
+   */
+  calculateMaxValueForResource(state: GameState, resourceId: string): number {
+    let baseMax = 0;
+    let additionalMax = 0;
     
-    // Обновляем макс. значение USDT на основе количества криптокошельков
-    if (updatedResources.usdt) {
-      const cryptoWalletCount = state.buildings.cryptoWallet?.count || 0;
-      const improvedWalletCount = state.buildings.improvedWallet?.count || 0;
-      
-      // Базовый максимум + увеличение от криптокошельков + увеличение от улучшенных кошельков
-      const defaultMaxUsdt = 50;
-      const walletBonus = cryptoWalletCount * 50;
-      const improvedWalletBonus = improvedWalletCount * 150;
-      
-      updatedResources.usdt.max = defaultMaxUsdt + walletBonus + improvedWalletBonus;
-      console.log(`GameStateService: Обновлен максимум USDT: ${updatedResources.usdt.max} (база: ${defaultMaxUsdt}, кошельки: +${walletBonus}, улучшенные: +${improvedWalletBonus})`);
+    // Определяем базовое значение максимума для разных ресурсов
+    switch (resourceId) {
+      case 'knowledge':
+        baseMax = 100;
+        break;
+      case 'usdt':
+        baseMax = 50;
+        break;
+      case 'electricity':
+        baseMax = 100;
+        break;
+      case 'computingPower':
+        baseMax = 1000;
+        break;
+      case 'bitcoin':
+        baseMax = 0.01;
+        break;
+      default:
+        baseMax = 100;
     }
     
-    // Обновляем макс. значение знаний
-    if (updatedResources.knowledge) {
-      // Получаем базовое значение
-      let baseMaxKnowledge = 100;
+    // Добавляем константные значения от зданий для отдельных ресурсов
+    if (resourceId === 'usdt') {
+      // Криптокошелек добавляет +50 к макс. USDT
+      if (state.buildings.cryptoWallet) {
+        const walletCount = state.buildings.cryptoWallet.count || 0;
+        additionalMax += 50 * walletCount;
+      }
+      
+      // Улучшенный кошелек добавляет +150 к макс. USDT
+      if (state.buildings.improvedWallet) {
+        const improvedWalletCount = state.buildings.improvedWallet.count || 0;
+        additionalMax += 150 * improvedWalletCount;
+      }
+    } else if (resourceId === 'bitcoin') {
+      // Улучшенный кошелек добавляет +1 к макс. BTC
+      if (state.buildings.improvedWallet) {
+        const improvedWalletCount = state.buildings.improvedWallet.count || 0;
+        additionalMax += 1 * improvedWalletCount;
+      }
+    } else if (resourceId === 'knowledge') {
+      // Библиотека добавляет +100 к макс. знаниям
+      if (state.buildings.cryptoLibrary) {
+        const libraryCount = state.buildings.cryptoLibrary.count || 0;
+        additionalMax += 100 * libraryCount;
+      }
+    }
+    
+    // Получаем множитель максимального значения от улучшений и зданий
+    const multiplier = this.bonusCalculationService.calculateMaxValueMultiplier(state, resourceId);
+    
+    // Считаем итоговый максимум ресурса
+    let totalMax = baseMax * multiplier + additionalMax;
+    
+    // Если это знания и есть исследование "Основы блокчейна"
+    if (resourceId === 'knowledge') {
       let totalMultiplier = 1.0;
       
       // Проверяем наличие исследования "Основы блокчейна"
@@ -304,28 +306,10 @@ export class GameStateService {
         console.log(`GameStateService: Множитель максимума знаний от Основ блокчейна: +50%`);
       }
       
-      // Учитываем бонус от криптокошельков (+25% каждый)
-      const cryptoWalletCount = state.buildings.cryptoWallet?.count || 0;
-      if (cryptoWalletCount > 0) {
-        const walletBonus = 0.25 * cryptoWalletCount;
-        totalMultiplier += walletBonus;
-        console.log(`GameStateService: Множитель максимума знаний от Криптокошельков: +${walletBonus * 100}%`);
-      }
-      
-      // Добавляем бонус от криптобиблиотек (фиксированное значение)
-      const cryptoLibraryCount = state.buildings.cryptoLibrary?.count || 0;
-      const libraryBonus = cryptoLibraryCount * 100;
-      
-      // Рассчитываем итоговый максимум
-      const finalMax = (baseMaxKnowledge * totalMultiplier) + libraryBonus;
-      updatedResources.knowledge.max = finalMax;
-      
-      console.log(`GameStateService: Обновлен максимум знаний: ${finalMax} (база: ${baseMaxKnowledge}, множитель: ${totalMultiplier}, библиотеки: +${libraryBonus})`);
+      console.log(`GameStateService: Итоговый множитель максимума знаний: ${totalMultiplier.toFixed(2)}`);
+      console.log(`GameStateService: Максимум knowledge: ${totalMax.toFixed(2)} (множитель: ${multiplier.toFixed(2)})`);
     }
     
-    return {
-      ...state,
-      resources: updatedResources
-    };
+    return totalMax;
   }
 }

@@ -1,42 +1,34 @@
 
 import { 
-  Brain, 
-  DollarSign, 
-  Zap, 
+  Book, 
   Cpu, 
-  Award, 
-  Users, 
+  Zap, 
+  DollarSign, 
   Bitcoin, 
-  BarChart4,
-  LucideIcon
-} from "lucide-react";
+  Circle,
+  Award,
+  Users
+} from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
-/**
- * Возвращает иконку для указанного ресурса
- * @param resourceId ID ресурса
- * @returns Компонент иконки из lucide-react
- */
-export const getResourceIcon = (resourceId: string): LucideIcon | null => {
-  switch (resourceId) {
+// Получает иконку для указанного ресурса
+export const getResourceIcon = (resourceId: string): LucideIcon => {
+  switch (resourceId.toLowerCase()) {
     case 'knowledge':
-      return Brain;
+      return Book;
     case 'usdt':
       return DollarSign;
     case 'electricity':
       return Zap;
-    case 'computingPower':
+    case 'computingpower':
       return Cpu;
-    case 'reputation':
-      return Award;
-    case 'influence':
-      return Users;
     case 'bitcoin':
       return Bitcoin;
-    case 'followers':
+    case 'reputation':
+      return Award;
+    case 'community':
       return Users;
-    case 'analytics':
-      return BarChart4;
     default:
-      return null;
+      return Circle;
   }
 };
