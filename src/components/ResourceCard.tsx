@@ -59,13 +59,27 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
   const safeFormattedMax = max !== Infinity && max > 0 ? formatResourceValue(max, id) : "∞";
   const safeFormattedPerSecond = formatResourceValue(perSecond, id);
   
+  // Преобразуем название ресурса для отображения
+  let displayName = name;
+  if (id === 'usdt') {
+    displayName = 'USDT';
+  } else if (id === 'bitcoin') {
+    displayName = 'Bitcoin';
+  } else if (id === 'knowledge') {
+    displayName = 'Знания';
+  } else if (id === 'electricity') {
+    displayName = 'Электричество';
+  } else if (id === 'computingPower') {
+    displayName = 'Вычисл. мощность';
+  }
+  
   return (
     <Card className="mb-2 bg-white relative">
       <CardContent className="p-3">
         <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-2">
             {getResourceIcon(resource.icon)}
-            <span className="text-sm font-medium">{name}</span>
+            <span className="text-sm font-medium">{displayName}</span>
           </div>
           <div className="text-sm font-medium">
             {safeFormattedValue}

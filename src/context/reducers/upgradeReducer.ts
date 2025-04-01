@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -83,13 +82,13 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log(`Максимум знаний установлен на ${newMax}`);
     }
     
-    // 2. Увеличиваем скорость производства знаний на 10%
+    // 2. Увеличиваем скорость производства знаний на 10% (исправлено с 20%)
     // Обновляем эффекты улучшения, чтобы BonusCalculationService правильно их учитывал
     newState.upgrades[upgradeId] = {
       ...newState.upgrades[upgradeId],
       effects: {
         ...(newState.upgrades[upgradeId].effects || {}),
-        knowledgeBoost: 0.1,
+        knowledgeBoost: 0.1, // Установлено 10% вместо 20%
         knowledgeMaxBoost: 0.5
       }
     };
@@ -197,6 +196,11 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         ...newState.resources.bitcoin,
         unlocked: true
       };
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        bitcoin: true
+      };
     }
     
     // Отправляем уведомление об эффекте
@@ -206,7 +210,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
   if (upgradeId === 'cryptoWalletSecurity' || upgradeId === 'walletSecurity') {
     console.log("Применяем эффекты 'Безопасность криптокошельков'");
     
-    // Увеличиваем макс. хранение USDT на 25%
+    // Увеличиваем макс. хране��ие USDT на 25%
     if (newState.resources.usdt) {
       const currentMax = newState.resources.usdt.max || 50;
       const newMax = currentMax * 1.25;

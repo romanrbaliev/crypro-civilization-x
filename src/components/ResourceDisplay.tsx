@@ -66,10 +66,24 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   const debugPerSecond = safePerSecond !== null ? safePerSecond.toFixed(3) : "0.000";
   const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
 
+  // Преобразуем название ресурса
+  let displayName = name;
+  if (id === 'usdt') {
+    displayName = 'USDT';
+  } else if (id === 'bitcoin') {
+    displayName = 'Bitcoin';
+  } else if (id === 'knowledge') {
+    displayName = 'Знания';
+  } else if (id === 'electricity') {
+    displayName = 'Электричество';
+  } else if (id === 'computingPower') {
+    displayName = 'Вычисл. мощность';
+  }
+
   return (
     <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
       <div className="flex justify-between items-center mb-0.5">
-        <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{name}</div>
+        <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{displayName}</div>
         <div id={`resource-value-${id}`} className="text-gray-600 text-[10px] whitespace-nowrap transition-colors">
           {formattedValue}
           {max !== Infinity && ` / ${formattedMax}`}
