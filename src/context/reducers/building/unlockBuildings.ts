@@ -30,7 +30,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     }
     
     // Уведомляем пользователя
-    safeDispatchGameEvent('Открыта фаза 2: Основы криптоэкономики', 'milestone');
+    safeDispatchGameEvent('Открыта фаза 2: Основы криптоэкономики', 'info');
   }
   
   // Возвращаем обновленное состояние

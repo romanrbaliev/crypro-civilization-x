@@ -85,3 +85,71 @@ export function isPhase2Unlocked(state: GameState): boolean {
   return (state.resources.usdt?.value >= 25) || 
          (state.resources.electricity?.unlocked === true);
 }
+
+/**
+ * Форматирует название эффекта для отображения
+ */
+export function formatEffectName(effectId: string): string {
+  const effectNames: { [key: string]: string } = {
+    knowledgeMaxBoost: "Максимум знаний",
+    knowledgeBoost: "Прирост знаний",
+    knowledgeEfficiencyBoost: "Эффективность знаний",
+    electricityMaxBoost: "Максимум электричества",
+    electricityBoost: "Прирост электричества",
+    electricityEfficiencyBoost: "Эффективность электричества",
+    miningEfficiencyBoost: "Эффективность майнинга",
+    computingEfficiencyBoost: "Эффективность вычислений",
+    usdtMaxBoost: "Максимум USDT",
+    btcMaxBoost: "Максимум BTC",
+    knowledgeMax: "Максимум знаний",
+    usdtMax: "Максимум USDT",
+    btcMax: "Максимум BTC",
+    electricityMax: "Максимум электричества",
+    energyConsumptionReduction: "Снижение энергопотребления",
+    computingPowerConsumptionReduction: "Снижение потребления вычислительной мощности"
+  };
+  
+  return effectNames[effectId] || effectId;
+}
+
+/**
+ * Форматирует значение эффекта для отображения
+ */
+export function formatEffectValue(value: number, effectId: string): string {
+  if (effectId.includes('Boost') || effectId.includes('boost')) {
+    return `+${(value * 100).toFixed(0)}%`;
+  } else if (effectId.includes('Reduction') || effectId.includes('reduction')) {
+    return `-${(value * 100).toFixed(0)}%`;
+  } else if (effectId.includes('Max') || effectId.includes('max')) {
+    return `+${value}`;
+  }
+  
+  return `${value}`;
+}
+
+/**
+ * Форматирует эффект целиком (название и значение)
+ */
+export function formatEffect(effectId: string, value: number): string {
+  const name = formatEffectName(effectId);
+  const formattedValue = formatEffectValue(value, effectId);
+  
+  return `${name}: ${formattedValue}`;
+}
+
+/**
+ * Возвращает название специализации
+ */
+export function getSpecializationName(specializationId: string): string {
+  const specializationNames: { [key: string]: string } = {
+    miner: "Майнер",
+    trader: "Трейдер",
+    investor: "Инвестор",
+    influencer: "Инфлюенсер",
+    defi: "DeFi-разработчик",
+    developer: "Разработчик",
+    general: "Общая"
+  };
+  
+  return specializationNames[specializationId] || specializationId;
+}
