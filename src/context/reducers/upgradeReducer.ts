@@ -1,5 +1,7 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { updateResourceMaxValues } from '../utils/resourceUtils';
 
 // Обработчик покупки улучшения
 export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: string }): GameState => {
@@ -70,8 +72,8 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     
     // 1. Увеличиваем макс. хранение знаний на 50%
     if (newState.resources.knowledge) {
-      const baseMax = 100; // Базовое значение
-      const newMax = baseMax * 1.5; // +50% от базового значения (100 * 1.5 = 150)
+      const baseMax = newState.resources.knowledge.max || 100; // Базовое значение
+      const newMax = baseMax * 1.5; // +50% от текущего значения
       
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
@@ -105,16 +107,26 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         cryptoWallet: true
       };
       
-      console.log("Кри��токошелек разблокирован");
+      console.log("Криптокошелек разблокирован");
     }
     
-    // 4. Разблокируем исследование "Основы криптовалют"
+    // 4. Разблокируем исследование "Основы криптовалют" и "Безопасность криптокошельков"
     if (newState.upgrades.cryptoCurrencyBasics) {
       newState.upgrades.cryptoCurrencyBasics = {
         ...newState.upgrades.cryptoCurrencyBasics,
         unlocked: true
       };
       console.log("Исследование 'Основы криптовалют' разблокировано");
+    }
+    
+    if (newState.upgrades.walletSecurity || newState.upgrades.cryptoWalletSecurity) {
+      const securityUpgradeId = newState.upgrades.walletSecurity ? 'walletSecurity' : 'cryptoWalletSecurity';
+      
+      newState.upgrades[securityUpgradeId] = {
+        ...newState.upgrades[securityUpgradeId],
+        unlocked: true
+      };
+      console.log("Исследование 'Безопасность криптокошельков' разблокировано");
     }
     
     // Отправляем уведомление об эффекте
@@ -218,6 +230,80 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Безопасность кошельков: +25% к макс. хранению USDT", "info");
   }
+  
+  if (upgradeId === 'algorithmOptimization') {
+    console.log("Применяем эффекты 'Оптимизация алгоритмов'");
+    
+    // Увеличиваем эффективность майнинга на 15%
+    if (newState.miningParams) {
+      newState.miningParams = {
+        ...newState.miningParams,
+        miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
+      };
+    }
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Оптимизация алгоритмов: +15% к эффективности майнинга", "info");
+  }
+  
+  if (upgradeId === 'proofOfWork') {
+    console.log("Применяем эффекты 'Proof of Work'");
+    
+    // Увеличиваем эффективность майнинга на 25%
+    if (newState.miningParams) {
+      newState.miningParams = {
+        ...newState.miningParams,
+        miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.25
+      };
+    }
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Proof of Work: +25% к эффективности майнинга", "info");
+  }
+  
+  if (upgradeId === 'energyEfficientComponents') {
+    console.log("Применяем эффекты 'Энергоэффективные компоненты'");
+    
+    // Снижаем потребление электричества на 10%
+    if (newState.miningParams) {
+      newState.miningParams = {
+        ...newState.miningParams,
+        energyEfficiency: (newState.miningParams.energyEfficiency || 0) + 0.1
+      };
+    }
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Энергоэффективные компоненты: -10% к потреблению электричества", "info");
+  }
+  
+  if (upgradeId === 'cryptoTrading') {
+    console.log("Применяем эффекты 'Криптовалютный трейдинг'");
+    
+    // Разблокируем трейдинг
+    newState.unlocks = {
+      ...newState.unlocks,
+      trading: true
+    };
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Криптовалютный трейдинг: разблокирована возможность обмена криптовалютами", "info");
+  }
+  
+  if (upgradeId === 'tradingBot') {
+    console.log("Применяем эффекты 'Торговый бот'");
+    
+    // Разблокируем автоматический трейдинг
+    newState.unlocks = {
+      ...newState.unlocks,
+      autoTrading: true
+    };
+    
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Торговый бот: разблокирован автоматический обмен BTC", "info");
+  }
+  
+  // Обновляем максимальные значения ресурсов после всех изменений
+  newState = updateResourceMaxValues(newState);
   
   // Логируем покупку
   console.log(`Куплено улучшение: ${upgrade.name}`);

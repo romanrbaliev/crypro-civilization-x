@@ -1,155 +1,108 @@
 
-import { GameState } from '@/context/types';
+// Утилиты для работы с исследованиями и их эффектами
 
 /**
- * Проверяет, разблокировано ли исследование "Основы блокчейна"
+ * Преобразует идентификатор эффекта в читаемое название
  */
-export function isBlockchainBasicsUnlocked(state: GameState): boolean {
-  // Проверяем все возможные варианты имени исследования
-  const isUnlocked = 
-    (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.unlocked) ||
-    (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.unlocked) ||
-    (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.unlocked);
+export const formatEffectName = (effectId: string): string => {
+  // Словарь соответствия идентификаторов и названий
+  const effectNames: Record<string, string> = {
+    // Бонусы для макс. значений ресурсов
+    knowledgeMax: "Макс. знаний",
+    knowledgeMaxBoost: "Макс. знаний",
+    usdtMax: "Макс. USDT",
+    usdtMaxBoost: "Макс. USDT",
+    bitcoinMax: "Макс. BTC",
+    bitcoinMaxBoost: "Макс. BTC",
     
-  return isUnlocked;
-}
-
-/**
- * Проверяет, куплено ли исследование "Основы блокчейна"
- */
-export function isBlockchainBasicsPurchased(state: GameState): boolean {
-  // Проверяем все возможные варианты имени исследования
-  const isPurchased = 
-    (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
-    (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased) ||
-    (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased);
-    
-  return isPurchased;
-}
-
-/**
- * Получает список разблокированных зданий из фазы 2
- */
-export function getUnlockedPhase2Buildings(state: GameState): string[] {
-  const unlockedBuildings = [];
-  
-  // Здания из фазы 2
-  const phase2Buildings = [
-    'miner',
-    'cryptoLibrary',
-    'coolingSystem',
-    'enhancedWallet'
-  ];
-  
-  // Проверяем каждое здание
-  for (const buildingId of phase2Buildings) {
-    if (state.buildings[buildingId]?.unlocked) {
-      unlockedBuildings.push(buildingId);
-    }
-  }
-  
-  return unlockedBuildings;
-}
-
-/**
- * Получает список разблокированных исследований из фазы 2
- */
-export function getUnlockedPhase2Upgrades(state: GameState): string[] {
-  const unlockedUpgrades = [];
-  
-  // Исследования из фазы 2
-  const phase2Upgrades = [
-    'cryptoCurrencyBasics',
-    'algorithmOptimization',
-    'proofOfWork',
-    'energyEfficientComponents',
-    'cryptoTrading',
-    'tradingBot'
-  ];
-  
-  // Проверяем каждое исследование
-  for (const upgradeId of phase2Upgrades) {
-    if (state.upgrades[upgradeId]?.unlocked) {
-      unlockedUpgrades.push(upgradeId);
-    }
-  }
-  
-  return unlockedUpgrades;
-}
-
-/**
- * Проверяет, достигнуты ли условия для фазы 2
- */
-export function isPhase2Unlocked(state: GameState): boolean {
-  // Условия для фазы 2: 25+ USDT или разблокировано электричество
-  return (state.resources.usdt?.value >= 25) || 
-         (state.resources.electricity?.unlocked === true);
-}
-
-/**
- * Форматирует название эффекта для отображения
- */
-export function formatEffectName(effectId: string): string {
-  const effectNames: { [key: string]: string } = {
-    knowledgeMaxBoost: "Максимум знаний",
+    // Бонусы для генерации ресурсов
     knowledgeBoost: "Прирост знаний",
-    knowledgeEfficiencyBoost: "Эффективность знаний",
-    electricityMaxBoost: "Максимум электричества",
-    electricityBoost: "Прирост электричества",
-    electricityEfficiencyBoost: "Эффективность электричества",
-    miningEfficiencyBoost: "Эффективность майнинга",
-    computingEfficiencyBoost: "Эффективность вычислений",
-    usdtMaxBoost: "Максимум USDT",
-    btcMaxBoost: "Максимум BTC",
-    knowledgeMax: "Максимум знаний",
-    usdtMax: "Максимум USDT",
-    btcMax: "Максимум BTC",
-    electricityMax: "Максимум электричества",
-    energyConsumptionReduction: "Снижение энергопотребления",
-    computingPowerConsumptionReduction: "Снижение потребления вычислительной мощности"
+    knowledgeEfficiencyBoost: "Эфф. применения знаний",
+    computingPowerBoost: "Эфф. вычислений",
+    
+    // Бонусы для майнинга
+    miningEfficiency: "Эфф. майнинга",
+    miningEfficiencyBoost: "Эфф. майнинга",
+    energyEfficiency: "Энергоэффективность",
+    
+    // Снижение потребления
+    electricityConsumptionReduction: "Потр. электричества",
+    computingPowerConsumptionReduction: "Потр. выч. мощности",
+    
+    // Бонусы для обмена
+    btcExchangeBonus: "Эфф. обмена BTC",
+    
+    // Разблокировки функций
+    unlockTrading: "Разблокировка трейдинга",
+    autoBtcExchange: "Автообмен BTC"
   };
   
   return effectNames[effectId] || effectId;
-}
+};
 
 /**
- * Форматирует значение эффекта для отображения
+ * Форматирует значение эффекта в зависимости от его типа
  */
-export function formatEffectValue(value: number, effectId: string): string {
-  if (effectId.includes('Boost') || effectId.includes('boost')) {
+export const formatEffectValue = (value: number, effectId: string): string => {
+  // Эффекты в процентах
+  const percentEffects = [
+    'knowledgeMaxBoost', 'usdtMaxBoost', 'knowledgeBoost', 
+    'knowledgeEfficiencyBoost', 'computingPowerBoost', 'miningEfficiency',
+    'miningEfficiencyBoost', 'energyEfficiency', 'btcExchangeBonus'
+  ];
+  
+  // Эффекты с отрицательными значениями (снижение потребления)
+  const negativeEffects = [
+    'electricityConsumptionReduction', 'computingPowerConsumptionReduction'
+  ];
+  
+  if (percentEffects.includes(effectId)) {
     return `+${(value * 100).toFixed(0)}%`;
-  } else if (effectId.includes('Reduction') || effectId.includes('reduction')) {
+  } else if (negativeEffects.includes(effectId)) {
     return `-${(value * 100).toFixed(0)}%`;
-  } else if (effectId.includes('Max') || effectId.includes('max')) {
+  } else if (effectId === 'unlockTrading' || effectId === 'autoBtcExchange') {
+    return value ? 'Да' : 'Нет';
+  } else {
     return `+${value}`;
   }
-  
-  return `${value}`;
-}
+};
 
 /**
- * Форматирует эффект целиком (название и значение)
+ * Комплексное форматирование эффекта (название и значение)
  */
-export function formatEffect(effectId: string, value: number): string {
+export const formatEffect = (effectId: string, value: number): string => {
   const name = formatEffectName(effectId);
   const formattedValue = formatEffectValue(value, effectId);
   
   return `${name}: ${formattedValue}`;
-}
+};
 
 /**
- * Возвращает название специализации
+ * Проверяет зависимости для исследования
  */
-export function getSpecializationName(specializationId: string): string {
-  const specializationNames: { [key: string]: string } = {
-    miner: "Майнер",
-    trader: "Трейдер",
-    investor: "Инвестор",
-    influencer: "Инфлюенсер",
-    defi: "DeFi-разработчик",
-    developer: "Разработчик",
-    general: "Общая"
+export const checkUpgradeDependencies = (
+  upgradeId: string,
+  purchasedUpgrades: Record<string, boolean>
+): boolean => {
+  // Определение зависимостей для каждого исследования
+  const dependencyMap: Record<string, string[]> = {
+    'blockchainBasics': [],
+    'walletSecurity': ['cryptoWallet'],
+    'cryptoCurrencyBasics': ['blockchainBasics'],
+    'algorithmOptimization': ['miner'],
+    'proofOfWork': ['algorithmOptimization'],
+    'energyEfficientComponents': ['coolingSystem'],
+    'cryptoTrading': ['enhancedWallet'],
+    'tradingBot': ['cryptoTrading']
   };
   
-  return specializationNames[specializationId] || specializationId;
-}
+  const dependencies = dependencyMap[upgradeId] || [];
+  
+  // Если нет зависимостей, то исследование доступно
+  if (dependencies.length === 0) {
+    return true;
+  }
+  
+  // Проверка, что все зависимые исследования приобретены
+  return dependencies.every(depId => purchasedUpgrades[depId]);
+};

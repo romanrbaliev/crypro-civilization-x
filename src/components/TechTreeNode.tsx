@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
@@ -77,8 +76,9 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
       const hasEnough = resource?.value >= Number(amount);
       
       return (
-        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[9px]`}>
-          {resource?.icon} {formatNumber(Number(amount))}
+        <div key={resourceId} className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[9px] flex justify-between w-full`}>
+          <span>{resource?.name || resourceId}</span>
+          <span>{formatNumber(Number(amount))}</span>
         </div>
       );
     });
@@ -89,27 +89,81 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
     // Безопасно получаем объект эффектов
     const effects = upgrade.effects || upgrade.effect || {};
     
+    // Обрабатываем особые случаи для известных исследований
+    if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
+      return (
+        <>
+          <div className="text-blue-600 text-[9px] flex justify-between w-full">
+            <span>Макс. знаний</span>
+            <span>+50%</span>
+          </div>
+          <div className="text-blue-600 text-[9px] flex justify-between w-full">
+            <span>Прирост знаний</span>
+            <span>+10%</span>
+          </div>
+        </>
+      );
+    }
+    
+    if (upgrade.id === 'cryptoCurrencyBasics' || upgrade.id === 'cryptoBasics') {
+      return (
+        <div className="text-blue-600 text-[9px] flex justify-between w-full">
+          <span>Эфф. применения знаний</span>
+          <span>+10%</span>
+        </div>
+      );
+    }
+    
+    if (upgrade.id === 'walletSecurity' || upgrade.id === 'cryptoWalletSecurity') {
+      return (
+        <div className="text-blue-600 text-[9px] flex justify-between w-full">
+          <span>Макс. USDT</span>
+          <span>+25%</span>
+        </div>
+      );
+    }
+    
+    if (upgrade.id === 'algorithmOptimization') {
+      return (
+        <div className="text-blue-600 text-[9px] flex justify-between w-full">
+          <span>Эфф. майнинга</span>
+          <span>+15%</span>
+        </div>
+      );
+    }
+    
+    if (upgrade.id === 'proofOfWork') {
+      return (
+        <div className="text-blue-600 text-[9px] flex justify-between w-full">
+          <span>Эфф. майнинга</span>
+          <span>+25%</span>
+        </div>
+      );
+    }
+    
+    if (upgrade.id === 'energyEfficientComponents') {
+      return (
+        <div className="text-blue-600 text-[9px] flex justify-between w-full">
+          <span>Потр. электричества</span>
+          <span>-10%</span>
+        </div>
+      );
+    }
+    
     if (Object.keys(effects).length === 0) {
-      // Проверяем специальные ID улучшений
-      if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
-        return (
-          <>
-            <div className="text-blue-600 text-[9px]">
-              Максимум знаний: +50%
-            </div>
-            <div className="text-blue-600 text-[9px]">
-              Прирост знаний: +10%
-            </div>
-          </>
-        );
-      }
+      return (
+        <div className="text-gray-500 text-[9px]">
+          Нет данных о эффектах
+        </div>
+      );
     }
     
     return Object.entries(effects).map(([effectId, amount]) => {
       const formattedEffect = formatEffect(effectId, Number(amount));
       return (
-        <div key={effectId} className="text-blue-600 text-[9px]">
-          {formattedEffect}
+        <div key={effectId} className="text-blue-600 text-[9px] flex justify-between w-full">
+          <span>{formatEffectName(effectId)}</span>
+          <span>{formatEffectValue(Number(amount), effectId)}</span>
         </div>
       );
     });
@@ -184,11 +238,11 @@ const TechTreeNode: React.FC<TechTreeNodeProps> = ({ upgrade, onAddEvent }) => {
                 {upgrade.unlocked && !upgrade.purchased && (
                   <>
                     <div className="flex justify-between mb-2">
-                      <div className="space-y-1">
+                      <div className="space-y-1 w-1/2 pr-1">
                         <h4 className="text-[10px] font-medium">Стоимость:</h4>
                         {renderCost()}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 w-1/2 pl-1">
                         <h4 className="text-[10px] font-medium">Эффекты:</h4>
                         {renderEffects()}
                       </div>

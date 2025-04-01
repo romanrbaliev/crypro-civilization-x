@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -86,23 +87,13 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
     
     return Object.entries(building.production).map(([resourceId, amount]) => {
-      if (resourceId.includes('Max') || resourceId.includes('Boost')) {
-        const formattedEffect = formatEffectName(resourceId);
-        const formattedValue = resourceId.includes('Boost') ? 
-          `+${(Number(amount) * 100).toFixed(0)}%` : `+${amount}`;
-        
-        return (
-          <div key={resourceId} className="text-blue-600 text-[11px]">
-            {formattedEffect}: {formattedValue}
-          </div>
-        );
-      }
-      
-      const resource = state.resources[resourceId] || { name: resourceId };
+      const resource = state.resources[resourceId];
+      const resourceName = resource ? resource.name : resourceId;
       
       return (
-        <div key={resourceId} className="text-green-600 text-[11px]">
-          {resource.name}: +{amount}/сек
+        <div key={resourceId} className="text-green-600 text-[11px] flex justify-between w-full">
+          <span>{resourceName}</span>
+          <span>+{formatNumber(Number(amount))}/сек</span>
         </div>
       );
     });
@@ -114,19 +105,105 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
     
     return Object.entries(building.consumption).map(([resourceId, amount]) => {
-      const resource = state.resources[resourceId] || { name: resourceId };
+      const resource = state.resources[resourceId];
+      const resourceName = resource ? resource.name : resourceId;
       
       return (
-        <div key={resourceId} className="text-red-500 text-[11px]">
-          {resource.name}: -{amount}/сек
+        <div key={resourceId} className="text-red-500 text-[11px] flex justify-between w-full">
+          <span>{resourceName}</span>
+          <span>-{formatNumber(Number(amount))}/сек</span>
         </div>
       );
     });
   };
   
-  const hasReachedMaxCount = () => {
-    if (building.maxCount === undefined) return false;
-    return building.count >= building.maxCount;
+  const renderEffects = () => {
+    if (!building.effects || Object.keys(building.effects).length === 0) {
+      return null;
+    }
+    
+    // Специальные случаи для отдельных зданий
+    if (building.id === 'cryptoWallet') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. USDT</span>
+            <span>+50</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. знаний</span>
+            <span>+25%</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'internetChannel') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Прирост знаний</span>
+            <span>+20%</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Эфф. вычислений</span>
+            <span>+5%</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'enhancedWallet') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. USDT</span>
+            <span>+150</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. BTC</span>
+            <span>+1</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Эфф. обмена BTC</span>
+            <span>+8%</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'cryptoLibrary') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Прирост знаний</span>
+            <span>+50%</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. знаний</span>
+            <span>+100</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'coolingSystem') {
+      return (
+        <div className="text-blue-600 text-[11px] flex justify-between w-full">
+          <span>Потр. выч. мощности</span>
+          <span>-20%</span>
+        </div>
+      );
+    }
+    
+    // Обработка обычных эффектов
+    return Object.entries(building.effects).map(([effectId, value]) => {
+      // Форматируем название эффекта
+      const effectName = formatEffectName(effectId);
+      // Форматируем значение (добавляем знак + для положительных значений и % для процентов)
+      const formattedValue = effectId.includes('Boost') || effectId.includes('Reduction') ? 
+        `${value > 0 ? '+' : ''}${(Number(value) * 100).toFixed(0)}%` : 
+        `${value > 0 ? '+' : ''}${formatNumber(Number(value))}`;
+      
+      return (
+        <div key={effectId} className="text-blue-600 text-[11px] flex justify-between w-full">
+          <span>{effectName}</span>
+          <span>{formattedValue}</span>
+        </div>
+      );
+    });
   };
   
   return (
@@ -140,7 +217,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
           <div className="flex-1">
             <div className="flex justify-between items-center w-full">
               <h3 className="text-xs font-medium">
-                {building.name} {building.count > 0 && `(${building.count})`}
+                {building.name} {building.count > 0 && <span className="text-gray-500">×{building.count}</span>}
               </h3>
             </div>
           </div>
@@ -153,58 +230,53 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
           <p className="text-[11px] text-gray-500 mt-1 mb-2">{building.description}</p>
           
           <div className="space-y-2">
-            {building.count === 0 ? (
-              <div className="space-y-1">
-                <h4 className="text-[11px] font-medium">Стоимость:</h4>
-                {renderCost()}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <h4 className="text-[11px] font-medium">Стоимость улучшения:</h4>
-                {renderCost()}
+            <div className="space-y-1">
+              <h4 className="text-[11px] font-medium">Стоимость:</h4>
+              {renderCost()}
+            </div>
+            
+            {(renderProduction() || renderConsumption() || renderEffects()) && (
+              <div className="border-t pt-2 mt-2">
+                {renderProduction() && (
+                  <>
+                    <h4 className="text-[11px] font-medium mb-1">Производит:</h4>
+                    {renderProduction()}
+                  </>
+                )}
+                
+                {renderConsumption() && (
+                  <>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">Потребляет:</h4>
+                    {renderConsumption()}
+                  </>
+                )}
+                
+                {renderEffects() && (
+                  <>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">Эффекты:</h4>
+                    {renderEffects()}
+                  </>
+                )}
               </div>
             )}
             
-            <div className="border-t pt-2 mt-2">
-              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
-              {renderProduction()}
-              {renderConsumption()}
-            </div>
-            
             <div className="border-t pt-2 grid grid-cols-2 gap-2 mt-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Button
-                        onClick={handlePurchase}
-                        disabled={!canAfford() || hasReachedMaxCount()}
-                        variant={canAfford() && !hasReachedMaxCount() ? "default" : "outline"}
-                        size="sm"
-                        className="w-full text-xs"
-                      >
-                        {building.count === 0 ? "Построить" : "Улучшить"}
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  {(!canAfford() || hasReachedMaxCount()) && (
-                    <TooltipContent>
-                      <p className="text-xs">
-                        {hasReachedMaxCount() 
-                          ? "Достигнуто максимальное количество" 
-                          : "Недостаточно ресурсов"}
-                      </p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+              <Button
+                onClick={handlePurchase}
+                disabled={!canAfford()}
+                variant={canAfford() ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+              >
+                Купить
+              </Button>
               
               <Button
                 onClick={handleSell}
-                disabled={building.count === 0}
+                disabled={building.count <= 0}
                 variant="outline"
                 size="sm"
-                className="text-xs w-full"
+                className="text-xs"
               >
                 Продать
               </Button>
