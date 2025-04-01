@@ -101,6 +101,11 @@ export class BonusCalculationService {
             productionMultiplier += boost;
             console.log(`BonusCalculation: Интернет-канал (${building.count} шт.) увеличивает скорость получения знаний на +${boost * 100}%`);
           }
+          
+          // Криптокошелёк, особая обработка
+          if (buildingId === 'cryptoWallet') {
+            // Не добавляем никаких негативных бонусов к знаниям
+          }
         }
       }
       
@@ -256,3 +261,4 @@ export class BonusCalculationService {
     return updatedState;
   }
 }
+

@@ -1,176 +1,165 @@
 
 import React, { useState } from 'react';
-import { Building } from '@/context/types';
-import { useGame } from '@/context/hooks/useGame';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { formatResourceValue } from '@/utils/resourceFormatConfig';
-import { formatEffectName } from '@/utils/researchUtils';
+import { Building as BuildingIcon, Info, Star } from 'lucide-react';
+import { formatNumber } from '@/utils/formatters';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from './ui/button';
 
 interface BuildingCardProps {
-  building: Building;
+  id: string;
+  name: string;
+  description: string;
+  cost: Record<string, number>;
+  count: number;
+  effects?: React.ReactNode;
+  canBuy: boolean;
+  onBuy: () => void;
+  onSell?: () => void;
+  costScaling?: number;
+  production?: Record<string, number>;
+  consumption?: Record<string, number>;
 }
 
-const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
-  const { state, dispatch } = useGame();
-  const [showDetails, setShowDetails] = useState(false);
-  
-  // Рассчитываем стоимость с учетом текущего количества зданий
-  const calculateCost = () => {
-    const result: Record<string, number> = {};
-    Object.entries(building.cost).forEach(([resourceId, baseAmount]) => {
-      const multiplier = building.costMultiplier || 1.15;
-      const amount = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
-      result[resourceId] = amount;
-    });
-    return result;
-  };
-  
-  const currentCost = calculateCost();
-  
-  const canAfford = () => {
-    return Object.entries(currentCost).every(([resourceId, amount]) => {
-      const resource = state.resources[resourceId];
-      return resource && resource.value >= amount;
-    });
-  };
-  
-  const handlePurchase = () => {
-    if (canAfford()) {
-      dispatch({
-        type: 'PURCHASE_BUILDING',
-        payload: { buildingId: building.id }
-      });
-    }
-  };
-  
-  const handleSellBuilding = () => {
-    if (building.count > 0) {
-      dispatch({
-        type: 'SELL_BUILDING',
-        payload: { buildingId: building.id }
-      });
-    }
-  };
-  
-  const renderProduction = () => {
-    if (!building.production) return null;
+const BuildingCard: React.FC<BuildingCardProps> = ({
+  id,
+  name,
+  description,
+  cost,
+  count,
+  effects,
+  canBuy,
+  onBuy,
+  onSell,
+  costScaling = 1,
+  production = {},
+  consumption = {}
+}) => {
+  // Форматирование стоимости
+  const formatCost = () => {
+    const costEntries = Object.entries(cost);
+    if (costEntries.length === 0) return '';
     
-    return Object.entries(building.production).map(([resourceId, value]) => {
-      if (resourceId.includes('Max') || resourceId.includes('Boost')) {
-        // Форматируем специальные эффекты
-        const effectName = formatEffectName(resourceId);
-        const formattedValue = resourceId.includes('Boost') ? 
-          `+${(Number(value) * 100).toFixed(0)}%` : 
-          `+${value}`;
-          
-        return (
-          <div key={resourceId} className="text-blue-600 text-xs">
-            {effectName}: {formattedValue}
-          </div>
-        );
+    return costEntries.map(([resource, amount]) => {
+      let displayAmount = amount;
+      
+      // Масштабируем стоимость с учетом количества
+      if (count > 0 && costScaling > 1) {
+        displayAmount = amount * Math.pow(costScaling, count);
       }
       
-      const resource = state.resources[resourceId];
-      if (!resource) return null;
-      
-      return (
-        <div key={resourceId} className="text-green-600 text-xs">
-          {resource.name}: +{value}/сек
-        </div>
-      );
-    });
+      return `${formatNumber(displayAmount)} ${resource}`;
+    }).join(', ');
   };
   
-  const renderConsumption = () => {
-    if (!building.consumption) return null;
+  // Формируем текст эффектов здания
+  const getEffectsText = () => {
+    const effectsList = [];
     
-    return Object.entries(building.consumption).map(([resourceId, value]) => {
-      const resource = state.resources[resourceId];
-      if (!resource) return null;
-      
-      return (
-        <div key={resourceId} className="text-red-500 text-xs">
-          {resource.name}: -{value}/сек
-        </div>
-      );
+    // Добавляем производство ресурсов
+    Object.entries(production).forEach(([resource, amount]) => {
+      const readableResource = resource === 'knowledge' ? 'знаний' : 
+                              resource === 'usdt' ? 'USDT' :
+                              resource === 'electricity' ? 'электричества' :
+                              resource === 'computingPower' ? 'вычисл. мощности' : resource;
+                              
+      effectsList.push(`+${amount}/сек ${readableResource}`);
     });
-  };
-  
-  const renderCost = () => {
-    return Object.entries(currentCost).map(([resourceId, amount]) => {
-      const resource = state.resources[resourceId];
-      if (!resource) return null;
-      
-      const hasEnough = resource.value >= amount;
-      
-      return (
-        <div key={resourceId} className="flex justify-between">
-          <span className={hasEnough ? "text-gray-600" : "text-red-500"}>
-            {resource.name}:
-          </span>
-          <span className={hasEnough ? "text-gray-600" : "text-red-500"}>
-            {formatResourceValue(amount, resourceId)}
-          </span>
-        </div>
-      );
+    
+    // Добавляем потребление ресурсов
+    Object.entries(consumption).forEach(([resource, amount]) => {
+      const readableResource = resource === 'knowledge' ? 'знаний' : 
+                              resource === 'usdt' ? 'USDT' :
+                              resource === 'electricity' ? 'электричества' :
+                              resource === 'computingPower' ? 'вычисл. мощности' : resource;
+                              
+      effectsList.push(`-${amount}/сек ${readableResource}`);
     });
+    
+    // Особые эффекты для зданий
+    if (id === 'practice') {
+      effectsList.push(`+1/сек знаний`);
+    } else if (id === 'generator') {
+      effectsList.push(`+0.5/сек электричества`);
+    } else if (id === 'homeComputer') {
+      effectsList.push(`+2/сек вычисл. мощности`);
+      effectsList.push(`-1/сек электричества`);
+    } else if (id === 'cryptoWallet') {
+      effectsList.push(`+50 макс. USDT`);
+      effectsList.push(`+25% макс. знаний`);
+    } else if (id === 'internetConnection') {
+      effectsList.push(`+20% к производству знаний`);
+      effectsList.push(`+5% к вычисл. мощности`);
+    }
+    
+    return effectsList.length > 0 ? effectsList.join(', ') : 'Нет эффектов';
   };
-  
+
   return (
-    <Card className={`mb-2 ${canAfford() ? 'bg-white' : 'bg-gray-50'}`}>
-      <CardHeader className="py-2 px-3">
-        <CardTitle className="text-sm flex justify-between">
-          <span>{building.name} {building.count > 0 && `(${building.count})`}</span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6 p-1 text-xs"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? '▲' : '▼'}
-          </Button>
-        </CardTitle>
-      </CardHeader>
+    <div className="border rounded p-3 bg-white shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex items-center">
+          <div className="mr-2 p-1 bg-gray-100 rounded">
+            <BuildingIcon className="h-4 w-4 text-gray-600" />
+          </div>
+          <h3 className="font-medium text-sm">{name}</h3>
+        </div>
+        <div className="text-xs font-semibold bg-gray-100 px-2 py-0.5 rounded">
+          {count}
+        </div>
+      </div>
       
-      {showDetails && (
-        <CardContent className="py-2 px-3 text-xs">
-          <p className="text-gray-500 mb-2">{building.description}</p>
-          
-          <div className="mt-2">
-            <h4 className="font-medium mb-1">Стоимость:</h4>
-            {renderCost()}
-          </div>
-          
-          <div className="mt-2">
-            <h4 className="font-medium mb-1">Эффекты:</h4>
-            {renderProduction()}
-            {renderConsumption()}
-          </div>
-          
-          <div className="flex gap-2 mt-3">
-            <Button 
-              onClick={handlePurchase} 
-              disabled={!canAfford()}
-              variant="default"
-              size="sm"
-              className="flex-1"
-            >
-              {building.count === 0 ? "Построить" : "Улучшить"}
-            </Button>
-            {building.count > 0 && (
-              <Button 
-                onClick={handleSellBuilding}
-                variant="outline"
-                size="sm"
-              >
-                Продать
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      )}
-    </Card>
+      <div className="text-xs text-gray-500 mb-2 h-8 overflow-hidden">
+        {description}
+      </div>
+      
+      <div className="text-xs font-medium mb-2">
+        <div className="flex items-center">
+          <span className="mr-1">Эффекты:</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 text-gray-400" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs max-w-xs">При количестве: {count}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <div className="mt-1 text-emerald-600">{getEffectsText()}</div>
+      </div>
+      
+      <div className="flex gap-2 mt-auto">
+        <Button 
+          className="flex-1 h-7 text-xs py-0"
+          variant={canBuy ? "default" : "outline"} 
+          onClick={onBuy}
+          disabled={!canBuy}
+        >
+          Купить ({formatCost()})
+        </Button>
+        
+        {onSell && count > 0 && (
+          <Button 
+            className="h-7 w-7 p-0 text-xs"
+            variant="outline" 
+            onClick={onSell}
+          >
+            -
+          </Button>
+        )}
+      </div>
+    </div>
   );
 };
 

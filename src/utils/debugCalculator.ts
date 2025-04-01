@@ -2,153 +2,130 @@
 import { GameState } from '@/context/types';
 
 /**
- * Функция для подробного логирования и расчета производства знаний
- * @param state Текущее состояние игры
- * @returns Объект со списком шагов расчета и конечным значением
+ * Функция для отладочных целей, которая подробно расписывает
+ * как рассчитывается производство знаний
  */
 export const debugKnowledgeProduction = (state: GameState) => {
   const steps: string[] = [];
   let finalValue = 0;
-
+  
+  // Проверяем, существует ли ресурс знаний
+  if (!state.resources.knowledge || !state.resources.knowledge.unlocked) {
+    steps.push('Ресурс "Знания" не найден или не разблокирован.');
+    return { steps, finalValue };
+  }
+  
   try {
-    steps.push(`Расчет производства знаний:`);
+    // Шаг 1: Рассчитываем базовое производство от зданий
+    steps.push('Расчет производства знаний:');
     
-    // Проверка наличия ресурса знаний
-    if (!state.resources.knowledge || !state.resources.knowledge.unlocked) {
-      steps.push(`Ресурс "Знания" не существует или не разблокирован.`);
-      return { steps, finalValue: 0 };
-    }
-    
-    // Базовое производство от практики
-    let practiceProduction = 0;
+    // Проверяем наличие практики
+    let baseProduction = 0;
     if (state.buildings.practice && state.buildings.practice.count > 0) {
       const practiceCount = state.buildings.practice.count;
-      const basePerPractice = 1.0; // базовое производство от одной практики
-      practiceProduction = practiceCount * basePerPractice;
-      
-      steps.push(`Базовое производство от практики: ${practiceCount} × ${basePerPractice} = ${practiceProduction} знаний/сек`);
+      baseProduction = 1 * practiceCount; // 1 знание за практику
+      steps.push(`Базовое производство от практики: ${practiceCount} × 1 = ${baseProduction} знаний/сек`);
     } else {
-      steps.push(`Нет зданий "Практика" - базовое производство: 0 знаний/сек`);
+      steps.push('Нет практики для производства знаний.');
     }
     
-    // Бонусы от исследований
-    let researchMultiplier = 1.0;
-    let researchBonuses: string[] = [];
+    // Шаг 2: Применяем бонусы от исследований
+    steps.push('\nБонусы от исследований:');
     
-    if (state.upgrades.blockchainBasics?.purchased) {
-      researchMultiplier += 0.1;
-      researchBonuses.push(`Основы блокчейна: +10%`);
+    let researchMultiplier = 1;
+    const blockchainBasicsPurchased = 
+      (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) ||
+      (state.upgrades.basicBlockchain && state.upgrades.basicBlockchain.purchased) ||
+      (state.upgrades.blockchain_basics && state.upgrades.blockchain_basics.purchased);
+    
+    if (blockchainBasicsPurchased) {
+      researchMultiplier += 0.1; // +10%
+      steps.push(`• Основы блокчейна: +10%`);
     }
     
-    if (state.upgrades.basicBlockchain?.purchased) {
-      researchMultiplier += 0.1;
-      researchBonuses.push(`Основы блокчейна (альт.): +10%`);
+    steps.push(`Множитель от исследований: ×${researchMultiplier.toFixed(2)}`);
+    
+    // Шаг 3: Применяем бонусы от зданий
+    steps.push('\nБонусы от зданий:');
+    let buildingBonusMultiplier = 1;
+    
+    // Проверяем интернет-канал
+    if (state.buildings.internetConnection && state.buildings.internetConnection.count > 0) {
+      const internetConnectionCount = state.buildings.internetConnection.count;
+      const internetConnectionBonus = 0.2 * internetConnectionCount; // +20% за каждый уровень
+      buildingBonusMultiplier += internetConnectionBonus;
+      steps.push(`• Интернет-канал (${internetConnectionCount} шт.): +${(internetConnectionBonus * 100).toFixed(0)}%`);
     }
     
-    if (state.upgrades.blockchain_basics?.purchased) {
-      researchMultiplier += 0.1;
-      researchBonuses.push(`Основы блокчейна (альт.2): +10%`);
-    }
+    // Шаг 4: Применяем бонусы от специализации
+    steps.push('\nБонусы от специализации:');
+    let specializationMultiplier = 1;
     
-    if (researchBonuses.length > 0) {
-      steps.push(`\nБонусы от исследований:`);
-      researchBonuses.forEach(bonus => steps.push(`• ${bonus}`));
-      steps.push(`Множитель от исследований: ×${researchMultiplier.toFixed(2)}`);
-    } else {
-      steps.push(`\nНет активных исследований с бонусами к знаниям.`);
-    }
-    
-    // Бонусы от специализации
-    let specializationMultiplier = 1.0;
     if (state.specialization === 'analyst') {
-      specializationMultiplier = 1.25;
-      steps.push(`\nБонус специализации "Аналитик": ×1.25 (+25%)`);
+      specializationMultiplier += 0.25; // +25%
+      steps.push(`• Аналитик: +25%`);
+    } else if (state.specialization === 'influencer') {
+      specializationMultiplier += 0.1; // +10%
+      steps.push(`• Инфлюенсер: +10%`);
+    } else {
+      steps.push('Нет бонусов от специализации');
     }
     
-    // Бонусы от рефералов и помощников
-    let referralMultiplier = 1.0;
-    let hasReferralBonus = false;
+    // Шаг 5: Рассчитываем бонусы от рефералов и помощников
+    steps.push('\nБонусы от рефералов:');
     
-    // Проверяем рефералов
-    if (Array.isArray(state.referrals) && state.referrals.length > 0) {
-      const activeReferrals = state.referrals.filter(ref => 
-        ref.status === 'active' || ref.activated === true || ref.activated === 'true'
-      );
-      
-      if (activeReferrals.length > 0) {
-        const referralBonus = activeReferrals.length * 0.05;
-        referralMultiplier += referralBonus;
-        steps.push(`\nБонус от ${activeReferrals.length} активных рефералов: +${(referralBonus * 100).toFixed(0)}%`);
-        hasReferralBonus = true;
-      }
+    // Проверяем активных рефералов
+    const activeReferrals = state.referrals ? Object.values(state.referrals).filter(ref => ref.active).length : 0;
+    const referralBonus = activeReferrals * 0.05; // +5% за каждого активного реферала
+    
+    if (activeReferrals > 0) {
+      steps.push(`• Активные рефералы (${activeReferrals} шт.): +${(referralBonus * 100).toFixed(0)}%`);
+    } else {
+      steps.push('Нет активных рефералов');
     }
     
     // Проверяем помощников
-    if (Array.isArray(state.referralHelpers) && state.referralHelpers.length > 0) {
-      let helperBonus = 0;
-      let helpersWithStatus = [];
-      
-      state.referralHelpers.forEach(helper => {
-        if (helper.status === 'accepted' && helper.buildingId === 'practice') {
-          helperBonus += 0.05;
-          helpersWithStatus.push(helper.id);
-        }
-      });
-      
-      if (helperBonus > 0) {
-        referralMultiplier += helperBonus;
-        steps.push(`\nБонус от ${helpersWithStatus.length} помощников: +${(helperBonus * 100).toFixed(0)}%`);
-        
-        // Вывод статуса помощников
-        steps.push(`\nСтатус помощников для практики:`);
-        helpersWithStatus.forEach((helperId, index) => {
-          steps.push(`• Помощник ${index + 1}: ID ${helperId}`);
-        });
-        
-        hasReferralBonus = true;
+    let helperBonus = 0;
+    const helpers = state.referralHelpers || {};
+    let hasActiveHelpers = false;
+    
+    for (const helperId in helpers) {
+      const helper = helpers[helperId];
+      if (helper.status === 'active' && helper.buildingId === 'practice') {
+        hasActiveHelpers = true;
+        helperBonus += 0.15; // +15% за каждого помощника на практике
+        steps.push(`• Статус помощника ${helper.helper_id}: ${helper.status} (+15%)`);
       }
     }
     
-    if (!hasReferralBonus) {
-      steps.push(`\nНет активных рефералов или помощников.`);
+    if (!hasActiveHelpers) {
+      steps.push('Нет активных помощников');
     }
     
-    // Расчет общего производства
-    const baseProduction = practiceProduction;
-    const withResearchBonus = baseProduction * researchMultiplier;
-    const withSpecializationBonus = withResearchBonus * specializationMultiplier;
-    const finalProduction = withSpecializationBonus * referralMultiplier;
+    // Общий бонус от рефералов и помощников
+    const socialMultiplier = 1 + referralBonus + helperBonus;
     
-    finalValue = finalProduction;
+    // Шаг 6: Итоговый расчет
+    steps.push('\nНет активных рефералов или помощников.');
     
-    steps.push(`\nИтоговый расчет:`);
+    steps.push('\nИтоговый расчет:');
     steps.push(`Базовое производство: ${baseProduction.toFixed(2)} знаний/сек`);
+    steps.push(`С учетом исследований: ${baseProduction.toFixed(2)} × ${researchMultiplier.toFixed(2)} = ${(baseProduction * researchMultiplier).toFixed(2)} знаний/сек`);
     
-    if (researchMultiplier !== 1.0) {
-      steps.push(`С учетом исследований: ${baseProduction.toFixed(2)} × ${researchMultiplier.toFixed(2)} = ${withResearchBonus.toFixed(2)} знаний/сек`);
-    }
+    finalValue = baseProduction * researchMultiplier;
     
-    if (specializationMultiplier !== 1.0) {
-      steps.push(`С учетом специализации: ${withResearchBonus.toFixed(2)} × ${specializationMultiplier.toFixed(2)} = ${withSpecializationBonus.toFixed(2)} знаний/сек`);
-    }
+    // Добавляем сравнение с текущим значением в состоянии
+    steps.push(`\nТекущее значение в state.resources.knowledge.perSecond: ${state.resources.knowledge.perSecond.toFixed(2)} знаний/сек`);
     
-    if (referralMultiplier !== 1.0) {
-      steps.push(`С учетом рефералов/помощников: ${withSpecializationBonus.toFixed(2)} × ${referralMultiplier.toFixed(2)} = ${finalProduction.toFixed(2)} знаний/сек`);
-    }
-    
-    steps.push(`\nИтого: ${finalProduction.toFixed(2)} знаний/сек`);
-    
-    // Выведем также текущее значение perSecond из state
-    const currentPerSecond = state.resources.knowledge.perSecond || 0;
-    steps.push(`\nТекущее значение в state.resources.knowledge.perSecond: ${currentPerSecond.toFixed(2)} знаний/сек`);
-    
-    if (Math.abs(currentPerSecond - finalProduction) > 0.01) {
+    if (Math.abs(state.resources.knowledge.perSecond - finalValue) > 0.01) {
       steps.push(`⚠️ Обнаружено расхождение в расчетах и текущем значении!`);
     }
     
   } catch (error) {
-    steps.push(`Ошибка расчета: ${error}`);
+    steps.push(`Ошибка при расчете: ${error}`);
+    console.error('Ошибка при отладке производства знаний:', error);
   }
   
   return { steps, finalValue };
 };
+

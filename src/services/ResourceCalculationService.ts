@@ -75,6 +75,9 @@ export class ResourceCalculationService {
     // Рассчитываем потребление от зданий
     this.calculateBuildingConsumption(updatedResources, state);
     
+    // Применяем бонусы от исследований
+    this.applyResearchBonuses(updatedResources, state);
+    
     // Применяем бонусы от специализации и синергий
     this.applySpecializationBonuses(updatedResources, state);
     
@@ -253,15 +256,9 @@ export class ResourceCalculationService {
     // Особый случай для практики
     if (state.buildings.practice && state.buildings.practice.count > 0) {
       if (resources.knowledge) {
-        const baseProductionPerPractice = 0.21;
-        let practiceKnowledgeProduction = baseProductionPerPractice * state.buildings.practice.count;
-        
-        // Проверяем наличие исследования "Основы блокчейна"
-        const blockchainBasicsPurchased = this.isBlockchainBasicsPurchased(state);
-        if (blockchainBasicsPurchased) {
-          practiceKnowledgeProduction *= 1.1; // +10% от исследования
-          console.log(`ResourceCalculationService: Бонус от Основ блокчейна применен к практике: ${practiceKnowledgeProduction.toFixed(3)} знаний/сек`);
-        }
+        const baseProductionPerPractice = 1; // 1 знание за практику
+        const practiceCount = state.buildings.practice.count;
+        let practiceKnowledgeProduction = baseProductionPerPractice * practiceCount;
         
         resources.knowledge.perSecond += practiceKnowledgeProduction;
         console.log(`ResourceCalculationService: Практика добавляет ${practiceKnowledgeProduction.toFixed(3)} знаний/сек`);
@@ -289,6 +286,27 @@ export class ResourceCalculationService {
         }
       }
     }
+  }
+
+  /**
+   * Применяет бонусы от исследований
+   */
+  private applyResearchBonuses(resources: { [key: string]: any }, state: GameState): void {
+    // Проверяем наличие и активность исследования "Основы блокчейна"
+    const blockchainBasics = this.isBlockchainBasicsPurchased(state);
+    
+    // Применяем бонус к производству знаний
+    if (blockchainBasics && resources.knowledge) {
+      const currentProduction = resources.knowledge.perSecond;
+      const bonus = 0.1; // +10% к производству знаний
+      const bonusProduction = currentProduction * bonus;
+      
+      resources.knowledge.perSecond = currentProduction * (1 + bonus);
+      
+      console.log(`ResourceCalculationService: Основы блокчейна добавляют ${bonusProduction.toFixed(3)} знаний/сек (+${bonus * 100}%)`);
+    }
+    
+    // Можно добавить другие исследования и их эффекты
   }
 
   /**
@@ -366,3 +384,4 @@ export class ResourceCalculationService {
     );
   }
 }
+
