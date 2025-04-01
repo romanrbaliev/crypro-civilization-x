@@ -1,178 +1,144 @@
-
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Upgrade } from "@/context/types";
-import { useGame } from "@/context/hooks/useGame";
-import { formatNumber } from "@/utils/helpers";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
-import { formatEffectName, formatEffectValue } from "@/utils/researchUtils";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from "@/components/ui/collapsible";
-import { ChevronRight } from "lucide-react";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Upgrade } from '@/context/types';
+import { useGame } from '@/context/hooks/useGame';
+import { calculateCost, canAfford, formatResourceValue, getResourceIcon, getResourceColor } from '@/utils/helpers';
 
 interface UpgradeItemProps {
   upgrade: Upgrade;
-  onPurchase?: () => void;
-  onAddEvent?: (message: string, type: string) => void;
+  index: number;
 }
 
-const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase, onAddEvent }) => {
+// Компонент для отображения отдельного улучшения
+const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, index }) => {
   const { state, dispatch } = useGame();
-  const [isOpen, setIsOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   
+  // Обработка покупки улучшения
   const handlePurchase = () => {
-    dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
-    if (onPurchase) onPurchase();
-    // Добавляем событие в журнал, если передан обработчик
-    if (onAddEvent) onAddEvent(`Исследование "${upgrade.name}" завершено`, "success");
+    if (!upgrade.unlocked || upgrade.purchased) return;
+    
+    const canBuy = canAfford(state.resources, upgrade.cost);
+    if (!canBuy) return;
+    
+    dispatch({
+      type: 'PURCHASE_UPGRADE',
+      payload: { upgradeId: upgrade.id }
+    });
   };
   
-  const canAfford = (): boolean => {
-    for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
-      const resource = state.resources[resourceId];
-      if (!resource || resource.value < Number(amount)) {
-        return false;
-      }
-    }
-    return true;
+  // Функция для определения цвета карточки улучшения
+  const getCardStyle = () => {
+    if (upgrade.purchased) return 'bg-slate-100';
+    if (!upgrade.unlocked) return 'bg-gray-100 opacity-70';
+    if (hovered) return 'bg-blue-50';
+    return 'bg-white';
   };
   
+  // Функция для отображения стоимости улучшения
   const renderCost = () => {
+    if (!upgrade.cost) return null;
+    
     return Object.entries(upgrade.cost).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
       if (!resource) return null;
       
-      const hasEnough = resource.value >= Number(amount);
+      const canPay = resource.value >= amount;
+      const textColor = canPay ? 'text-green-600' : 'text-red-600';
+      
       return (
-        <div key={resourceId} className="flex justify-between w-full">
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {resource.name}
+        <div key={resourceId} className="flex items-center space-x-1">
+          <span className={`${getResourceColor(resourceId)}`}>
+            {getResourceIcon(resourceId)}
           </span>
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {formatNumber(Number(amount))}
+          <span className={textColor}>
+            {formatResourceValue(amount)} {resource.name}
           </span>
         </div>
       );
     });
   };
   
+  // Функция для отображения эффектов улучшения
   const renderEffects = () => {
-    // Используем эффекты из разных источников
-    const effects = upgrade.effects || upgrade.effect || {};
+    if (!upgrade.effects) return null;
     
-    // Особая обработка для исследований из базы знаний
-    if (upgrade.id === 'blockchainBasics' && (!effects.knowledgeMaxBoost || !effects.knowledgeBoost)) {
-      return (
-        <>
-          <div className="text-blue-600 text-[11px]">
-            Увеличение максимума знаний: +50%
-          </div>
-          <div className="text-blue-600 text-[11px]">
-            Прирост знаний: +10%
-          </div>
-        </>
-      );
-    }
-    
-    if (upgrade.id === 'cryptoCurrencyBasics' && (!effects.knowledgeEfficiencyBoost)) {
-      return (
-        <div className="text-blue-600 text-[11px]">
-          Эффективность применения знаний: +10%
-        </div>
-      );
-    }
-    
-    if (!effects || Object.keys(effects).length === 0) {
-      return <div className="text-gray-500 text-[11px]">Нет эффектов</div>;
-    }
-    
-    return Object.entries(effects).map(([effectId, value]) => {
-      // Используем специальные функции форматирования для каждого эффекта
-      const effectName = formatEffectName(effectId);
-      const formattedValue = formatEffectValue(Number(value), effectId);
+    return Object.entries(upgrade.effects).map(([effectId, value]) => {
+      // Определяем понятное название эффекта и его значение
+      let effectName = effectId;
+      let effectValue = value;
+      
+      // Преобразуем technicalId в человекочитаемое название
+      switch(effectId) {
+        case 'knowledgeMaxBoost':
+          effectName = 'Увеличение макс. знаний';
+          effectValue = value * 100;
+          break;
+        case 'knowledgeBoost':
+          effectName = 'Бонус к производству знаний';
+          effectValue = value * 100;
+          break;
+        case 'usdtMaxBoost':
+          effectName = 'Увеличение макс. USDT';
+          effectValue = value * 100;
+          break;
+        case 'miningEfficiency':
+          effectName = 'Эффективность майнинга';
+          effectValue = value * 100;
+          break;
+        case 'energyEfficiency':
+          effectName = 'Энергоэффективность';
+          effectValue = value * 100;
+          break;
+        default:
+          effectName = effectId;
+      }
       
       return (
-        <div key={effectId} className="text-blue-600 text-[11px]">
-          {effectName}: {formattedValue}
+        <div key={effectId} className="text-sm">
+          <span className="text-blue-600">
+            {effectName}: +{effectValue}%
+          </span>
         </div>
       );
     });
   };
   
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
+    <Card
+      className={`transition-colors ${getCardStyle()}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <CollapsibleTrigger asChild>
-        <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
-          <div className="flex-1">
-            <div className="flex justify-between items-center w-full">
-              <h3 className="text-xs font-medium">
-                {upgrade.name} {upgrade.purchased && '✓'}
-              </h3>
-            </div>
-          </div>
-          <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-        </div>
-      </CollapsibleTrigger>
+      <CardHeader className="px-4 py-2">
+        <CardTitle className="text-lg">{upgrade.name}</CardTitle>
+        <CardDescription className="text-sm">{upgrade.description}</CardDescription>
+      </CardHeader>
       
-      <CollapsibleContent>
-        <div className="p-2 pt-0">
-          <p className="text-[11px] text-gray-500 mt-1 mb-2">{upgrade.description}</p>
-          
-          <div className="space-y-2">
-            <div className="space-y-1">
-              <h4 className="text-[11px] font-medium">Стоимость:</h4>
-              {renderCost()}
-            </div>
-            
-            <div className="border-t pt-2 mt-2">
-              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
-              {renderEffects()}
-            </div>
-            
-            <div className="border-t pt-2 grid grid-cols-1 gap-2 mt-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Button
-                        onClick={handlePurchase}
-                        disabled={!canAfford() || upgrade.purchased}
-                        variant={canAfford() && !upgrade.purchased ? "default" : "outline"}
-                        size="sm"
-                        className="w-full text-xs"
-                      >
-                        {upgrade.purchased ? "Исследовано" : "Исследовать"}
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  {(!canAfford() || upgrade.purchased) && (
-                    <TooltipContent>
-                      <p className="text-xs">
-                        {upgrade.purchased
-                          ? "Исследование уже проведено"
-                          : "Недостаточно ресурсов"}
-                      </p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
+      <CardContent className="px-4 py-2 space-y-2">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-slate-500">Стоимость:</p>
+          {renderCost()}
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+        
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-slate-500">Эффекты:</p>
+          {renderEffects()}
+        </div>
+      </CardContent>
+      
+      <CardFooter className="px-4 py-2">
+        <Button 
+          className="w-full" 
+          variant={upgrade.purchased ? "secondary" : (upgrade.unlocked ? "default" : "outline")}
+          disabled={!upgrade.unlocked || upgrade.purchased}
+          onClick={handlePurchase}
+        >
+          {upgrade.purchased ? "Приобретено" : (upgrade.unlocked ? "Купить" : "Заблокировано")}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

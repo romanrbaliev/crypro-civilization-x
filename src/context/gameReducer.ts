@@ -1,4 +1,3 @@
-
 // Импорты оставляем без изменений
 import { GameState, GameAction } from './types';
 import { processPurchaseBuilding, processSellBuilding } from './reducers/building';

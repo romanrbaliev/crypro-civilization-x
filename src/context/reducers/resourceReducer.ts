@@ -49,8 +49,9 @@ export const applyAllKnowledge = (state: GameState, action: any): GameState => {
     }
   };
   
-  // Если ресурс USDT существует, обновляем его значение
+  // Проверяем наличие ресурса USDT
   if (newState.resources.usdt) {
+    // Если ресурс USDT существует, обновляем его значение
     newState.resources.usdt = {
       ...newState.resources.usdt,
       value: (newState.resources.usdt.value || 0) + finalUsdtAmount,
@@ -58,18 +59,21 @@ export const applyAllKnowledge = (state: GameState, action: any): GameState => {
     };
   } else {
     // Если ресурса USDT еще нет, создаем его
-    newState.resources.usdt = {
-      id: 'usdt',
-      name: 'USDT',
-      description: 'Стабильная криптовалюта, привязанная к доллару США',
-      type: 'currency',
-      icon: 'dollar-sign',
-      value: finalUsdtAmount,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0,
-      max: 100,
-      unlocked: true
+    newState.resources = {
+      ...newState.resources,
+      usdt: {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стабильная криптовалюта, привязанная к доллару США',
+        type: 'currency',
+        icon: 'dollar-sign',
+        value: finalUsdtAmount,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 100,
+        unlocked: true
+      }
     };
   }
   

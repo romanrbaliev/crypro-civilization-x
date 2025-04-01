@@ -441,4 +441,32 @@ export class EffectService {
     
     return newState;
   }
+
+  // Проверка и применение эффекта майнинга
+  export function updateMiningEfficiency(state: GameState): GameState {
+    if (!state.miningParams) {
+      // Если miningParams отсутствует, создаем его
+      state = {
+        ...state,
+        miningParams: {
+          exchangeRate: 20000,
+          exchangeCommission: 0.05,
+          miningEfficiency: 1.0,
+          energyEfficiency: 1.0
+        }
+      };
+    } else if (state.miningParams && !state.miningParams.miningEfficiency) {
+      // Если miningParams существует, но без miningEfficiency
+      state = {
+        ...state,
+        miningParams: {
+          ...state.miningParams,
+          miningEfficiency: 1.0,
+          energyEfficiency: 1.0
+        }
+      };
+    }
+    
+    return state;
+  }
 }

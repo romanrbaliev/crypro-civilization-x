@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -126,11 +127,12 @@ export const processPurchaseUpgrade = (
         case 'miningEfficiency':
           // Увеличиваем эффективность майнинга
           if (updatedState.miningParams) {
+            const currentEfficiency = updatedState.miningParams.miningEfficiency || 0;
             updatedState = {
               ...updatedState,
               miningParams: {
                 ...updatedState.miningParams,
-                miningEfficiency: updatedState.miningParams.miningEfficiency + effectValue
+                miningEfficiency: currentEfficiency + effectValue
               }
             };
           }
@@ -139,11 +141,12 @@ export const processPurchaseUpgrade = (
         case 'energyEfficiency':
           // Увеличиваем энергоэффективность
           if (updatedState.miningParams) {
+            const currentEfficiency = updatedState.miningParams.energyEfficiency || 0;
             updatedState = {
               ...updatedState,
               miningParams: {
                 ...updatedState.miningParams,
-                energyEfficiency: updatedState.miningParams.energyEfficiency + effectValue
+                energyEfficiency: currentEfficiency + effectValue
               }
             };
           }
@@ -170,12 +173,18 @@ export const processPurchaseUpgrade = (
           
         case 'unlockTrading':
           // Разблокируем возможность обмена криптовалюты
-          updatedState.unlocks.trading = 1;
+          updatedState.unlocks = {
+            ...updatedState.unlocks,
+            trading: true
+          };
           break;
           
         case 'autoBtcExchange':
           // Разблокируем автоматический обмен BTC
-          updatedState.unlocks.autoBtcExchange = 1;
+          updatedState.unlocks = {
+            ...updatedState.unlocks,
+            autoBtcExchange: true
+          };
           break;
           
         default:

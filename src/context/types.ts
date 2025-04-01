@@ -50,6 +50,7 @@ export interface Upgrade {
   category?: string;
   tier?: number;
   specialization?: string;
+  unlockCondition?: { [key: string]: any }; // Добавлено поле unlockCondition
 }
 
 // Тип для синергий специализаций
@@ -75,6 +76,8 @@ export interface Referral {
   assignedBuildingId?: string;
   createdAt: number;
   updatedAt?: number;
+  username?: string;  // Добавляем поле username для совместимости
+  joinedAt?: number;   // Добавляем поле joinedAt для совместимости
 }
 
 // Тип для хелперов рефералов
@@ -134,9 +137,12 @@ export interface GameState {
   counters: { [counterId: string]: number | { value: number; updatedAt: number } };
   referrals: Referral[];
   referralHelpers: ReferralHelper[];
+  referralCode?: string; // Добавляем необязательное поле referralCode
   miningParams?: {
     exchangeRate: number;
     exchangeCommission: number;
+    miningEfficiency?: number; // Добавляем необязательное поле miningEfficiency
+    energyEfficiency?: number; // Добавляем необязательное поле energyEfficiency
   };
 }
 

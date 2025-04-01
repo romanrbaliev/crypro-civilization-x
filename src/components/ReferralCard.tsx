@@ -24,6 +24,7 @@ import { ru } from 'date-fns/locale';
 import { isReferralHelperForBuilding, getHelperRequestId } from '@/utils/helpers';
 import { updateReferralHiredStatus } from '@/api/referralService';
 import { toast } from '@/hooks/use-toast';
+import { Referral } from '@/context/types';
 
 interface ReferralCardProps {
   referral: {
@@ -84,15 +85,22 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
       
       // Обновляем статус "hired" в состоянии реферала, если он не установлен
       if (!referral.hired) {
+        // Создаём полный объект реферала для совместимости с Referral
+        const fullReferral: Referral = {
+          id: referral.id,
+          userId: referral.id, // Используем id как userId для совместимости
+          name: referral.username || "Пользователь",
+          username: referral.username,
+          activated: isActivated,
+          hired: true,
+          assignedBuildingId: activeHelper.buildingId,
+          joinedAt: referral.joinedAt,
+          createdAt: referral.joinedAt // Используем joinedAt как createdAt для совместимости
+        };
+
         dispatch({
           type: "ADD_REFERRAL",
-          payload: { 
-            referral: { 
-              ...referral, 
-              hired: true, 
-              assignedBuildingId: activeHelper.buildingId 
-            } 
-          }
+          payload: { referral: fullReferral }
         });
       }
       
@@ -109,7 +117,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
     setIsHired(false);
     setAssignedBuilding(null);
     return false;
-  }, [referral, state.referralHelpers, dispatch]);
+  }, [referral, state.referralHelpers, dispatch, isActivated]);
   
   useEffect(() => {
     // Инициализация статуса
@@ -243,7 +251,7 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
         if (requestId) {
           dispatch({
             type: "RESPOND_TO_HELPER_REQUEST",
-            payload: { helperId: requestId, accepted: false }
+            payload: { requestId, accept: false }
           });
           console.log(`Отменено назначение помощника ${referral.id} на здание ${selectedBuilding}`);
         }
