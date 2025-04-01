@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -251,6 +252,12 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         ...newState.miningParams,
         miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
       };
+    } else {
+      // Если параметры майнинга не были инициализированы
+      newState.miningParams = {
+        miningEfficiency: 1.15,
+        energyEfficiency: 0
+      };
     }
     
     // Добавляем эффекты, если их нет
@@ -275,6 +282,12 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         ...newState.miningParams,
         miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.25
       };
+    } else {
+      // Если параметры майнинга не были инициализированы
+      newState.miningParams = {
+        miningEfficiency: 1.25,
+        energyEfficiency: 0
+      };
     }
     
     // Добавляем эффекты, если их нет
@@ -298,6 +311,12 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       newState.miningParams = {
         ...newState.miningParams,
         energyEfficiency: (newState.miningParams.energyEfficiency || 0) + 0.1
+      };
+    } else {
+      // Если параметры майнинга не были инициализированы
+      newState.miningParams = {
+        miningEfficiency: 1,
+        energyEfficiency: 0.1
       };
     }
     

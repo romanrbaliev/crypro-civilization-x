@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -155,6 +156,9 @@ export class GameStateService {
       
       // Принудительная проверка всех зданий, требующих ресурсы для работы
       newState = this.checkEquipmentStatus(newState);
+      
+      // Дополнительная проверка разблокировки майнера после покупки Основ криптовалют
+      newState = this.checkCryptoUpgradeUnlocks(newState);
       
       // Обновляем lastUpdate для отслеживания времени
       newState = {

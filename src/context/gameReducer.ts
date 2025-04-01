@@ -158,8 +158,17 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // ИСПРАВЛЕНИЕ: Убираем двойное применение эффектов "Основы блокчейна"
       // Все эффекты улучшения будут применены в processPurchaseUpgrade и затем через gameStateService
       
-      // Обрабатываем изменения через сервис
-      return gameStateService.processUpgradePurchase(newState, action.payload.upgradeId);
+      // Проверяем особый случай для "Основ криптовалют" для принудительной разблокировки майнера
+      if (action.payload.upgradeId === 'cryptoCurrencyBasics' || action.payload.upgradeId === 'cryptoBasics') {
+        console.log("gameReducer: Дополнительная обработка для Основ криптовалют");
+        // Принудительно проверяем и устанавливаем разблокировки для майнера и биткоина
+        newState = gameStateService.performFullStateSync(newState);
+      } else {
+        // Обрабатываем изменения через сервис
+        newState = gameStateService.processUpgradePurchase(newState, action.payload.upgradeId);
+      }
+      
+      return newState;
     }
     
     case "UNLOCK_FEATURE": 

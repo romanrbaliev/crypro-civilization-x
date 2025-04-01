@@ -33,18 +33,16 @@ export interface GameState {
 export interface Resource {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   value: number;
-  baseProduction: number;
-  production: number;
-  unlockedBy?: string;
-  unlocked: boolean;
-  type: string;
-  perSecond: number;
-  max: number;
-  icon: string;
-  boosts?: { [key: string]: number };
+  baseProduction?: number;
+  production?: number;
+  perSecond?: number;
   consumption?: number;
+  max?: number;
+  unlocked: boolean;
+  type?: string;
+  icon?: string;
 }
 
 export interface Building {

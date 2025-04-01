@@ -54,6 +54,16 @@ export class ResourceProductionService {
             }
           }
           
+          // Проверяем наличие интернет-канала для бонуса к производству знаний
+          if (state.buildings.internetChannel && state.buildings.internetChannel.count > 0) {
+            const internetChannelCount = state.buildings.internetChannel.count;
+            // Увеличиваем скорость получения знаний на 20% за каждый интернет-канал
+            const internetBonus = knowledgeProduction * 0.2 * internetChannelCount;
+            knowledgeProduction += internetBonus;
+            
+            console.log(`ResourceProductionService: Интернет-канал добавляет ${internetBonus.toFixed(2)}/сек знаний (+20% за каждый канал)`);
+          }
+          
           console.log(`ResourceProductionService: скорость производства знаний=${knowledgeProduction.toFixed(2)}/сек`);
           
           resources[resourceId] = {
@@ -122,9 +132,19 @@ export class ResourceProductionService {
           
           if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0) {
             const computerCount = state.buildings.homeComputer.count;
-            const computerProduction = computerCount * 2; // 2 вычисл. мощности в секунду на компьютер
-            computingProduction += computerProduction;
+            let computerProduction = computerCount * 2; // 2 вычисл. мощности в секунду на компьютер
             
+            // Проверяем наличие интернет-канала для бонуса к вычислительной мощности
+            if (state.buildings.internetChannel && state.buildings.internetChannel.count > 0) {
+              // +5% к эффективности вычислительной мощности за каждый интернет-канал
+              const internetChannelCount = state.buildings.internetChannel.count;
+              const internetBonus = computerProduction * 0.05 * internetChannelCount;
+              computerProduction += internetBonus;
+              
+              console.log(`ResourceProductionService: Интернет-канал увеличивает производство вычисл. мощности на ${internetBonus.toFixed(2)} (+5% за каждый канал)`);
+            }
+            
+            computingProduction += computerProduction;
             console.log(`ResourceProductionService: Домашние компьютеры производят ${computerProduction.toFixed(2)}/сек вычислительной мощности`);
           }
           
