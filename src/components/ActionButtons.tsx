@@ -2,7 +2,6 @@
 import React, { useCallback, useRef } from "react";
 import { useActionButtons } from "@/hooks/useActionButtons";
 import { Button } from "@/components/ui/button";
-import { Brain, CreditCard, ChevronsUp } from 'lucide-react';
 import { useGame } from "@/context/hooks/useGame";
 
 interface ActionButtonsProps {
@@ -62,54 +61,67 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     };
   }, []);
   
-  return (
-    <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-      {/* Только показываем кнопку изучения, если генерация знаний не слишком высока */}
-      {!shouldHideLearnButton && (
+  // Создаем массив кнопок в нужном порядке (снизу вверх)
+  const renderButtons = () => {
+    const buttons = [];
+    
+    // Кнопка обмена Bitcoin появляется только если разблокирован Bitcoin (Вверху)
+    if (bitcoinUnlocked) {
+      buttons.push(
         <Button 
-          variant="secondary"
-          className="flex items-center justify-center py-6 px-4"
-          onMouseDown={handleLearnMouseDown}
-          onMouseUp={handleLearnMouseUp}
-          onMouseLeave={handleLearnMouseLeave}
-          onTouchStart={handleLearnClick} // Для мобильных устройств
-          onTouchEnd={() => {}}
-        >
-          <Brain className="mr-2 h-5 w-5" />
-          <span className="text-base">Изучить крипту</span>
-        </Button>
-      )}
-      
-      {/* Кнопка применения знаний появляется после разблокировки */}
-      {applyKnowledgeUnlocked && (
-        <Button 
-          variant={canApplyKnowledge ? "default" : "outline"}
-          className="flex items-center justify-center py-6 px-4"
-          onClick={handleApplyAllKnowledge}
-          disabled={!canApplyKnowledge}
-        >
-          <ChevronsUp className="mr-2 h-5 w-5" />
-          <span className="text-base">Применить знания</span>
-        </Button>
-      )}
-      
-      {/* Кнопка обмена Bitcoin появляется только если разблокирован Bitcoin */}
-      {bitcoinUnlocked && (
-        <Button
+          key="exchange-bitcoin"
           variant={canExchangeBitcoin ? "default" : "outline"}
-          className={`flex items-center justify-center py-6 px-4 ${
-            !canExchangeBitcoin ? "opacity-50" : ""
-          }`}
+          className={`py-6 px-4 ${!canExchangeBitcoin ? "opacity-50" : ""}`}
           onClick={handleExchangeBitcoin}
           disabled={!canExchangeBitcoin}
         >
-          <CreditCard className="mr-2 h-5 w-5" />
           <span className="text-base">Обменять Bitcoin</span>
           <small className="text-xs ml-2">
             1 BTC = {currentExchangeRate.toLocaleString()} USDT
           </small>
         </Button>
-      )}
+      );
+    }
+    
+    // Кнопка применения знаний появляется после разблокировки (В середине)
+    if (applyKnowledgeUnlocked) {
+      buttons.push(
+        <Button 
+          key="apply-knowledge"
+          variant={canApplyKnowledge ? "default" : "outline"}
+          className="py-6 px-4"
+          onClick={handleApplyAllKnowledge}
+          disabled={!canApplyKnowledge}
+        >
+          <span className="text-base">Применить знания</span>
+        </Button>
+      );
+    }
+    
+    // Кнопка "Изучить крипту" всегда внизу, если её показываем
+    if (!shouldHideLearnButton) {
+      buttons.push(
+        <Button 
+          key="learn-crypto"
+          variant="secondary"
+          className="py-6 px-4"
+          onMouseDown={handleLearnMouseDown}
+          onMouseUp={handleLearnMouseUp}
+          onMouseLeave={handleLearnMouseLeave}
+          onTouchStart={handleLearnClick}
+          onTouchEnd={() => {}}
+        >
+          <span className="text-base">Изучить крипту</span>
+        </Button>
+      );
+    }
+    
+    return buttons;
+  };
+  
+  return (
+    <div className="p-2 grid grid-cols-1 gap-2 mt-4">
+      {renderButtons()}
     </div>
   );
 };

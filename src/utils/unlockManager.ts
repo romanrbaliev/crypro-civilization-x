@@ -1,4 +1,3 @@
-
 // Импортируем необходимые функции и типы
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -171,7 +170,7 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
     }
   }
   
-  // Проверяем, разблокированы ли Основы блокчейна
+  // Проверяем, разблокированы ли Основы блокчейна и исследования
   if (!newState.upgrades.blockchainBasics?.unlocked && 
       newState.buildings.generator?.count > 0 && 
       newState.buildings.generator?.unlocked) {
@@ -179,7 +178,10 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
     if (newState.upgrades.blockchainBasics) {
       newState.upgrades.blockchainBasics.unlocked = true;
       newState.unlocks.blockchainBasics = true;
+      // Разблокируем исследования вместе с основам�� блокчейна
+      newState.unlocks.research = true;
       safeDispatchGameEvent('Разблокировано: Основы блокчейна', 'success');
+      safeDispatchGameEvent('Разблокировано: Исследования', 'success');
     }
   }
   
@@ -435,10 +437,11 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
 export const checkActionUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // Разблокировка исследований (вкладка исследований) после 5 применений знаний
+  // Разблокировка исследований (вкладка исследований) после 5 применений знаний ИЛИ при наличии генератора
   if (!newState.unlocks.research && 
-      (newState.counters.applyKnowledge?.value || 0) >= 5) {
-    console.log('unlockManager: Разблокирована вкладка исследований (5+ применений знаний)');
+      ((newState.counters.applyKnowledge?.value || 0) >= 5 || 
+       newState.buildings.generator?.count > 0)) {
+    console.log('unlockManager: Разблокирована вкладка исследований');
     newState.unlocks.research = true;
     safeDispatchGameEvent('Разблокировано: Исследования', 'success');
   }
