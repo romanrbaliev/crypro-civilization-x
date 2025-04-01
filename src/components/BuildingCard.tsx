@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Building as BuildingIcon, Info, Star } from 'lucide-react';
+import React from 'react';
+import { Building as BuildingIcon, Info } from 'lucide-react';
 import { formatNumber } from '@/utils/helpers';
 import {
   Popover,
@@ -103,6 +103,10 @@ const BuildingCard: React.FC<BuildingCardProps> = ({
     } else if (id === 'internetConnection') {
       effectsList.push(`+20% к производству знаний`);
       effectsList.push(`+5% к вычисл. мощности`);
+    } else if (id === 'miner') {
+      effectsList.push(`+0.00005/сек Bitcoin`);
+      effectsList.push(`-1/сек электричества`);
+      effectsList.push(`-5/сек вычисл. мощности`);
     }
     
     return effectsList.length > 0 ? effectsList.join(', ') : 'Нет эффектов';

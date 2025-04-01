@@ -67,8 +67,9 @@ export class BonusCalculationService {
           // Обрабатываем специальные эффекты для конкретных исследований
           if (upgrade.id === 'blockchainBasics' || upgrade.id === 'basicBlockchain' || upgrade.id === 'blockchain_basics') {
             if (resourceId === 'knowledge') {
-              // Увеличиваем производство знаний на 10%
-              productionMultiplier += 0.1;
+              // Увеличиваем производство знаний на 10% (а не 80%)
+              const boost = 0.1; // 10% вместо 0.8
+              productionMultiplier += boost;
               // Увеличиваем максимум знаний на 50%
               maxMultiplier += 0.5;
               console.log(`BonusCalculation: Основы блокчейна увеличивают производство знаний на +10%, максимум на +50%`);
@@ -225,6 +226,36 @@ export class BonusCalculationService {
           unlocked: true
         };
         console.log("BonusCalculationService: Исследование 'Основы криптовалют' разблокировано");
+      }
+    }
+    
+    // Обрабатываем специальные эффекты для "Основы криптовалют"
+    if (upgradeId === 'cryptoCurrencyBasics') {
+      console.log("BonusCalculationService: Применяем специальные эффекты 'Основы криптовалют'");
+      
+      // 1. Увеличиваем эффективность применения знаний на 10%
+      updatedState.upgrades.cryptoCurrencyBasics = {
+        ...updatedState.upgrades.cryptoCurrencyBasics,
+        effects: {
+          ...(updatedState.upgrades.cryptoCurrencyBasics.effects || {}),
+          knowledgeEfficiencyBoost: 0.1 // +10% к эффективности применения знаний
+        }
+      };
+      
+      // 2. Разблокируем майнер
+      if (updatedState.buildings.miner) {
+        updatedState.buildings.miner = {
+          ...updatedState.buildings.miner,
+          unlocked: true
+        };
+        
+        // Добавляем флаг разблокировки в unlocks
+        updatedState.unlocks = {
+          ...updatedState.unlocks,
+          miner: true
+        };
+        
+        console.log("BonusCalculationService: Майнер разблокирован");
       }
     }
     

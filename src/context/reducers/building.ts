@@ -97,11 +97,16 @@ export const processPurchaseBuilding = (
           max: 1000,
           unlocked: true
         };
+        
+        safeDispatchGameEvent('Разблокирована вычислительная мощность!', 'success');
       } else {
-        newState.resources.computingPower.unlocked = true;
+        newState.resources.computingPower = {
+          ...newState.resources.computingPower,
+          unlocked: true
+        };
+        
+        safeDispatchGameEvent('Разблокирована вычислительная мощность!', 'success');
       }
-      
-      safeDispatchGameEvent('Разблокирована вычислительная мощность!', 'success');
     }
   } 
   else if (buildingId === 'generator') {
@@ -131,7 +136,10 @@ export const processPurchaseBuilding = (
           unlocked: true
         };
       } else {
-        newState.resources.electricity.unlocked = true;
+        newState.resources.electricity = {
+          ...newState.resources.electricity,
+          unlocked: true
+        };
       }
       
       safeDispatchGameEvent('Разблокировано электричество!', 'success');

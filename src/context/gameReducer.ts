@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -170,6 +171,26 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           newState.resources.knowledge = {
             ...newState.resources.knowledge,
             max: newState.resources.knowledge.max * 1.5
+          };
+        }
+      }
+      
+      // Специальная обработка для "Основы криптовалют"
+      if (action.payload.upgradeId === 'cryptoCurrencyBasics') {
+        console.log(`Применяем эффекты улучшения "Основы криптовалют":`);
+        console.log(`1. Увеличиваем эффективность применения знаний на 10%`);
+        console.log(`2. Разблокируем майнер`);
+        
+        // Разблокируем майнер
+        if (newState.buildings.miner) {
+          newState.buildings.miner = {
+            ...newState.buildings.miner,
+            unlocked: true
+          };
+          
+          newState.unlocks = {
+            ...newState.unlocks,
+            miner: true
           };
         }
       }
