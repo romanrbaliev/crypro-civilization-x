@@ -19,7 +19,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     applyKnowledgeUnlocked,
   } = useActionButtons({ onAddEvent });
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const touchStartedRef = useRef(false); // Флаг для отслеживания касания
   
   // Визуальная проверка доступности кнопок
   const canApplyKnowledge = (state.resources.knowledge?.value || 0) >= 10;
@@ -53,24 +52,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     }
   }, []);
   
-  // ИСПРАВЛЕНИЕ: Обновленный обработчик для сенсорных устройств с проверкой флага
-  const handleTouchStart = useCallback((e) => {
-    // Предотвращаем событие по умолчанию, чтобы избежать дополнительной обработки
-    e.preventDefault();
-    
-    // Проверяем, не было ли уже начато касание
-    if (!touchStartedRef.current) {
-      touchStartedRef.current = true;
-      // Только один клик при касании
-      handleLearnClick();
-    }
+  // ИСПРАВЛЕНИЕ: Отдельный обработчик для сенсорных устройств
+  const handleTouchStart = useCallback(() => {
+    // Только один клик при касании
+    handleLearnClick();
   }, [handleLearnClick]);
-  
-  // Обработчик окончания касания
-  const handleTouchEnd = useCallback(() => {
-    // Сбрасываем флаг касания
-    touchStartedRef.current = false;
-  }, []);
   
   // Очистка таймера при размонтировании компонента
   React.useEffect(() => {
@@ -126,9 +112,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           onMouseDown={handleLearnMouseDown}
           onMouseUp={handleLearnMouseUp}
           onMouseLeave={handleLearnMouseLeave}
+          // ИСПРАВЛЕНИЕ: заменяем onTouchStart на новый обработчик и убираем дублирующий клик
           onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
+          onTouchEnd={() => {}}
         >
           <span className="text-xs">Изучить крипту</span>
         </Button>

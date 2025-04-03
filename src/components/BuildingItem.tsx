@@ -1,156 +1,313 @@
 
-import React from 'react';
-import { Building, Resource } from '@/context/types';
-import { formatNumber } from '@/utils/formatters';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Building } from "@/context/types";
+import { useGame } from "@/context/hooks/useGame";
+import { formatNumber } from "@/utils/helpers";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+import { formatEffectName } from "@/utils/researchUtils";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
+import {
+  ChevronRight
+} from "lucide-react";
 
-type BuildingItemProps = {
+interface BuildingItemProps {
   building: Building;
-  resources?: Record<string, Resource>;
-  onBuy: () => void;
-  onSell?: () => void;
-  showSell?: boolean;
-  compact?: boolean;
-};
+  onPurchase?: () => void;
+}
 
-// Функция для проверки доступности ресурсов
-const canAfford = (cost: Record<string, number> | undefined, resources: Record<string, Resource> = {}): boolean => {
-  if (!cost) return false;
+const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => {
+  const { state, dispatch } = useGame();
+  const [isOpen, setIsOpen] = useState(false);
   
-  return Object.entries(cost).every(([resourceId, amount]) => {
-    const resource = resources[resourceId];
-    return resource && resource.value !== undefined && resource.value >= amount;
-  });
-};
-
-// Функция для получения текущей стоимости
-const getNextCost = (building: Building): Record<string, number> => {
-  // Проверяем наличие стоимости
-  if (building.cost) {
-    return building.cost;
-  }
+  const handlePurchase = () => {
+    dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: building.id } });
+    if (onPurchase) onPurchase();
+  };
   
-  // Если нет cost, но есть baseCost, вычисляем стоимость
-  if (building.baseCost) {
-    const costMultiplier = building.costMultiplier || 1.12;
-    const count = building.count || 0;
+  const handleSell = () => {
+    if (building.count > 0) {
+      dispatch({ type: "SELL_BUILDING", payload: { buildingId: building.id } });
+    }
+  };
+  
+  const canAfford = (): boolean => {
+    const nextCost = getNextCost();
+    if (!nextCost) return false;
     
-    // Создаем новый объект стоимости
-    const calculatedCost: Record<string, number> = {};
+    for (const [resourceId, amount] of Object.entries(nextCost)) {
+      const resource = state.resources[resourceId];
+      if (!resource || resource.value < Number(amount)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  
+  const getNextCost = () => {
+    // Проверяем, существует ли объект building.cost
+    if (!building || !building.cost) {
+      console.warn(`Здание ${building?.id || 'unknown'} не имеет свойства cost`);
+      return {};
+    }
     
-    // Для каждого ресурса в базовой стоимости
-    Object.entries(building.baseCost).forEach(([resourceId, baseAmount]) => {
-      // Вычисляем новую стоимость с учетом количества зданий и множителя
-      const scaledAmount = Number(baseAmount) * Math.pow(costMultiplier, count);
-      calculatedCost[resourceId] = Math.round(scaledAmount);
-    });
+    const nextCost = {};
+    for (const [resourceId, baseAmount] of Object.entries(building.cost)) {
+      const multiplier = building.costMultiplier || 1.15;
+      const calculatedCost = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
+      nextCost[resourceId] = calculatedCost;
+    }
+    return nextCost;
+  };
+  
+  const getResourceName = (resourceId: string): string => {
+    const resourceNames: {[key: string]: string} = {
+      knowledge: 'Знания',
+      usdt: 'USDT',
+      electricity: 'Электричество',
+      computingPower: 'Вычисл. мощность',
+      bitcoin: 'Bitcoin'
+    };
     
-    return calculatedCost;
-  }
+    return resourceNames[resourceId] || 
+           (state.resources[resourceId]?.name || resourceId);
+  };
   
-  // Если нет никакой информации о стоимости, возвращаем пустой объект
-  console.warn(`Здание ${building.name} не имеет свойства cost или baseCost`);
-  return {};
-};
-
-// Основной компонент для отображения здания
-const BuildingItem: React.FC<BuildingItemProps> = ({
-  building,
-  resources = {},
-  onBuy,
-  onSell,
-  showSell = false,
-  compact = false
-}) => {
-  // Безопасно получаем текущую стоимость здания
-  const currentCost = getNextCost(building);
-  
-  // Проверяем, можем ли купить здание
-  const canBuy = canAfford(currentCost, resources);
-  
-  // Краткий режим отображения для компактных списков
-  if (compact) {
-    return (
-      <div className="flex flex-col gap-1 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex justify-between items-center">
-          <span className="font-semibold text-sm">{building.name}</span>
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-            {building.count || 0}
+  const renderCost = () => {
+    const costs = building.count === 0 ? building.cost : getNextCost();
+    
+    // Проверяем, существует ли объект costs
+    if (!costs) return null;
+    
+    return Object.entries(costs).map(([resourceId, amount]) => {
+      const resource = state.resources[resourceId];
+      if (!resource) return null;
+      
+      const hasEnough = resource.value >= Number(amount);
+      return (
+        <div key={resourceId} className="flex justify-between w-full">
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
+            {resource.name}
+          </span>
+          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
+            {formatNumber(Number(amount))}
           </span>
         </div>
-        
-        <div className="flex justify-between items-center mt-1">
-          <div className="flex-grow">
-            {Object.entries(currentCost).map(([resourceId, amount]) => (
-              <div key={resourceId} className="flex items-center text-xs">
-                <span className={resources[resourceId]?.value >= amount ? 'text-gray-600' : 'text-red-600'}>
-                  {formatNumber(amount)} {resources[resourceId]?.name || resourceId}
-                </span>
-              </div>
-            ))}
-          </div>
-          
-          <button
-            onClick={onBuy}
-            disabled={!canBuy}
-            className={`text-xs px-2 py-1 rounded ${
-              canBuy ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-500'
-            }`}
-          >
-            +
-          </button>
-        </div>
-      </div>
-    );
-  }
+      );
+    });
+  };
   
-  // Полный режим отображения
-  return (
-    <div className="flex flex-col gap-2 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="flex items-center">
-            <h3 className="text-sm font-bold">{building.name}</h3>
-            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-              {building.count || 0}
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 mt-0.5">{building.description}</p>
-        </div>
-      </div>
+  const renderProduction = () => {
+    if (!building.production || Object.keys(building.production).length === 0) {
+      return null;
+    }
+    
+    return Object.entries(building.production).map(([resourceId, amount]) => {
+      const resourceName = getResourceName(resourceId);
       
-      <div className="flex justify-between items-end mt-1">
-        <div>
-          {Object.entries(currentCost).map(([resourceId, amount]) => (
-            <div key={resourceId} className="flex items-center text-xs">
-              <span className={resources[resourceId]?.value >= amount ? 'text-gray-600' : 'text-red-600'}>
-                {formatNumber(amount)} {resources[resourceId]?.name || resourceId}
-              </span>
+      return (
+        <div key={resourceId} className="text-green-600 text-[11px] flex justify-between w-full">
+          <span>{resourceName}</span>
+          <span>+{formatNumber(Number(amount))}/сек</span>
+        </div>
+      );
+    });
+  };
+  
+  const renderConsumption = () => {
+    if (!building.consumption || Object.keys(building.consumption).length === 0) {
+      return null;
+    }
+    
+    return Object.entries(building.consumption).map(([resourceId, amount]) => {
+      const resourceName = getResourceName(resourceId);
+      
+      return (
+        <div key={resourceId} className="text-red-500 text-[11px] flex justify-between w-full">
+          <span>{resourceName}</span>
+          <span>-{formatNumber(Number(amount))}/сек</span>
+        </div>
+      );
+    });
+  };
+  
+  const renderEffects = () => {
+    if (!building.effects || Object.keys(building.effects).length === 0) {
+      return null;
+    }
+    
+    // Специальные случаи для отдельных зданий
+    if (building.id === 'cryptoWallet') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. USDT</span>
+            <span>+50</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. знаний</span>
+            <span>+25%</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'internetChannel') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Прирост знаний</span>
+            <span>+20%</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Эфф. вычислений</span>
+            <span>+5%</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'enhancedWallet') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. USDT</span>
+            <span>+150</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. BTC</span>
+            <span>+1</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Эфф. обмена BTC</span>
+            <span>+8%</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'cryptoLibrary') {
+      return (
+        <>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Прирост знаний</span>
+            <span>+50%</span>
+          </div>
+          <div className="text-blue-600 text-[11px] flex justify-between w-full">
+            <span>Макс. знаний</span>
+            <span>+100</span>
+          </div>
+        </>
+      );
+    } else if (building.id === 'coolingSystem') {
+      return (
+        <div className="text-blue-600 text-[11px] flex justify-between w-full">
+          <span>Потр. выч. мощности</span>
+          <span>-20%</span>
+        </div>
+      );
+    }
+    
+    // Обработка обычных эффектов
+    return Object.entries(building.effects).map(([effectId, value]) => {
+      // Форматируем название эффекта
+      const effectName = formatEffectName(effectId);
+      // Форматируем значение (добавляем знак + для положительных значений и % для процентов)
+      const formattedValue = effectId.includes('Boost') || effectId.includes('Reduction') ? 
+        `${value > 0 ? '+' : ''}${(Number(value) * 100).toFixed(0)}%` : 
+        `${value > 0 ? '+' : ''}${formatNumber(Number(value))}`;
+      
+      return (
+        <div key={effectId} className="text-blue-600 text-[11px] flex justify-between w-full">
+          <span>{effectName}</span>
+          <span>{formattedValue}</span>
+        </div>
+      );
+    });
+  };
+  
+  return (
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
+    >
+      <CollapsibleTrigger asChild>
+        <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
+          <div className="flex-1">
+            <div className="flex justify-between items-center w-full">
+              <h3 className="text-xs font-medium">
+                {building.name} {building.count > 0 && <span className="text-gray-500">×{building.count}</span>}
+              </h3>
             </div>
-          ))}
+          </div>
+          <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
         </div>
-        
-        <div className="flex gap-1">
-          {showSell && building.count > 0 && onSell && (
-            <button
-              onClick={onSell}
-              className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded"
-            >
-              -
-            </button>
-          )}
+      </CollapsibleTrigger>
+      
+      <CollapsibleContent>
+        <div className="p-2 pt-0">
+          <p className="text-[11px] text-gray-500 mt-1 mb-2">{building.description}</p>
           
-          <button
-            onClick={onBuy}
-            disabled={!canBuy}
-            className={`text-xs px-3 py-1 rounded ${
-              canBuy ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-500'
-            }`}
-          >
-            +
-          </button>
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <h4 className="text-[11px] font-medium">Стоимость:</h4>
+              {renderCost()}
+            </div>
+            
+            {(renderProduction() || renderConsumption() || renderEffects()) && (
+              <div className="border-t pt-2 mt-2">
+                {renderProduction() && (
+                  <>
+                    <h4 className="text-[11px] font-medium mb-1">Производит:</h4>
+                    {renderProduction()}
+                  </>
+                )}
+                
+                {renderConsumption() && (
+                  <>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">Потребляет:</h4>
+                    {renderConsumption()}
+                  </>
+                )}
+                
+                {renderEffects() && (
+                  <>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">Эффекты:</h4>
+                    {renderEffects()}
+                  </>
+                )}
+              </div>
+            )}
+            
+            <div className="border-t pt-2 grid grid-cols-2 gap-2 mt-2">
+              <Button
+                onClick={handlePurchase}
+                disabled={!canAfford()}
+                variant={canAfford() ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+              >
+                Купить
+              </Button>
+              
+              <Button
+                onClick={handleSell}
+                disabled={building.count <= 0}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Продать
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 

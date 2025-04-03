@@ -11,7 +11,7 @@ interface EquipmentTabProps {
 }
 
 const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
-  const { state, dispatch } = useGame();
+  const { state } = useGame();
 
   // Отображаем все разблокированные здания включая практику
   const unlockedBuildings = Object.values(state.buildings)
@@ -26,11 +26,6 @@ const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
 
   console.log("EquipmentTab: Разблокированные здания:", unlockedBuildings.map(b => b.id));
 
-  const handleBuy = (buildingId: string) => {
-    dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId } });
-    onAddEvent(`Построено оборудование: ${state.buildings[buildingId].name}`, "success");
-  };
-
   return (
     <div className="building-container">
       {unlockedBuildings.length > 0 ? (
@@ -38,9 +33,8 @@ const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
           {unlockedBuildings.map(building => (
             <BuildingItem 
               key={building.id} 
-              building={building}
-              resources={state.resources}
-              onBuy={() => handleBuy(building.id)}
+              building={building} 
+              onPurchase={() => onAddEvent(`Построено оборудование: ${building.name}`, "success")} 
             />
           ))}
         </div>

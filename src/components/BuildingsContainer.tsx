@@ -5,11 +5,10 @@ import BuildingItem from '@/components/BuildingItem';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 export function BuildingsContainer() {
-  const { state, dispatch } = useGame();
+  const { state } = useGame();
   
-  const handleBuy = (buildingId: string) => {
-    dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId } });
-    safeDispatchGameEvent(`Построено здание: ${state.buildings[buildingId].name}`, 'success');
+  const handlePurchase = (buildingName: string) => {
+    safeDispatchGameEvent(`Построено здание: ${buildingName}`, 'success');
   };
   
   // Фильтруем только разблокированные здания
@@ -25,9 +24,8 @@ export function BuildingsContainer() {
           {unlockedBuildings.map((building) => (
             <BuildingItem 
               key={building.id} 
-              building={building}
-              resources={state.resources}
-              onBuy={() => handleBuy(building.id)}
+              building={building} 
+              onPurchase={() => handlePurchase(building.name)}
             />
           ))}
         </div>
