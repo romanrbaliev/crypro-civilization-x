@@ -208,87 +208,65 @@ export const processPracticePurchase = (state: GameState): GameState => {
     };
   }
   
-  // Создаем новое состояние с обновленными ресурсами
-  let newState = {
-    ...state,
-    resources: newResources
-  };
-  
   // Увеличиваем уровень практики
   const newPracticeLevel = currentLevel + 1;
   
   // Проверяем существует ли здание практики
-  if (!newState.buildings.practice) {
-    // Создаем здание практики с необходимыми свойствами production и productionBoost
-    newState = {
-      ...newState,
-      buildings: {
-        ...newState.buildings,
-        practice: {
-          id: 'practice',
-          name: 'Практика',
-          description: 'Автоматически генерирует знания',
-          type: 'production',
-          cost: {
-            usdt: baseCost
-          },
-          costMultiplier: costMultiplier,
-          count: newPracticeLevel,
-          unlocked: true,
-          production: {  // Добавляем обязательное поле production
-            knowledge: 1
-          },
-          productionBoost: 0  // Добавляем обязательное поле productionBoost
-        }
-      }
+  let updatedBuildings = { ...state.buildings };
+  
+  if (!updatedBuildings.practice) {
+    // Создаем здание практики с необходимыми свойствами
+    updatedBuildings.practice = {
+      id: 'practice',
+      name: 'Практика',
+      description: 'Автоматически генерирует знания',
+      type: 'production',
+      cost: {
+        usdt: baseCost
+      },
+      costMultiplier: costMultiplier,
+      count: newPracticeLevel,
+      unlocked: true,
+      production: {  // Производство знаний
+        knowledge: 1
+      },
+      productionBoost: 0
     };
   } else {
-    // Обновляем уровень практики
-    newState = {
-      ...newState,
-      buildings: {
-        ...newState.buildings,
-        practice: {
-          ...newState.buildings.practice,
-          count: newPracticeLevel
-        }
-      }
+    // Обновляем существующее здание практики
+    updatedBuildings.practice = {
+      ...updatedBuildings.practice,
+      count: newPracticeLevel
     };
   }
   
-  console.log(`Практика улучшена до уровня ${newPracticeLevel}, стоимость: ${cost} USDT`);
+  // Обновляем производство знаний
+  // Важно: обновляем baseProduction, production и perSecond последовательно и согласованно
+  const knowledgePerPractice = 1; // 1 знание в секунду за каждую практику
+  const extraProduction = knowledgePerPractice; // Добавляем +1 за новую практику
   
-  // Обновляем эффект от практики - добавляем +1 к производству знаний
-  // Убедимся, что ресурс knowledge существует
-  const currentBaseProduction = newState.resources.knowledge?.baseProduction || 0;
-  const currentProduction = newState.resources.knowledge?.production || 0;
-  const currentPerSecond = newState.resources.knowledge?.perSecond || 0;
+  let updatedKnowledge = { ...newResources.knowledge };
+  // Устанавливаем базовое производство как уровень практики
+  updatedKnowledge.baseProduction = newPracticeLevel * knowledgePerPractice;
+  updatedKnowledge.production = updatedKnowledge.baseProduction;
+  updatedKnowledge.perSecond = updatedKnowledge.production;
   
-  // Обновляем поля производства знаний
-  newState = {
-    ...newState,
-    resources: {
-      ...newState.resources,
-      knowledge: {
-        ...newState.resources.knowledge,
-        baseProduction: currentBaseProduction + 1,
-        production: currentProduction + 1,
-        perSecond: currentPerSecond + 1
-      }
-    }
+  // Обновляем ресурс знаний
+  newResources.knowledge = updatedKnowledge;
+  
+  // Создаем окончательное состояние со всеми обновлениями
+  let newState = {
+    ...state,
+    resources: newResources,
+    buildings: updatedBuildings
   };
   
+  console.log(`Практика улучшена до уровня ${newPracticeLevel}, стоимость: ${cost} USDT`);
   console.log("Обновлено производство знаний после покупки практики:", {
-    before: {
-      baseProduction: currentBaseProduction,
-      production: currentProduction,
-      perSecond: currentPerSecond
-    },
-    after: {
-      baseProduction: currentBaseProduction + 1,
-      production: currentProduction + 1,
-      perSecond: currentPerSecond + 1
-    }
+    level: newPracticeLevel,
+    baseProduction: updatedKnowledge.baseProduction,
+    production: updatedKnowledge.production,
+    perSecond: updatedKnowledge.perSecond
   });
   
   // Отправляем событие об успешной покупке
