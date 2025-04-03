@@ -1,3 +1,4 @@
+
 import { GameState, Resource } from '../types';
 
 /**
@@ -94,7 +95,7 @@ export function updateResourceMaxValues(state: GameState): GameState {
       maxValue *= 1.25;
     }
     
-    // Обновляем ��аксимальное значение ресурса
+    // Обновляем максимальное значение ресурса
     newResources[resourceId] = {
       ...newResources[resourceId],
       max: maxValue

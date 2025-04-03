@@ -1,7 +1,9 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
 import { UnlockManagerService } from '@/services/UnlockManagerService';
+import { forceCheckAllUnlocks, forceCheckAdvancedUnlocks } from '@/utils/unlockActions';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
@@ -55,341 +57,91 @@ const gameStateService = new GameStateService();
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
-  let newState;
+  // Добавляем обработку принудительной проверки всех разблокировок
+  if (action.type === 'FORCE_RESOURCE_UPDATE' || action.type === 'FORCE_CHECK_UNLOCKS') {
+    console.log('Принудительная проверка всех разблокировок');
+    let newState = forceCheckAllUnlocks(state);
+    newState = forceCheckAdvancedUnlocks(newState);
+    return newState;
+  }
   
   switch (action.type) {
-    case "INCREMENT_RESOURCE": {
-      // ИСПРАВЛЕНИЕ проблемы с "Изучить крипту"
-      // Переопределяем параметр amount для ресурса знания всегда на 1
-      const payload = action.payload.resourceId === "knowledge" 
-        ? { ...action.payload, amount: 1 }
-        : action.payload;
-        
-      console.log(`gameReducer: INCREMENT_RESOURCE для ${payload.resourceId}, amount=${payload.amount}`);
+    // Обработка ресурсов
+    case 'INCREMENT_RESOURCE':
+      return processIncrementResource(state, action.payload);
+    case 'UNLOCK_RESOURCE':
+      return processUnlockResource(state, action.payload);
       
-      // Используем модифицированный payload
-      newState = processIncrementResource(state, payload);
-      
-      // Проверяем все разблокировки после изменения ресурсов
-      newState = UnlockManagerService.checkAllUnlocks(newState);
-      
-      return gameStateService.processGameStateUpdate(newState);
-    }
+    // Обработка зданий
+    case 'PURCHASE_BUILDING':
+      return processPurchaseBuilding(state, action.payload);
+    case 'SELL_BUILDING':
+      return processSellBuilding(state, action.payload);
     
-    case "UPDATE_RESOURCES": {
-      // Обновляем ресурсы с учетом прошедшего времени (deltaTime)
-      // Создаем копию состояния
-      let updatedState = { ...state };
+    // Обработка улучшений
+    case 'PURCHASE_UPGRADE':
+      return processPurchaseUpgrade(state, action.payload);
       
-      // Обрабатываем deltaTime, если оно передано
-      const deltaTime = action.payload?.deltaTime || 1000; // По умолчанию 1 секунда
+    // Обработка действий
+    case 'APPLY_KNOWLEDGE':
+      return processApplyKnowledge(state);
+    case 'APPLY_ALL_KNOWLEDGE':
+      return processApplyAllKnowledge(state);
+    case 'MINING_POWER':
+      return processMiningPower(state);
+    case 'EXCHANGE_BTC':
+      return processExchangeBtc(state, action.payload);
+    case 'PRACTICE_PURCHASE':
+      return processPracticePurchase(state);
       
-      // Проверяем, какие ресурсы закончились
-      const exhaustedResources = Object.keys(updatedState.resources).filter(resourceId => {
-        const resource = updatedState.resources[resourceId];
-        return resource.unlocked && resource.value <= 0 && resource.perSecond < 0;
-      });
+    // Обработка разблокировок
+    case 'UNLOCK_FEATURE':
+      return processUnlockFeature(state, action.payload);
+    case 'SET_BUILDING_UNLOCKED':
+      return processSetBuildingUnlocked(state, action.payload);
+    case 'SET_UPGRADE_UNLOCKED':
+      return processSetUpgradeUnlocked(state, action.payload);
+    case 'INCREMENT_COUNTER':
+      return processIncrementCounter(state, action.payload);
       
-      // Обновляем ресурсы на основе их производства за deltaTime
-      const resourceIds = Object.keys(updatedState.resources);
-      for (const resourceId of resourceIds) {
-        const resource = updatedState.resources[resourceId];
-        if (resource.unlocked && resource.perSecond) {
-          let increment = (resource.perSecond * deltaTime) / 1000;
-          
-          // Проверяем, не должен ли ресурс остановиться на нуле
-          if (resource.value + increment < 0) {
-            // Ресурс закончился, устанавливаем его на 0
-            increment = -resource.value;
-            
-            // Добавляем в список исчерпанных, если еще не там
-            if (!exhaustedResources.includes(resourceId)) {
-              exhaustedResources.push(resourceId);
-            }
-          }
-          
-          // Обновляем значение с учетом максимума и запрета на отрицательные значения
-          const newValue = Math.max(0, Math.min(resource.value + increment, resource.max));
-          // Обновляем ресурс
-          updatedState.resources[resourceId] = {
-            ...resource,
-            value: newValue
-          };
-        }
-      }
-      
-      // Проверяем все разблокировки после изменения ресурсов
-      updatedState = UnlockManagerService.checkAllUnlocks(updatedState);
-      
-      // Пересчитываем ресурсы через сервис
-      return gameStateService.processGameStateUpdate(updatedState);
-    }
-    
-    case "PURCHASE_BUILDING": {
-      // Покупаем здание
-      newState = processPurchaseBuilding(state, action.payload);
-      // Проверяем все разблокировки через централизованную систему
-      newState = UnlockManagerService.checkAllUnlocks(newState);
-      return gameStateService.performFullStateSync(newState);
-    }
-    
-    case "LOAD_GAME": {
-      console.log('Загрузка сохраненной игры через LOAD_GAME action');
-      
-      newState = processLoadGame(state, action.payload as GameState);
-      
-      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
-        console.log('Инициализируем отсутствующие синергии в gameReducer');
-        newState = initializeSynergies(newState);
-      }
-      
-      newState = initializeReferralSystem(newState);
-      
-      // Проверяем все разблокировки после загрузки
-      newState = UnlockManagerService.checkAllUnlocks(newState);
-      
-      // Полная синхронизация состояния через сервис
-      return gameStateService.performFullStateSync(newState);
-    }
-    
-    case "START_GAME": {
-      newState = processStartGame(state);
-      
-      if (!newState.specializationSynergies || Object.keys(newState.specializationSynergies).length === 0) {
-        console.log('Инициализируем отсутствующие синергии в START_GAME');
-        newState = initializeSynergies(newState);
-      }
-      
-      newState = initializeReferralSystem(newState);
-      
-      // Проверяем все разблокировки при старте игры
-      newState = UnlockManagerService.checkAllUnlocks(newState);
-      
-      return gameStateService.performFullStateSync(newState);
-    }
-    
-    case "FORCE_RESOURCE_UPDATE": {
-      console.log("Принудительное обновление ресурсов и проверка разблокировок");
-      
-      // Проверяем все разблокировки
-      newState = UnlockManagerService.checkAllUnlocks(state);
-      
-      // Логируем статус вкладки исследований
-      console.log("Статус вкладки исследований после обновления:", newState.unlocks.research ? "Разблокирована" : "Заблокирована");
-      
-      return gameStateService.processGameStateUpdate(newState);
-    }
-    
-    case "SELL_BUILDING": {
-      // Продаем здание
-      newState = processSellBuilding(state, action.payload);
-      // Пересчитываем состояние
-      return gameStateService.processGameStateUpdate(newState);
-    }
-    
-    case "PRACTICE_PURCHASE": {
-      // Покупаем практику
-      console.log("Обработка PRACTICE_PURCHASE");
-      newState = processPracticePurchase(state);
-      // Пересчитываем состояние
-      return gameStateService.processGameStateUpdate(newState);
-    }
-    
-    case "PURCHASE_UPGRADE": {
-      // Покупаем улучшение
-      newState = processPurchaseUpgrade(state, action.payload);
-      
-      // Полная проверка разблокировок после покупки улучшения
-      return gameStateService.performFullStateSync(newState);
-    }
-    
-    case "UNLOCK_FEATURE": 
-      newState = processUnlockFeature(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "UNLOCK_RESOURCE": 
-      newState = processUnlockResource(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "SET_BUILDING_UNLOCKED": 
-      newState = processSetBuildingUnlocked(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-      
-    case "SET_UPGRADE_UNLOCKED": 
-      newState = processSetUpgradeUnlocked(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "INCREMENT_COUNTER": {
-      // Инкрементируем счетчик
-      console.log(`Инкремент счетчика: ${action.payload.counterId}, значение: ${action.payload.value}`);
-      newState = processIncrementCounter(state, { counterId: action.payload.counterId, value: action.payload.value });
-      // Обновляем состояние через сервис
-      return gameStateService.processGameStateUpdate(newState);
-    }
-    
-    case "CHECK_SYNERGIES":
-      newState = checkSynergies(state);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "ACTIVATE_SYNERGY":
-      newState = activateSynergy(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "PRESTIGE": 
+    // Обработка состояния игры
+    case 'START_GAME':
+      return processStartGame(state);
+    case 'LOAD_GAME':
+      return processLoadGame(state, action.payload);
+    case 'PRESTIGE':
       return processPrestige(state);
-    
-    case "RESET_GAME": 
+    case 'RESET_GAME':
       return processResetGame(state);
-    
-    case "RESTART_COMPUTERS": 
+    case 'RESTART_COMPUTERS':
       return processRestartComputers(state);
-    
-    case "MINE_COMPUTING_POWER": 
-      newState = processMiningPower(state);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "CHECK_EQUIPMENT_STATUS": {
-      // Проверяем статус оборудования, зависящего от ресурсов
-      console.log("Проверка статуса оборудования");
-      // Пока просто возвращаем текущее состояние,
-      // в будущем можно добавить логику проверки и выключения оборудования
-      return gameStateService.processGameStateUpdate(state);
-    }
-    
-    case "APPLY_KNOWLEDGE": {
-      // После применения знаний обновляем состояние через сервис
-      console.log("gameReducer: Начало обработки APPLY_KNOWLEDGE");
-      try {
-        newState = processApplyKnowledge(state);
-        console.log("gameReducer: Успешно обработан APPLY_KNOWLEDGE, проверка разблокировок...");
-        
-        // Принудительно логируем изменения ресурсов
-        console.log("gameReducer: Изменения после применения знаний:", {
-          knowledgeBefore: state.resources.knowledge?.value,
-          knowledgeAfter: newState.resources.knowledge?.value,
-          usdtBefore: state.resources.usdt?.value,
-          usdtAfter: newState.resources.usdt?.value,
-          usdtUnlocked: newState.resources.usdt?.unlocked,
-          applyKnowledgeCounter: newState.counters.applyKnowledge
-        });
-        
-        // Принудительно разблокируем USDT, если не разблокирован
-        if (!newState.resources.usdt || !newState.resources.usdt.unlocked) {
-          console.log("gameReducer: USDT не разблокирован после APPLY_KNOWLEDGE, принудительно разблокируем");
-          
-          // Создаем или обновляем ресурс USDT
-          const updatedResources = { ...newState.resources };
-          if (!updatedResources.usdt) {
-            updatedResources.usdt = {
-              id: 'usdt',
-              name: 'USDT',
-              description: 'Стейблкоин, привязанный к стоимости доллара США',
-              value: 1, // Даем базовую награду
-              baseProduction: 0,
-              production: 0,
-              perSecond: 0,
-              max: 50,
-              unlocked: true,
-              type: 'currency',
-              icon: 'dollar'
-            };
-          } else {
-            updatedResources.usdt = {
-              ...updatedResources.usdt,
-              unlocked: true
-            };
-          }
-          
-          newState = {
-            ...newState,
-            resources: updatedResources,
-            unlocks: {
-              ...newState.unlocks,
-              usdt: true
-            }
-          };
-        }
-        
-        // Принудительно выполняем полный цикл проверки разблокировок
-        return gameStateService.performFullStateSync(newState);
-      } catch (error) {
-        console.error("gameReducer: Ошибка при обработке APPLY_KNOWLEDGE:", error);
-        return state; // В случае ошибки возвращаем исходное состояние
-      }
-    }
-    
-    case "APPLY_ALL_KNOWLEDGE": {
-      // После применения всех знаний обновляем состояние через сервис
-      console.log("gameReducer: Начало обработки APPLY_ALL_KNOWLEDGE");
-      try {
-        // Исправляем ошибку TS2345, не передавая payload в processApplyAllKnowledge
-        newState = processApplyAllKnowledge(state);
-        console.log("gameReducer: Успешно обработан APPLY_ALL_KNOWLEDGE, проверка разблокировок...");
-        
-        // Принудительно логируем изменения ресурсов
-        console.log("gameReducer: Изменения после применения всех знаний:", {
-          knowledgeBefore: state.resources.knowledge?.value,
-          knowledgeAfter: newState.resources.knowledge?.value,
-          usdtBefore: state.resources.usdt?.value,
-          usdtAfter: newState.resources.usdt?.value,
-          usdtUnlocked: newState.resources.usdt?.unlocked,
-          applyKnowledgeCounter: newState.counters.applyKnowledge
-        });
-        
-        // Принудительно выполняем полный цикл проверки разблокировок
-        return gameStateService.performFullStateSync(newState);
-      } catch (error) {
-        console.error("gameReducer: Ошибка при обработке APPLY_ALL_KNOWLEDGE:", error);
-        return state; // В случае ошибки возвращаем исходное состояние
-      }
-    }
       
-    case "EXCHANGE_BTC": 
-      newState = processExchangeBtc(state);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "SET_REFERRAL_CODE":
-      newState = processSetReferralCode(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "ADD_REFERRAL":
-      newState = processAddReferral(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "ACTIVATE_REFERRAL":
-      newState = processActivateReferral(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "HIRE_REFERRAL_HELPER":
-      newState = processHireReferralHelper(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
-    
-    case "RESPOND_TO_HELPER_REQUEST":
-      newState = processRespondToHelperRequest(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
+    // Обработка синергий
+    case 'CHECK_SYNERGIES':
+      return checkSynergies(state);
+    case 'ACTIVATE_SYNERGY':
+      return activateSynergy(state, action.payload);
+    case 'INITIALIZE_SYNERGIES':
+      return initializeSynergies(state);
+    case 'SYNERGY_ACTION':
+      return synergyReducer(state, action.payload);
       
-    case "UPDATE_REFERRAL_STATUS":
-      newState = processUpdateReferralStatus(state, action.payload);
-      return gameStateService.processGameStateUpdate(newState);
+    // Обработка реферальной системы
+    case 'SET_REFERRAL_CODE':
+      return processSetReferralCode(state, action.payload);
+    case 'ADD_REFERRAL':
+      return processAddReferral(state, action.payload);
+    case 'ACTIVATE_REFERRAL':
+      return processActivateReferral(state, action.payload);
+    case 'HIRE_REFERRAL_HELPER':
+      return processHireReferralHelper(state, action.payload);
+    case 'RESPOND_TO_HELPER_REQUEST':
+      return processRespondToHelperRequest(state, action.payload);
+    case 'UPDATE_REFERRAL_STATUS':
+      return processUpdateReferralStatus(state, action.payload);
+    case 'INITIALIZE_REFERRAL_SYSTEM':
+      return initializeReferralSystem(state);
       
-    case "UPDATE_HELPERS": {
-      // Обработчик события обновления помощников
-      console.log("Обновление списка помощников из базы данных");
-      newState = {
-        ...state,
-        referralHelpers: action.payload.updatedHelpers || state.referralHelpers
-      };
-      
-      // Обновляем состояние через сервис
-      return gameStateService.processGameStateUpdate(newState);
-    }
-    
-    case "CHOOSE_SPECIALIZATION": 
-      newState = processChooseSpecialization(state, {
-        specializationType: action.payload.roleId // Преобразуем roleId в specializationType
-      });
-      return gameStateService.processGameStateUpdate(newState);
-    
     default:
       return state;
   }
