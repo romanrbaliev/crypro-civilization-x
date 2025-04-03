@@ -182,6 +182,27 @@ export const processPracticePurchase = (state: GameState): GameState => {
     }
   };
   
+  // Убедимся, что у нас есть ресурс knowledge
+  if (!newState.resources.knowledge) {
+    console.log("Создаем новый ресурс knowledge, так как он отсутствует");
+    newState.resources = {
+      ...newState.resources,
+      knowledge: {
+        id: 'knowledge',
+        name: 'Знания',
+        description: 'Знания о криптовалюте и блокчейне',
+        type: 'resource',
+        icon: 'book',
+        value: 0,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        max: 100,
+        unlocked: true
+      }
+    };
+  }
+  
   // Увеличиваем уровень практики
   const newPracticeLevel = currentLevel + 1;
   
@@ -215,48 +236,30 @@ export const processPracticePurchase = (state: GameState): GameState => {
   console.log(`Практика улучшена до уровня ${newPracticeLevel}, стоимость: ${cost} USDT`);
   
   // Обновляем эффект от практики - добавляем +1 к производству знаний
-  // Проверяем наличие ресурса knowledge в объекте resources
-  if (newState.resources.knowledge) {
-    const currentBaseProduction = newState.resources.knowledge.baseProduction || 0;
-    const currentProduction = newState.resources.knowledge.production || 0;
-    const currentPerSecond = newState.resources.knowledge.perSecond || 0;
-    
-    newState.resources.knowledge = {
-      ...newState.resources.knowledge,
+  // Теперь мы уверены, что ресурс knowledge доступен
+  const currentBaseProduction = newState.resources.knowledge.baseProduction || 0;
+  const currentProduction = newState.resources.knowledge.production || 0;
+  const currentPerSecond = newState.resources.knowledge.perSecond || 0;
+  
+  newState.resources.knowledge = {
+    ...newState.resources.knowledge,
+    baseProduction: currentBaseProduction + 1,
+    production: currentProduction + 1,
+    perSecond: currentPerSecond + 1
+  };
+  
+  console.log("Обновлено производство знаний после покупки практики:", {
+    before: {
+      baseProduction: currentBaseProduction,
+      production: currentProduction,
+      perSecond: currentPerSecond
+    },
+    after: {
       baseProduction: currentBaseProduction + 1,
       production: currentProduction + 1,
       perSecond: currentPerSecond + 1
-    };
-    
-    console.log("Обновлено производство знаний после покупки практики:", {
-      before: {
-        baseProduction: currentBaseProduction,
-        production: currentProduction,
-        perSecond: currentPerSecond
-      },
-      after: {
-        baseProduction: currentBaseProduction + 1,
-        production: currentProduction + 1,
-        perSecond: currentPerSecond + 1
-      }
-    });
-  } else {
-    // Если ресурса knowledge нет, создаем его с нужными свойствами
-    newState.resources.knowledge = {
-      id: 'knowledge',
-      name: 'Знания',
-      description: 'Знания о криптовалюте и блокчейне',
-      type: 'resource',
-      icon: 'book',
-      value: 0,
-      baseProduction: 1,
-      production: 1,
-      perSecond: 1,
-      max: 100,
-      unlocked: true
-    };
-    console.log("Создан ресурс knowledge после покупки практики:", newState.resources.knowledge);
-  }
+    }
+  });
   
   // Отправляем событие об успешной покупке
   safeDispatchGameEvent(`Практика улучшена до уровня ${newPracticeLevel}`, 'success');
