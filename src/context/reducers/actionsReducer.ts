@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -153,51 +152,95 @@ export const processExchangeBtc = (state: GameState): GameState => {
 
 // Обработка покупки практики
 export const processPracticePurchase = (state: GameState): GameState => {
-  // Проверка возможности покупки
-  const baseCost = 10; // Базовая стоимость практики
-  const costMultiplier = 1.12; // Множитель увеличения стоимости
-  
-  // Расчет стоимости следующего уровня практики
+  // Проверяем достаточно ли USDT для покупки
   const currentLevel = state.buildings.practice?.count || 0;
+  const baseCost = 10; // Базовая стоимость 10 USDT
+  const costMultiplier = 1.12; // Множитель 1.12
+  
+  // Рассчитываем стоимость следующего уровня
   const cost = Math.floor(baseCost * Math.pow(costMultiplier, currentLevel));
   
-  // Проверка наличия достаточного количества USDT
-  if (state.resources.usdt.value < cost) {
-    safeDispatchGameEvent(`Недостаточно USDT для покупки практики. Нужно ${cost}`, "error");
+  // Проверяем, достаточно ли USDT
+  if (!state.resources.usdt || state.resources.usdt.value < cost) {
+    console.log(`Недостаточно USDT для покупки практики: ${state.resources.usdt?.value} < ${cost}`);
     return state;
   }
   
-  // Обновление состояния
-  const newState = {
+  // Вычитаем стоимость
+  const newUsdtValue = state.resources.usdt.value - cost;
+  
+  // Создаем новое состояние
+  let newState = {
     ...state,
     resources: {
       ...state.resources,
       usdt: {
         ...state.resources.usdt,
-        value: state.resources.usdt.value - cost
-      }
-    },
-    buildings: {
-      ...state.buildings,
-      practice: {
-        ...(state.buildings.practice || {
-          id: 'practice',
-          name: 'Практика',
-          description: 'Автоматическое получение знаний',
-          cost: { usdt: baseCost },
-          costMultiplier: costMultiplier,
-          production: { knowledge: 1 },
-          count: 0,
-          unlocked: true,
-          productionBoost: 1
-        }),
-        count: currentLevel + 1
+        value: newUsdtValue
       }
     }
   };
   
-  // Отправка события
-  safeDispatchGameEvent(`Практика улучшена до уровня ${currentLevel + 1}`, "success");
+  // Увеличиваем уровень практики
+  const newPracticeLevel = currentLevel + 1;
+  
+  // Проверяем существует ли здание практики
+  if (!newState.buildings.practice) {
+    // Создаем здание практики
+    newState.buildings.practice = {
+      id: 'practice',
+      name: 'Практика',
+      description: 'Автоматически генерирует знания',
+      type: 'production',
+      cost: {
+        usdt: baseCost
+      },
+      costMultiplier: costMultiplier,
+      count: newPracticeLevel,
+      unlocked: true
+    };
+  } else {
+    // Обновляем уровень практики
+    newState.buildings.practice = {
+      ...newState.buildings.practice,
+      count: newPracticeLevel
+    };
+  }
+  
+  console.log(`Практика улучшена до уровня ${newPracticeLevel}, стоимость: ${cost} USDT`);
+  
+  // Обновляем эффект от практики - добавляем +1 к производству знаний
+  // ВАЖНО: Добавляем проверку существования ресурса knowledge
+  if (newState.resources.knowledge) {
+    const currentProduction = newState.resources.knowledge.production || 0;
+    const currentBaseProduction = newState.resources.knowledge.baseProduction || 0;
+    const currentPerSecond = newState.resources.knowledge.perSecond || 0;
+    
+    newState.resources.knowledge = {
+      ...newState.resources.knowledge,
+      baseProduction: currentBaseProduction + 1,
+      production: currentProduction + 1,
+      perSecond: currentPerSecond + 1
+    };
+    
+    console.log("Обновлено производство знаний после покупки практики:", {
+      before: {
+        baseProduction: currentBaseProduction,
+        production: currentProduction,
+        perSecond: currentPerSecond
+      },
+      after: {
+        baseProduction: currentBaseProduction + 1,
+        production: currentProduction + 1,
+        perSecond: currentPerSecond + 1
+      }
+    });
+  } else {
+    console.error("Ресурс knowledge отсутствует в состоянии!");
+  }
+  
+  // Отправляем событие об успешной покупке
+  safeDispatchGameEvent(`Практика улучшена до уровня ${newPracticeLevel}`, 'success');
   
   return newState;
 };

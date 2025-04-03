@@ -26,6 +26,21 @@ const KnowledgeProductionPopup = () => {
       // Небольшая задержка, чтобы обновление успело применится
       setTimeout(() => {
         try {
+          // Выводим состояние практики
+          console.log("Состояние практики:", {
+            exists: !!state.buildings.practice,
+            count: state.buildings.practice?.count || 0,
+            unlocked: state.buildings.practice?.unlocked || false
+          });
+          
+          // Выводим состояние производства знаний
+          console.log("Состояние знаний:", {
+            value: state.resources.knowledge?.value || 0,
+            baseProduction: state.resources.knowledge?.baseProduction || 0,
+            production: state.resources.knowledge?.production || 0,
+            perSecond: state.resources.knowledge?.perSecond || 0
+          });
+          
           // Получаем расчеты
           const { steps, finalValue } = debugKnowledgeProduction(state);
           setCalculationSteps(steps);

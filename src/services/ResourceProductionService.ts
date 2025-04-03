@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -35,9 +34,14 @@ export class ResourceProductionService {
           if (state.buildings.practice && state.buildings.practice.count > 0) {
             const practiceCount = state.buildings.practice.count;
             const practiceProduction = practiceCount * 1; // 1 знание в секунду за каждую практику
-            knowledgeProduction += practiceProduction;
             
-            console.log(`ResourceProductionService: Практика добавляет ${practiceProduction.toFixed(2)}/сек знаний`);
+            // ВАЖНАЯ ПРАВКА: Не добавляем к существующему производству, а устанавливаем базовое
+            // значение производства от практики, если оно ещё не установлено
+            if (knowledgeProduction === 0) {
+              knowledgeProduction = practiceProduction;
+            }
+            
+            console.log(`ResourceProductionService: Практика генерирует ${practiceProduction.toFixed(2)}/сек знаний (всего практик: ${practiceCount})`);
           }
           
           // ИСПРАВЛЕНИЕ: Применяем бонус от исследования "Основы блокчейна" ТОЛЬКО ОДИН РАЗ

@@ -1,4 +1,3 @@
-
 import { GameState } from '../../types';
 import { updateResourceMaxValues } from '../../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
@@ -87,9 +86,19 @@ export const processPurchaseBuilding = (
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
         baseProduction: 1,
-        production: 1
+        production: 1,
+        perSecond: 1
+      };
+    } else {
+      // Добавляем 1 к существующему производству
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        baseProduction: (newState.resources.knowledge?.baseProduction || 0) + 1,
+        production: (newState.resources.knowledge?.production || 0) + 1,
+        perSecond: (newState.resources.knowledge?.perSecond || 0) + 1
       };
     }
+    console.log("Практика добавила +1/сек к производству знаний:", newState.resources.knowledge);
   }
   
   if (buildingId === 'generator' && newState.buildings.generator.count === 1) {
