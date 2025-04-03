@@ -35,6 +35,40 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       }
     }
     
+    // ИСПРАВЛЕНИЕ: Проверяем правильное состояние разблокировки зданий перед сохранением
+    
+    // Криптобиблиотека разблокируется после покупки "Основы криптовалют"
+    const hasCryptoBasics = 
+      gameStateCopy.upgrades.cryptoCurrencyBasics?.purchased || 
+      gameStateCopy.upgrades.cryptoBasics?.purchased;
+      
+    if (hasCryptoBasics && gameStateCopy.buildings.cryptoLibrary) {
+      gameStateCopy.buildings.cryptoLibrary.unlocked = true;
+      gameStateCopy.unlocks.cryptoLibrary = true;
+    }
+    
+    // Система охлаждения разблокируется после 2+ уровней домашнего компьютера
+    if (gameStateCopy.buildings.homeComputer?.count >= 2 && gameStateCopy.buildings.coolingSystem) {
+      gameStateCopy.buildings.coolingSystem.unlocked = true;
+      gameStateCopy.unlocks.coolingSystem = true;
+    }
+    
+    // Улучшенный кошелек разблокируется после 5+ уровней криптокошелька
+    if (gameStateCopy.buildings.cryptoWallet?.count >= 5) {
+      if (gameStateCopy.buildings.enhancedWallet) {
+        gameStateCopy.buildings.enhancedWallet.unlocked = true;
+        gameStateCopy.unlocks.enhancedWallet = true;
+      }
+      
+      if (gameStateCopy.buildings.improvedWallet) {
+        gameStateCopy.buildings.improvedWallet.unlocked = true;
+        gameStateCopy.unlocks.improvedWallet = true;
+      }
+    }
+    
+    // Проверяем условие разблокировки исследований
+    gameStateCopy.unlocks.research = gameStateCopy.buildings.generator?.count > 0;
+    
     // Убедимся, что Bitcoin имеет достаточное пространство хранения
     if (gameStateCopy.resources && gameStateCopy.resources.bitcoin && 
         gameStateCopy.resources.bitcoin.max < 0.01) {

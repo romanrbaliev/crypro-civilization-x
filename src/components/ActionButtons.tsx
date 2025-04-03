@@ -1,3 +1,4 @@
+
 import React, { useCallback, useRef } from "react";
 import { useActionButtons } from "@/hooks/useActionButtons";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const canExchangeBitcoin = (state.resources.bitcoin?.value || 0) > 0;
   const bitcoinUnlocked = state.resources.bitcoin && state.resources.bitcoin.unlocked;
   
-  // Обработчик быстрых кликов для кнопки изучения
+  // ИСПРАВЛЕНИЕ: используем колбэк без прямого вызова handleLearnClick, чтобы избежать двойного клика
   const handleLearnMouseDown = useCallback(() => {
+    // Делаем только один клик при нажатии
     handleLearnClick();
     
     // Запускаем таймер для периодических кликов при удержании
@@ -49,6 +51,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
       clickTimerRef.current = null;
     }
   }, []);
+  
+  // ИСПРАВЛЕНИЕ: Отдельный обработчик для сенсорных устройств
+  const handleTouchStart = useCallback(() => {
+    // Только один клик при касании
+    handleLearnClick();
+  }, [handleLearnClick]);
   
   // Очистка таймера при размонтировании компонента
   React.useEffect(() => {
@@ -104,7 +112,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           onMouseDown={handleLearnMouseDown}
           onMouseUp={handleLearnMouseUp}
           onMouseLeave={handleLearnMouseLeave}
-          onTouchStart={handleLearnClick}
+          // ИСПРАВЛЕНИЕ: заменяем onTouchStart на новый обработчик и убираем дублирующий клик
+          onTouchStart={handleTouchStart}
           onTouchEnd={() => {}}
         >
           <span className="text-xs">Изучить крипту</span>

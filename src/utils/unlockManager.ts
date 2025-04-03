@@ -265,6 +265,18 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       console.log("✅ Разблокировано здание: Автомайнер");
       safeDispatchGameEvent("Разблокировано здание: Автомайнер", "success");
     }
+    
+    // ИСПРАВЛЕНИЕ: Также разблокируем криптобиблиотеку при тех же условиях
+    if (buildings.cryptoLibrary && !buildings.cryptoLibrary.unlocked) {
+      buildings.cryptoLibrary = {
+        ...buildings.cryptoLibrary,
+        unlocked: true
+      };
+      
+      unlocks.cryptoLibrary = true;
+      console.log("✅ Разблокировано здание: Криптобиблиотека");
+      safeDispatchGameEvent("Разблокировано здание: Криптобиблиотека", "success");
+    }
   }
   
   // Проверяем условия для InternetChannel
@@ -279,31 +291,21 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     safeDispatchGameEvent("Разблокировано здание: Интернет-канал", "success");
   }
   
-  // Проверяем условия для CryptoLibrary
-  if (hasCryptoBasics && buildings.cryptoLibrary && !buildings.cryptoLibrary.unlocked) {
-    buildings.cryptoLibrary = {
-      ...buildings.cryptoLibrary,
-      unlocked: true
-    };
-    
-    unlocks.cryptoLibrary = true;
-    console.log("✅ Разблокировано здание: Криптобиблиотека");
-    safeDispatchGameEvent("Разблокировано здание: Криптобиблиотека", "success");
+  // ИСПРАВЛЕНИЕ: Проверяем условия для CoolingSystem и принудительно разблокируем при выполнении условий
+  if (buildings.homeComputer?.count >= 2) {
+    if (buildings.coolingSystem && !buildings.coolingSystem.unlocked) {
+      buildings.coolingSystem = {
+        ...buildings.coolingSystem,
+        unlocked: true
+      };
+      
+      unlocks.coolingSystem = true;
+      console.log("✅ Разблокировано здание: Система охлаждения");
+      safeDispatchGameEvent("Разблокировано здание: Система охлаждения", "success");
+    }
   }
   
-  // Проверяем условия для CoolingSystem
-  if (buildings.homeComputer?.count >= 2 && buildings.coolingSystem && !buildings.coolingSystem.unlocked) {
-    buildings.coolingSystem = {
-      ...buildings.coolingSystem,
-      unlocked: true
-    };
-    
-    unlocks.coolingSystem = true;
-    console.log("✅ Разблокировано здание: Система охлаждения");
-    safeDispatchGameEvent("Разблокировано здание: Система охлаждения", "success");
-  }
-  
-  // Проверяем условия для EnhancedWallet или ImprovedWallet
+  // ИСПРАВЛЕНИЕ: Проверяем условия для EnhancedWallet или ImprovedWallet и принудительно разблокируем
   if (buildings.cryptoWallet?.count >= 5) {
     // Проверяем разные возможные имена для улучшенного кошелька
     if (buildings.enhancedWallet && !buildings.enhancedWallet.unlocked) {

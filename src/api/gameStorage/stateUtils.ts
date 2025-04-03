@@ -131,5 +131,40 @@ export function mergeWithInitialState(loadedState: any): GameState {
   // Обмен BTC разблокирован только если есть Bitcoin и он разблокирован
   loadedState.unlocks.exchangeBtc = loadedState.resources.bitcoin?.unlocked && loadedState.resources.bitcoin?.value > 0;
   
+  // ИСПРАВЛЕНИЕ: Проверяем разблокировки зданий при загрузке
+  
+  // Криптобиблиотека разблокируется после покупки "Основы криптовалют"
+  const hasCryptoBasics = 
+    loadedState.upgrades.cryptoCurrencyBasics?.purchased || 
+    loadedState.upgrades.cryptoBasics?.purchased;
+    
+  if (hasCryptoBasics && loadedState.buildings.cryptoLibrary) {
+    loadedState.buildings.cryptoLibrary.unlocked = true;
+    loadedState.unlocks.cryptoLibrary = true;
+    console.log('🔒 Криптобиблиотека разблокирована при загрузке');
+  }
+  
+  // Система охлаждения разблокируется после 2+ уровней домашнего компьютера
+  if (loadedState.buildings.homeComputer?.count >= 2 && loadedState.buildings.coolingSystem) {
+    loadedState.buildings.coolingSystem.unlocked = true;
+    loadedState.unlocks.coolingSystem = true;
+    console.log('🔒 Система охлаждения разблокирована при загрузке');
+  }
+  
+  // Улучшенный кошелек разблокируется после 5+ уровней криптокошелька
+  if (loadedState.buildings.cryptoWallet?.count >= 5) {
+    if (loadedState.buildings.enhancedWallet) {
+      loadedState.buildings.enhancedWallet.unlocked = true;
+      loadedState.unlocks.enhancedWallet = true;
+      console.log('🔒 Улучшенный кошелек разблокирован при загрузке');
+    }
+    
+    if (loadedState.buildings.improvedWallet) {
+      loadedState.buildings.improvedWallet.unlocked = true;
+      loadedState.unlocks.improvedWallet = true;
+      console.log('🔒 Улучшенный кошелек (альт.) разблокирован при загрузке');
+    }
+  }
+  
   return loadedState as GameState;
 }

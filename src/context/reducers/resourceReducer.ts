@@ -16,11 +16,17 @@ export const processIncrementResource = (
     return state;
   }
   
+  // ИСПРАВЛЕНИЕ: Фиксированное значение для ресурса "знания"
+  let incrementAmount = amount;
+  if (resourceId === "knowledge") {
+    incrementAmount = 1; // Всегда только 1 знание за клик
+  }
+  
   const currentValue = state.resources[resourceId].value;
   const maxValue = state.resources[resourceId].max;
   
   // Вычисляем новое значение, но не выше максимального
-  let newValue = currentValue + amount;
+  let newValue = currentValue + incrementAmount;
   if (maxValue !== Infinity && newValue > maxValue) {
     newValue = maxValue;
   }
@@ -34,10 +40,10 @@ export const processIncrementResource = (
   console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue}`);
   
   // Отправляем событие для возможного отображения в интерфейсе
-  if (amount > 0) {
-    safeDispatchGameEvent(`Получено ${amount} ${state.resources[resourceId].name}`, "info");
-  } else if (amount < 0) {
-    safeDispatchGameEvent(`Потрачено ${Math.abs(amount)} ${state.resources[resourceId].name}`, "info");
+  if (incrementAmount > 0) {
+    safeDispatchGameEvent(`Получено ${incrementAmount} ${state.resources[resourceId].name}`, "info");
+  } else if (incrementAmount < 0) {
+    safeDispatchGameEvent(`Потрачено ${Math.abs(incrementAmount)} ${state.resources[resourceId].name}`, "info");
   }
   
   const newState = {

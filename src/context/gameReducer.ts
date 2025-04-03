@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -58,7 +59,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   
   switch (action.type) {
     case "INCREMENT_RESOURCE": {
-      // Исправление проблемы с "Изучить крипту"
+      // ИСПРАВЛЕНИЕ проблемы с "Изучить крипту"
       if (action.payload.resourceId === "knowledge") {
         // Для ресурса знания - всегда прибавляем ровно 1 единицу за клик
         newState = processIncrementResource(state, { 
