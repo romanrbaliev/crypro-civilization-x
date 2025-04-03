@@ -64,7 +64,7 @@ export class GameStateService {
     let unlocks = {...newState.unlocks};
     let changed = false;
     
-    // Проверка для криптобиблиотеки
+    // ИСПРАВЛЕНИЕ: Проверка для криптобиблиотеки
     const hasCryptoBasics = 
       newState.upgrades.cryptoCurrencyBasics?.purchased || 
       newState.upgrades.cryptoBasics?.purchased;
@@ -80,7 +80,7 @@ export class GameStateService {
       safeDispatchGameEvent("Разблокировано здание: Криптобиблиотека", "success");
     }
     
-    // Проверка для системы охлаждения
+    // ИСПРАВЛЕНИЕ: Проверка для системы охлаждения
     if (buildings.homeComputer?.count >= 2 && buildings.coolingSystem && !buildings.coolingSystem.unlocked) {
       buildings.coolingSystem = {
         ...buildings.coolingSystem,
@@ -92,7 +92,7 @@ export class GameStateService {
       safeDispatchGameEvent("Разблокировано здание: Система охлаждения", "success");
     }
     
-    // Проверка для улучшенного кошелька
+    // ИСПРАВЛЕНИЕ: Проверка для улучшенного кошелька
     if (buildings.cryptoWallet?.count >= 5) {
       // Проверяем обе возможные версии названия
       if (buildings.enhancedWallet && !buildings.enhancedWallet.unlocked) {

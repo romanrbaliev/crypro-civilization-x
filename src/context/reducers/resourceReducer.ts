@@ -19,7 +19,10 @@ export const processIncrementResource = (
   // ИСПРАВЛЕНИЕ: Фиксированное значение для ресурса "знания"
   let incrementAmount = amount;
   if (resourceId === "knowledge") {
-    incrementAmount = 1; // Всегда только 1 знание за клик
+    // Всегда строго 1 знание за клик, независимо от переданного значения
+    incrementAmount = 1;
+    // Дополнительный лог для отслеживания
+    console.log(`processIncrementResource: Для knowledge устанавливаем строго incrementAmount=${incrementAmount}`);
   }
   
   const currentValue = state.resources[resourceId].value;
