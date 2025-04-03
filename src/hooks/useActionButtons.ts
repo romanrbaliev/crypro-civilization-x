@@ -55,7 +55,8 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       type: "INCREMENT_RESOURCE", 
       payload: { 
         resourceId: "knowledge", 
-        amount: 1 
+        amount: 1,
+        fixed: true // Фиксированное значение, не подлежащее модификации
       }
     });
     

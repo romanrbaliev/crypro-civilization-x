@@ -20,6 +20,13 @@ export const processPurchaseBuilding = (
   
   // Проверяем, достаточно ли ресурсов для покупки
   const calculatedCost: { [key: string]: number } = {};
+  
+  // Добавим проверку на наличие свойства cost
+  if (!building.cost) {
+    console.error(`Здание ${buildingId} не имеет свойства cost`);
+    return state;
+  }
+  
   for (const [resourceId, baseCost] of Object.entries(building.cost)) {
     // Рассчитываем текущую стоимость с учетом множителя и текущего количества
     const currentCost = Math.floor(Number(baseCost) * Math.pow(Number(building.costMultiplier || 1.15), building.count));
@@ -215,6 +222,20 @@ export const processPurchaseBuilding = (
     }
   }
   
+  // Обработка "Основы криптовалют" - принудительная разблокировка криптобиблиотеки
+  const hasCryptoBasics = newState.upgrades.cryptoCurrencyBasics?.purchased || 
+                          newState.upgrades.cryptoBasics?.purchased;
+  
+  // Если уже изучены "Основы криптовалют", принудительно разблокируем криптобиблиотеку
+  if (hasCryptoBasics) {
+    if (newState.buildings.cryptoLibrary && !newState.buildings.cryptoLibrary.unlocked) {
+      console.log("✅ Принудительная разблокировка криптобиблиотеки (основы криптовалют изучены)");
+      newState.buildings.cryptoLibrary.unlocked = true;
+      newState.unlocks.cryptoLibrary = true;
+      safeDispatchGameEvent("Разблокирована криптобиблиотека", "success");
+    }
+  }
+  
   if (buildingId === 'homeComputer' && newState.buildings.homeComputer.count > 0) {
     // Разблокируем вычислительную мощность, если ещё не разблокирована
     if (!newState.unlocks.computingPower) {
@@ -278,18 +299,15 @@ export const processPurchaseBuilding = (
       }
     }
     
-    // При покупке 2+ компьютера разблокируем систему охлаждения
-    if (newState.buildings.homeComputer.count >= 2 && newState.buildings.coolingSystem) {
-      newState.buildings.coolingSystem = {
-        ...newState.buildings.coolingSystem,
-        unlocked: true
-      };
-      newState.unlocks = {
-        ...newState.unlocks,
-        coolingSystem: true
-      };
-      console.log("✅ Разблокирована система охлаждения при покупке 2+ компьютера");
-      safeDispatchGameEvent("Разблокирована система охлаждения", "success");
+    // Принудительно разблокируем систему охлаждения при наличии 2+ компьютеров
+    if (newState.buildings.homeComputer.count >= 2) {
+      // Проверяем наличие системы охлаждения в зданиях
+      if (newState.buildings.coolingSystem) {
+        newState.buildings.coolingSystem.unlocked = true;
+        newState.unlocks.coolingSystem = true;
+        console.log("✅ Принудительная разблокировка системы охлаждения (есть 2+ компьютера)");
+        safeDispatchGameEvent("Разблокирована система охлаждения", "success");
+      }
     }
   }
   
@@ -400,33 +418,23 @@ export const processPurchaseBuilding = (
     }
   }
   
-  // Проверяем, если это 5+ уровень криптокошелька, разблокируем улучшенный кошелек
-  if (buildingId === 'cryptoWallet' && newState.buildings.cryptoWallet.count >= 5) {
-    // Проверяем наличие улучшенного кошелька по разным ID
-    if (newState.buildings.enhancedWallet && !newState.buildings.enhancedWallet.unlocked) {
-      newState.buildings.enhancedWallet = {
-        ...newState.buildings.enhancedWallet,
-        unlocked: true
-      };
-      newState.unlocks = {
-        ...newState.unlocks,
-        enhancedWallet: true
-      };
-      console.log("✅ Разблокирован улучшенный кошелек при покупке 5+ уровня криптокошелька");
-      safeDispatchGameEvent("Разблокирован улучшенный кошелек", "success");
-    }
-    
-    if (newState.buildings.improvedWallet && !newState.buildings.improvedWallet.unlocked) {
-      newState.buildings.improvedWallet = {
-        ...newState.buildings.improvedWallet,
-        unlocked: true
-      };
-      newState.unlocks = {
-        ...newState.unlocks,
-        improvedWallet: true
-      };
-      console.log("✅ Разблокирован улучшенный кошелек (improvedWallet) при покупке 5+ уровня криптокошелька");
-      safeDispatchGameEvent("Разблокирован улучшенный кошелек", "success");
+  // Принудительная разблокировка улучшенного кошелька при наличии 5+ криптокошельков
+  if (buildingId === 'cryptoWallet' || newState.buildings.cryptoWallet?.count >= 5) {
+    if (newState.buildings.cryptoWallet && newState.buildings.cryptoWallet.count >= 5) {
+      // Проверяем наличие улучшенного кошелька под разными именами
+      if (newState.buildings.enhancedWallet && !newState.buildings.enhancedWallet.unlocked) {
+        console.log("✅ Принудительная разблокировка улучшенного кошелька (enhancedWallet)");
+        newState.buildings.enhancedWallet.unlocked = true;
+        newState.unlocks.enhancedWallet = true;
+        safeDispatchGameEvent("Разблокирован улучшенный кошелек", "success");
+      }
+      
+      if (newState.buildings.improvedWallet && !newState.buildings.improvedWallet.unlocked) {
+        console.log("✅ Принудительная разблокировка улучшенного кошелька (improvedWallet)");
+        newState.buildings.improvedWallet.unlocked = true;
+        newState.unlocks.improvedWallet = true;
+        safeDispatchGameEvent("Разблокирован улучшенный кошелек", "success");
+      }
     }
   }
 

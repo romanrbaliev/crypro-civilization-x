@@ -29,7 +29,14 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
   // Обработчик клика по кнопке "Изучить крипту"
   const handleLearnClick = useCallback(() => {
     // Строго фиксированная прибавка в 1, вне зависимости от источника нажатия
-    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 }});
+    dispatch({ 
+      type: "INCREMENT_RESOURCE", 
+      payload: { 
+        resourceId: "knowledge", 
+        amount: 1, // Фиксируем ВСЕГДА +1 знание
+        fixed: true // Дополнительный флаг, чтобы избежать модификации в других обработчиках
+      }
+    });
     
     // Увеличиваем счетчик кликов по кнопке "Изучить крипту"
     dispatch({
@@ -72,6 +79,9 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
   const handleExchangeBitcoin = useCallback(() => {
     if (bitcoinExchangeTimer) return; // Предотвращаем мультиклик
     
+    // Получаем текущий курс обмена Bitcoin
+    const currentExchangeRate = state.miningParams?.exchangeRate || 20000;
+    
     // Обмениваем Bitcoin на USDT
     try {
       dispatch({ type: "EXCHANGE_BTC" });
@@ -85,10 +95,7 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
       console.error("Ошибка при обмене Bitcoin:", error);
       onAddEvent("Ошибка при обмене Bitcoin", "error");
     }
-  }, [dispatch, onAddEvent, currentExchangeRate, bitcoinExchangeTimer]);
-  
-  // Текущий курс обмена Bitcoin к USDT
-  const currentExchangeRate = state.miningParams?.exchangeRate || 20000;
+  }, [dispatch, onAddEvent, state.miningParams?.exchangeRate, bitcoinExchangeTimer]);
   
   // Флаг скрытия кнопки "Изучить крипту"
   const shouldHideLearnButton = false; // Всегда показываем кнопку
@@ -101,7 +108,7 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
     handleApplyKnowledge,
     handleApplyAllKnowledge,
     handleExchangeBitcoin,
-    currentExchangeRate,
+    currentExchangeRate: state.miningParams?.exchangeRate || 20000,
     shouldHideLearnButton,
     applyKnowledgeUnlocked,
   };

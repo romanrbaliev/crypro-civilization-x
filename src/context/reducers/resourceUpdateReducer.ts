@@ -151,6 +151,9 @@ export const processResourceUpdate = (state: GameState): GameState => {
     };
   }
   
+  // Проверка принудительных разблокировок зданий
+  newState = checkBuildingUnlocks(newState);
+  
   // Обновляем значения ресурсов на основе времени с ограничением максимального времени
   newResources = updateResourceValues(newResources, cappedElapsedSeconds);
   
@@ -169,6 +172,70 @@ export const processResourceUpdate = (state: GameState): GameState => {
   
   // Используем унифицированную систему проверки разблокировок
   newState = checkAllUnlocks(newState);
+  
+  return newState;
+};
+
+// Функция для принудительной проверки разблокировок зданий
+const checkBuildingUnlocks = (state: GameState): GameState => {
+  let newState = {...state};
+  
+  // Проверка условий разблокировки криптобиблиотеки
+  const hasCryptoBasics = 
+    newState.upgrades.cryptoCurrencyBasics?.purchased || 
+    newState.upgrades.cryptoBasics?.purchased;
+    
+  if (hasCryptoBasics && newState.buildings.cryptoLibrary && !newState.buildings.cryptoLibrary.unlocked) {
+    console.log("✅ Принудительная разблокировка криптобиблиотеки (основы криптовалют изучены)");
+    newState.buildings.cryptoLibrary = {
+      ...newState.buildings.cryptoLibrary,
+      unlocked: true
+    };
+    newState.unlocks = {
+      ...newState.unlocks,
+      cryptoLibrary: true
+    };
+  }
+  
+  // Проверка условий разблокировки системы охлаждения
+  if (newState.buildings.homeComputer?.count >= 2 && newState.buildings.coolingSystem && !newState.buildings.coolingSystem.unlocked) {
+    console.log("✅ Принудительная разблокировка системы охлаждения (есть 2+ компьютера)");
+    newState.buildings.coolingSystem = {
+      ...newState.buildings.coolingSystem,
+      unlocked: true
+    };
+    newState.unlocks = {
+      ...newState.unlocks,
+      coolingSystem: true
+    };
+  }
+  
+  // Проверка условий разблокировки улучшенного кошелька
+  if (newState.buildings.cryptoWallet?.count >= 5) {
+    if (newState.buildings.enhancedWallet && !newState.buildings.enhancedWallet.unlocked) {
+      console.log("✅ Принудительная разблокировка улучшенного кошелька (enhancedWallet)");
+      newState.buildings.enhancedWallet = {
+        ...newState.buildings.enhancedWallet,
+        unlocked: true
+      };
+      newState.unlocks = {
+        ...newState.unlocks,
+        enhancedWallet: true
+      };
+    }
+    
+    if (newState.buildings.improvedWallet && !newState.buildings.improvedWallet.unlocked) {
+      console.log("✅ Принудительная разблокировка улучшенного кошелька (improvedWallet)");
+      newState.buildings.improvedWallet = {
+        ...newState.buildings.improvedWallet,
+        unlocked: true
+      };
+      newState.unlocks = {
+        ...newState.unlocks,
+        improvedWallet: true
+      };
+    }
+  }
   
   return newState;
 };
