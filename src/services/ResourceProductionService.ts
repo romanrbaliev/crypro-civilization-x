@@ -11,6 +11,20 @@ export class ResourceProductionService {
     // Создаем копию ресурсов для модификации
     const resources = { ...state.resources };
     
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем логгирование текущего состояния производства
+    console.log("ResourceProductionService: Начинаем расчёт производства ресурсов");
+    console.log("Текущее состояние ресурсов:", {
+      knowledge: resources.knowledge ? {
+        unlocked: resources.knowledge.unlocked,
+        baseProduction: resources.knowledge.baseProduction,
+        perSecond: resources.knowledge.perSecond
+      } : 'не создан',
+      practice: state.buildings?.practice ? {
+        count: state.buildings.practice.count,
+        unlocked: state.buildings.practice.unlocked
+      } : 'не создан'
+    });
+    
     // Принудительно проверяем разблокировку майнера при наличии исследования "Основы криптовалют"
     this.checkMinerUnlock(state);
     
@@ -27,44 +41,39 @@ export class ResourceProductionService {
       // 1. Проверка специальных случаев для конкретных ресурсов
       switch (resourceId) {
         case 'knowledge':
-          // ВАЖНОЕ ИСПРАВЛЕНИЕ: Сначала получаем базовое производство из ресурса,
-          // которое должно быть уже установлено при покупке практики
-          let knowledgeProduction = resource.baseProduction || 0;
+          // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Принудительно расчет производства знаний от практики
+          // Это гарантирует, что производство всегда будет установлено правильно
+          let practiceCount = 0;
+          let knowledgeProduction = 0;
           
-          // Проверяем наличие практики для гарантии правильного расчета
           if (state.buildings.practice && state.buildings.practice.count > 0) {
-            const practiceCount = state.buildings.practice.count;
-            const practiceProduction = practiceCount * 1; // 1 знание в секунду за каждую практику
+            practiceCount = state.buildings.practice.count;
+            // Каждая практика дает 1 знание в секунду
+            knowledgeProduction = practiceCount * 1;
             
-            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Если в базовом производстве не отражена практика,
-            // то устанавливаем значение, чтобы гарантировать работу даже при загрузке
-            if (knowledgeProduction < practiceProduction) {
-              console.log(`ResourceProductionService: Исправляем базовое производство знаний с ${knowledgeProduction} на ${practiceProduction}`);
-              knowledgeProduction = practiceProduction;
-            }
-            
-            console.log(`ResourceProductionService: Практика генерирует ${practiceProduction.toFixed(2)}/сек знаний (всего практик: ${practiceCount})`);
+            console.log(`ResourceProductionService: Практика (${practiceCount} шт.) дает ${knowledgeProduction}/сек знаний`);
           }
           
-          // ИСПРАВЛЕНИЕ: Применяем бонус от исследования "Основы блокчейна" ТОЛЬКО ОДИН РАЗ
+          // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Всегда устанавливаем производство, даже если baseProduction не установлен
+          if (resource.baseProduction !== knowledgeProduction && knowledgeProduction > 0) {
+            console.log(`ResourceProductionService: Корректируем базовое производство знаний с ${resource.baseProduction || 0} на ${knowledgeProduction}`);
+          }
+          
           // Проверяем наличие исследования "Основы блокчейна" для бонуса к производству знаний
           const hasBlockchainBasics = state.upgrades.blockchainBasics?.purchased || 
                                      state.upgrades.basicBlockchain?.purchased || 
                                      state.upgrades.blockchain_basics?.purchased;
           
           // Если есть исследование, увеличиваем производство на 10%
-          if (hasBlockchainBasics) {
-            // Проверим, что изначальное производство больше 0, чтобы избежать лишних бонусов при нуле
-            if (knowledgeProduction > 0) {
-              // Находим базовое значение и применяем только один раз бонус
-              const bonus = knowledgeProduction * 0.1; // +10% бонус
-              knowledgeProduction += bonus;
-              console.log(`ResourceProductionService: "Основы блокчейна" добавляют ${bonus.toFixed(2)}/сек знаний (+10%)`);
-            }
+          if (hasBlockchainBasics && knowledgeProduction > 0) {
+            // Находим базовое значение и применяем бонус
+            const bonus = knowledgeProduction * 0.1; // +10% бонус
+            knowledgeProduction += bonus;
+            console.log(`ResourceProductionService: "Основы блокчейна" добавляют ${bonus.toFixed(2)}/сек знаний (+10%)`);
           }
           
           // Проверяем наличие интернет-канала для бонуса к производству знаний
-          if (state.buildings.internetChannel && state.buildings.internetChannel.count > 0) {
+          if (state.buildings.internetChannel && state.buildings.internetChannel.count > 0 && knowledgeProduction > 0) {
             const internetChannelCount = state.buildings.internetChannel.count;
             // Увеличиваем скорость получения знаний на 20% за каждый интернет-канал
             const internetBonus = knowledgeProduction * 0.2 * internetChannelCount;
@@ -73,15 +82,17 @@ export class ResourceProductionService {
             console.log(`ResourceProductionService: Интернет-канал добавляет ${internetBonus.toFixed(2)}/сек знаний (+20% за каждый канал)`);
           }
           
-          console.log(`ResourceProductionService: скорость производства знаний=${knowledgeProduction.toFixed(2)}/сек`);
+          console.log(`ResourceProductionService: окончательная скорость производства знаний=${knowledgeProduction.toFixed(2)}/сек`);
           
+          // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Всегда устанавливаем все параметры производства
           resources[resourceId] = {
             ...resource,
+            baseProduction: knowledgeProduction,
             production: knowledgeProduction,
             perSecond: knowledgeProduction
           };
           break;
-        
+          
         case 'usdt':
           // USDT базовое производство (если есть)
           const usdtProduction = resource.baseProduction || 0;
@@ -92,7 +103,7 @@ export class ResourceProductionService {
             perSecond: usdtProduction
           };
           break;
-        
+          
         case 'electricity':
           // Электричество от генераторов
           let electricityProduction = resource.baseProduction || 0;
@@ -181,7 +192,7 @@ export class ResourceProductionService {
               const minerConsumption = minerCount * 5; // 5 вычисл. мощности в секунду на майнер
               computingConsumption += minerConsumption;
               
-              console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек вычислительной мощности`);
+              console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек вычи��лительной мощности`);
             }
           } else if (isComputingPowerExhausted) {
             console.log('ResourceProductionService: Вычислительная мощность закончилась, потребление приостановлено');

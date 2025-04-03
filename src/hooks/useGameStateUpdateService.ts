@@ -20,6 +20,7 @@ export const useGameStateUpdateService = () => {
     // Это гарантирует, что скорость накопления ресурсов точно соответствует отображаемым значениям
     const fixedDeltaTime = 1000;
     
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Изменяем способ вызова обновления ресурсов
     // Отправляем действие для обновления ресурсов с фиксированным временным интервалом
     dispatch({ 
       type: 'UPDATE_RESOURCES',
@@ -33,6 +34,13 @@ export const useGameStateUpdateService = () => {
   // Эффект для настройки интервала обновления состояния
   useEffect(() => {
     if (!state.gameStarted) return;
+    
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем подробное логирование
+    console.log('useGameStateUpdateService: Настраиваем интервал обновления ресурсов');
+    console.log('Текущее состояние ресурсов:', {
+      knowledge: state.resources.knowledge?.perSecond || 0,
+      practice: state.buildings.practice?.count || 0
+    });
     
     // Всегда используем строго фиксированный интервал в 1000 мс
     // Этот интервал задает частоту обновления ресурсов и соответствует отображаемому значению "/сек"

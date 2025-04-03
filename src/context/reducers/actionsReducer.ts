@@ -173,6 +173,7 @@ export const processPracticePurchase = (state: GameState): GameState => {
   // Проверяем, достаточно ли USDT
   if (!state.resources.usdt || state.resources.usdt.value < cost) {
     console.log(`Недостаточно USDT для покупки практики: ${state.resources.usdt?.value} < ${cost}`);
+    safeDispatchGameEvent(`Недостаточно USDT для покупки практики (необходимо ${cost})`, "error");
     return state;
   }
   
@@ -220,6 +221,9 @@ export const processPracticePurchase = (state: GameState): GameState => {
   const knowledgePerPractice = 1; // 1 знание в секунду за каждую практику
   const totalProduction = newPracticeLevel * knowledgePerPractice;
   
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Всегда используем totalProduction для установки значений производства
+  console.log(`Общее производство знаний от практики: ${totalProduction}/сек`);
+  
   // Обновляем или создаем ресурс знаний
   if (!newState.resources.knowledge) {
     // Создаем ресурс знаний, если его ещё нет
@@ -238,15 +242,28 @@ export const processPracticePurchase = (state: GameState): GameState => {
     };
     console.log(`Создан ресурс знаний с производством ${totalProduction}/сек`);
   } else {
-    // Обновляем существующий ресурс знаний - ВАЖНОЕ ИСПРАВЛЕНИЕ: 
-    // явно устанавливаем все параметры производства
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Явно устанавливаем все параметры производства
+    // Это гарантирует, что обновление ресурсов будет работать корректно
     newState.resources.knowledge.baseProduction = totalProduction;
     newState.resources.knowledge.production = totalProduction;
     newState.resources.knowledge.perSecond = totalProduction;
-    console.log(`Обновлен ресурс знаний с производством ${totalProduction}/сек`);
+    
+    console.log(`Обновлены параметры ресурса знаний: базовое=${totalProduction}, текущее=${totalProduction}, вСек=${totalProduction}`);
   }
   
-  // ВАЖНОЕ ИСПРАВЛЕНИЕ: Добавляем принудительное обновление ресурсов
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Устанавливаем флаг разблокировки
+  if (newState.resources.knowledge) {
+    newState.resources.knowledge.unlocked = true;
+  }
+  
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обновляем флаг в глобальных разблокировках
+  newState.unlocks = {
+    ...newState.unlocks,
+    practice: true,
+    knowledge: true
+  };
+  
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем принудительное обновление ресурсов
   console.log("processPracticePurchase: Проверка обновленных параметров знаний:", {
     level: newPracticeLevel,
     baseProduction: newState.resources.knowledge?.baseProduction,

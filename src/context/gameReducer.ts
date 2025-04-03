@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -50,6 +51,9 @@ import {
   initializeReferralSystem
 } from './reducers/referralReducer';
 
+// Импортируем обработчик обновления ресурсов
+import { processUpdateResources } from './reducers/resourceUpdateReducer';
+
 // Создаем экземпляр централизованного сервиса состояния
 const gameStateService = new GameStateService();
 
@@ -65,6 +69,10 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   }
   
   switch (action.type) {
+    // ВАЖНОЕ ИСПРАВЛЕНИЕ: Добавляем обработку обновления ресурсов
+    case 'UPDATE_RESOURCES':
+      return processUpdateResources(state, action.payload);
+      
     // Обработка ресурсов
     case 'INCREMENT_RESOURCE':
       return processIncrementResource(state, action.payload);
