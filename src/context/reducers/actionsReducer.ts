@@ -235,9 +235,9 @@ export const processExchangeBtc = (state: GameState): GameState => {
     }
   };
   
-  // Проверяем, существует ли USDT в списке ресурсов с использованием оператора in
-  if ('usdt' in newResources && newResources.usdt) {
-    // Если USDT уже существует, обновляем его
+  // Проверяем наличие USDT в ресурсах и его тип
+  if (newResources.usdt && typeof newResources.usdt === 'object') {
+    // Если USDT уже существует и является объектом, обновляем его
     newResources.usdt = {
       ...newResources.usdt,
       value: Math.min(newResources.usdt.value + usdtGain, newResources.usdt.max || Infinity)
