@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -247,4 +248,75 @@ export const processExchangeBtc = (state: GameState): GameState => {
   safeDispatchGameEvent(`Обменяно ${btcToExchange.toFixed(8)} BTC на ${usdtGain.toFixed(2)} USDT`, 'success');
   
   return newState;
+};
+
+/**
+ * Обработчик действия "Майнинг вычислительной мощности"
+ */
+export const processMiningPower = (state: GameState): GameState => {
+  // Проверка, достаточно ли вычислительной мощности для майнинга
+  const requiredComputingPower = 2; // Требуется 2 единицы вычислительной мощности
+  
+  if (!state.resources.computingPower || state.resources.computingPower.value < requiredComputingPower) {
+    // Недостаточно вычислительной мощности
+    safeDispatchGameEvent('Недостаточно вычислительной мощности для майнинга', 'error');
+    return state;
+  }
+  
+  // Майнинг потребляет вычислительную мощность и дает USDT
+  const usdtGain = 1; // Базовое количество USDT за одно нажатие
+  
+  // Обновляем ресурсы
+  const newResources = {
+    ...state.resources,
+    computingPower: {
+      ...state.resources.computingPower,
+      value: state.resources.computingPower.value - requiredComputingPower
+    }
+  };
+  
+  // Добавляем USDT, если он уже разблокирован
+  if (state.resources.usdt) {
+    newResources.usdt = {
+      ...state.resources.usdt,
+      value: Math.min(state.resources.usdt.value + usdtGain, state.resources.usdt.max)
+    };
+  } else {
+    // Если USDT еще не разблокирован, создаем его
+    newResources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, привязанный к доллару США',
+      value: usdtGain,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true,
+      type: 'currency',
+      icon: 'dollar'
+    };
+  }
+  
+  // Обновляем состояние
+  const newState = {
+    ...state,
+    resources: newResources,
+    unlocks: {
+      ...state.unlocks,
+      usdt: true // Разблокируем USDT
+    }
+  };
+  
+  safeDispatchGameEvent(`Майнинг успешен! Получено ${usdtGain} USDT`, 'success');
+  
+  return newState;
+};
+
+/**
+ * Обработчик покупки здания "Практика"
+ */
+export const processPracticePurchase = (state: GameState): GameState => {
+  // Здесь может быть дополнительная логика при покупке Практики
+  return state;
 };
