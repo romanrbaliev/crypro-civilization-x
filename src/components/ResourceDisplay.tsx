@@ -82,24 +82,24 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
 
   return (
     <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
-      <div className="flex justify-between items-center">
-        <div className="font-medium text-gray-900">{displayName}</div>
-        <div className="flex flex-col items-end">
-          <div className="font-medium" id={`resource-value-${id}`}>
-            {formattedValue}
-            {max !== Infinity && (
-              <span className="text-gray-500 text-[0.7rem]">/{formattedMax}</span>
-            )}
-          </div>
-          {perSecond !== 0 && (
-            <div className={`text-[0.7rem] ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
-              {isNegativeRate ? '' : '+'}{formattedPerSecond}/сек
-            </div>
-          )}
+      <div className="flex justify-between items-center mb-0.5">
+        <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{displayName}</div>
+        <div id={`resource-value-${id}`} className="text-gray-600 text-[10px] whitespace-nowrap transition-colors">
+          {formattedValue}
+          {max !== Infinity && ` / ${formattedMax}`}
         </div>
       </div>
+      
+      {/* Отображаем скорость только если она не равна нулю */}
+      {safePerSecond !== 0 && (
+        <div className="flex items-center justify-end">
+          <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
+            {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default ResourceDisplay;

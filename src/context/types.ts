@@ -1,4 +1,3 @@
-
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -50,7 +49,7 @@ export interface Building {
   id: string;
   name: string;
   description: string;
-  cost: { [key: string]: number };    // Изменено с baseCost на cost
+  cost: { [key: string]: number };
   costMultiplier?: number;
   production: { [key: string]: number };
   consumption?: { [key: string]: number };

@@ -20,13 +20,12 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   }
   
   // Обменять 10 знаний на USDT
-  const knowledgeToExchange = 10;
-  const newKnowledgeValue = state.resources.knowledge.value - knowledgeToExchange;
-  const usdtGain = knowledgeToExchange * exchangeRate; // 1 или 1.1 USDT
+  const newKnowledgeValue = state.resources.knowledge.value - 10;
+  const usdtGain = 10 * exchangeRate; // 1 или 1.1 USDT
   
   // Проверяем, существует ли ресурс USDT
-  if (!state.resources.usdt || !state.resources.usdt.unlocked) {
-    // Создаем ресурс USDT, если его нет или он не разблокирован
+  if (!state.resources.usdt) {
+    // Создаем ресурс USDT, если его нет
     const newResources = {
       ...state.resources,
       knowledge: {
