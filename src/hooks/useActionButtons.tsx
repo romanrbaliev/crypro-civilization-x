@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 
@@ -33,8 +32,7 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
       type: "INCREMENT_RESOURCE", 
       payload: { 
         resourceId: "knowledge", 
-        amount: 1, // Фиксируем ВСЕГДА +1 знание
-        fixed: true // Дополнительный флаг, чтобы избежать модификации в других обработчиках
+        amount: 1 // Фиксируем ВСЕГДА +1 знание
       }
     });
     

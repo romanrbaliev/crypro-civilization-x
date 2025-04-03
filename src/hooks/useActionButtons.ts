@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -50,13 +49,12 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Обработчик нажатия кнопки "Изучить крипту"
   const handleLearnClick = useCallback(() => {
-    // СТРОГО фиксируем INCREMENT_RESOURCE с amount = 1, чтобы всегда добавлялось ровно 1 знание
+    // Отправляем действие INCREMENT_RESOURCE со строгим значением 1
     dispatch({ 
       type: "INCREMENT_RESOURCE", 
       payload: { 
         resourceId: "knowledge", 
-        amount: 1,
-        fixed: true // Фиксированное значение, не подлежащее модификации
+        amount: 1
       }
     });
     
@@ -73,7 +71,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const handleApplyAllKnowledge = useCallback(() => {
     // Проверяем, достаточно ли знаний для конвертации
     if ((resources.knowledge?.value || 0) < 10) {
-      onAddEvent(`Недостаточно знаний! Требуется минимум 10`, "error");
+      onAddEvent(`Недоста��очно знаний! Требуется минимум 10`, "error");
       return;
     }
     
@@ -152,7 +150,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     dispatch({ type: "EXCHANGE_BTC" });
     
-    // Более детальное сообщение для журнала событий
+    // Более деталь��ое сообщение для журнала событий
     onAddEvent(
       `Обменяны ${safeFormatBitcoin(bitcoinAmount)} Bitcoin на ${safeFormatUsdt(finalUsdtAmount)} USDT по курсу ${bitcoinPrice}`, 
       "success"
