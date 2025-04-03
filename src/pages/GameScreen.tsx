@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
@@ -11,8 +10,6 @@ import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";
 import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
-import KnowledgeProductionPopup from "@/components/KnowledgeProductionPopup";
-import UnlockStatusPopup from "@/components/UnlockStatusPopup";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import {
