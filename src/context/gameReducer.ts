@@ -90,7 +90,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case 'MINING_POWER':
       return processMiningPower(state);
     case 'EXCHANGE_BTC':
-      return processExchangeBtc(state, action.payload);
+      return processExchangeBtc(state);
     case 'PRACTICE_PURCHASE':
       return processPracticePurchase(state);
       
@@ -124,7 +124,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case 'INITIALIZE_SYNERGIES':
       return initializeSynergies(state);
     case 'SYNERGY_ACTION':
-      return synergyReducer(state, action.payload);
+      return synergyReducer(state);
       
     // Обработка реферальной системы
     case 'SET_REFERRAL_CODE':

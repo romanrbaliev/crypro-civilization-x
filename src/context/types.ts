@@ -1,3 +1,4 @@
+
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
 export interface GameState {
@@ -172,6 +173,11 @@ export type GameAction =
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
   | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
   | { type: "FORCE_RESOURCE_UPDATE" }
+  | { type: "FORCE_CHECK_UNLOCKS" }
   | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } }
   | { type: "CHOOSE_SPECIALIZATION"; payload: { roleId: string } }
-  | { type: "CHECK_EQUIPMENT_STATUS" };
+  | { type: "CHECK_EQUIPMENT_STATUS" }
+  | { type: "INITIALIZE_SYNERGIES" }
+  | { type: "SYNERGY_ACTION"; payload: any }
+  | { type: "INITIALIZE_REFERRAL_SYSTEM" }
+  | { type: "MINING_POWER" };
