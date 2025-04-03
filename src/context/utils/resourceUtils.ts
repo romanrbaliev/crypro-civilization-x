@@ -102,3 +102,114 @@ export const calculateTotalProduction = (
   
   return production;
 };
+
+/**
+ * Обновляет максимальные значения ресурсов на основе зданий и улучшений
+ */
+export const updateResourceMaxValues = (state: GameState): GameState => {
+  // Создаем копию состояния для изменений
+  const newState = { ...state };
+  const newResources = { ...newState.resources };
+  
+  // Проходим по всем ресурсам и обновляем их максимальные значения
+  for (const resourceId in newResources) {
+    const resource = newResources[resourceId];
+    
+    // Базовое максимальное значение для разных типов ресурсов
+    let baseMax = 100; // По умолчанию для обычных ресурсов
+    
+    // Определяем базовый максимум для разных ресурсов
+    switch (resourceId) {
+      case 'knowledge':
+        baseMax = 100;
+        break;
+      case 'usdt':
+        baseMax = 50;
+        break;
+      case 'electricity':
+        baseMax = 100;
+        break;
+      case 'computingPower':
+        baseMax = 1000;
+        break;
+      case 'bitcoin':
+        baseMax = 0.01;
+        break;
+    }
+    
+    // Начинаем с базового максимального значения
+    let maxValue = resource.max || baseMax;
+    
+    // Учитываем бонусы от зданий для максимальных значений ресурсов
+    // Например, кошелек увеличивает максимум USDT
+    if (resourceId === 'usdt') {
+      // Криптокошелек увеличивает максимум USDT на 50 за каждый
+      if (newState.buildings.cryptoWallet) {
+        const walletCount = newState.buildings.cryptoWallet.count || 0;
+        maxValue += 50 * walletCount;
+      }
+      
+      // Улучшенный кошелек увеличивает максимум USDT на 150 за каждый
+      if (newState.buildings.improvedWallet || newState.buildings.enhancedWallet) {
+        const improvedWalletCount = (newState.buildings.improvedWallet?.count || 0) + 
+                                   (newState.buildings.enhancedWallet?.count || 0);
+        maxValue += 150 * improvedWalletCount;
+      }
+    } 
+    else if (resourceId === 'bitcoin') {
+      // Улучшенный кошелек увеличивает максимум BTC на 1 за каждый
+      if (newState.buildings.improvedWallet || newState.buildings.enhancedWallet) {
+        const improvedWalletCount = (newState.buildings.improvedWallet?.count || 0) + 
+                                   (newState.buildings.enhancedWallet?.count || 0);
+        maxValue += 1 * improvedWalletCount;
+      }
+    }
+    else if (resourceId === 'knowledge') {
+      // Криптобиблиотека увеличивает максимум знаний на 100 за каждую
+      if (newState.buildings.cryptoLibrary) {
+        const libraryCount = newState.buildings.cryptoLibrary.count || 0;
+        maxValue += 100 * libraryCount;
+      }
+      
+      // Криптокошелек увеличивает максимум знаний на 25% за каждый
+      if (newState.buildings.cryptoWallet) {
+        const walletCount = newState.buildings.cryptoWallet.count || 0;
+        const knowledgeMaxBoost = 0.25 * walletCount; // +25% за каждый кошелек
+        maxValue = maxValue * (1 + knowledgeMaxBoost);
+      }
+      
+      // Проверяем наличие исследования "Основы блокчейна"
+      if (newState.upgrades.blockchainBasics?.purchased || 
+          newState.upgrades.basicBlockchain?.purchased || 
+          newState.upgrades.blockchain_basics?.purchased) {
+        // Увеличиваем максимум знаний на 50%
+        maxValue = maxValue * 1.5;
+      }
+    }
+    
+    // Учитываем бонусы от улучшений для максимальных значений ресурсов
+    if (newState.upgrades.cryptoWalletSecurity?.purchased || 
+        newState.upgrades.walletSecurity?.purchased) {
+      if (resourceId === 'usdt') {
+        // Безопасность криптокошельков увеличивает максимум USDT на 25%
+        maxValue = maxValue * 1.25;
+      }
+    }
+    
+    // Обновляем максимальное значение ресурса
+    newResources[resourceId] = {
+      ...resource,
+      max: maxValue
+    };
+    
+    // Проверяем, чтобы текущее значение не превышало максимальное
+    if (resource.value > maxValue) {
+      newResources[resourceId].value = maxValue;
+    }
+  }
+  
+  return {
+    ...newState,
+    resources: newResources
+  };
+};
