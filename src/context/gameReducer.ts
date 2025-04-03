@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -60,17 +59,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   switch (action.type) {
     case "INCREMENT_RESOURCE": {
       // ИСПРАВЛЕНИЕ проблемы с "Изучить крипту"
-      if (action.payload.resourceId === "knowledge") {
-        // Для ресурса знания - всегда прибавляем ровно 1 единицу за клик
-        newState = processIncrementResource(state, { 
-          resourceId: "knowledge", 
-          amount: 1 // Фиксированная величина 1 знание за клик
-        });
-      } else {
-        // Для остальных ресурсов используем переданное значение
-        newState = processIncrementResource(state, action.payload);
-      }
+      // Переопределяем параметр amount для ресурса знания всегда на 1
+      const payload = action.payload.resourceId === "knowledge" 
+        ? { ...action.payload, amount: 1 }
+        : action.payload;
+        
+      console.log(`gameReducer: INCREMENT_RESOURCE для ${payload.resourceId}, amount=${payload.amount}`);
       
+      // Используем модифицированный payload
+      newState = processIncrementResource(state, payload);
       return gameStateService.processGameStateUpdate(newState);
     }
     
@@ -152,6 +149,126 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       }
       
       newState = initializeReferralSystem(newState);
+      
+      // НОВОЕ: Проверяем наличие особых зданий перед полной синхронизацией
+      // Криптобиблиотека разблокируется после покупки "Основы криптовалют"
+      const hasCryptoBasics = 
+        newState.upgrades.cryptoCurrencyBasics?.purchased || 
+        newState.upgrades.cryptoBasics?.purchased;
+        
+      if (hasCryptoBasics && (!newState.buildings.cryptoLibrary || !newState.buildings.cryptoLibrary.unlocked)) {
+        console.log('gameReducer/START_GAME: Создаем или разблокируем Криптобиблиотеку');
+        
+        // Создаем или обновляем криптобиблиотеку
+        newState = {
+          ...newState,
+          buildings: {
+            ...newState.buildings,
+            cryptoLibrary: newState.buildings.cryptoLibrary ? {
+              ...newState.buildings.cryptoLibrary,
+              unlocked: true
+            } : {
+              id: "cryptoLibrary",
+              name: "Криптобиблиотека",
+              description: "Увеличивает скорость получения знаний на 50% и максимальное количество знаний на 100",
+              baseCost: { usdt: 200, knowledge: 200 },
+              costMultiplier: 1.15,
+              count: 0,
+              unlocked: true
+            }
+          },
+          unlocks: {
+            ...newState.unlocks,
+            cryptoLibrary: true
+          }
+        };
+      }
+      
+      // Система охлаждения разблокируется после 2+ уровней домашнего компьютера
+      if (newState.buildings.homeComputer?.count >= 2 && 
+          (!newState.buildings.coolingSystem || !newState.buildings.coolingSystem.unlocked)) {
+        console.log('gameReducer/START_GAME: Создаем или разблокируем Систему охлаждения');
+        
+        // Создаем или обновляем систему охлаждения
+        newState = {
+          ...newState,
+          buildings: {
+            ...newState.buildings,
+            coolingSystem: newState.buildings.coolingSystem ? {
+              ...newState.buildings.coolingSystem,
+              unlocked: true
+            } : {
+              id: "coolingSystem",
+              name: "Система охлаждения",
+              description: "Уменьшает потребление вычислительной мощности всеми устройствами на 20%",
+              baseCost: { usdt: 200, electricity: 50 },
+              costMultiplier: 1.15,
+              count: 0,
+              unlocked: true
+            }
+          },
+          unlocks: {
+            ...newState.unlocks,
+            coolingSystem: true
+          }
+        };
+      }
+      
+      // Улучшенный кошелек разблокируется после 5+ уровней криптокошелька
+      if (newState.buildings.cryptoWallet?.count >= 5) {
+        if (!newState.buildings.enhancedWallet && !newState.buildings.improvedWallet) {
+          console.log('gameReducer/START_GAME: Создаем Улучшенный кошелек');
+          
+          // Создаем улучшенный кошелек
+          newState = {
+            ...newState,
+            buildings: {
+              ...newState.buildings,
+              enhancedWallet: {
+                id: "enhancedWallet",
+                name: "Улучшенный кошелек",
+                description: "Увеличивает максимальное хранение USDT на 150, Bitcoin на 1, эффективность конвертации BTC на 8%",
+                baseCost: { usdt: 300, knowledge: 250 },
+                costMultiplier: 1.15,
+                count: 0,
+                unlocked: true
+              }
+            },
+            unlocks: {
+              ...newState.unlocks,
+              enhancedWallet: true
+            }
+          };
+        } else {
+          // Разблокируем существующие варианты
+          const updatedBuildings = { ...newState.buildings };
+          const updatedUnlocks = { ...newState.unlocks };
+          
+          if (newState.buildings.enhancedWallet && !newState.buildings.enhancedWallet.unlocked) {
+            console.log('gameReducer/START_GAME: Разблокируем существующий enhancedWallet');
+            updatedBuildings.enhancedWallet = {
+              ...updatedBuildings.enhancedWallet,
+              unlocked: true
+            };
+            updatedUnlocks.enhancedWallet = true;
+          }
+          
+          if (newState.buildings.improvedWallet && !newState.buildings.improvedWallet.unlocked) {
+            console.log('gameReducer/START_GAME: Разблокируем существующий improvedWallet');
+            updatedBuildings.improvedWallet = {
+              ...updatedBuildings.improvedWallet,
+              unlocked: true
+            };
+            updatedUnlocks.improvedWallet = true;
+          }
+          
+          newState = {
+            ...newState,
+            buildings: updatedBuildings,
+            unlocks: updatedUnlocks
+          };
+        }
+      }
       
       // Полная синхронизация состояния через сервис
       return gameStateService.performFullStateSync(newState);
@@ -256,7 +373,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           applyKnowledgeCounter: newState.counters.applyKnowledge
         });
         
-        // Проверяем, разблокирован ли USDT
+        // Принудительно разблокируем USDT, если не разблокирован
         if (!newState.resources.usdt || !newState.resources.usdt.unlocked) {
           console.log("gameReducer: USDT не разблокирован после APPLY_KNOWLEDGE, принудительно разблокируем");
           

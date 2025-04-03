@@ -16,14 +16,12 @@ export const processIncrementResource = (
     return state;
   }
   
-  // ИСПРАВЛЕНИЕ: Фиксированное значение для ресурса "знания"
-  let incrementAmount = amount;
-  if (resourceId === "knowledge") {
-    // Всегда строго 1 знание за клик, независимо от переданного значения
-    incrementAmount = 1;
-    // Дополнительный лог для отслеживания
-    console.log(`processIncrementResource: Для knowledge устанавливаем строго incrementAmount=${incrementAmount}`);
-  }
+  // ИСПРАВЛЕНИЕ ДЛЯ ВСЕХ СРЕД: Фиксированное значение для ресурса "знания" без зависимости от передаваемого amount
+  // Переопределяем значение для ресурса "знания" всегда на 1
+  let incrementAmount = resourceId === "knowledge" ? 1 : amount;
+  
+  // Дополнительный лог для отслеживания
+  console.log(`processIncrementResource: ${resourceId}, исходный amount=${amount}, установленный incrementAmount=${incrementAmount}`);
   
   const currentValue = state.resources[resourceId].value;
   const maxValue = state.resources[resourceId].max;

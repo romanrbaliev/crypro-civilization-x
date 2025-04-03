@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 interface LearnButtonProps {
@@ -18,9 +18,16 @@ export const LearnButton: React.FC<LearnButtonProps> = ({
   // Если shouldHide = true, не рендерим кнопку вообще
   if (shouldHide) return null;
   
+  // Создаем обработчик события, который гарантирует однократное выполнение
+  const handleClick = useCallback(() => {
+    // Вызываем onClick только один раз
+    console.log("LearnButton: клик по кнопке");
+    onClick();
+  }, [onClick]);
+  
   return (
     <Button
-      onClick={onClick}
+      onClick={handleClick}
       className={`w-full ${className}`}
       disabled={disabled}
       size="sm"
