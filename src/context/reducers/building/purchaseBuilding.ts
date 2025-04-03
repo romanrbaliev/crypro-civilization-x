@@ -1,7 +1,7 @@
 
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
-import { calculateBuildingCost } from '../../utils/buildingUtils';
+import { calculateBuildingCost } from '@/utils/buildingUtils';
 
 /**
  * Обработчик покупки здания

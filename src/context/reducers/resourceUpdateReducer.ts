@@ -1,7 +1,7 @@
 
 import { GameState } from '../types';
-import { calculateResourceIncrement } from '../utils/resourceUtils';
-import { calculateBuildingCost } from '../../utils/buildingUtils';
+import { calculateResourceIncrement } from '@/context/utils/resourceUtils';
+import { calculateBuildingCost } from '@/utils/buildingUtils';
 
 /**
  * Обновление ресурсов в соответствии с их производством
