@@ -43,6 +43,7 @@ const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => 
       return;
     }
     
+    // Используем roleId в соответствии с типом в редьюсере
     dispatch({ 
       type: "CHOOSE_SPECIALIZATION", 
       payload: { roleId } 

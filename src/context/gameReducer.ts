@@ -78,7 +78,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case 'SELL_BUILDING':
       return processSellBuilding(state, action.payload);
     case 'CHOOSE_SPECIALIZATION':
-      return processChooseSpecialization(state, action.payload);
+      // Изменяем структуру параметра, чтобы соответствовать ожидаемому типу
+      return processChooseSpecialization(state, { specializationType: action.payload.roleId });
     
     // Обработка улучшений
     case 'PURCHASE_UPGRADE':
