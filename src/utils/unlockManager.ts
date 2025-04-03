@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -220,6 +221,14 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
     safeDispatchGameEvent('Открыта фаза 2: Основы криптоэкономики', 'success');
   }
   
+  // Проверяем, разблокированы ли Рефералы после покупки исследования "Криптосообщество"
+  if (!newState.unlocks.referrals && 
+      (state.upgrades.cryptoCommunity?.purchased === true)) {
+    console.log('unlockManager: Разблокированы рефералы (исследование "Криптосообщество" куплено)');
+    newState.unlocks.referrals = true;
+    safeDispatchGameEvent('Разблокировано: Рефералы', 'success');
+  }
+  
   return newState;
 };
 
@@ -427,6 +436,30 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
     if (newState.upgrades.tradingBot) {
       newState.upgrades.tradingBot.unlocked = true;
       safeDispatchGameEvent('Разблокировано исследование: Торговый бот', 'success');
+    }
+  }
+  
+  // Разблокировка "Криптосообщество" после покупки нескольких исследований
+  if (!newState.upgrades.cryptoCommunity?.unlocked && 
+      (state.upgrades.cryptoTrading?.purchased || 
+       state.upgrades.proofOfWork?.purchased || 
+       state.upgrades.algorithmOptimization?.purchased)) {
+    console.log('unlockManager: Разблокировано исследование "Криптосообщество"');
+    if (newState.upgrades.cryptoCommunity) {
+      newState.upgrades.cryptoCommunity.unlocked = true;
+      safeDispatchGameEvent('Разблокировано исследование: Криптосообщество', 'success');
+    } else {
+      // Если исследования еще нет, создаем его
+      newState.upgrades.cryptoCommunity = {
+        id: 'cryptoCommunity',
+        name: 'Криптосообщество',
+        description: 'Изучение взаимодействия в криптосообществе открывает доступ к рефералам',
+        cost: { knowledge: 500 },
+        purchased: false,
+        unlocked: true,
+        type: 'research'
+      };
+      safeDispatchGameEvent('Разблокировано исследование: Криптосообщество', 'success');
     }
   }
   

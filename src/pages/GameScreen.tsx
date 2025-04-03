@@ -52,6 +52,8 @@ const GameScreen = () => {
   const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
   const hasUnlockedResearch = state.unlocks.research === true;
   const hasUnlockedSpecialization = state.unlocks.specialization === true;
+  const hasUnlockedReferrals = state.unlocks.referrals === true || 
+                              state.upgrades.cryptoCommunity?.purchased === true;
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
@@ -116,16 +118,17 @@ const GameScreen = () => {
       setSelectedTab("equipment");
     } else if (hasUnlockedResearch) {
       setSelectedTab("research");
-    } else {
+    } else if (hasUnlockedReferrals) {
       setSelectedTab("referrals");
     }
     
     console.log("Обновление выбранной вкладки:", {
       hasUnlockedBuildings,
       hasUnlockedResearch,
+      hasUnlockedReferrals,
       selectedTab
     });
-  }, [hasUnlockedBuildings, hasUnlockedResearch]);
+  }, [hasUnlockedBuildings, hasUnlockedResearch, hasUnlockedReferrals]);
   
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
   
@@ -314,7 +317,7 @@ const GameScreen = () => {
               
               {hasUnlockedSpecialization && renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />)}
               
-              {renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
+              {hasUnlockedReferrals && renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
             </div>
           </div>
         </div>
@@ -334,7 +337,7 @@ const GameScreen = () => {
                 <SpecializationTab onAddEvent={addEvent} />
               )}
               
-              {selectedTab === "referrals" && (
+              {selectedTab === "referrals" && hasUnlockedReferrals && (
                 <ReferralsTab onAddEvent={addEvent} />
               )}
             </div>
