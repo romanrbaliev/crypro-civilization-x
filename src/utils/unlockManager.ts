@@ -1,4 +1,3 @@
-
 import { GameState, Building, Upgrade } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -21,7 +20,7 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
   console.log('unlockManager: Полное восстановление всех разблокировок');
   
   // Сбрасываем все разблокировки и пересоздаем их на основе текущего состояния
-  const newUnlocks = {
+  const newUnlocks: Record<string, boolean> = {
     knowledge: true, // Знания всегда разблокированы
   };
   
@@ -90,7 +89,7 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
         id: "cryptoLibrary",
         name: "Криптобиблиотека",
         description: "Увеличивает скорость получения знаний на 50% и максимальное количество знаний на 100",
-        baseCost: {
+        cost: {
           usdt: 200,
           knowledge: 200
         },
@@ -115,7 +114,7 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
         id: "coolingSystem",
         name: "Система охлаждения",
         description: "Уменьшает потребление вычислительной мощности всеми устройствами на 20%",
-        baseCost: {
+        cost: {
           usdt: 200,
           electricity: 50
         },
@@ -141,7 +140,7 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
         id: "enhancedWallet",
         name: "Улучшенный кошелек",
         description: "Увеличивает максимальное хранение USDT на 150, Bitcoin на 1, эффективность конвертации BTC на 8%",
-        baseCost: {
+        cost: {
           usdt: 300,
           knowledge: 250
         },
@@ -249,7 +248,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
             id: "cryptoLibrary",
             name: "Криптобиблиотека",
             description: "Увеличивает скорость получения знаний на 50% и максимальное количество знаний на 100",
-            baseCost: {
+            cost: {
               usdt: 200,
               knowledge: 200
             },
@@ -286,7 +285,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
             id: "coolingSystem",
             name: "Система охлаждения",
             description: "Уменьшает потребление вычислительной мощности всеми устройствами на 20%",
-            baseCost: {
+            cost: {
               usdt: 200,
               electricity: 50
             },
@@ -323,7 +322,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
             id: "enhancedWallet",
             name: "Улучшенный кошелек",
             description: "Увеличивает максимальное хранение USDT на 150, Bitcoin на 1, эффективность конвертации BTC на 8%",
-            baseCost: {
+            cost: {
               usdt: 300,
               knowledge: 250
             },

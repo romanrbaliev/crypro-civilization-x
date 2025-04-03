@@ -130,3 +130,20 @@ export const checkUnlocks = (state: GameState): GameState => {
   const { checkAllUnlocks } = require('../../utils/unlockSystem');
   return checkAllUnlocks(state);
 };
+
+// Добавляем функцию проверки достаточности ресурсов
+export const hasEnoughResources = (
+  state: GameState,
+  costs: { [resourceId: string]: number }
+): boolean => {
+  // Проверяем каждый ресурс из требуемых затрат
+  for (const [resourceId, amount] of Object.entries(costs)) {
+    // Проверяем существование ресурса и достаточность его количества
+    if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
+      return false;
+    }
+  }
+  
+  // Если все проверки пройдены, ресурсов достаточно
+  return true;
+};
