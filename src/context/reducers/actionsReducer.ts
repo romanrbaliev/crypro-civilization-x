@@ -226,7 +226,7 @@ export const processExchangeBtc = (state: GameState): GameState => {
   // Рассчитываем, сколько USDT получим
   const usdtGain = btcToExchange * exchangeRate * (1 - commission);
   
-  // Обновляем ресурсы
+  // Создаем копию ресурсов
   const newResources = {
     ...state.resources,
     bitcoin: {
@@ -235,8 +235,8 @@ export const processExchangeBtc = (state: GameState): GameState => {
     }
   };
   
-  // Теперь безопасно добавляем USDT с проверкой его существования
-  if ('usdt' in state.resources && state.resources.usdt) {
+  // Проверяем, существует ли USDT в списке ресурсов
+  if (state.resources.usdt) {
     // Если USDT уже существует, обновляем его
     newResources.usdt = {
       ...state.resources.usdt,
