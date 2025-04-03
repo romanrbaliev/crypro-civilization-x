@@ -87,8 +87,11 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
     
     return Object.entries(building.production).map(([resourceId, amount]) => {
+      // Получаем ресурс из состояния
       const resource = state.resources[resourceId];
-      const resourceName = resource ? resource.name : resourceId;
+      
+      // Используем локализованное имя ресурса, а не просто ID
+      const resourceName = resource ? resource.name : getLocalizedResourceName(resourceId);
       
       return (
         <div key={resourceId} className="text-green-600 text-[11px] flex justify-between w-full">
@@ -99,14 +102,35 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     });
   };
   
+  // Функция для получения локализованных имен ресурсов
+  const getLocalizedResourceName = (resourceId: string): string => {
+    switch(resourceId) {
+      case 'knowledge':
+        return 'Знания';
+      case 'usdt':
+        return 'USDT';
+      case 'electricity':
+        return 'Электричество';
+      case 'computingPower':
+        return 'Вычисл. мощность';
+      case 'bitcoin':
+        return 'Bitcoin';
+      default:
+        return resourceId;
+    }
+  };
+  
   const renderConsumption = () => {
     if (!building.consumption || Object.keys(building.consumption).length === 0) {
       return null;
     }
     
     return Object.entries(building.consumption).map(([resourceId, amount]) => {
+      // Получаем ресурс из состояния
       const resource = state.resources[resourceId];
-      const resourceName = resource ? resource.name : resourceId;
+      
+      // Используем локализованное имя ресурса, а не просто ID
+      const resourceName = resource ? resource.name : getLocalizedResourceName(resourceId);
       
       return (
         <div key={resourceId} className="text-red-500 text-[11px] flex justify-between w-full">

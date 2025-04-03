@@ -99,7 +99,10 @@ export class ResourceProductionService {
           // Потребление электричества (домашний компьютер и др.)
           let electricityConsumption = 0;
           
-          if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0) {
+          // ИСПРАВЛЕНО: Проверяем достаточно ли электричества и останавливаем потребление, если ресурса нет
+          const hasEnoughElectricity = (resource.value > 0);
+          
+          if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0 && hasEnoughElectricity) {
             const computerCount = state.buildings.homeComputer.count;
             const computerConsumption = computerCount * 1; // 1 электричество в секунду на компьютер
             electricityConsumption += computerConsumption;
@@ -107,7 +110,7 @@ export class ResourceProductionService {
             console.log(`ResourceProductionService: Домашние компьютеры потребляют ${computerConsumption.toFixed(2)}/сек электричества`);
           }
           
-          if (state.buildings.miner && state.buildings.miner.count > 0) {
+          if (state.buildings.miner && state.buildings.miner.count > 0 && hasEnoughElectricity) {
             const minerCount = state.buildings.miner.count;
             const minerConsumption = minerCount * 1; // 1 электричество в секунду на майнер
             electricityConsumption += minerConsumption;
@@ -130,7 +133,11 @@ export class ResourceProductionService {
           // Вычислительная мощность от домашних компьютеров
           let computingProduction = resource.baseProduction || 0;
           
-          if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0) {
+          // ИСПРАВЛЕНО: Проверяем достаточно ли электричества для работы
+          const electricityResource = state.resources.electricity;
+          const hasElecForComputers = (electricityResource?.value > 0);
+          
+          if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0 && hasElecForComputers) {
             const computerCount = state.buildings.homeComputer.count;
             let computerProduction = computerCount * 2; // 2 вычисл. мощности в секунду на компьютер
             
@@ -151,7 +158,11 @@ export class ResourceProductionService {
           // Потребление вычислительной мощности (майнеры и др.)
           let computingConsumption = 0;
           
-          if (state.buildings.miner && state.buildings.miner.count > 0) {
+          // ИСПРАВЛЕНО: Проверяем достаточно ли вычислительной мощности и электричества
+          const hasEnoughPower = (resource.value > 0);
+          const hasElecForMiners = (state.resources.electricity?.value > 0);
+          
+          if (state.buildings.miner && state.buildings.miner.count > 0 && hasEnoughPower && hasElecForMiners) {
             const minerCount = state.buildings.miner.count;
             const minerConsumption = minerCount * 5; // 5 вычисл. мощности в секунду на майнер
             computingConsumption += minerConsumption;
@@ -174,7 +185,13 @@ export class ResourceProductionService {
           // Биткоин от майнеров
           let bitcoinProduction = resource.baseProduction || 0;
           
-          if (state.buildings.miner && state.buildings.miner.count > 0) {
+          // ИСПРАВЛЕНО: Проверяем достаточно ли вычислительной мощности и электричества
+          const cpuResource = state.resources.computingPower;
+          const elecResource = state.resources.electricity;
+          const hasEnoughCPU = (cpuResource?.value > 0);
+          const hasEnoughElec = (elecResource?.value > 0);
+          
+          if (state.buildings.miner && state.buildings.miner.count > 0 && hasEnoughCPU && hasEnoughElec) {
             const minerCount = state.buildings.miner.count;
             // Базовое производство: 0.00005 BTC в секунду на майнер
             let miningEfficiency = state.miningParams?.miningEfficiency || 1;

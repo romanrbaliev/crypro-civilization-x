@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { updateResourceMaxValues } from '../utils/resourceUtils';
@@ -96,35 +97,32 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       }
     };
     
-    // 3. Разблокируем криптокошелек
-    if (newState.buildings.cryptoWallet) {
-      newState.buildings.cryptoWallet = {
-        ...newState.buildings.cryptoWallet,
+    // 3. ИСПРАВЛЕНО: После "Основы блокчейна" разблокируем "Основы криптовалют", а не "Безопасность криптокошельков"
+    if (newState.upgrades.cryptoCurrencyBasics || newState.upgrades.cryptoBasics) {
+      const cryptoBasicsId = newState.upgrades.cryptoCurrencyBasics ? 'cryptoCurrencyBasics' : 'cryptoBasics';
+      
+      newState.upgrades[cryptoBasicsId] = {
+        ...newState.upgrades[cryptoBasicsId],
         unlocked: true
       };
-      
-      // Добавляем флаг разблокировки в unlocks
-      newState.unlocks = {
-        ...newState.unlocks,
-        cryptoWallet: true
-      };
-      
-      console.log("Криптокошелек разблокирован");
+      console.log("Исследование 'Основы криптовалют' разблокировано");
     }
     
-    // 4. Разблокируем исследование "Безопасность криптокошельков"
-    if (newState.upgrades.walletSecurity || newState.upgrades.cryptoWalletSecurity) {
+    // Отправляем уведомление об эффекте
+    safeDispatchGameEvent("Основы блокчейна: +50% к макс. хранению знаний, +10% к скорости их получения", "success");
+  }
+  
+  if (upgradeId === 'cryptoWallet' || upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
+    // После покупки "Криптокошелька" (или другого триггера) разблокируем "Безопасность криптокошельков"
+    if ((upgradeId === 'cryptoWallet') && (newState.upgrades.walletSecurity || newState.upgrades.cryptoWalletSecurity)) {
       const securityUpgradeId = newState.upgrades.walletSecurity ? 'walletSecurity' : 'cryptoWalletSecurity';
       
       newState.upgrades[securityUpgradeId] = {
         ...newState.upgrades[securityUpgradeId],
         unlocked: true
       };
-      console.log("Исследование 'Безопасность криптокошельков' разблокировано");
+      console.log("Исследование 'Безопасность криптокошельков' разблокировано после покупки Криптокошелька");
     }
-    
-    // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Основы блокчейна: +50% к макс. хранению знаний, +10% к скорости их получения", "success");
   }
   
   if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
@@ -173,38 +171,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log("Автомайнер (ID: autoMiner) принудительно разблокирован");
     }
     
-    // Принудительно инициализируем и разблокируем ресурс Bitcoin
-    if (!newState.resources.bitcoin) {
-      newState.resources.bitcoin = {
-        id: 'bitcoin',
-        name: 'Bitcoin',
-        description: 'Bitcoin - первая и основная криптовалюта',
-        type: 'currency',
-        icon: 'bitcoin',
-        value: 0,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 0.01,
-        unlocked: true
-      };
-      
-      console.log("Bitcoin инициализирован");
-    } else {
-      // Разблокируем существующий ресурс Bitcoin
-      newState.resources.bitcoin = {
-        ...newState.resources.bitcoin,
-        unlocked: true
-      };
-      
-      console.log("Существующий Bitcoin разблокирован");
-    }
-    
-    // Устанавливаем флаг разблокировки Bitcoin
-    newState.unlocks = {
-      ...newState.unlocks,
-      bitcoin: true
-    };
+    // ИСПРАВЛЕНО: Биткоин не разблокируем здесь, а разблокируем только после покупки майнера
     
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Основы криптовалют: +10% к эффективности применения знаний, разблокирован майнер", "info");
@@ -213,10 +180,10 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
   if (upgradeId === 'cryptoWalletSecurity' || upgradeId === 'walletSecurity') {
     console.log("Применяем эффекты 'Безопасность криптокошельков'");
     
-    // Увеличиваем макс. хране��ие USDT на 25%
+    // ИСПРАВЛЕНО: Увеличиваем макс. хранение USDT на 25%
     if (newState.resources.usdt) {
-      const currentMax = newState.resources.usdt.max || 50;
-      const newMax = currentMax * 1.25;
+      const currentMax = newState.resources.usdt.max || 100;
+      const newMax = currentMax * 1.25; // Точно +25% от текущего значения
       
       newState.resources.usdt = {
         ...newState.resources.usdt,
@@ -236,169 +203,8 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     };
     
     // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Безопасность кошельков: +25% к макс. хранению USDT", "info");
+    safeDispatchGameEvent("Безопасность кошельков: +25% к максимальному хранению USDT", "success");
   }
-  
-  if (upgradeId === 'algorithmOptimization') {
-    console.log("Применяем эффекты 'Оптимизация алгоритмов'");
-    
-    // Увеличиваем эффективность майнинга на 15%
-    if (newState.miningParams) {
-      newState.miningParams = {
-        ...newState.miningParams,
-        miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.15
-      };
-    } else {
-      // Если параметры майнинга не были инициализированы
-      // Создаем объект с полным набором необходимых полей
-      newState.miningParams = {
-        miningEfficiency: 1.15,
-        energyEfficiency: 0,
-        networkDifficulty: 1,
-        exchangeRate: 20000,
-        exchangeCommission: 0.01,
-        volatility: 0.05,
-        exchangePeriod: 3600,
-        baseConsumption: 1
-      };
-    }
-    
-    // Добавляем эффекты, если их нет
-    newState.upgrades[upgradeId] = {
-      ...newState.upgrades[upgradeId],
-      effects: {
-        ...(newState.upgrades[upgradeId].effects || {}),
-        miningEfficiencyBoost: 0.15
-      }
-    };
-    
-    // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Оптимизация алгоритмов: +15% к эффективности майнинга", "info");
-  }
-  
-  if (upgradeId === 'proofOfWork') {
-    console.log("Применяем эффекты 'Proof of Work'");
-    
-    // Увеличиваем эффективность майнинга на 25%
-    if (newState.miningParams) {
-      newState.miningParams = {
-        ...newState.miningParams,
-        miningEfficiency: (newState.miningParams.miningEfficiency || 1) * 1.25
-      };
-    } else {
-      // Если параметры майнинга не были инициализированы
-      // Создаем объект с полным набором необходимых полей
-      newState.miningParams = {
-        miningEfficiency: 1.25,
-        energyEfficiency: 0,
-        networkDifficulty: 1,
-        exchangeRate: 20000,
-        exchangeCommission: 0.01,
-        volatility: 0.05,
-        exchangePeriod: 3600,
-        baseConsumption: 1
-      };
-    }
-    
-    // Добавляем эффекты, если их нет
-    newState.upgrades[upgradeId] = {
-      ...newState.upgrades[upgradeId],
-      effects: {
-        ...(newState.upgrades[upgradeId].effects || {}),
-        miningEfficiencyBoost: 0.25
-      }
-    };
-    
-    // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Proof of Work: +25% к эффективности майнинга", "info");
-  }
-  
-  if (upgradeId === 'energyEfficientComponents') {
-    console.log("Применяем эффекты 'Энергоэффективные компоненты'");
-    
-    // Снижаем потребление электричества на 10%
-    if (newState.miningParams) {
-      newState.miningParams = {
-        ...newState.miningParams,
-        energyEfficiency: (newState.miningParams.energyEfficiency || 0) + 0.1
-      };
-    } else {
-      // Если параметры майнинга не были инициализированы
-      // Создаем объект с полным набором необходимых полей
-      newState.miningParams = {
-        miningEfficiency: 1,
-        energyEfficiency: 0.1,
-        networkDifficulty: 1,
-        exchangeRate: 20000,
-        exchangeCommission: 0.01,
-        volatility: 0.05,
-        exchangePeriod: 3600,
-        baseConsumption: 1
-      };
-    }
-    
-    // Добавляем эффекты, если их нет
-    newState.upgrades[upgradeId] = {
-      ...newState.upgrades[upgradeId],
-      effects: {
-        ...(newState.upgrades[upgradeId].effects || {}),
-        electricityConsumptionReduction: 0.1
-      }
-    };
-    
-    // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Энергоэффективные компоненты: -10% к потреблению электричества", "info");
-  }
-  
-  if (upgradeId === 'cryptoTrading') {
-    console.log("Применяем эффекты 'Криптовалютный трейдинг'");
-    
-    // Разблокируем трейдинг
-    newState.unlocks = {
-      ...newState.unlocks,
-      trading: true
-    };
-    
-    // Добавляем эффекты, если их нет
-    newState.upgrades[upgradeId] = {
-      ...newState.upgrades[upgradeId],
-      effects: {
-        ...(newState.upgrades[upgradeId].effects || {}),
-        unlockTrading: true
-      }
-    };
-    
-    // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Криптовалютный трейдинг: разблокирована возможность обмена криптовалютами", "info");
-  }
-  
-  if (upgradeId === 'tradingBot') {
-    console.log("Применяем эффекты 'Торговый бот'");
-    
-    // Разблокируем автоматический трейдинг
-    newState.unlocks = {
-      ...newState.unlocks,
-      autoTrading: true
-    };
-    
-    // Добавляем эффекты, если их нет
-    newState.upgrades[upgradeId] = {
-      ...newState.upgrades[upgradeId],
-      effects: {
-        ...(newState.upgrades[upgradeId].effects || {}),
-        autoBtcExchange: true
-      }
-    };
-    
-    // Отправляем уведомление об эффекте
-    safeDispatchGameEvent("Торговый бот: разблокирован автоматический обмен BTC", "info");
-  }
-  
-  // Обновляем максимальные значения ресурсов после всех изменений
-  newState = updateResourceMaxValues(newState);
-  
-  // Логируем покупку
-  console.log(`Куплено улучшение: ${upgrade.name}`);
   
   return newState;
 };
