@@ -1,9 +1,28 @@
 
 import { GameState } from '@/context/types';
-import { debugUnlockStatus } from './unlockManager';
+// Удаляем импорт отсутствующей функции debugUnlockStatus
+// и добавляем функцию для отладки разблокировок вместо импорта
 
-// Экспортируем функцию для отладки разблокировок
-export { debugUnlockStatus };
+/**
+ * Функция для отладки статуса разблокировок
+ */
+export const debugUnlockStatus = (state: GameState) => {
+  // Базовая реализация функции отладки разблокировок
+  const unlocks = state.unlocks || {};
+  const buildings = state.buildings || {};
+  const resources = state.resources || {};
+  
+  return {
+    unlocks: Object.keys(unlocks).filter(key => unlocks[key]).sort(),
+    unlockedBuildings: Object.keys(buildings).filter(key => buildings[key]?.unlocked).sort(),
+    unlockedResources: Object.keys(resources).filter(key => resources[key]?.unlocked).sort(),
+    applyKnowledgeCount: state.counters.applyKnowledge?.value || 0,
+    blockchainBasics: state.upgrades.blockchainBasics?.purchased || false,
+    cryptoCurrencyBasics: state.upgrades.cryptoCurrencyBasics?.purchased || false,
+    homeComputerCount: buildings.homeComputer?.count || 0,
+    cryptoWalletCount: buildings.cryptoWallet?.count || 0
+  };
+};
 
 // Рассчитывает эффективность применения знаний
 export function calculateKnowledgeEfficiency(state: GameState): { 

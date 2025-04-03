@@ -232,17 +232,41 @@ export const processExchangeBtc = (state: GameState): GameState => {
     bitcoin: {
       ...state.resources.bitcoin,
       value: 0 // Обмениваем весь биткоин
-    },
-    usdt: {
-      ...state.resources.usdt,
-      value: Math.min((state.resources.usdt?.value || 0) + usdtGain, state.resources.usdt?.max || Infinity)
     }
   };
+  
+  // Теперь безопасно добавляем USDT с проверкой его существования
+  if (state.resources.usdt) {
+    // Если USDT уже существует, обновляем его
+    newResources.usdt = {
+      ...state.resources.usdt,
+      value: Math.min(state.resources.usdt.value + usdtGain, state.resources.usdt.max || Infinity)
+    };
+  } else {
+    // Если USDT не существует, создаем его
+    newResources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, привязанный к доллару США',
+      value: usdtGain,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true,
+      type: 'currency',
+      icon: 'dollar'
+    };
+  }
   
   // Обновляем состояние
   const newState = {
     ...state,
-    resources: newResources
+    resources: newResources,
+    unlocks: {
+      ...state.unlocks,
+      usdt: true
+    }
   };
   
   safeDispatchGameEvent(`Обменяно ${btcToExchange.toFixed(8)} BTC на ${usdtGain.toFixed(2)} USDT`, 'success');
@@ -266,23 +290,24 @@ export const processMiningPower = (state: GameState): GameState => {
   // Майнинг потребляет вычислительную мощность и дает USDT
   const usdtGain = 1; // Базовое количество USDT за одно нажатие
   
-  // Обновляем ресурсы
-  const newResources = {
-    ...state.resources,
-    computingPower: {
-      ...state.resources.computingPower,
-      value: state.resources.computingPower.value - requiredComputingPower
-    }
+  // Создаем копию ресурсов
+  const newResources = { ...state.resources };
+  
+  // Обновляем вычислительную мощность
+  newResources.computingPower = {
+    ...newResources.computingPower,
+    value: newResources.computingPower.value - requiredComputingPower
   };
   
-  // Добавляем USDT, если он уже разблокирован
-  if (state.resources.usdt) {
+  // Обновляем или создаем USDT
+  if (newResources.usdt) {
+    // Если USDT уже есть, добавляем к текущему значению
     newResources.usdt = {
-      ...state.resources.usdt,
-      value: Math.min(state.resources.usdt.value + usdtGain, state.resources.usdt.max)
+      ...newResources.usdt,
+      value: Math.min(newResources.usdt.value + usdtGain, newResources.usdt.max || Infinity)
     };
   } else {
-    // Если USDT еще не разблокирован, создаем его
+    // Если USDT еще нет, создаем его
     newResources.usdt = {
       id: 'usdt',
       name: 'USDT',
