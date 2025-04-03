@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { processIncrementResource } from './resourceReducer';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -90,7 +91,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   
   // Определяем, сколько USDT получим с учетом возможного бонуса
   const knowledgeToConvert = Math.floor(knowledgeValue / 10) * 10;
-  const usdtToAdd = Math.floor(knowledgeToConvert / 10 * knowledgeEfficiencyRate * 10) / 10; // Округляем до 1 знака после запятой
+  const usdtToAdd = Math.floor(knowledgeToConvert / 10 * knowledgeEfficiencyRate);
   
   console.log(`actionsReducer: Обмен ${knowledgeToConvert} знаний на ${usdtToAdd} USDT (коэффициент: ${knowledgeEfficiencyRate})`);
   
@@ -275,7 +276,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   // Определяем, сколько USDT получим с учетом возможного бонуса
   const knowledgeToConvert = Math.floor(knowledgeValue / 10) * 10;
-  const usdtToAdd = Math.floor(knowledgeToConvert / 10 * knowledgeEfficiencyRate * 10) / 10; // Округляем до 1 знака после запятой
+  const usdtToAdd = Math.floor(knowledgeToConvert / 10 * knowledgeEfficiencyRate);
   
   console.log(`actionsReducer: Обмен ${knowledgeToConvert} знаний на ${usdtToAdd} USDT (коэффициент: ${knowledgeEfficiencyRate})`);
   
@@ -391,3 +392,4 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   return updatedState;
 };
+

@@ -145,43 +145,6 @@ export const processPurchaseBuilding = (
       safeDispatchGameEvent('Разблокировано электричество!', 'success');
     }
   }
-  // ИСПРАВЛЕНО: Добавляем разблокировку Bitcoin при покупке майнера
-  else if (buildingId === 'miner') {
-    // Разблокируем Bitcoin, если ещё не разблокирован
-    if (!newState.unlocks.bitcoin) {
-      newState = {
-        ...newState,
-        unlocks: {
-          ...newState.unlocks,
-          bitcoin: true
-        }
-      };
-      
-      // Создаем ресурс Bitcoin, если его нет
-      if (!newState.resources.bitcoin) {
-        newState.resources.bitcoin = {
-          id: 'bitcoin',
-          name: 'Bitcoin',
-          description: 'Bitcoin - первая и основная криптовалюта',
-          type: 'currency',
-          icon: 'bitcoin',
-          value: 0,
-          baseProduction: 0,
-          production: 0,
-          perSecond: 0,
-          max: 0.01,
-          unlocked: true
-        };
-      } else {
-        newState.resources.bitcoin = {
-          ...newState.resources.bitcoin,
-          unlocked: true
-        };
-      }
-      
-      safeDispatchGameEvent('Разблокирован Bitcoin!', 'success');
-    }
-  }
   
   // Отправляем уведомление о покупке
   safeDispatchGameEvent(`Приобретено здание: ${building.name}`, "success");
