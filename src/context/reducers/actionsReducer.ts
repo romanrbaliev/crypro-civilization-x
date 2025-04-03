@@ -182,26 +182,26 @@ export const processPracticePurchase = (state: GameState): GameState => {
     }
   };
   
-  // Проверяем наличие ресурса knowledge - принудительно используем тип GameState для newState
-  let typedState = newState as GameState;
-  
-  // Проверяем наличие ресурса knowledge
-  if (!typedState.resources.knowledge) {
+  // Проверяем наличие ресурса knowledge и создаем его, если отсутствует
+  if (!newState.resources.knowledge) {
     console.log("Создаем новый ресурс knowledge, так как он отсутствует");
-    typedState.resources = {
-      ...typedState.resources,
-      knowledge: {
-        id: 'knowledge',
-        name: 'Знания',
-        description: 'Знания о криптовалюте и блокчейне',
-        type: 'resource',
-        icon: 'book',
-        value: 0,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 100,
-        unlocked: true
+    newState = {
+      ...newState,
+      resources: {
+        ...newState.resources,
+        knowledge: {
+          id: 'knowledge',
+          name: 'Знания',
+          description: 'Знания о криптовалюте и блокчейне',
+          type: 'resource',
+          icon: 'book',
+          value: 0,
+          baseProduction: 0,
+          production: 0,
+          perSecond: 0,
+          max: 100,
+          unlocked: true
+        }
       }
     };
   }
@@ -210,29 +210,41 @@ export const processPracticePurchase = (state: GameState): GameState => {
   const newPracticeLevel = currentLevel + 1;
   
   // Проверяем существует ли здание практики
-  if (!typedState.buildings.practice) {
+  if (!newState.buildings.practice) {
     // Создаем здание практики с необходимыми свойствами production и productionBoost
-    typedState.buildings.practice = {
-      id: 'practice',
-      name: 'Практика',
-      description: 'Автоматически генерирует знания',
-      type: 'production',
-      cost: {
-        usdt: baseCost
-      },
-      costMultiplier: costMultiplier,
-      count: newPracticeLevel,
-      unlocked: true,
-      production: {  // Добавляем обязательное поле production
-        knowledge: 1
-      },
-      productionBoost: 0  // Добавляем обязательное поле productionBoost
+    newState = {
+      ...newState,
+      buildings: {
+        ...newState.buildings,
+        practice: {
+          id: 'practice',
+          name: 'Практика',
+          description: 'Автоматически генерирует знания',
+          type: 'production',
+          cost: {
+            usdt: baseCost
+          },
+          costMultiplier: costMultiplier,
+          count: newPracticeLevel,
+          unlocked: true,
+          production: {  // Добавляем обязательное поле production
+            knowledge: 1
+          },
+          productionBoost: 0  // Добавляем обязательное поле productionBoost
+        }
+      }
     };
   } else {
     // Обновляем уровень практики
-    typedState.buildings.practice = {
-      ...typedState.buildings.practice,
-      count: newPracticeLevel
+    newState = {
+      ...newState,
+      buildings: {
+        ...newState.buildings,
+        practice: {
+          ...newState.buildings.practice,
+          count: newPracticeLevel
+        }
+      }
     };
   }
   
@@ -240,16 +252,21 @@ export const processPracticePurchase = (state: GameState): GameState => {
   
   // Обновляем эффект от практики - добавляем +1 к производству знаний
   // Теперь мы уверены, что ресурс knowledge доступен
-  const knowledgeResource = typedState.resources.knowledge;
-  const currentBaseProduction = knowledgeResource.baseProduction || 0;
-  const currentProduction = knowledgeResource.production || 0;
-  const currentPerSecond = knowledgeResource.perSecond || 0;
+  const currentBaseProduction = newState.resources.knowledge.baseProduction || 0;
+  const currentProduction = newState.resources.knowledge.production || 0;
+  const currentPerSecond = newState.resources.knowledge.perSecond || 0;
   
-  typedState.resources.knowledge = {
-    ...knowledgeResource,
-    baseProduction: currentBaseProduction + 1,
-    production: currentProduction + 1,
-    perSecond: currentPerSecond + 1
+  newState = {
+    ...newState,
+    resources: {
+      ...newState.resources,
+      knowledge: {
+        ...newState.resources.knowledge,
+        baseProduction: currentBaseProduction + 1,
+        production: currentProduction + 1,
+        perSecond: currentPerSecond + 1
+      }
+    }
   };
   
   console.log("Обновлено производство знаний после покупки практики:", {
@@ -268,5 +285,5 @@ export const processPracticePurchase = (state: GameState): GameState => {
   // Отправляем событие об успешной покупке
   safeDispatchGameEvent(`Практика улучшена до уровня ${newPracticeLevel}`, 'success');
   
-  return typedState;
+  return newState;
 };
