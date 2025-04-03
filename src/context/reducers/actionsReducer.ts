@@ -226,8 +226,8 @@ export const processExchangeBtc = (state: GameState): GameState => {
   // Рассчитываем, сколько USDT получим
   const usdtGain = btcToExchange * exchangeRate * (1 - commission);
   
-  // Создаем копию ресурсов
-  const newResources = {
+  // Создаем копию ресурсов с правильной типизацией
+  const newResources: typeof state.resources = {
     ...state.resources,
     bitcoin: {
       ...state.resources.bitcoin,
@@ -235,9 +235,9 @@ export const processExchangeBtc = (state: GameState): GameState => {
     }
   };
   
-  // Проверяем наличие USDT в ресурсах и его тип
-  if (newResources.usdt && typeof newResources.usdt === 'object') {
-    // Если USDT уже существует и является объектом, обновляем его
+  // Проверяем наличие USDT в ресурсах и добавляем его с правильным типом
+  if ('usdt' in newResources) {
+    // Если USDT уже существует, обновляем его
     newResources.usdt = {
       ...newResources.usdt,
       value: Math.min(newResources.usdt.value + usdtGain, newResources.usdt.max || Infinity)
