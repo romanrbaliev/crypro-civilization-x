@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -58,13 +57,21 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   let newState;
   
   switch (action.type) {
-    case "INCREMENT_RESOURCE": 
-      newState = processIncrementResource(state, action.payload);
-      // После каждого клика на кнопку знания проверяем разблокировки
+    case "INCREMENT_RESOURCE": {
+      // Исправление проблемы с "Изучить крипту"
       if (action.payload.resourceId === "knowledge") {
-        console.log("Обработка клика по знаниям - запуск проверки разблокировок");
+        // Для ресурса знания - всегда прибавляем ровно 1 единицу за клик
+        newState = processIncrementResource(state, { 
+          resourceId: "knowledge", 
+          amount: 1 // Фиксированная величина 1 знание за клик
+        });
+      } else {
+        // Для остальных ресурсов используем переданное значение
+        newState = processIncrementResource(state, action.payload);
       }
+      
       return gameStateService.processGameStateUpdate(newState);
+    }
     
     case "UPDATE_RESOURCES": {
       // Обновляем ресурсы с учетом прошедшего времени (deltaTime)
@@ -174,20 +181,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // Покупаем улучшение
       newState = processPurchaseUpgrade(state, action.payload);
       
-      // ИСПРАВЛЕНИЕ: Убираем двойное применение эффектов "Основы блокчейна"
-      // Все эффекты улучшения будут применены в processPurchaseUpgrade и затем через gameStateService
-      
-      // Проверяем особый случай для "Основ криптовалют" для принудительной разблокировки майнера
-      if (action.payload.upgradeId === 'cryptoCurrencyBasics' || action.payload.upgradeId === 'cryptoBasics') {
-        console.log("gameReducer: Дополнительная обработка для Основ криптовалют");
-        // Принудительно проверяем и устанавливаем разблокировки для майнера и биткоина
-        newState = gameStateService.performFullStateSync(newState);
-      } else {
-        // Обрабатываем изменения через сервис
-        newState = gameStateService.processUpgradePurchase(newState, action.payload.upgradeId);
-      }
-      
-      return newState;
+      // Полная проверка разблокировок после покупки улучшения
+      return gameStateService.performFullStateSync(newState);
     }
     
     case "UNLOCK_FEATURE": 

@@ -132,6 +132,20 @@ export class UnlockService {
   }
   
   /**
+   * Проверяет условия для разблокировки криптокошелька (после "Основы блокчейна")
+   * Обновлено согласно требованиям
+   */
+  private shouldUnlockCryptoWallet(state: GameState): boolean {
+    // Проверяем, приобретено ли исследование "Основы блокчейна" (может иметь разные ID)
+    const hasBlockchainBasics = 
+      (state.upgrades.blockchainBasics?.purchased === true) || 
+      (state.upgrades.basicBlockchain?.purchased === true) ||
+      (state.upgrades.blockchain_basics?.purchased === true);
+    
+    return hasBlockchainBasics;
+  }
+  
+  /**
    * Проверяет условия для разблокировки криптобиблиотеки (после исследования "Основы криптовалют")
    */
   private shouldUnlockCryptoLibrary(state: GameState): boolean {
@@ -155,6 +169,22 @@ export class UnlockService {
    */
   private shouldUnlockEnhancedWallet(state: GameState): boolean {
     return (state.buildings.cryptoWallet?.count >= 5);
+  }
+  
+  /**
+   * Проверяет условия для разблокировки исследований (только после покупки генератора)
+   * Обновлено согласно требованиям
+   */
+  private shouldUnlockResearch(state: GameState): boolean {
+    return (state.buildings.generator?.count > 0);
+  }
+  
+  /**
+   * Проверяет условия для разблокировки рефералов (только после покупки исследования cryptoCommunity)
+   * Обновлено согласно требованиям
+   */
+  private shouldUnlockReferrals(state: GameState): boolean {
+    return (state.upgrades.cryptoCommunity?.purchased === true);
   }
   
   /**

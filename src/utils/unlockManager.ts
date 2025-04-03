@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -75,21 +76,21 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
     safeDispatchGameEvent("Разблокировано: Применение знаний", "success");
   }
   
-  // Проверяем разблокировку фазы 2
+  // Проверяем разблокировку фазы 2 - только после 2+ применений знаний
   if (applyKnowledgeCount >= 2 && !unlocks.phase2) {
     unlocks.phase2 = true;
     console.log("✅ Разблокирована фаза 2");
   }
   
-  // Проверяем разблокировку исследований
-  if (applyKnowledgeCount >= 2 && !unlocks.research) {
+  // Проверяем разблокировку исследований - только после покупки генератора
+  if (state.buildings.generator?.count > 0 && !unlocks.research) {
     unlocks.research = true;
     console.log("✅ Разблокированы исследования");
     safeDispatchGameEvent("Разблокированы исследования", "success");
   }
   
-  // Проверяем разблокировку рефералов
-  if (applyKnowledgeCount >= 5 || newState.upgrades.cryptoCommunity?.purchased) {
+  // Проверяем разблокировку рефералов - только после покупки исследования cryptoCommunity
+  if (state.upgrades.cryptoCommunity?.purchased && !unlocks.referrals) {
     unlocks.referrals = true;
     console.log("✅ Разблокированы рефералы");
   }
@@ -150,12 +151,8 @@ export const checkResourceUnlocks = (state: GameState): GameState => {
     console.log("✅ Разблокирован ресурс: Вычислительная мощность");
   }
   
-  // Проверяем условия для Bitcoin
-  const hasCryptoBasics = 
-    newState.upgrades.cryptoCurrencyBasics?.purchased || 
-    newState.upgrades.cryptoBasics?.purchased;
-  
-  if ((hasCryptoBasics || newState.buildings.miner?.count > 0 || newState.buildings.autoMiner?.count > 0) && !unlocks.bitcoin) {
+  // Проверяем условия для Bitcoin - только после покупки майнера
+  if ((newState.buildings.miner?.count > 0 || newState.buildings.autoMiner?.count > 0) && !unlocks.bitcoin) {
     unlocks.bitcoin = true;
     
     if (resources.bitcoin) {
@@ -210,8 +207,12 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     safeDispatchGameEvent("Разблокировано здание: Генератор", "success");
   }
   
-  // Проверяем условия для CryptoWallet
-  if (buildings.practice?.count > 0 && buildings.cryptoWallet && !buildings.cryptoWallet.unlocked) {
+  // Проверяем условия для CryptoWallet - только после покупки "Основы блокчейна"
+  const hasBlockchainBasics = state.upgrades.blockchainBasics?.purchased || 
+                             state.upgrades.basicBlockchain?.purchased ||
+                             state.upgrades.blockchain_basics?.purchased;
+                             
+  if (hasBlockchainBasics && buildings.cryptoWallet && !buildings.cryptoWallet.unlocked) {
     buildings.cryptoWallet = {
       ...buildings.cryptoWallet,
       unlocked: true
@@ -219,6 +220,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     
     unlocks.cryptoWallet = true;
     console.log("✅ Разблокировано здание: Криптокошелек");
+    safeDispatchGameEvent("Разблокировано здание: Криптокошелек", "success");
   }
   
   // Проверяем условия для HomeComputer
@@ -231,9 +233,10 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     
     unlocks.homeComputer = true;
     console.log("✅ Разблокировано здание: Домашний компьютер");
+    safeDispatchGameEvent("Разблокировано здание: Домашний компьютер", "success");
   }
   
-  // Проверяем условия для Майнера
+  // Проверяем условия для Майнера - только после исследования "Основы криптовалют"
   const hasCryptoBasics = 
     newState.upgrades.cryptoCurrencyBasics?.purchased || 
     newState.upgrades.cryptoBasics?.purchased;
@@ -248,6 +251,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       
       unlocks.miner = true;
       console.log("✅ Разблокировано здание: Майнер");
+      safeDispatchGameEvent("Разблокировано здание: Майнер", "success");
     }
     
     // Проверяем разблокировку автомайнера (если он есть)
@@ -259,6 +263,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       
       unlocks.autoMiner = true;
       console.log("✅ Разблокировано здание: Автомайнер");
+      safeDispatchGameEvent("Разблокировано здание: Автомайнер", "success");
     }
   }
   
@@ -271,6 +276,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
     
     unlocks.internetChannel = true;
     console.log("✅ Разблокировано здание: Интернет-канал");
+    safeDispatchGameEvent("Разблокировано здание: Интернет-канал", "success");
   }
   
   // Проверяем условия для CryptoLibrary
@@ -319,7 +325,7 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       
       unlocks.improvedWallet = true;
       console.log("✅ Разблокировано здание: Улучшенный кошелек (improvedWallet)");
-      safeDispatchGameEvent("Разблокировано здан��е: Улучшенный кошелек", "success");
+      safeDispatchGameEvent("Разблокировано здание: Улучшенный кошелек", "success");
     }
   }
   
@@ -337,7 +343,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
   const upgrades = { ...newState.upgrades };
   const unlocks = { ...newState.unlocks };
   
-  // Проверяем разблокировку BlockchainBasics
+  // Проверяем разблокировку BlockchainBasics - только после покупки генератора
   if (newState.buildings.generator?.count > 0) {
     if (upgrades.blockchainBasics && !upgrades.blockchainBasics.unlocked) {
       upgrades.blockchainBasics = {
@@ -345,12 +351,21 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         unlocked: true
       };
       console.log("✅ Разблокировано улучшение: Основы блокчейна");
+      safeDispatchGameEvent("Разблокировано улучшение: Основы блокчейна", "success");
     }
     
     // Альтернативные ID для того же улучшения
     if (upgrades.basicBlockchain && !upgrades.basicBlockchain.unlocked) {
       upgrades.basicBlockchain = {
         ...upgrades.basicBlockchain,
+        unlocked: true
+      };
+      console.log("✅ Разблокировано улучшение: Основы блокчейна (альт.)");
+    }
+    
+    if (upgrades.blockchain_basics && !upgrades.blockchain_basics.unlocked) {
+      upgrades.blockchain_basics = {
+        ...upgrades.blockchain_basics,
         unlocked: true
       };
       console.log("✅ Разблокировано улучшение: Основы блокчейна (альт.)");
@@ -365,6 +380,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         unlocked: true
       };
       console.log("✅ Разблокировано улучшение: Безопасность криптокошельков");
+      safeDispatchGameEvent("Разблокировано улучшение: Безопасность криптокошельков", "success");
     }
     
     // Альтернативный ID
@@ -377,7 +393,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
     }
   }
   
-  // Проверяем разблокировку OptimizationAlgorithms
+  // Проверяем разблокировку OptimizationAlgorithms - после покупки майнера
   if (newState.buildings.miner?.count > 0 || newState.buildings.autoMiner?.count > 0) {
     if (upgrades.optimizationAlgorithms && !upgrades.optimizationAlgorithms.unlocked) {
       upgrades.optimizationAlgorithms = {
@@ -385,17 +401,27 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         unlocked: true
       };
       console.log("✅ Разблокировано улучшение: Оптимизация алгоритмов");
+      safeDispatchGameEvent("Разблокировано улучшение: Оптимизация алгоритмов", "success");
+    }
+    
+    if (upgrades.algorithmOptimization && !upgrades.algorithmOptimization.unlocked) {
+      upgrades.algorithmOptimization = {
+        ...upgrades.algorithmOptimization,
+        unlocked: true
+      };
+      console.log("✅ Разблокировано улучшение: Оптимизация алгоритмов (альт.)");
     }
   }
   
   // Проверяем разблокировку ProofOfWork
-  if (upgrades.optimizationAlgorithms?.purchased) {
+  if (upgrades.optimizationAlgorithms?.purchased || upgrades.algorithmOptimization?.purchased) {
     if (upgrades.proofOfWork && !upgrades.proofOfWork.unlocked) {
       upgrades.proofOfWork = {
         ...upgrades.proofOfWork,
         unlocked: true
       };
       console.log("✅ Разблокировано улучшение: Proof of Work");
+      safeDispatchGameEvent("Разблокировано улучшение: Proof of Work", "success");
     }
   }
   
@@ -439,7 +465,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
     }
   }
   
-  // Проверяем разблокировку CryptoCurrencyBasics
+  // Проверяем разблокировку CryptoCurrencyBasics - после 2+ уровней криптокошелька
   const hasLevelTwoCryptoWallet = newState.buildings.cryptoWallet?.count >= 2;
   if (hasLevelTwoCryptoWallet) {
     if (upgrades.cryptoCurrencyBasics && !upgrades.cryptoCurrencyBasics.unlocked) {
@@ -448,6 +474,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         unlocked: true
       };
       console.log("✅ Разблокировано улучшение: Основы криптовалют");
+      safeDispatchGameEvent("Разблокировано улучшение: Основы криптовалют", "success");
     }
     
     // Альтернативный ID
@@ -470,9 +497,18 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
  * Проверяет разблокировки действий на основе требований
  */
 export const checkActionUnlocks = (state: GameState): GameState => {
-  // Для действий нам не нужно ничего разблокировать сейчас,
-  // так как они разблокируются через разблокировку фич в checkSpecialUnlocks
-  return state;
+  let newState = { ...state };
+  const unlocks = { ...newState.unlocks };
+  
+  // Разблокируем кнопку обмена Bitcoin только если есть Bitcoin и он разблокирован
+  if (state.resources.bitcoin?.unlocked && state.resources.bitcoin?.value > 0 && !unlocks.exchangeBtc) {
+    unlocks.exchangeBtc = true;
+    console.log("✅ Разблокировано действие: Обмен Bitcoin");
+  }
+  
+  // Сохраняем обновленные данные
+  newState.unlocks = unlocks;
+  return newState;
 };
 
 /**

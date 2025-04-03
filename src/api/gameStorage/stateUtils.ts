@@ -102,48 +102,34 @@ export function mergeWithInitialState(loadedState: any): GameState {
     console.log('✅ Добавлены отсутствующие сообщения о событиях');
   }
   
-  // Убеждаемся что структура ресурсов и зданий соответствует initialState
-  for (const resourceKey of Object.keys(baseState.resources)) {
-    if (!loadedState.resources[resourceKey]) {
-      loadedState.resources[resourceKey] = { ...baseState.resources[resourceKey] };
-      console.log(`✅ Восстановлен отсутствующий ресурс: ${resourceKey}`);
-    } else {
-      // Важное исправление: убедимся, что ресурсы имеют правильный статус разблокировки
-      // USDT должен быть заблокирован, если не выполнены условия
-      if (resourceKey === 'usdt') {
-        loadedState.resources.usdt.unlocked = false;
-        if (loadedState.counters && loadedState.counters.applyKnowledge && loadedState.counters.applyKnowledge.value >= 2) {
-          loadedState.resources.usdt.unlocked = true;
-        }
-        console.log(`🔒 Статус разблокировки USDT установлен: ${loadedState.resources.usdt.unlocked}`);
-      }
-    }
+  // Корректировка разблокировок при загрузке
+  
+  // USDT должен быть разблокирован только после применения знаний
+  if (loadedState.resources.usdt) {
+    const applyKnowledgeCount = loadedState.counters.applyKnowledge?.value || 0;
+    loadedState.resources.usdt.unlocked = applyKnowledgeCount >= 1;
+    loadedState.unlocks.usdt = applyKnowledgeCount >= 1;
+    console.log(`🔒 Статус разблокировки USDT установлен: ${loadedState.resources.usdt.unlocked}`);
   }
   
-  for (const buildingKey of Object.keys(baseState.buildings)) {
-    if (!loadedState.buildings[buildingKey]) {
-      loadedState.buildings[buildingKey] = { ...baseState.buildings[buildingKey] };
-      console.log(`✅ Восстановлено отсутствующее здание: ${buildingKey}`);
-    }
+  // Исследования доступны только после покупки генератора
+  loadedState.unlocks.research = loadedState.buildings.generator?.count > 0;
+  console.log(`🔒 Статус разблокировки исследований установлен: ${loadedState.unlocks.research}`);
+  
+  // Рефералы доступны только после покупки исследования cryptoCommunity
+  loadedState.unlocks.referrals = loadedState.upgrades.cryptoCommunity?.purchased || false;
+  console.log(`🔒 Статус разблокировки рефералов установлен: ${loadedState.unlocks.referrals}`);
+  
+  // Bitcoin доступен только после покупки майнера
+  if (loadedState.resources.bitcoin) {
+    const hasMiner = loadedState.buildings.miner?.count > 0 || loadedState.buildings.autoMiner?.count > 0;
+    loadedState.resources.bitcoin.unlocked = hasMiner;
+    loadedState.unlocks.bitcoin = hasMiner;
+    console.log(`🔒 Статус разблокировки Bitcoin установлен: ${loadedState.resources.bitcoin.unlocked}`);
   }
   
-  // Убедимся, что здания имеют правильное состояние разблокировки при загрузке
-  if (loadedState.buildings && loadedState.buildings.coolingSystem) {
-    // Проверяем условие для разблокировки системы охлаждения
-    if (loadedState.buildings.homeComputer && loadedState.buildings.homeComputer.count < 2) {
-      loadedState.buildings.coolingSystem.unlocked = false;
-      console.log('🔒 Система охлаждения заблокирована при загрузке: недостаточно компьютеров');
-    }
-  }
-  
-  // Убедимся, что USDT заблокирован при загрузке, если не выполнены условия
-  if (loadedState.resources && loadedState.resources.usdt) {
-    if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 2) {
-      loadedState.resources.usdt.unlocked = false;
-      loadedState.unlocks.usdt = false; // Также сбрасываем флаг разблокировки в основной системе
-      console.log('🔒 USDT заблокирован при загрузке: не применены знания дважды');
-    }
-  }
+  // Обмен BTC разблокирован только если есть Bitcoin и он разблокирован
+  loadedState.unlocks.exchangeBtc = loadedState.resources.bitcoin?.unlocked && loadedState.resources.bitcoin?.value > 0;
   
   return loadedState as GameState;
 }
