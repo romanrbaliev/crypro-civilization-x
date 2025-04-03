@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 
 /**
@@ -28,8 +29,10 @@ export class ResourceProductionService {
     // Принудительно проверяем разблокировку майнера при наличии исследования "Основы криптовалют"
     this.checkMinerUnlock(state);
     
-    // Проверяем, какие ресурсы закончились
+    // ВАЖНОЕ ИСПРАВЛЕНИЕ: Сначала проверяем наличие ресурсов перед расчетом потребления
+    // Проверяем, какие ресурсы уже закончились
     const resourcesExhausted = this.checkExhaustedResources(state);
+    console.log("ResourceProductionService: Исчерпанные ресурсы:", resourcesExhausted);
     
     // Рассчитываем базовое производство и потребление для каждого ресурса
     for (const resourceId in resources) {
@@ -192,7 +195,7 @@ export class ResourceProductionService {
               const minerConsumption = minerCount * 5; // 5 вычисл. мощности в секунду на майнер
               computingConsumption += minerConsumption;
               
-              console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек вычи��лительной мощности`);
+              console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек вычислительной мощности`);
             }
           } else if (isComputingPowerExhausted) {
             console.log('ResourceProductionService: Вычислительная мощность закончилась, потребление приостановлено');
@@ -210,13 +213,18 @@ export class ResourceProductionService {
           break;
           
         case 'bitcoin':
-          // Биткоин от майнеров
-          let bitcoinProduction = resource.baseProduction || 0;
+          // ВАЖНОЕ ИСПРАВЛЕНИЕ: Bitcoin от майнеров, только если доступны все необходимые ресурсы
+          let bitcoinProduction = 0; // Начинаем с нуля
           
-          // Проверяем, не закончилось ли электричество или вычислительная мощность
-          const resourcesAvailable = !resourcesExhausted.includes('electricity') && !resourcesExhausted.includes('computingPower');
+          // ВАЖНОЕ ИСПРАВЛЕНИЕ: Проверяем наличие необходимых ресурсов для майнинга
+          // Майнеру требуется и электричество, и вычислительная мощность
+          const isElectricityAvailableForMining = !resourcesExhausted.includes('electricity');
+          const isComputingPowerAvailableForMining = !resourcesExhausted.includes('computingPower');
           
-          if (resourcesAvailable && state.buildings.miner && state.buildings.miner.count > 0) {
+          // Только если оба ресурса доступны - майнер работает
+          const resourcesAvailableForMining = isElectricityAvailableForMining && isComputingPowerAvailableForMining;
+          
+          if (resourcesAvailableForMining && state.buildings.miner && state.buildings.miner.count > 0) {
             const minerCount = state.buildings.miner.count;
             // Базовое производство: 0.00005 BTC в секунду на майнер
             let miningEfficiency = state.miningParams?.miningEfficiency || 1;
@@ -224,14 +232,24 @@ export class ResourceProductionService {
             bitcoinProduction += minerProduction;
             
             console.log(`ResourceProductionService: Майнеры производят ${minerProduction.toFixed(6)}/сек Bitcoin (эффективность: ${miningEfficiency})`);
-          } else if (!resourcesAvailable) {
-            console.log('ResourceProductionService: Недостаточно ресурсов, майнинг Bitcoin приостановлен');
+          } else {
+            // ВАЖНОЕ ИСПРАВЛЕНИЕ: Подробное логгирование причин остановки майнинга
+            console.log('ResourceProductionService: Майнинг Bitcoin приостановлен:');
+            console.log(`- Электричество доступно: ${isElectricityAvailableForMining ? 'Да' : 'Нет'}`);
+            console.log(`- Вычислительная мощность доступна: ${isComputingPowerAvailableForMining ? 'Да' : 'Нет'}`);
+            
+            // Сбрасываем производство до 0
+            bitcoinProduction = 0;
           }
+          
+          // ИСПРАВЛЕНИЕ: Сохраняем базовую скорость производства отдельно от актуальной
+          const originalBaseBitcoinProduction = resource.baseProduction || 0;
           
           resources[resourceId] = {
             ...resource,
-            production: bitcoinProduction,
-            perSecond: bitcoinProduction
+            baseProduction: originalBaseBitcoinProduction, // Сохраняем базовую скорость
+            production: originalBaseBitcoinProduction, // Базовая скорость производства
+            perSecond: bitcoinProduction // Актуальная скорость с учетом доступных ресурсов
           };
           break;
           
@@ -255,9 +273,18 @@ export class ResourceProductionService {
     
     for (const resourceId in state.resources) {
       const resource = state.resources[resourceId];
-      if (resource.unlocked && resource.value <= 0 && resource.perSecond < 0) {
+      // ИСПРАВЛЕНИЕ: Учитываем и отсутствующие ресурсы, и те, что закончились
+      if (!resource || !resource.unlocked) {
+        // Ресурс не существует или не разблокирован - считаем его исчерпанным
         exhaustedResources.push(resourceId);
-        console.log(`ResourceProductionService: Ресурс ${resourceId} закончился`);
+        console.log(`ResourceProductionService: Ресурс ${resourceId} отсутствует или не разблокирован`);
+        continue;
+      }
+      
+      // Проверяем нулевые и отрицательные значения
+      if (resource.value <= 0) {
+        exhaustedResources.push(resourceId);
+        console.log(`ResourceProductionService: Ресурс ${resourceId} закончился (значение: ${resource.value})`);
       }
     }
     

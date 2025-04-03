@@ -69,9 +69,9 @@ export const processUpdateResources = (state: GameState, payload?: { deltaTime?:
         value: newValue
       };
       
-      // Логгируем только если есть изменение в знаниях для отладки
-      if (resourceId === 'knowledge' && Math.abs(delta) > 0.00001) {
-        console.log(`processUpdateResources: Изменение знаний: ${currentValue.toFixed(2)} + ${delta.toFixed(2)} = ${newValue.toFixed(2)} (макс: ${maxValue})`);
+      // Логгируем только если есть изменение в ресурсе для отладки
+      if (Math.abs(delta) > 0.00001) {
+        console.log(`processUpdateResources: Изменение ${resourceId}: ${currentValue.toFixed(6)} + ${delta.toFixed(6)} = ${newValue.toFixed(6)} (макс: ${maxValue})`);
       }
     }
     
