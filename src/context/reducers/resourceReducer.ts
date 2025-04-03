@@ -1,8 +1,7 @@
 
 import { GameState } from '../types';
-import { checkUnlocks } from '../utils/resourceUtils';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { checkSpecialUnlocks } from '@/utils/unlockSystem';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка инкремента ресурсов
 export const processIncrementResource = (
@@ -16,13 +15,14 @@ export const processIncrementResource = (
     return state;
   }
   
-  // ИСПРАВЛЕНИЕ: Фиксированное значение для ресурса "знания"
+  // Определяем сумму инкремента для ресурса
   let incrementAmount = amount;
+  
+  // ИСПРАВЛЕНИЕ: Для ресурса "knowledge" всегда устанавливаем строго 1 единицу за клик
   if (resourceId === "knowledge") {
-    // Всегда строго 1 знание за клик, независимо от переданного значения
+    // Принудительно устанавливаем значение 1, независимо от переданного amount
     incrementAmount = 1;
-    // Дополнительный лог для отслеживания
-    console.log(`processIncrementResource: Для knowledge устанавливаем строго incrementAmount=${incrementAmount}`);
+    console.log(`processIncrementResource: Для knowledge устанавливаем СТРОГО 1 единицу за клик`);
   }
   
   const currentValue = state.resources[resourceId].value;
@@ -40,7 +40,7 @@ export const processIncrementResource = (
   }
   
   // Выводим сообщение в консоль для отладки
-  console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue}`);
+  console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue} (инкремент: ${incrementAmount})`);
   
   // Отправляем событие для возможного отображения в интерфейсе
   if (incrementAmount > 0) {

@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -60,18 +59,20 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   switch (action.type) {
     case "INCREMENT_RESOURCE": {
       // ИСПРАВЛЕНИЕ проблемы с "Изучить крипту"
+      // Гарантируем что все нажатия на знания добавляют строго 1 единицу
       if (action.payload.resourceId === "knowledge") {
-        // Для ресурса знания - всегда прибавляем ровно 1 единицу за клик
+        // Явно переопределяем значение amount всегда в 1
         newState = processIncrementResource(state, { 
           resourceId: "knowledge", 
-          amount: 1 // Фиксированная величина 1 знание за клик
+          amount: 1 // Строго 1 знание за клик
         });
       } else {
         // Для остальных ресурсов используем переданное значение
         newState = processIncrementResource(state, action.payload);
       }
       
-      return gameStateService.processGameStateUpdate(newState);
+      // Обязательно проверяем разблокировку зданий после каждого действия
+      return gameStateService.performFullStateSync(newState);
     }
     
     case "UPDATE_RESOURCES": {
@@ -232,11 +233,9 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return gameStateService.processGameStateUpdate(newState);
     
     case "CHECK_EQUIPMENT_STATUS": {
-      // Проверяем статус оборудования, зависящего от ресурсов
+      // Проверяем статус оборудования, принудительно проверяем разблокировки
       console.log("Проверка статуса оборудования");
-      // Пока просто возвращаем текущее состояние,
-      // в будущем можно добавить логику проверки и выключения оборудования
-      return gameStateService.processGameStateUpdate(state);
+      return gameStateService.performFullStateSync(state);
     }
     
     case "APPLY_KNOWLEDGE": {
@@ -255,43 +254,6 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           usdtUnlocked: newState.resources.usdt?.unlocked,
           applyKnowledgeCounter: newState.counters.applyKnowledge
         });
-        
-        // Проверяем, разблокирован ли USDT
-        if (!newState.resources.usdt || !newState.resources.usdt.unlocked) {
-          console.log("gameReducer: USDT не разблокирован после APPLY_KNOWLEDGE, принудительно разблокируем");
-          
-          // Создаем или обновляем ресурс USDT
-          const updatedResources = { ...newState.resources };
-          if (!updatedResources.usdt) {
-            updatedResources.usdt = {
-              id: 'usdt',
-              name: 'USDT',
-              description: 'Стейблкоин, привязанный к стоимости доллара США',
-              value: 1, // Даем базовую награду
-              baseProduction: 0,
-              production: 0,
-              perSecond: 0,
-              max: 50,
-              unlocked: true,
-              type: 'currency',
-              icon: 'dollar'
-            };
-          } else {
-            updatedResources.usdt = {
-              ...updatedResources.usdt,
-              unlocked: true
-            };
-          }
-          
-          newState = {
-            ...newState,
-            resources: updatedResources,
-            unlocks: {
-              ...newState.unlocks,
-              usdt: true
-            }
-          };
-        }
         
         // Принудительно выполняем полный цикл проверки разблокировок
         return gameStateService.performFullStateSync(newState);

@@ -19,13 +19,15 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     applyKnowledgeUnlocked,
   } = useActionButtons({ onAddEvent });
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Добавляем флаг для отслеживания выполненного нажатия
+  const touchStartedRef = useRef<boolean>(false);
   
   // Визуальная проверка доступности кнопок
   const canApplyKnowledge = (state.resources.knowledge?.value || 0) >= 10;
   const canExchangeBitcoin = (state.resources.bitcoin?.value || 0) > 0;
   const bitcoinUnlocked = state.resources.bitcoin && state.resources.bitcoin.unlocked;
   
-  // ИСПРАВЛЕНИЕ: используем колбэк без прямого вызова handleLearnClick, чтобы избежать двойного клика
+  // Обработчик для мышки - без изменений
   const handleLearnMouseDown = useCallback(() => {
     // Делаем только один клик при нажатии
     handleLearnClick();
@@ -52,11 +54,25 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     }
   }, []);
   
-  // ИСПРАВЛЕНИЕ: Отдельный обработчик для сенсорных устройств
-  const handleTouchStart = useCallback(() => {
-    // Только один клик при касании
+  // ИСПРАВЛЕНИЕ: Переработанный обработчик для касаний с проверкой и защитой от двойного срабатывания
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Предотвращаем стандартное поведение браузера
+    e.preventDefault();
+    
+    // Проверяем, не выполняется ли уже нажатие
+    if (touchStartedRef.current) return;
+    
+    // Устанавливаем флаг начала касания
+    touchStartedRef.current = true;
+    
+    // Выполняем клик
     handleLearnClick();
   }, [handleLearnClick]);
+  
+  const handleTouchEnd = useCallback(() => {
+    // Сбрасываем флаг касания
+    touchStartedRef.current = false;
+  }, []);
   
   // Очистка таймера при размонтировании компонента
   React.useEffect(() => {
@@ -112,9 +128,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           onMouseDown={handleLearnMouseDown}
           onMouseUp={handleLearnMouseUp}
           onMouseLeave={handleLearnMouseLeave}
-          // ИСПРАВЛЕНИЕ: заменяем onTouchStart на новый обработчик и убираем дублирующий клик
+          // ИСПРАВЛЕНИЕ: Обновляем обработчики для сенсорных устройств
           onTouchStart={handleTouchStart}
-          onTouchEnd={() => {}}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
         >
           <span className="text-xs">Изучить крипту</span>
         </Button>
