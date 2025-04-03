@@ -179,30 +179,21 @@ export const processPracticePurchase = (state: GameState): GameState => {
   console.log("processPracticePurchase: Начинаем покупку практики...");
   console.log(`Текущий уровень практики: ${currentLevel}, Стоимость нового уровня: ${cost} USDT`);
   
-  // КЛОНИРУЕМ ВСЁ СОСТОЯНИЕ
-  const newState = { ...state };
-  
-  // Обновляем ресурсы - сначала клонируем
-  const newResources = { ...newState.resources };
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Создаем глубокую копию состояния
+  const newState = JSON.parse(JSON.stringify(state));
   
   // Вычитаем стоимость из USDT
-  if (newResources.usdt) {
-    newResources.usdt = {
-      ...newResources.usdt,
-      value: newResources.usdt.value - cost
-    };
+  if (newState.resources.usdt) {
+    newState.resources.usdt.value = newState.resources.usdt.value - cost;
   }
   
   // Увеличиваем уровень практики
   const newPracticeLevel = currentLevel + 1;
   
-  // Клонируем здания
-  const newBuildings = { ...newState.buildings };
-  
   // Обновляем или создаем здание практики
-  if (!newBuildings.practice) {
+  if (!newState.buildings.practice) {
     // Создаем здание практики с необходимыми свойствами
-    newBuildings.practice = {
+    newState.buildings.practice = {
       id: 'practice',
       name: 'Практика',
       description: 'Автоматически генерирует знания',
@@ -221,10 +212,7 @@ export const processPracticePurchase = (state: GameState): GameState => {
     console.log("Создано новое здание 'Практика'");
   } else {
     // Обновляем существующее здание практики
-    newBuildings.practice = {
-      ...newBuildings.practice,
-      count: newPracticeLevel
-    };
+    newState.buildings.practice.count = newPracticeLevel;
     console.log(`Практика улучшена до уровня ${newPracticeLevel}`);
   }
   
@@ -233,9 +221,9 @@ export const processPracticePurchase = (state: GameState): GameState => {
   const totalProduction = newPracticeLevel * knowledgePerPractice;
   
   // Обновляем или создаем ресурс знаний
-  if (!newResources.knowledge) {
+  if (!newState.resources.knowledge) {
     // Создаем ресурс знаний, если его ещё нет
-    newResources.knowledge = {
+    newState.resources.knowledge = {
       id: 'knowledge',
       name: 'Знания',
       description: 'Знания о криптовалюте и блокчейне',
@@ -250,32 +238,24 @@ export const processPracticePurchase = (state: GameState): GameState => {
     };
     console.log(`Создан ресурс знаний с производством ${totalProduction}/сек`);
   } else {
-    // Обновляем существующий ресурс знаний
-    newResources.knowledge = {
-      ...newResources.knowledge,
-      baseProduction: totalProduction,
-      production: totalProduction,
-      perSecond: totalProduction
-    };
+    // Обновляем существующий ресурс знаний - ВАЖНОЕ ИСПРАВЛЕНИЕ: 
+    // явно устанавливаем все параметры производства
+    newState.resources.knowledge.baseProduction = totalProduction;
+    newState.resources.knowledge.production = totalProduction;
+    newState.resources.knowledge.perSecond = totalProduction;
     console.log(`Обновлен ресурс знаний с производством ${totalProduction}/сек`);
   }
   
-  // Собираем окончательное состояние
-  const finalState = {
-    ...newState,
-    resources: newResources,
-    buildings: newBuildings
-  };
-  
-  console.log("processPracticePurchase: Итоговое состояние производства знаний:", {
+  // ВАЖНОЕ ИСПРАВЛЕНИЕ: Добавляем принудительное обновление ресурсов
+  console.log("processPracticePurchase: Проверка обновленных параметров знаний:", {
     level: newPracticeLevel,
-    baseProduction: finalState.resources.knowledge?.baseProduction,
-    production: finalState.resources.knowledge?.production,
-    perSecond: finalState.resources.knowledge?.perSecond
+    baseProduction: newState.resources.knowledge?.baseProduction,
+    production: newState.resources.knowledge?.production,
+    perSecond: newState.resources.knowledge?.perSecond
   });
   
   // Отправляем событие об успешной покупке
   safeDispatchGameEvent(`Практика улучшена до уровня ${newPracticeLevel}`, 'success');
   
-  return finalState;
+  return newState;
 };

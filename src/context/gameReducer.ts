@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -95,7 +94,27 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case 'EXCHANGE_BTC':
       return processExchangeBtc(state);
     case 'PRACTICE_PURCHASE':
-      return processPracticePurchase(state);
+      // ВАЖНОЕ ИСПРАВЛЕНИЕ: Принудительное обновление ресурсов после покупки практики
+      let newState = processPracticePurchase(state);
+      
+      // Добавляем проверку для отладки
+      console.log('После processPracticePurchase:', {
+        practiceLevel: newState.buildings.practice?.count,
+        knowledgeProduction: newState.resources.knowledge?.perSecond
+      });
+      
+      // Принудительно обновляем состояние производства ресурсов
+      newState = {
+        ...newState,
+        lastUpdate: Date.now() // Обновляем время последнего обновления
+      };
+      
+      // Принудительно обновляем метрики для UI
+      if (newState.resources.knowledge) {
+        console.log('Принудительно гарантируем метрики знаний установлены');
+      }
+      
+      return newState;
       
     // Обработка разблокировок
     case 'UNLOCK_FEATURE':

@@ -27,17 +27,19 @@ export class ResourceProductionService {
       // 1. Проверка специальных случаев для конкретных ресурсов
       switch (resourceId) {
         case 'knowledge':
-          // Считаем базовое производство знаний
+          // ВАЖНОЕ ИСПРАВЛЕНИЕ: Сначала получаем базовое производство из ресурса,
+          // которое должно быть уже установлено при покупке практики
           let knowledgeProduction = resource.baseProduction || 0;
           
-          // Проверяем наличие практики
+          // Проверяем наличие практики для гарантии правильного расчета
           if (state.buildings.practice && state.buildings.practice.count > 0) {
             const practiceCount = state.buildings.practice.count;
             const practiceProduction = practiceCount * 1; // 1 знание в секунду за каждую практику
             
-            // ВАЖНАЯ ПРАВКА: Не добавляем к существующему производству, а устанавливаем базовое
-            // значение производства от практики, если оно ещё не установлено
-            if (knowledgeProduction === 0) {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Если в базовом производстве не отражена практика,
+            // то устанавливаем значение, чтобы гарантировать работу даже при загрузке
+            if (knowledgeProduction < practiceProduction) {
+              console.log(`ResourceProductionService: Исправляем базовое производство знаний с ${knowledgeProduction} на ${practiceProduction}`);
               knowledgeProduction = practiceProduction;
             }
             
