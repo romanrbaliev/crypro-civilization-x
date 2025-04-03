@@ -182,11 +182,14 @@ export const processPracticePurchase = (state: GameState): GameState => {
     }
   };
   
-  // Убедимся, что у нас есть ресурс knowledge
-  if (!newState.resources.knowledge) {
+  // Проверяем наличие ресурса knowledge - принудительно используем тип GameState для newState
+  let typedState = newState as GameState;
+  
+  // Проверяем наличие ресурса knowledge
+  if (!typedState.resources.knowledge) {
     console.log("Создаем новый ресурс knowledge, так как он отсутствует");
-    newState.resources = {
-      ...newState.resources,
+    typedState.resources = {
+      ...typedState.resources,
       knowledge: {
         id: 'knowledge',
         name: 'Знания',
@@ -207,9 +210,9 @@ export const processPracticePurchase = (state: GameState): GameState => {
   const newPracticeLevel = currentLevel + 1;
   
   // Проверяем существует ли здание практики
-  if (!newState.buildings.practice) {
+  if (!typedState.buildings.practice) {
     // Создаем здание практики с необходимыми свойствами production и productionBoost
-    newState.buildings.practice = {
+    typedState.buildings.practice = {
       id: 'practice',
       name: 'Практика',
       description: 'Автоматически генерирует знания',
@@ -227,8 +230,8 @@ export const processPracticePurchase = (state: GameState): GameState => {
     };
   } else {
     // Обновляем уровень практики
-    newState.buildings.practice = {
-      ...newState.buildings.practice,
+    typedState.buildings.practice = {
+      ...typedState.buildings.practice,
       count: newPracticeLevel
     };
   }
@@ -237,12 +240,13 @@ export const processPracticePurchase = (state: GameState): GameState => {
   
   // Обновляем эффект от практики - добавляем +1 к производству знаний
   // Теперь мы уверены, что ресурс knowledge доступен
-  const currentBaseProduction = newState.resources.knowledge.baseProduction || 0;
-  const currentProduction = newState.resources.knowledge.production || 0;
-  const currentPerSecond = newState.resources.knowledge.perSecond || 0;
+  const knowledgeResource = typedState.resources.knowledge;
+  const currentBaseProduction = knowledgeResource.baseProduction || 0;
+  const currentProduction = knowledgeResource.production || 0;
+  const currentPerSecond = knowledgeResource.perSecond || 0;
   
-  newState.resources.knowledge = {
-    ...newState.resources.knowledge,
+  typedState.resources.knowledge = {
+    ...knowledgeResource,
     baseProduction: currentBaseProduction + 1,
     production: currentProduction + 1,
     perSecond: currentPerSecond + 1
@@ -264,5 +268,5 @@ export const processPracticePurchase = (state: GameState): GameState => {
   // Отправляем событие об успешной покупке
   safeDispatchGameEvent(`Практика улучшена до уровня ${newPracticeLevel}`, 'success');
   
-  return newState;
+  return typedState;
 };
