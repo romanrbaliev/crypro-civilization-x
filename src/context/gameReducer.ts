@@ -60,12 +60,18 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   switch (action.type) {
     case "INCREMENT_RESOURCE": {
       // ИСПРАВЛЕНИЕ проблемы с "Изучить крипту"
+      // Для ресурса знания жестко ограничиваем, что всегда будет добавляться только 1 знание
       if (action.payload.resourceId === "knowledge") {
-        // Для ресурса знания - всегда прибавляем ровно 1 единицу за клик
-        newState = processIncrementResource(state, { 
+        console.log('INCREMENT_RESOURCE: для knowledge фиксируем amount=1');
+        
+        // Создаем новую полезную нагрузку с фиксированным значением 1
+        const fixedPayload = { 
           resourceId: "knowledge", 
-          amount: 1 // Фиксированная величина 1 знание за клик
-        });
+          amount: 1 // Всегда строго 1
+        };
+        
+        // Используем модифицированную полезную нагрузку
+        newState = processIncrementResource(state, fixedPayload);
       } else {
         // Для остальных ресурсов используем переданное значение
         newState = processIncrementResource(state, action.payload);
