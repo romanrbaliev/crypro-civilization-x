@@ -1,7 +1,18 @@
 
 import { GameState } from '../types';
-import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { UnlockManagerService } from '@/services/UnlockManagerService';
+
+// Функция для проверки, достаточно ли ресурсов для покупки
+function hasEnoughResources(state: GameState, cost: Record<string, number>): boolean {
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    const resource = state.resources[resourceId];
+    if (!resource || resource.value < Number(amount)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 // Функция для обработки покупки здания
 export const processPurchaseBuilding = (
@@ -116,7 +127,9 @@ export const processPurchaseBuilding = (
         ...newState,
         unlocks: {
           ...newState.unlocks,
-          electricity: true
+          electricity: true,
+          // Разблокируем исследования при покупке генератора
+          research: true
         }
       };
       
@@ -143,6 +156,7 @@ export const processPurchaseBuilding = (
       }
       
       safeDispatchGameEvent('Разблокировано электричество!', 'success');
+      safeDispatchGameEvent('Разблокированы исследования!', 'success');
     }
   }
   
@@ -160,6 +174,9 @@ export const processPurchaseBuilding = (
       }
     }
   };
+  
+  // Проверяем все разблокировки через новую централизованную систему
+  newState = UnlockManagerService.checkAllUnlocks(newState);
   
   return newState;
 };

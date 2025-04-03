@@ -1,15 +1,16 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
+import { UnlockManagerService } from "@/services/UnlockManagerService";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
 }
 
 const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   
   // Проверяем состояние флага research в unlocks
   const researchUnlocked = state.unlocks.research === true;
@@ -26,6 +27,19 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     .some(upgrade => 
       isInitialResearch(upgrade.id) && upgrade.purchased
     );
+  
+  // При монтировании компонента проверим разблокировку исследований
+  useEffect(() => {
+    console.log("ResearchTab: Проверка разблокировки исследований");
+    console.log("ResearchTab: Текущий статус разблокировки:", researchUnlocked);
+    console.log("ResearchTab: Количество генераторов:", state.buildings.generator?.count || 0);
+    
+    // Если есть генератор, но исследования не разблокированы, проверяем разблокировки
+    if (state.buildings.generator?.count > 0 && !researchUnlocked) {
+      console.log("ResearchTab: Есть генератор, но исследования не разблокированы. Запрашиваем обновление.");
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+    }
+  }, [researchUnlocked, state.buildings.generator?.count, dispatch]);
   
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)

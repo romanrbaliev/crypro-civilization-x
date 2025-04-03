@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
+import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
@@ -12,6 +13,7 @@ import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
+import { UnlockManagerService } from "@/services/UnlockManagerService";
 import {
   Dialog,
   DialogContent,
@@ -73,25 +75,15 @@ const GameScreen = () => {
     console.log("GameScreen: - Криптокошельков:", state.buildings.cryptoWallet?.count || 0, "(нужно ≥ 5 для улучшенного кошелька)");
     console.log("GameScreen: - Основы криптовалют куплены:", 
       state.upgrades.cryptoCurrencyBasics?.purchased || state.upgrades.cryptoBasics?.purchased ? "Да" : "Нет");
+    console.log("GameScreen: - Генераторов:", state.buildings.generator?.count || 0, "(покупка должна разблокировать исследования)");
+    console.log("GameScreen: - Статус разблокировки исследований:", state.unlocks.research ? "Разблокировано" : "Заблокировано");
     
-    // Принудительно проверяем разблокировки при изменении состояния
-    if (state.buildings.homeComputer?.count >= 2 && state.buildings.coolingSystem && !state.buildings.coolingSystem.unlocked) {
-      console.log("GameScreen: Принудительно запрашиваем проверку разблокировок (есть условия для системы охлаждения)");
+    // Принудительно проверяем разблокировки
+    if (state.buildings.generator?.count > 0 && !state.unlocks.research) {
+      console.log("GameScreen: Принудительно запрашиваем разблокировку исследований (есть генератор)");
       dispatch({ type: "FORCE_RESOURCE_UPDATE" });
     }
     
-    if (state.buildings.cryptoWallet?.count >= 5 && 
-        ((state.buildings.enhancedWallet && !state.buildings.enhancedWallet.unlocked) || 
-         (state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked))) {
-      console.log("GameScreen: Принудительно запрашиваем проверку разблокировок (есть условия для улучшенного кошелька)");
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-    }
-    
-    const hasCryptoBasics = state.upgrades.cryptoCurrencyBasics?.purchased || state.upgrades.cryptoBasics?.purchased;
-    if (hasCryptoBasics && state.buildings.cryptoLibrary && !state.buildings.cryptoLibrary.unlocked) {
-      console.log("GameScreen: Принудительно запрашиваем проверку разблокировок (есть условия для криптобиблиотеки)");
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-    }
   }, [state.unlocks, state.buildings, state.upgrades, dispatch]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
@@ -159,6 +151,22 @@ const GameScreen = () => {
       selectedTab
     });
   }, [hasUnlockedBuildings, hasUnlockedResearch, hasUnlockedReferrals]);
+  
+  // Проверяем разблокировку исследований при загрузке компонента
+  useEffect(() => {
+    if (state.buildings.generator?.count > 0 && !state.unlocks.research) {
+      console.log("GameScreen: Принудительная проверка разблокировок при первичной загрузке");
+      
+      // Вызываем централизованную систему разблокировок напрямую
+      const updatedState = UnlockManagerService.checkAllUnlocks(state);
+      
+      // Если есть изменения в разблокировках, обновляем состояние
+      if (updatedState.unlocks.research !== state.unlocks.research) {
+        console.log("GameScreen: Обнаружено изменение разблокировок, применяем");
+        dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      }
+    }
+  }, []);
   
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
   
@@ -314,6 +322,14 @@ const GameScreen = () => {
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Сбросить прогресс
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-blue-500 hover:text-blue-600 hover:bg-blue-50 flex items-center"
+                      onClick={() => dispatch({ type: "FORCE_RESOURCE_UPDATE" })}
+                    >
+                      <Info className="h-4 w-4 mr-2" />
+                      Проверить разблокировки
                     </Button>
                   </div>
                   
