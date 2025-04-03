@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -36,6 +37,9 @@ export class GameStateService {
       // Проверяем все разблокировки
       newState = this.unlockService.checkAllUnlocks(newState);
       
+      // Дополнительная проверка разблокировок специальных зданий
+      newState = this.checkSpecialBuildingUnlocks(newState);
+      
       // Обновляем lastUpdate для отслеживания времени
       newState = {
         ...newState,
@@ -49,6 +53,81 @@ export class GameStateService {
       // В случае ошибки возвращаем исходное состояние
       return state;
     }
+  }
+  
+  /**
+   * Проверяет разблокировку специальных зданий
+   */
+  private checkSpecialBuildingUnlocks(state: GameState): GameState {
+    let newState = {...state};
+    let buildings = {...newState.buildings};
+    let unlocks = {...newState.unlocks};
+    let changed = false;
+    
+    // Проверка для криптобиблиотеки
+    const hasCryptoBasics = 
+      newState.upgrades.cryptoCurrencyBasics?.purchased || 
+      newState.upgrades.cryptoBasics?.purchased;
+    
+    if (hasCryptoBasics && buildings.cryptoLibrary && !buildings.cryptoLibrary.unlocked) {
+      buildings.cryptoLibrary = {
+        ...buildings.cryptoLibrary,
+        unlocked: true
+      };
+      unlocks.cryptoLibrary = true;
+      changed = true;
+      console.log("GameStateService: ✅ Принудительно разблокирована Криптобиблиотека");
+      safeDispatchGameEvent("Разблокировано здание: Криптобиблиотека", "success");
+    }
+    
+    // Проверка для системы охлаждения
+    if (buildings.homeComputer?.count >= 2 && buildings.coolingSystem && !buildings.coolingSystem.unlocked) {
+      buildings.coolingSystem = {
+        ...buildings.coolingSystem,
+        unlocked: true
+      };
+      unlocks.coolingSystem = true;
+      changed = true;
+      console.log("GameStateService: ✅ Принудительно разблокирована Система охлаждения");
+      safeDispatchGameEvent("Разблокировано здание: Система охлаждения", "success");
+    }
+    
+    // Проверка для улучшенного кошелька
+    if (buildings.cryptoWallet?.count >= 5) {
+      // Проверяем обе возможные версии названия
+      if (buildings.enhancedWallet && !buildings.enhancedWallet.unlocked) {
+        buildings.enhancedWallet = {
+          ...buildings.enhancedWallet,
+          unlocked: true
+        };
+        unlocks.enhancedWallet = true;
+        changed = true;
+        console.log("GameStateService: ✅ Принудительно разблокирован Улучшенный кошелек (enhancedWallet)");
+        safeDispatchGameEvent("Разблокировано здание: Улучшенный кошелек", "success");
+      }
+      
+      if (buildings.improvedWallet && !buildings.improvedWallet.unlocked) {
+        buildings.improvedWallet = {
+          ...buildings.improvedWallet,
+          unlocked: true
+        };
+        unlocks.improvedWallet = true;
+        changed = true;
+        console.log("GameStateService: ✅ Принудительно разблокирован Улучшенный кошелек (improvedWallet)");
+        safeDispatchGameEvent("Разблокировано здание: Улучшенный кошелек", "success");
+      }
+    }
+    
+    // Возвращаем изменённое состояние только если были изменения
+    if (changed) {
+      return {
+        ...newState,
+        buildings,
+        unlocks
+      };
+    }
+    
+    return newState;
   }
   
   /**
@@ -156,6 +235,22 @@ export class GameStateService {
         };
       }
       
+      // Дополнительно проверяем наличие криптобиблиотеки
+      if (newState.buildings.cryptoLibrary && !newState.buildings.cryptoLibrary.unlocked) {
+        newState.buildings.cryptoLibrary = {
+          ...newState.buildings.cryptoLibrary,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          cryptoLibrary: true
+        };
+        
+        console.log("GameStateService: Криптобиблиотека принудительно разблокирована");
+        safeDispatchGameEvent("Разблокировано здание: Криптобиблиотека", "success");
+      }
+      
       return newState;
     }
     
@@ -186,6 +281,9 @@ export class GameStateService {
       
       // Дополнительная проверка разблокировки майнера после покупки Основ криптовалют
       newState = this.checkCryptoUpgradeUnlocks(newState);
+      
+      // Дополнительная проверка разблокировок специальных зданий
+      newState = this.checkSpecialBuildingUnlocks(newState);
       
       // Обновляем lastUpdate для отслеживания времени
       newState = {

@@ -31,6 +31,12 @@ export class UnlockService {
     console.log("UnlockService: Проверка разблокировок зданий");
     const shouldUnlockPractice = this.shouldUnlockPractice(state);
     const shouldUnlockGenerator = this.shouldUnlockGenerator(state);
+    
+    // Добавляем проверки для недостающих зданий
+    const shouldUnlockCryptoLibrary = this.shouldUnlockCryptoLibrary(state);
+    const shouldUnlockCoolingSystem = this.shouldUnlockCoolingSystem(state);
+    const shouldUnlockEnhancedWallet = this.shouldUnlockEnhancedWallet(state);
+    
     console.log("UnlockService - shouldUnlockPractice:", {
       applyKnowledge: this.getApplyKnowledgeCount(state),
       practiceExists: !!state.buildings.practice,
@@ -43,6 +49,26 @@ export class UnlockService {
       usdtUnlocked: state.resources.usdt?.unlocked || false,
       generatorUnlocked: state.buildings.generator?.unlocked ? "Да" : "Нет",
       result: shouldUnlockGenerator
+    });
+    
+    // Логирование проверок для новых зданий
+    console.log("UnlockService - shouldUnlockCryptoLibrary:", {
+      cryptoBasicsPurchased: state.upgrades.cryptoCurrencyBasics?.purchased || state.upgrades.cryptoBasics?.purchased || false,
+      cryptoLibraryExists: !!state.buildings.cryptoLibrary,
+      cryptoLibraryUnlocked: state.buildings.cryptoLibrary?.unlocked ? "Да" : "Нет",
+      result: shouldUnlockCryptoLibrary
+    });
+    console.log("UnlockService - shouldUnlockCoolingSystem:", {
+      homeComputerCount: state.buildings.homeComputer?.count || 0,
+      coolingSystemExists: !!state.buildings.coolingSystem,
+      coolingSystemUnlocked: state.buildings.coolingSystem?.unlocked ? "Да" : "Нет",
+      result: shouldUnlockCoolingSystem
+    });
+    console.log("UnlockService - shouldUnlockEnhancedWallet:", {
+      cryptoWalletCount: state.buildings.cryptoWallet?.count || 0,
+      enhancedWalletExists: !!state.buildings.enhancedWallet,
+      enhancedWalletUnlocked: state.buildings.enhancedWallet?.unlocked ? "Да" : "Нет",
+      result: shouldUnlockEnhancedWallet
     });
     
     // Проверка разблокировки улучшений и действий
@@ -103,6 +129,32 @@ export class UnlockService {
   private shouldUnlockBlockchainBasics(state: GameState): boolean {
     return (state.buildings.generator?.count > 0) && 
            (state.buildings.generator?.unlocked === true); // Требуется покупка генератора
+  }
+  
+  /**
+   * Проверяет условия для разблокировки криптобиблиотеки (после исследования "Основы криптовалют")
+   */
+  private shouldUnlockCryptoLibrary(state: GameState): boolean {
+    // Проверяем, приобретено ли исследование "Основы криптовалют" (может иметь разные ID)
+    const hasCryptoBasics = 
+      (state.upgrades.cryptoCurrencyBasics?.purchased === true) || 
+      (state.upgrades.cryptoBasics?.purchased === true);
+    
+    return hasCryptoBasics;
+  }
+  
+  /**
+   * Проверяет условия для разблокировки системы охлаждения (2+ уровня домашнего компьютера)
+   */
+  private shouldUnlockCoolingSystem(state: GameState): boolean {
+    return (state.buildings.homeComputer?.count >= 2);
+  }
+  
+  /**
+   * Проверяет условия для разблокировки улучшенного кошелька (5+ уровня криптокошелька)
+   */
+  private shouldUnlockEnhancedWallet(state: GameState): boolean {
+    return (state.buildings.cryptoWallet?.count >= 5);
   }
   
   /**

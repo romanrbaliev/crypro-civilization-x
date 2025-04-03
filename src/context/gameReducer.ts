@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -114,7 +115,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "PURCHASE_BUILDING": {
       // Покупаем здание и обрабатываем изменения через сервис
       newState = processPurchaseBuilding(state, action.payload);
-      return gameStateService.processBuildingPurchase(newState, action.payload.buildingId);
+      // Принудительно проверяем разблокировки после покупки здания
+      return gameStateService.performFullStateSync(newState);
     }
     
     case "LOAD_GAME": {

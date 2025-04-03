@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
@@ -60,7 +59,40 @@ const GameScreen = () => {
   useEffect(() => {
     console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
     console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
-  }, [state.unlocks]);
+    
+    // Добавляем отладочную информацию о зданиях
+    console.log("GameScreen: Проверка состояния зданий");
+    console.log("GameScreen: Криптобиблиотека:", state.buildings.cryptoLibrary?.unlocked ? "Разблокирована" : "Заблокирована");
+    console.log("GameScreen: Система охлаждения:", state.buildings.coolingSystem?.unlocked ? "Разблокирована" : "Заблокирована");
+    console.log("GameScreen: Улучшенный кошелек:", 
+      (state.buildings.enhancedWallet?.unlocked || state.buildings.improvedWallet?.unlocked) ? "Разблокирован" : "Заблокирован");
+    
+    // Проверяем условия разблокировки
+    console.log("GameScreen: Условия разблокировки");
+    console.log("GameScreen: - Домашних компьютеров:", state.buildings.homeComputer?.count || 0, "(нужно ≥ 2 для системы охлаждения)");
+    console.log("GameScreen: - Криптокошельков:", state.buildings.cryptoWallet?.count || 0, "(нужно ≥ 5 для улучшенного кошелька)");
+    console.log("GameScreen: - Основы криптовалют куплены:", 
+      state.upgrades.cryptoCurrencyBasics?.purchased || state.upgrades.cryptoBasics?.purchased ? "Да" : "Нет");
+    
+    // Принудительно проверяем разблокировки при изменении состояния
+    if (state.buildings.homeComputer?.count >= 2 && state.buildings.coolingSystem && !state.buildings.coolingSystem.unlocked) {
+      console.log("GameScreen: Принудительно запрашиваем проверку разблокировок (есть условия для системы охлаждения)");
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+    }
+    
+    if (state.buildings.cryptoWallet?.count >= 5 && 
+        ((state.buildings.enhancedWallet && !state.buildings.enhancedWallet.unlocked) || 
+         (state.buildings.improvedWallet && !state.buildings.improvedWallet.unlocked))) {
+      console.log("GameScreen: Принудительно запрашиваем проверку разблокировок (есть условия для улучшенного кошелька)");
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+    }
+    
+    const hasCryptoBasics = state.upgrades.cryptoCurrencyBasics?.purchased || state.upgrades.cryptoBasics?.purchased;
+    if (hasCryptoBasics && state.buildings.cryptoLibrary && !state.buildings.cryptoLibrary.unlocked) {
+      console.log("GameScreen: Принудительно запрашиваем проверку разблокировок (есть условия для криптобиблиотеки)");
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+    }
+  }, [state.unlocks, state.buildings, state.upgrades, dispatch]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
