@@ -1,4 +1,4 @@
-import { GameState, ResourceData } from '../types';
+import { GameState, Resource } from '../types';
 
 /**
  * Проверяет, достаточно ли ресурсов для покупки
@@ -94,7 +94,7 @@ export function updateResourceMaxValues(state: GameState): GameState {
       maxValue *= 1.25;
     }
     
-    // Обновляем максимальное значение ресурса
+    // Обновляем ��аксимальное значение ресурса
     newResources[resourceId] = {
       ...newResources[resourceId],
       max: maxValue

@@ -1,8 +1,6 @@
-
 import { GameState } from '../types';
-import { checkUnlocks } from '../utils/resourceUtils';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { checkSpecialUnlocks } from '@/utils/unlockSystem';
+import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Обработка инкремента ресурсов
 export const processIncrementResource = (
