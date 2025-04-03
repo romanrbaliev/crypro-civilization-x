@@ -1,5 +1,5 @@
 
-import { GameState } from '../types';
+import { GameState, Resource } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { checkSpecialUnlocks } from '@/utils/unlockSystem';
@@ -7,7 +7,7 @@ import { checkSpecialUnlocks } from '@/utils/unlockSystem';
 // Обработка применения знаний
 export const processApplyKnowledge = (state: GameState): GameState => {
   // Проверка наличия знаний
-  if (state.resources.knowledge.value < 10) {
+  if (state.resources.knowledge?.value < 10) {
     safeDispatchGameEvent("Недостаточно знаний для применения", "error");
     return state;
   }
@@ -46,32 +46,42 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   });
   
   // Создаем новое состояние с явной разблокировкой USDT
+  let newResources = { ...state.resources };
+  
+  // Обновляем значение knowledge
+  if (newResources.knowledge) {
+    newResources.knowledge = {
+      ...newResources.knowledge,
+      value: newKnowledgeValue
+    };
+  }
+  
+  // Обновляем или создаем USDT
+  if (newResources.usdt) {
+    newResources.usdt = {
+      ...newResources.usdt,
+      value: finalUsdtValue,
+      unlocked: true
+    };
+  } else {
+    newResources.usdt = {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, универсальная валюта для покупок',
+      type: 'currency',
+      icon: 'dollar',
+      value: finalUsdtValue,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 50,
+      unlocked: true
+    };
+  }
+  
   const newState = {
     ...state,
-    resources: {
-      ...state.resources,
-      knowledge: {
-        ...state.resources.knowledge,
-        value: newKnowledgeValue
-      },
-      usdt: {
-        ...(state.resources.usdt || {
-          id: 'usdt',
-          name: 'USDT',
-          description: 'Стейблкоин, универсальная валюта для покупок',
-          type: 'currency',
-          icon: 'dollar',
-          value: 0,
-          baseProduction: 0,
-          production: 0,
-          perSecond: 0,
-          max: 50,
-          unlocked: false
-        }),
-        value: finalUsdtValue,
-        unlocked: true // Принудительно разблокируем
-      }
-    },
+    resources: newResources,
     unlocks: {
       ...state.unlocks,
       usdt: true // Явно устанавливаем флаг разблокировки
@@ -171,40 +181,38 @@ export const processPracticePurchase = (state: GameState): GameState => {
   const newUsdtValue = state.resources.usdt.value - cost;
   
   // Создаем новое состояние
-  let newState = {
-    ...state,
-    resources: {
-      ...state.resources,
-      usdt: {
-        ...state.resources.usdt,
-        value: newUsdtValue
-      }
-    }
-  };
+  let newResources = { ...state.resources };
   
-  // Проверяем наличие ресурса knowledge и создаем его, если отсутствует
-  if (!newState.resources.knowledge) {
-    console.log("Создаем новый ресурс knowledge, так как он отсутствует");
-    newState = {
-      ...newState,
-      resources: {
-        ...newState.resources,
-        knowledge: {
-          id: 'knowledge',
-          name: 'Знания',
-          description: 'Знания о криптовалюте и блокчейне',
-          type: 'resource',
-          icon: 'book',
-          value: 0,
-          baseProduction: 0,
-          production: 0,
-          perSecond: 0,
-          max: 100,
-          unlocked: true
-        }
-      }
+  // Обновляем USDT
+  if (newResources.usdt) {
+    newResources.usdt = {
+      ...newResources.usdt,
+      value: newUsdtValue
     };
   }
+  
+  // Проверяем наличие ресурса knowledge и создаем его, если отсутствует
+  if (!newResources.knowledge) {
+    newResources.knowledge = {
+      id: 'knowledge',
+      name: 'Знания',
+      description: 'Знания о криптовалюте и блокчейне',
+      type: 'resource',
+      icon: 'book',
+      value: 0,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
+      max: 100,
+      unlocked: true
+    };
+  }
+  
+  // Создаем новое состояние с обновленными ресурсами
+  let newState = {
+    ...state,
+    resources: newResources
+  };
   
   // Увеличиваем уровень практики
   const newPracticeLevel = currentLevel + 1;
@@ -251,11 +259,12 @@ export const processPracticePurchase = (state: GameState): GameState => {
   console.log(`Практика улучшена до уровня ${newPracticeLevel}, стоимость: ${cost} USDT`);
   
   // Обновляем эффект от практики - добавляем +1 к производству знаний
-  // Теперь мы уверены, что ресурс knowledge доступен
-  const currentBaseProduction = newState.resources.knowledge.baseProduction || 0;
-  const currentProduction = newState.resources.knowledge.production || 0;
-  const currentPerSecond = newState.resources.knowledge.perSecond || 0;
+  // Убедимся, что ресурс knowledge существует
+  const currentBaseProduction = newState.resources.knowledge?.baseProduction || 0;
+  const currentProduction = newState.resources.knowledge?.production || 0;
+  const currentPerSecond = newState.resources.knowledge?.perSecond || 0;
   
+  // Обновляем поля производства знаний
   newState = {
     ...newState,
     resources: {
