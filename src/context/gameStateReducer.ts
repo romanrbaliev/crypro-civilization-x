@@ -1,4 +1,3 @@
-
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
@@ -6,44 +5,52 @@ import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
-  // Обеспечиваем, что USDT заблокирован при старте новой игры
-  const usdtResource = state.resources.usdt || initialState.resources.usdt;
+  // Клонируем initialState для чистого старта
+  const baseState = JSON.parse(JSON.stringify(initialState));
   
-  // Используем явное приведение типа, чтобы TypeScript знал,
-  // что usdt определенно присутствует в resources
+  // Создаем новое состояние на основе initialState
   const newState: GameState = {
-    ...state,
+    ...baseState,
     gameStarted: true,
-    lastUpdate: Date.now(),
-    resources: {
-      ...state.resources,
-      // Явно создаем usdt ресурс для удовлетворения требований типизации
-      usdt: {
-        ...usdtResource,
-        unlocked: false // Принудительно блокируем USDT при старте новой игры
-      }
-    },
-    unlocks: {
-      ...state.unlocks,
-      usdt: false // Также сбрасываем флаг разблокировки в основной системе
-    }
+    lastUpdate: Date.now()
   };
   
-  // Проверяем и применяем все разблокировки при старте игры
-  let updatedState = checkSpecialUnlocks(newState);
-  updatedState = checkAllUnlocks(updatedState);
-  
-  // Дополнительная проверка, что USDT остался заблокированным
-  if (updatedState.resources.usdt) {
-    // Проверяем условие разблокировки USDT
-    if (!updatedState.counters.applyKnowledge || updatedState.counters.applyKnowledge.value < 2) {
-      // Если условие не выполнено, принудительно блокируем USDT
-      updatedState.resources.usdt.unlocked = false;
-      updatedState.unlocks.usdt = false;
+  // Ресурсы - начальная разблокировка только знаний
+  newState.resources = {
+    ...baseState.resources,
+    knowledge: {
+      ...baseState.resources.knowledge,
+      unlocked: true
     }
+  };
+
+  // Явно блокируем все остальные ресурсы
+  if (newState.resources.usdt) {
+    newState.resources.usdt.unlocked = false;
   }
   
-  return updatedState;
+  if (newState.resources.electricity) {
+    newState.resources.electricity.unlocked = false;
+  }
+  
+  if (newState.resources.computingPower) {
+    newState.resources.computingPower.unlocked = false;
+  }
+  
+  if (newState.resources.bitcoin) {
+    newState.resources.bitcoin.unlocked = false;
+  }
+  
+  // Применяем все разблокировки для начального состояния
+  const finalState = checkAllUnlocks(newState);
+  
+  console.log('processStartGame: Начальное состояние ресурсов:', {
+    knowledgeUnlocked: finalState.resources.knowledge.unlocked,
+    usdtExists: !!finalState.resources.usdt,
+    usdtUnlocked: finalState.resources.usdt?.unlocked || false
+  });
+  
+  return finalState;
 };
 
 // Обработка загрузки сохраненной игры

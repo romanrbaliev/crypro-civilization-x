@@ -1,5 +1,5 @@
 
-import React, { memo } from "react";
+import React, { memo, useEffect } from "react";
 import { Resource } from "@/context/types";
 import ResourceDisplay from "./ResourceDisplay";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +15,36 @@ interface ResourceListProps {
 // Используем memo для предотвращения лишних перерисовок
 const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   const { dispatch, state } = useGame();
+  
+  // Логируем состояние ресурсов для отладки
+  useEffect(() => {
+    console.log('ResourceList: Состояние ресурсов:', 
+      resources.map(r => `${r.id} (unlocked=${r.unlocked}, value=${r.value})`));
+    
+    // Проверяем USDT отдельно
+    const usdt = state.resources.usdt;
+    if (usdt) {
+      console.log('USDT status:', {
+        exists: true,
+        unlocked: usdt.unlocked,
+        value: usdt.value,
+        flagInUnlocks: state.unlocks.usdt
+      });
+    } else {
+      console.log('USDT status: resource does not exist');
+    }
+  }, [resources, state.resources.usdt, state.unlocks.usdt]);
+  
+  // Принудительно проверяем все разблокировки при рендеринге
+  useEffect(() => {
+    // Отправляем событие только если игра запущена
+    if (state.gameStarted) {
+      // Используем setTimeout, чтобы не блокировать рендеринг
+      setTimeout(() => {
+        dispatch({ type: "FORCE_CHECK_UNLOCKS" });
+      }, 200);
+    }
+  }, [dispatch, state.gameStarted]);
   
   // Фильтруем только разблокированные ресурсы
   const unlockedResources = resources.filter(resource => resource.unlocked);

@@ -37,8 +37,15 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       value: counters.applyKnowledge.value + 1
     };
   }
+
+  console.log('processApplyKnowledge: Применение знаний, разблокировка USDT', { 
+    knowledgeToApply, 
+    usdtToReceive,
+    currentUSDT: currentUsdt,
+    newUSDT: finalUsdtValue
+  });
   
-  // Создаем новое состояние
+  // Создаем новое состояние с явной разблокировкой USDT
   const newState = {
     ...state,
     resources: {
@@ -48,15 +55,26 @@ export const processApplyKnowledge = (state: GameState): GameState => {
         value: newKnowledgeValue
       },
       usdt: {
-        ...state.resources.usdt,
+        ...(state.resources.usdt || {
+          id: 'usdt',
+          name: 'USDT',
+          description: 'Стейблкоин, универсальная валюта для покупок',
+          type: 'currency',
+          icon: 'dollar',
+          value: 0,
+          baseProduction: 0,
+          production: 0,
+          perSecond: 0,
+          max: 50,
+          unlocked: false
+        }),
         value: finalUsdtValue,
-        // Разблокируем ресурс USDT если ещё не разблокирован
-        unlocked: true
+        unlocked: true // Принудительно разблокируем
       }
     },
     unlocks: {
       ...state.unlocks,
-      usdt: true // Также устанавливаем флаг разблокировки
+      usdt: true // Явно устанавливаем флаг разблокировки
     },
     counters
   };
@@ -64,8 +82,17 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   // Отправляем событие об обмене
   safeDispatchGameEvent(`Обменяно ${knowledgeToApply} знаний на ${usdtToReceive} USDT`, "success");
   
-  // Возвращаем новое состояние с проверкой специальных разблокировок
-  return checkSpecialUnlocks(newState);
+  // Применяем любые другие разблокировки, которые могут быть основаны на USDT
+  const finalState = checkSpecialUnlocks(newState);
+  
+  // Дополнительная проверка
+  console.log('USDT после применения знаний:', { 
+    unlocked: finalState.resources.usdt?.unlocked,
+    value: finalState.resources.usdt?.value,
+    flag: finalState.unlocks.usdt
+  });
+  
+  return finalState;
 };
 
 // Обработка применения всех знаний
@@ -109,8 +136,12 @@ export const processExchangeBtc = (state: GameState): GameState => {
       usdt: {
         ...state.resources.usdt,
         value: state.resources.usdt.value + usdtAmount,
-        unlocked: true
+        unlocked: true // Гарантируем, что USDT разблокирован
       }
+    },
+    unlocks: {
+      ...state.unlocks,
+      usdt: true // Также устанавливаем флаг разблокировки
     }
   };
   

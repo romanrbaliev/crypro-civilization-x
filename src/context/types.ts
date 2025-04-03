@@ -178,6 +178,6 @@ export type GameAction =
   | { type: "CHOOSE_SPECIALIZATION"; payload: { roleId: string } }
   | { type: "CHECK_EQUIPMENT_STATUS" }
   | { type: "INITIALIZE_SYNERGIES" }
-  | { type: "SYNERGY_ACTION"; payload: any }
+  | { type: "SYNERGY_ACTION"; payload?: any }
   | { type: "INITIALIZE_REFERRAL_SYSTEM" }
   | { type: "MINING_POWER" };
