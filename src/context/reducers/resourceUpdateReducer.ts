@@ -1,7 +1,7 @@
 
 import { GameState } from '../types';
 import { calculateResourceIncrement } from '../utils/resourceUtils';
-import { getBuildingEffects } from '../utils/buildingUtils';
+import { calculateBuildingCost } from '../../utils/buildingUtils';
 
 /**
  * Обновление ресурсов в соответствии с их производством
@@ -54,11 +54,7 @@ export const processResourceUpdate = (
       const count = building.count || 0;
       
       // Создаем объект cost на основе baseCost и множителя
-      const cost: Record<string, number> = {};
-      Object.entries(building.baseCost).forEach(([resourceId, baseAmount]) => {
-        const scaledAmount = baseAmount * Math.pow(costMultiplier, count);
-        cost[resourceId] = Math.round(scaledAmount);
-      });
+      const cost = calculateBuildingCost(building.baseCost, count, costMultiplier);
       
       // Обновляем здание с корректным свойством cost
       updatedBuildings[buildingId] = {
@@ -83,17 +79,19 @@ export const processResourceUpdate = (
         id: "cryptoLibrary",
         name: "Криптобиблиотека",
         description: "Увеличивает скорость получения знаний на 50% и максимальное количество знаний на 100",
-        baseCost: {
-          usdt: 200,
-          knowledge: 200
-        },
         cost: {
           usdt: 200,
           knowledge: 200
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0,
+        effects: {
+          knowledgeBoost: 0.5,
+          knowledgeMax: 100
+        }
       };
     } else {
       updatedBuildings.cryptoLibrary.unlocked = true;
@@ -110,17 +108,18 @@ export const processResourceUpdate = (
         id: "coolingSystem",
         name: "Система охлаждения",
         description: "Уменьшает потребление вычислительной мощности всеми устройствами на 20%",
-        baseCost: {
-          usdt: 200,
-          electricity: 50
-        },
         cost: {
           usdt: 200,
           electricity: 50
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0,
+        effects: {
+          computingPowerConsumptionReduction: 0.2
+        }
       };
     } else {
       updatedBuildings.coolingSystem.unlocked = true;
@@ -140,17 +139,20 @@ export const processResourceUpdate = (
         id: "enhancedWallet",
         name: "Улучшенный кошелек",
         description: "Увеличивает максимальное хранение USDT на 150, Bitcoin на 1, эффективность конвертации BTC на 8%",
-        baseCost: {
-          usdt: 300,
-          knowledge: 250
-        },
         cost: {
           usdt: 300,
           knowledge: 250
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0,
+        effects: {
+          usdtMax: 150,
+          bitcoinMax: 1,
+          btcExchangeBonus: 0.08
+        }
       };
     } else if (updatedBuildings.enhancedWallet) {
       updatedBuildings.enhancedWallet.unlocked = true;

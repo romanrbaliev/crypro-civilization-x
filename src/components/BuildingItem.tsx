@@ -5,7 +5,7 @@ import { formatNumber } from '@/utils/formatters';
 
 type BuildingItemProps = {
   building: Building;
-  resources: Record<string, Resource>;
+  resources?: Record<string, Resource>;
   onBuy: () => void;
   onSell?: () => void;
   showSell?: boolean;
@@ -13,7 +13,7 @@ type BuildingItemProps = {
 };
 
 // Функция для проверки доступности ресурсов
-const canAfford = (cost: Record<string, number> | undefined, resources: Record<string, Resource>): boolean => {
+const canAfford = (cost: Record<string, number> | undefined, resources: Record<string, Resource> = {}): boolean => {
   if (!cost) return false;
   
   return Object.entries(cost).every(([resourceId, amount]) => {
@@ -40,7 +40,7 @@ const getNextCost = (building: Building): Record<string, number> => {
     // Для каждого ресурса в базовой стоимости
     Object.entries(building.baseCost).forEach(([resourceId, baseAmount]) => {
       // Вычисляем новую стоимость с учетом количества зданий и множителя
-      const scaledAmount = baseAmount * Math.pow(costMultiplier, count);
+      const scaledAmount = Number(baseAmount) * Math.pow(costMultiplier, count);
       calculatedCost[resourceId] = Math.round(scaledAmount);
     });
     
@@ -55,7 +55,7 @@ const getNextCost = (building: Building): Record<string, number> => {
 // Основной компонент для отображения здания
 const BuildingItem: React.FC<BuildingItemProps> = ({
   building,
-  resources,
+  resources = {},
   onBuy,
   onSell,
   showSell = false,
