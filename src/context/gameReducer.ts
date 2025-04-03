@@ -68,6 +68,47 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     return newState;
   }
   
+  // ВАЖНОЕ ДОПОЛНЕНИЕ: Новые действия для разблокировки определенных зданий после выполнения условий
+  if (action.type === 'PURCHASE_BUILDING' && action.payload.buildingId === 'homeComputer') {
+    console.log('Обработка покупки домашнего компьютера, проверка разблокировок');
+    let newState = processPurchaseBuilding(state, action.payload);
+    
+    // Проверяем условие для разблокировки системы охлаждения
+    if (newState.buildings.homeComputer?.count >= 2 && !newState.buildings.coolingSystem?.unlocked) {
+      console.log('Достигнуто 2 уровня домашнего компьютера, разблокируем систему охлаждения');
+      newState = processUpdateResources(newState);
+    }
+    
+    return newState;
+  }
+  
+  if (action.type === 'PURCHASE_BUILDING' && action.payload.buildingId === 'cryptoWallet') {
+    console.log('Обработка покупки криптокошелька, проверка разблокировок');
+    let newState = processPurchaseBuilding(state, action.payload);
+    
+    // Проверяем условие для разблокировки улучшенного кошелька
+    if (newState.buildings.cryptoWallet?.count >= 5 && !newState.buildings.enhancedWallet?.unlocked) {
+      console.log('Достигнуто 5 уровней криптокошелька, разблокируем улучшенный кошелек');
+      newState = processUpdateResources(newState);
+    }
+    
+    return newState;
+  }
+  
+  if (action.type === 'PURCHASE_UPGRADE' && 
+     (action.payload.upgradeId === 'cryptoCurrencyBasics' || action.payload.upgradeId === 'cryptoBasics')) {
+    console.log('Обработка покупки исследования "Основы криптовалют", проверка разблокировок');
+    let newState = processPurchaseUpgrade(state, action.payload);
+    
+    // Проверяем условие для разблокировки криптобиблиотеки
+    if (!newState.buildings.cryptoLibrary?.unlocked) {
+      console.log('Куплено исследование "Основы криптовалют", разблокируем криптобиблиотеку');
+      newState = processUpdateResources(newState);
+    }
+    
+    return newState;
+  }
+  
   switch (action.type) {
     // ВАЖНОЕ ИСПРАВЛЕНИЕ: Добавляем обработку обновления ресурсов
     case 'UPDATE_RESOURCES':

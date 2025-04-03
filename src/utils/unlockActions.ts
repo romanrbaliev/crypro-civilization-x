@@ -30,101 +30,163 @@ export function forceCheckAllUnlocks(state: GameState): GameState {
     safeDispatchGameEvent("Разблокирована вкладка исследований!", "success");
   }
   
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем и добавляем свойство cost для новых зданий
+  updatedState = ensureBuildingsCostProperty(updatedState);
+  
   return updatedState;
 }
 
 /**
- * Проверяет и принудительно применяет разблокировку продвинутых зданий и компонентов
+ * Проверяет наличие продвинутых разблокировок
  */
 export function forceCheckAdvancedUnlocks(state: GameState): GameState {
-  console.log("UnlockActions: Проверка разблокировок продвинутых компонентов");
+  console.log("UnlockActions: Проверка продвинутых разблокировок");
   
-  let updatedState = { ...state };
-  let buildingsChanged = false;
-  let unlocksChanged = false;
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем и добавляем свойство cost для новых зданий
+  let updatedState = ensureBuildingsCostProperty(state);
   
-  // Проверка разблокировки криптобиблиотеки
-  if (UnlockManagerService.checkCryptoLibraryUnlock(state)) {
-    console.log("UnlockActions: Принудительная разблокировка криптобиблиотеки");
+  // Проверяем условия для разблокировки криптобиблиотеки
+  const hasCryptoBasics = 
+    (updatedState.upgrades.cryptoCurrencyBasics?.purchased === true) || 
+    (updatedState.upgrades.cryptoBasics?.purchased === true);
     
-    if (updatedState.buildings.cryptoLibrary) {
+  if (hasCryptoBasics && !updatedState.buildings.cryptoLibrary?.unlocked) {
+    console.log("forceCheckAdvancedUnlocks: Разблокировка криптобиблиотеки");
+    
+    // Обновляем или создаем здание
+    if (!updatedState.buildings.cryptoLibrary) {
       updatedState.buildings.cryptoLibrary = {
-        ...updatedState.buildings.cryptoLibrary,
+        id: "cryptoLibrary",
+        name: "Криптобиблиотека",
+        description: "Увеличивает скорость получения знаний на 50% и максимальное количество знаний на 100",
+        baseCost: {
+          usdt: 200,
+          knowledge: 200
+        },
+        cost: { // Добавляем cost для отображения
+          usdt: 200,
+          knowledge: 200
+        },
+        costMultiplier: 1.15,
+        count: 0,
         unlocked: true
       };
+    } else {
+      updatedState.buildings.cryptoLibrary.unlocked = true;
       
-      updatedState.unlocks = {
-        ...updatedState.unlocks,
-        cryptoLibrary: true
-      };
-      
-      buildingsChanged = true;
-      unlocksChanged = true;
-      safeDispatchGameEvent("Разблокирована криптобиблиотека", "success");
+      // Проверяем и добавляем свойство cost, если его нет
+      if (!updatedState.buildings.cryptoLibrary.cost && updatedState.buildings.cryptoLibrary.baseCost) {
+        updatedState.buildings.cryptoLibrary.cost = { ...updatedState.buildings.cryptoLibrary.baseCost };
+      }
     }
+    
+    updatedState.unlocks.cryptoLibrary = true;
   }
   
-  // Проверка разблокировки системы охлаждения
-  if (UnlockManagerService.checkCoolingSystemUnlock(state)) {
-    console.log("UnlockActions: Принудительная разблокировка системы охлаждения");
+  // Проверяем условия для разблокировки системы охлаждения
+  if (updatedState.buildings.homeComputer?.count >= 2 && !updatedState.buildings.coolingSystem?.unlocked) {
+    console.log("forceCheckAdvancedUnlocks: Разблокировка системы охлаждения");
     
-    if (updatedState.buildings.coolingSystem) {
+    // Обновляем или создаем здание
+    if (!updatedState.buildings.coolingSystem) {
       updatedState.buildings.coolingSystem = {
-        ...updatedState.buildings.coolingSystem,
+        id: "coolingSystem",
+        name: "Система охлаждения",
+        description: "Уменьшает потребление вычислительной мощности всеми устройствами на 20%",
+        baseCost: {
+          usdt: 200,
+          electricity: 50
+        },
+        cost: { // Добавляем cost для отображения
+          usdt: 200,
+          electricity: 50
+        },
+        costMultiplier: 1.15,
+        count: 0,
         unlocked: true
       };
+    } else {
+      updatedState.buildings.coolingSystem.unlocked = true;
       
-      updatedState.unlocks = {
-        ...updatedState.unlocks,
-        coolingSystem: true
-      };
-      
-      buildingsChanged = true;
-      unlocksChanged = true;
-      safeDispatchGameEvent("Разблокирована система охлаждения", "success");
+      // Проверяем и добавляем свойство cost, если его нет
+      if (!updatedState.buildings.coolingSystem.cost && updatedState.buildings.coolingSystem.baseCost) {
+        updatedState.buildings.coolingSystem.cost = { ...updatedState.buildings.coolingSystem.baseCost };
+      }
     }
+    
+    updatedState.unlocks.coolingSystem = true;
   }
   
-  // Проверка разблокировки улучшенного кошелька
-  if (UnlockManagerService.checkEnhancedWalletUnlock(state)) {
-    console.log("UnlockActions: Принудительная разблокировка улучшенного кошелька");
+  // Проверяем условия для разблокировки улучшенного кошелька
+  if (updatedState.buildings.cryptoWallet?.count >= 5 && 
+     (!updatedState.buildings.enhancedWallet?.unlocked && !updatedState.buildings.improvedWallet?.unlocked)) {
+    console.log("forceCheckAdvancedUnlocks: Разблокировка улучшенного кошелька");
     
+    // Обновляем или создаем здание enhancedWallet (или improvedWallet, если первый не существует)
     if (updatedState.buildings.enhancedWallet) {
+      updatedState.buildings.enhancedWallet.unlocked = true;
+      
+      // Проверяем и добавляем свойство cost, если его нет
+      if (!updatedState.buildings.enhancedWallet.cost && updatedState.buildings.enhancedWallet.baseCost) {
+        updatedState.buildings.enhancedWallet.cost = { ...updatedState.buildings.enhancedWallet.baseCost };
+      }
+      
+      updatedState.unlocks.enhancedWallet = true;
+    } else if (updatedState.buildings.improvedWallet) {
+      updatedState.buildings.improvedWallet.unlocked = true;
+      
+      // Проверяем и добавляем свойство cost, если его нет
+      if (!updatedState.buildings.improvedWallet.cost && updatedState.buildings.improvedWallet.baseCost) {
+        updatedState.buildings.improvedWallet.cost = { ...updatedState.buildings.improvedWallet.baseCost };
+      }
+      
+      updatedState.unlocks.improvedWallet = true;
+    } else {
+      // Если ни один из вариантов не существует, создаем enhancedWallet
       updatedState.buildings.enhancedWallet = {
-        ...updatedState.buildings.enhancedWallet,
+        id: "enhancedWallet",
+        name: "Улучшенный кошелек",
+        description: "Увеличивает максимальное хранение USDT на 150, Bitcoin на 1, эффективность конвертации BTC на 8%",
+        baseCost: {
+          usdt: 300,
+          knowledge: 250
+        },
+        cost: { // Добавляем cost для отображения
+          usdt: 300,
+          knowledge: 250
+        },
+        costMultiplier: 1.15,
+        count: 0,
         unlocked: true
       };
       
-      updatedState.unlocks = {
-        ...updatedState.unlocks,
-        enhancedWallet: true
-      };
-      
-      buildingsChanged = true;
-      unlocksChanged = true;
-      safeDispatchGameEvent("Разблокирован улучшенный кошелек", "success");
-    }
-    
-    if (updatedState.buildings.improvedWallet) {
-      updatedState.buildings.improvedWallet = {
-        ...updatedState.buildings.improvedWallet,
-        unlocked: true
-      };
-      
-      updatedState.unlocks = {
-        ...updatedState.unlocks,
-        improvedWallet: true
-      };
-      
-      buildingsChanged = true;
-      unlocksChanged = true;
+      updatedState.unlocks.enhancedWallet = true;
     }
   }
   
-  if (!buildingsChanged && !unlocksChanged) {
-    return state;
-  }
-  
-  console.log("UnlockActions: Применены принудительные разблокировки");
   return updatedState;
+}
+
+/**
+ * Проверяет и добавляет свойство cost для всех зданий, у которых его нет
+ */
+function ensureBuildingsCostProperty(state: GameState): GameState {
+  const newState = { ...state };
+  
+  // Проверяем все здания и добавляем свойство cost там, где его нет
+  for (const buildingKey in newState.buildings) {
+    const building = newState.buildings[buildingKey];
+    
+    if (building && !building.cost && building.baseCost) {
+      console.log(`ensureBuildingsCostProperty: Добавляем свойство cost для здания ${buildingKey}`);
+      
+      // Копируем baseCost в cost
+      newState.buildings[buildingKey] = {
+        ...building,
+        cost: { ...building.baseCost }
+      };
+    }
+  }
+  
+  return newState;
 }
