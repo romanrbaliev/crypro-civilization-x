@@ -235,12 +235,12 @@ export const processExchangeBtc = (state: GameState): GameState => {
     }
   };
   
-  // Проверяем, существует ли USDT в списке ресурсов
-  if (state.resources.usdt) {
+  // Проверяем, существует ли USDT в списке ресурсов с использованием оператора in
+  if ('usdt' in newResources && newResources.usdt) {
     // Если USDT уже существует, обновляем его
     newResources.usdt = {
-      ...state.resources.usdt,
-      value: Math.min(state.resources.usdt.value + usdtGain, state.resources.usdt.max || Infinity)
+      ...newResources.usdt,
+      value: Math.min(newResources.usdt.value + usdtGain, newResources.usdt.max || Infinity)
     };
   } else {
     // Если USDT не существует, создаем его
