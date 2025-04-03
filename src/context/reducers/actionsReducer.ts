@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -186,7 +187,7 @@ export const processPracticePurchase = (state: GameState): GameState => {
   
   // Проверяем существует ли здание практики
   if (!newState.buildings.practice) {
-    // Создаем здание практики
+    // Создаем здание практики с необходимыми свойствами production и productionBoost
     newState.buildings.practice = {
       id: 'practice',
       name: 'Практика',
@@ -197,7 +198,11 @@ export const processPracticePurchase = (state: GameState): GameState => {
       },
       costMultiplier: costMultiplier,
       count: newPracticeLevel,
-      unlocked: true
+      unlocked: true,
+      production: {  // Добавляем обязательное поле production
+        knowledge: 1
+      },
+      productionBoost: 0  // Добавляем обязательное поле productionBoost
     };
   } else {
     // Обновляем уровень практики
@@ -210,10 +215,10 @@ export const processPracticePurchase = (state: GameState): GameState => {
   console.log(`Практика улучшена до уровня ${newPracticeLevel}, стоимость: ${cost} USDT`);
   
   // Обновляем эффект от практики - добавляем +1 к производству знаний
-  // ВАЖНО: Добавляем проверку существования ресурса knowledge
+  // Проверяем наличие ресурса knowledge в объекте resources
   if (newState.resources.knowledge) {
-    const currentProduction = newState.resources.knowledge.production || 0;
     const currentBaseProduction = newState.resources.knowledge.baseProduction || 0;
+    const currentProduction = newState.resources.knowledge.production || 0;
     const currentPerSecond = newState.resources.knowledge.perSecond || 0;
     
     newState.resources.knowledge = {
@@ -236,7 +241,21 @@ export const processPracticePurchase = (state: GameState): GameState => {
       }
     });
   } else {
-    console.error("Ресурс knowledge отсутствует в состоянии!");
+    // Если ресурса knowledge нет, создаем его с нужными свойствами
+    newState.resources.knowledge = {
+      id: 'knowledge',
+      name: 'Знания',
+      description: 'Знания о криптовалюте и блокчейне',
+      type: 'resource',
+      icon: 'book',
+      value: 0,
+      baseProduction: 1,
+      production: 1,
+      perSecond: 1,
+      max: 100,
+      unlocked: true
+    };
+    console.log("Создан ресурс knowledge после покупки практики:", newState.resources.knowledge);
   }
   
   // Отправляем событие об успешной покупке
