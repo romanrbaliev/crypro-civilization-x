@@ -12,15 +12,53 @@ export const debugUnlockStatus = (state: GameState) => {
   const buildings = state.buildings || {};
   const resources = state.resources || {};
   
+  // Собираем списки разблокированных и заблокированных элементов
+  const unlockedList = Object.keys(unlocks).filter(key => unlocks[key]).sort();
+  const unlockedBuildingsList = Object.keys(buildings).filter(key => buildings[key]?.unlocked).sort();
+  const unlockedResourcesList = Object.keys(resources).filter(key => resources[key]?.unlocked).sort();
+  
+  // Создаем список шагов для отображения в UI
+  const steps: string[] = [
+    '🔓 Разблокированные элементы:',
+    ...unlockedList.map(item => `✅ ${item}`),
+    
+    '🏗️ Разблокированные здания:',
+    ...unlockedBuildingsList.map(item => `✅ ${item}`),
+    
+    '📚 Разблокированные ресурсы:',
+    ...unlockedResourcesList.map(item => `✅ ${item}`),
+    
+    '📊 Счетчики:',
+    `• Применение знаний: ${state.counters.applyKnowledge?.value || 0}`,
+    `• Домашних компьютеров: ${buildings.homeComputer?.count || 0}`,
+    `• Криптокошельков: ${buildings.cryptoWallet?.count || 0}`,
+    
+    '📚 Исследования:',
+    `• Основы блокчейна: ${state.upgrades.blockchainBasics?.purchased ? '✅' : '❌'}`,
+    `• Основы криптовалют: ${state.upgrades.cryptoCurrencyBasics?.purchased ? '✅' : '❌'}`
+  ];
+  
+  // Собираем заблокированные элементы для дебаггера
+  const allFeatureIds = ['knowledge', 'usdt', 'electricity', 'computingPower', 'bitcoin', 
+                         'practice', 'generator', 'homeComputer', 'cryptoWallet', 'miner',
+                         'internetChannel', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet',
+                         'applyKnowledge', 'research', 'phase2', 'referrals'];
+  const lockedList = allFeatureIds.filter(id => !unlockedList.includes(id)).sort();
+  
   return {
-    unlocks: Object.keys(unlocks).filter(key => unlocks[key]).sort(),
-    unlockedBuildings: Object.keys(buildings).filter(key => buildings[key]?.unlocked).sort(),
-    unlockedResources: Object.keys(resources).filter(key => resources[key]?.unlocked).sort(),
+    unlocks: unlockedList,
+    unlockedBuildings: unlockedBuildingsList,
+    unlockedResources: unlockedResourcesList,
     applyKnowledgeCount: state.counters.applyKnowledge?.value || 0,
     blockchainBasics: state.upgrades.blockchainBasics?.purchased || false,
     cryptoCurrencyBasics: state.upgrades.cryptoCurrencyBasics?.purchased || false,
     homeComputerCount: buildings.homeComputer?.count || 0,
-    cryptoWalletCount: buildings.cryptoWallet?.count || 0
+    cryptoWalletCount: buildings.cryptoWallet?.count || 0,
+    // Добавляем свойство steps для компонентов
+    steps: steps,
+    // Добавляем свойство locked для UnlocksDebugger
+    unlocked: unlockedList,
+    locked: lockedList
   };
 };
 

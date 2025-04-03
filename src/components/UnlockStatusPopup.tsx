@@ -26,8 +26,8 @@ const UnlockStatusPopup = () => {
       setTimeout(() => {
         try {
           // Получаем отчет о статусе разблокировок
-          const { steps } = debugUnlockStatus(state);
-          setStatusSteps(steps);
+          const result = debugUnlockStatus(state);
+          setStatusSteps(result.steps || []); // Используем steps из результата
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);

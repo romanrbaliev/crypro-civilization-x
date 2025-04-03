@@ -236,7 +236,7 @@ export const processExchangeBtc = (state: GameState): GameState => {
   };
   
   // Теперь безопасно добавляем USDT с проверкой его существования
-  if (state.resources.usdt) {
+  if ('usdt' in state.resources && state.resources.usdt) {
     // Если USDT уже существует, обновляем его
     newResources.usdt = {
       ...state.resources.usdt,
@@ -300,7 +300,7 @@ export const processMiningPower = (state: GameState): GameState => {
   };
   
   // Обновляем или создаем USDT
-  if (newResources.usdt) {
+  if ('usdt' in newResources && newResources.usdt) {
     // Если USDT уже есть, добавляем к текущему значению
     newResources.usdt = {
       ...newResources.usdt,

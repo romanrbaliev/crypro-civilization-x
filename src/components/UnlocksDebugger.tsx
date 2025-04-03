@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
@@ -30,17 +29,19 @@ const UnlocksDebugger: React.FC = () => {
   
   const checkUnlocks = () => {
     const result = debugUnlockStatus(state);
-    setDebugInfo(result);
+    setDebugInfo({
+      unlocked: result.unlocked || [],
+      locked: result.locked || [],
+      steps: result.steps || []
+    });
   };
   
-  // Автоматически обновляем данные при открытии окна
   React.useEffect(() => {
     if (isOpen) {
       checkUnlocks();
     }
   }, [isOpen, state]);
   
-  // Принудительно проверяем все разблокировки
   const forceCheckAll = () => {
     dispatch({ type: "FORCE_RESOURCE_UPDATE" });
     setTimeout(() => {
@@ -48,15 +49,12 @@ const UnlocksDebugger: React.FC = () => {
     }, 100);
   };
   
-  // Получаем информацию о разблокированных элементах
   const advancedBuildings = React.useMemo(() => {
     if (!isOpen) return null;
     
-    // Список продвинутых зданий
     const advancedBuildingsList = ['miner', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet'];
     const unlockedBuildings = getUnlockedBuildingsByGroup(state, advancedBuildingsList);
     
-    // Список продвинутых исследований
     const advancedUpgradesList = [
       'cryptoCurrencyBasics', 
       'algorithmOptimization', 
@@ -107,7 +105,6 @@ const UnlocksDebugger: React.FC = () => {
           </div>
         </div>
         
-        {/* Информация о продвинутых зданиях и исследованиях */}
         {advancedBuildings && (
           <div className="border-t pt-3 mt-2">
             <h4 className="font-medium mb-2">Продвинутый контент</h4>
