@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { GameState } from '@/context/types';
 import { Json } from '@/integrations/supabase/types';

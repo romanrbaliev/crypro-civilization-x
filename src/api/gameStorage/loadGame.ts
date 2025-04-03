@@ -73,6 +73,37 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
         if (validateGameState(gameState)) {
           console.log('✅ Проверка целостности данных из Supabase пройдена');
           
+          // ИСПРАВЛЕНИЕ: Принудительная проверка разблокировок специальных зданий при загрузке
+          
+          // Криптобиблиотека разблокируется после покупки "Основы криптовалют"
+          const hasCryptoBasics = 
+            gameState.upgrades?.cryptoCurrencyBasics?.purchased || 
+            gameState.upgrades?.cryptoBasics?.purchased;
+            
+          if (hasCryptoBasics && gameState.buildings?.cryptoLibrary) {
+            gameState.buildings.cryptoLibrary.unlocked = true;
+            gameState.unlocks.cryptoLibrary = true;
+          }
+          
+          // Система охлаждения разблокируется после 2+ уровней домашнего компьютера
+          if (gameState.buildings?.homeComputer?.count >= 2 && gameState.buildings?.coolingSystem) {
+            gameState.buildings.coolingSystem.unlocked = true;
+            gameState.unlocks.coolingSystem = true;
+          }
+          
+          // Улучшенный кошелек разблокируется после 5+ уровней криптокошелька
+          if (gameState.buildings?.cryptoWallet?.count >= 5) {
+            if (gameState.buildings?.enhancedWallet) {
+              gameState.buildings.enhancedWallet.unlocked = true;
+              gameState.unlocks.enhancedWallet = true;
+            }
+            
+            if (gameState.buildings?.improvedWallet) {
+              gameState.buildings.improvedWallet.unlocked = true;
+              gameState.unlocks.improvedWallet = true;
+            }
+          }
+          
           // Обрабатываем корректно поле activated для рефералов
           if (gameState.referrals && gameState.referrals.length > 0) {
             gameState.referrals = gameState.referrals.map((referral: any) => {

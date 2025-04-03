@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -282,7 +281,7 @@ export class GameStateService {
       // Дополнительная проверка разблокировки майнера после покупки Основ криптовалют
       newState = this.checkCryptoUpgradeUnlocks(newState);
       
-      // Дополнительная проверка разблокировок специальных зданий
+      // ИСПРАВЛЕНИЕ: Дополнительная проверка разблокировок специальных зданий при полной синхронизации
       newState = this.checkSpecialBuildingUnlocks(newState);
       
       // Обновляем lastUpdate для отслеживания времени
@@ -305,8 +304,39 @@ export class GameStateService {
    */
   processBuildingPurchase(state: GameState, buildingId: string): GameState {
     try {
-      // Обновляем все ресурсы по��ле покупки здания
-      let newState = this.updateResourceProduction(state);
+      console.log(`GameStateService: Обработка покупки здания ${buildingId}`);
+      
+      // ИСПРАВЛЕНИЕ: Непосредственная проверка условий разблокировки специальных зданий после покупки
+      let newState = {...state};
+      
+      // Проверяем покупки для системы охлаждения
+      if (buildingId === 'homeComputer' && 
+          newState.buildings.homeComputer?.count >= 2 &&
+          newState.buildings.coolingSystem) {
+        newState.buildings.coolingSystem.unlocked = true;
+        newState.unlocks.coolingSystem = true;
+        console.log("GameStateService: Разблокирована система охлаждения из-за покупки компьютера");
+      }
+      
+      // Проверяем покупки для улучшенного кошелька
+      if (buildingId === 'cryptoWallet' &&
+          newState.buildings.cryptoWallet?.count >= 5) {
+        
+        if (newState.buildings.enhancedWallet) {
+          newState.buildings.enhancedWallet.unlocked = true;
+          newState.unlocks.enhancedWallet = true;
+        }
+        
+        if (newState.buildings.improvedWallet) {
+          newState.buildings.improvedWallet.unlocked = true;
+          newState.unlocks.improvedWallet = true;
+        }
+        
+        console.log("GameStateService: Разблокирован улучшенный кошелек из-за покупки криптокошелька");
+      }
+      
+      // Обновляем все ресурсы после покупки здания
+      newState = this.updateResourceProduction(newState);
       
       // Обновляем все максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
@@ -314,12 +344,16 @@ export class GameStateService {
       // Проверяем все разблокировки
       newState = this.unlockService.checkAllUnlocks(newState);
       
+      // Дополнительная проверка всех возможных разблокировок
+      newState = this.checkSpecialBuildingUnlocks(newState);
+      
       // Обновляем lastUpdate для отслеживания времени
       newState = {
         ...newState,
         lastUpdate: Date.now()
       };
       
+      console.log("GameStateService: Успешно обработана покупка здания");
       return newState;
     } catch (error) {
       console.error("GameStateService: Ошибка при обработке покупки здания", error);
