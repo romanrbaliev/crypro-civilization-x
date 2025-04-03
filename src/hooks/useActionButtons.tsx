@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 
 interface UseActionButtonsProps {
@@ -28,7 +28,7 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
   
   // Обработчик клика по кнопке "Изучить крипту"
   const handleLearnClick = useCallback(() => {
-    // ИСПРАВЛЕНИЕ: Всегда передаем строго 1 в качестве значения
+    // Строго фиксированная прибавка в 1, вне зависимости от источника нажатия
     dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 }});
     
     // Увеличиваем счетчик кликов по кнопке "Изучить крипту"
