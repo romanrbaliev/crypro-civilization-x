@@ -1,4 +1,3 @@
-
 import { GameState } from '../../types';
 import { hasEnoughResources, updateResourceMaxValues } from '../../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
@@ -186,6 +185,21 @@ export const processPurchaseBuilding = (
     if (newState.buildings.cryptoWallet.count === 1) {
       safeDispatchGameEvent('Криптокошелёк: +50 к макс. USDT, +25% к макс. знаниям', 'info');
     }
+    
+    // После покупки криптокошелька разблокируем исследование "Безопасность криптокошельков"
+    if (newState.buildings.cryptoWallet.count === 1) {
+      if (newState.upgrades.walletSecurity || newState.upgrades.cryptoWalletSecurity) {
+        const securityUpgradeId = newState.upgrades.walletSecurity ? 'walletSecurity' : 'cryptoWalletSecurity';
+        
+        newState.upgrades[securityUpgradeId] = {
+          ...newState.upgrades[securityUpgradeId],
+          unlocked: true
+        };
+        console.log("Исследование 'Безопасность криптокошельков' разблокировано после покупки Криптокошелька");
+        
+        safeDispatchGameEvent('Разблокировано исследование "Безопасность криптокошельков"', 'info');
+      }
+    }
   }
   
   if (buildingId === 'homeComputer' && newState.buildings.homeComputer.count > 0) {
@@ -249,6 +263,43 @@ export const processPurchaseBuilding = (
           perSecond: (newState.resources.electricity.perSecond || 0) - 1
         };
       }
+    }
+  }
+  
+  if (buildingId === 'miner' && newState.buildings.miner.count === 1) {
+    console.log("Применяем эффекты от первой покупки майнера");
+    
+    // Разблокируем Bitcoin при покупке майнера
+    if (!newState.resources.bitcoin || !newState.resources.bitcoin.unlocked) {
+      // Инициализируем или обновляем Bitcoin
+      if (!newState.resources.bitcoin) {
+        newState.resources.bitcoin = {
+          id: 'bitcoin',
+          name: 'Bitcoin',
+          description: 'Bitcoin - первая и основная криптовалюта',
+          type: 'currency',
+          icon: 'bitcoin',
+          value: 0,
+          baseProduction: 0,
+          production: 0,
+          perSecond: 0,
+          max: 0.01,
+          unlocked: true
+        };
+      } else {
+        newState.resources.bitcoin = {
+          ...newState.resources.bitcoin,
+          unlocked: true
+        };
+      }
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        bitcoin: true
+      };
+      
+      console.log("Bitcoin разблокирован после покупки майнера");
+      safeDispatchGameEvent('Разблокирован Bitcoin!', 'success');
     }
   }
   

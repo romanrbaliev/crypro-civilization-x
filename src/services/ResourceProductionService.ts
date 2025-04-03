@@ -15,6 +15,9 @@ export class ResourceProductionService {
     // Принудительно проверяем разблокировку майнера при наличии исследования "Основы криптовалют"
     this.checkMinerUnlock(state);
     
+    // Проверяем, какие ресурсы закончились
+    const resourcesExhausted = this.checkExhaustedResources(state);
+    
     // Рассчитываем базовое производство и потребление для каждого ресурса
     for (const resourceId in resources) {
       // Пропускаем неразблокированные ресурсы
@@ -99,20 +102,27 @@ export class ResourceProductionService {
           // Потребление электричества (домашний компьютер и др.)
           let electricityConsumption = 0;
           
-          if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0) {
-            const computerCount = state.buildings.homeComputer.count;
-            const computerConsumption = computerCount * 1; // 1 электричество в секунду на компьютер
-            electricityConsumption += computerConsumption;
-            
-            console.log(`ResourceProductionService: Домашние компьютеры потребляют ${computerConsumption.toFixed(2)}/сек электричества`);
-          }
+          // Проверяем, не закончилось ли электричество
+          const isElectricityExhausted = resourcesExhausted.includes('electricity');
           
-          if (state.buildings.miner && state.buildings.miner.count > 0) {
-            const minerCount = state.buildings.miner.count;
-            const minerConsumption = minerCount * 1; // 1 электричество в секунду на майнер
-            electricityConsumption += minerConsumption;
+          if (!isElectricityExhausted) {
+            if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0) {
+              const computerCount = state.buildings.homeComputer.count;
+              const computerConsumption = computerCount * 1; // 1 электричество в секунду на компьютер
+              electricityConsumption += computerConsumption;
+              
+              console.log(`ResourceProductionService: Домашние компьютеры потребляют ${computerConsumption.toFixed(2)}/сек электричества`);
+            }
             
-            console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек электричества`);
+            if (state.buildings.miner && state.buildings.miner.count > 0) {
+              const minerCount = state.buildings.miner.count;
+              const minerConsumption = minerCount * 1; // 1 электричество в секунду на майнер
+              electricityConsumption += minerConsumption;
+              
+              console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек электричества`);
+            }
+          } else {
+            console.log('ResourceProductionService: Электричество закончилось, потребление приостановлено');
           }
           
           // Считаем итоговое производство электричества
@@ -130,7 +140,10 @@ export class ResourceProductionService {
           // Вычислительная мощность от домашних компьютеров
           let computingProduction = resource.baseProduction || 0;
           
-          if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0) {
+          // Проверяем, не закончилось ли электричество
+          const isElectricityAvailable = !resourcesExhausted.includes('electricity');
+          
+          if (isElectricityAvailable && state.buildings.homeComputer && state.buildings.homeComputer.count > 0) {
             const computerCount = state.buildings.homeComputer.count;
             let computerProduction = computerCount * 2; // 2 вычисл. мощности в секунду на компьютер
             
@@ -146,17 +159,26 @@ export class ResourceProductionService {
             
             computingProduction += computerProduction;
             console.log(`ResourceProductionService: Домашние компьютеры производят ${computerProduction.toFixed(2)}/сек вычислительной мощности`);
+          } else if (!isElectricityAvailable) {
+            console.log('ResourceProductionService: Электричество закончилось, производство вычислительной мощности приостановлено');
           }
           
           // Потребление вычислительной мощности (майнеры и др.)
           let computingConsumption = 0;
           
-          if (state.buildings.miner && state.buildings.miner.count > 0) {
-            const minerCount = state.buildings.miner.count;
-            const minerConsumption = minerCount * 5; // 5 вычисл. мощности в секунду на майнер
-            computingConsumption += minerConsumption;
-            
-            console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек вычислительной мощности`);
+          // Проверяем, не закончилась ли вычислительная мощность
+          const isComputingPowerExhausted = resourcesExhausted.includes('computingPower');
+          
+          if (!isComputingPowerExhausted && !resourcesExhausted.includes('electricity')) {
+            if (state.buildings.miner && state.buildings.miner.count > 0) {
+              const minerCount = state.buildings.miner.count;
+              const minerConsumption = minerCount * 5; // 5 вычисл. мощности в секунду на майнер
+              computingConsumption += minerConsumption;
+              
+              console.log(`ResourceProductionService: Майнеры потребляют ${minerConsumption.toFixed(2)}/сек вычислительной мощности`);
+            }
+          } else if (isComputingPowerExhausted) {
+            console.log('ResourceProductionService: Вычислительная мощность закончилась, потребление приостановлено');
           }
           
           // Считаем итоговую вычислительную мощность
@@ -174,7 +196,10 @@ export class ResourceProductionService {
           // Биткоин от майнеров
           let bitcoinProduction = resource.baseProduction || 0;
           
-          if (state.buildings.miner && state.buildings.miner.count > 0) {
+          // Проверяем, не закончилось ли электричество или вычислительная мощность
+          const resourcesAvailable = !resourcesExhausted.includes('electricity') && !resourcesExhausted.includes('computingPower');
+          
+          if (resourcesAvailable && state.buildings.miner && state.buildings.miner.count > 0) {
             const minerCount = state.buildings.miner.count;
             // Базовое производство: 0.00005 BTC в секунду на майнер
             let miningEfficiency = state.miningParams?.miningEfficiency || 1;
@@ -182,6 +207,8 @@ export class ResourceProductionService {
             bitcoinProduction += minerProduction;
             
             console.log(`ResourceProductionService: Майнеры производят ${minerProduction.toFixed(6)}/сек Bitcoin (эффективность: ${miningEfficiency})`);
+          } else if (!resourcesAvailable) {
+            console.log('ResourceProductionService: Недостаточно ресурсов, майнинг Bitcoin приостановлен');
           }
           
           resources[resourceId] = {
@@ -201,6 +228,23 @@ export class ResourceProductionService {
     }
     
     return resources;
+  }
+  
+  /**
+   * Проверяет, какие ресурсы закончились (их значение равно 0)
+   */
+  private checkExhaustedResources(state: GameState): string[] {
+    const exhaustedResources: string[] = [];
+    
+    for (const resourceId in state.resources) {
+      const resource = state.resources[resourceId];
+      if (resource.unlocked && resource.value <= 0 && resource.perSecond < 0) {
+        exhaustedResources.push(resourceId);
+        console.log(`ResourceProductionService: Ресурс ${resourceId} закончился`);
+      }
+    }
+    
+    return exhaustedResources;
   }
   
   /**

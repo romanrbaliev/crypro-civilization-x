@@ -96,31 +96,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       }
     };
     
-    // 3. Разблокируем криптокошелек
-    if (newState.buildings.cryptoWallet) {
-      newState.buildings.cryptoWallet = {
-        ...newState.buildings.cryptoWallet,
+    // 3. Разблокируем исследование "Основы криптовалют" вместо криптокошелька
+    if (newState.upgrades.cryptoCurrencyBasics || newState.upgrades.cryptoBasics) {
+      const cryptoBasicsId = newState.upgrades.cryptoCurrencyBasics ? 'cryptoCurrencyBasics' : 'cryptoBasics';
+      
+      newState.upgrades[cryptoBasicsId] = {
+        ...newState.upgrades[cryptoBasicsId],
         unlocked: true
       };
-      
-      // Добавляем флаг разблокировки в unlocks
-      newState.unlocks = {
-        ...newState.unlocks,
-        cryptoWallet: true
-      };
-      
-      console.log("Криптокошелек разблокирован");
-    }
-    
-    // 4. Разблокируем исследование "Безопасность криптокошельков"
-    if (newState.upgrades.walletSecurity || newState.upgrades.cryptoWalletSecurity) {
-      const securityUpgradeId = newState.upgrades.walletSecurity ? 'walletSecurity' : 'cryptoWalletSecurity';
-      
-      newState.upgrades[securityUpgradeId] = {
-        ...newState.upgrades[securityUpgradeId],
-        unlocked: true
-      };
-      console.log("Исследование 'Безопасность криптокошельков' разблокировано");
+      console.log("Исследование 'Основы криптовалют' разблокировано после 'Основы блокчейна'");
     }
     
     // Отправляем уведомление об эффекте
@@ -173,38 +157,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
       console.log("Автомайнер (ID: autoMiner) принудительно разблокирован");
     }
     
-    // Принудительно инициализируем и разблокируем ресурс Bitcoin
-    if (!newState.resources.bitcoin) {
-      newState.resources.bitcoin = {
-        id: 'bitcoin',
-        name: 'Bitcoin',
-        description: 'Bitcoin - первая и основная криптовалюта',
-        type: 'currency',
-        icon: 'bitcoin',
-        value: 0,
-        baseProduction: 0,
-        production: 0,
-        perSecond: 0,
-        max: 0.01,
-        unlocked: true
-      };
-      
-      console.log("Bitcoin инициализирован");
-    } else {
-      // Разблокируем существующий ресурс Bitcoin
-      newState.resources.bitcoin = {
-        ...newState.resources.bitcoin,
-        unlocked: true
-      };
-      
-      console.log("Существующий Bitcoin разблокирован");
-    }
-    
-    // Устанавливаем флаг разблокировки Bitcoin
-    newState.unlocks = {
-      ...newState.unlocks,
-      bitcoin: true
-    };
+    // Не разблокируем Bitcoin до покупки майнера
     
     // Отправляем уведомление об эффекте
     safeDispatchGameEvent("Основы криптовалют: +10% к эффективности применения знаний, разблокирован майнер", "info");
@@ -213,10 +166,10 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
   if (upgradeId === 'cryptoWalletSecurity' || upgradeId === 'walletSecurity') {
     console.log("Применяем эффекты 'Безопасность криптокошельков'");
     
-    // Увеличиваем макс. хране��ие USDT на 25%
+    // Увеличиваем макс. хранение USDT на 25%
     if (newState.resources.usdt) {
       const currentMax = newState.resources.usdt.max || 50;
-      const newMax = currentMax * 1.25;
+      const newMax = Math.round(currentMax * 1.25); // Округляем результат
       
       newState.resources.usdt = {
         ...newState.resources.usdt,

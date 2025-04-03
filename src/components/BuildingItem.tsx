@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -61,6 +60,19 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     return nextCost;
   };
   
+  const getResourceName = (resourceId: string): string => {
+    const resourceNames: {[key: string]: string} = {
+      knowledge: 'Знания',
+      usdt: 'USDT',
+      electricity: 'Электричество',
+      computingPower: 'Вычисл. мощность',
+      bitcoin: 'Bitcoin'
+    };
+    
+    return resourceNames[resourceId] || 
+           (state.resources[resourceId]?.name || resourceId);
+  };
+  
   const renderCost = () => {
     const costs = building.count === 0 ? building.cost : getNextCost();
     return Object.entries(costs).map(([resourceId, amount]) => {
@@ -87,8 +99,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
     
     return Object.entries(building.production).map(([resourceId, amount]) => {
-      const resource = state.resources[resourceId];
-      const resourceName = resource ? resource.name : resourceId;
+      const resourceName = getResourceName(resourceId);
       
       return (
         <div key={resourceId} className="text-green-600 text-[11px] flex justify-between w-full">
@@ -105,8 +116,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
     
     return Object.entries(building.consumption).map(([resourceId, amount]) => {
-      const resource = state.resources[resourceId];
-      const resourceName = resource ? resource.name : resourceId;
+      const resourceName = getResourceName(resourceId);
       
       return (
         <div key={resourceId} className="text-red-500 text-[11px] flex justify-between w-full">

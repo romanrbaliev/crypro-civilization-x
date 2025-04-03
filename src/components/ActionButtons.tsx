@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef } from "react";
 import { useActionButtons } from "@/hooks/useActionButtons";
 import { Button } from "@/components/ui/button";
@@ -76,9 +75,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           disabled={!canExchangeBitcoin}
         >
           <span className="text-xs">Обменять Bitcoin</span>
-          <small className="text-xs ml-2">
-            1 BTC = {currentExchangeRate.toLocaleString()} USDT
-          </small>
         </Button>
       );
     }

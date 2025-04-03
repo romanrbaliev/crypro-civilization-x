@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -74,15 +73,32 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       // Обрабатываем deltaTime, если оно передано
       const deltaTime = action.payload?.deltaTime || 1000; // По умолчанию 1 секунда
       
+      // Проверяем, какие ресурсы закончились
+      const exhaustedResources = Object.keys(updatedState.resources).filter(resourceId => {
+        const resource = updatedState.resources[resourceId];
+        return resource.unlocked && resource.value <= 0 && resource.perSecond < 0;
+      });
+      
       // Обновляем ресурсы на основе их производства за deltaTime
       const resourceIds = Object.keys(updatedState.resources);
       for (const resourceId of resourceIds) {
         const resource = updatedState.resources[resourceId];
         if (resource.unlocked && resource.perSecond) {
-          // Вычисляем прирост в зависимости от прошедшего времени
-          const increment = (resource.perSecond * deltaTime) / 1000;
-          // Обновляем значение с учетом максимума
-          const newValue = Math.min(resource.value + increment, resource.max);
+          let increment = (resource.perSecond * deltaTime) / 1000;
+          
+          // Проверяем, не должен ли ресурс остановиться на нуле
+          if (resource.value + increment < 0) {
+            // Ресурс закончился, устанавливаем его на 0
+            increment = -resource.value;
+            
+            // Добавляем в список исчерпанных, если еще не там
+            if (!exhaustedResources.includes(resourceId)) {
+              exhaustedResources.push(resourceId);
+            }
+          }
+          
+          // Обновляем значение с учетом максимума и запрета на отрицательные значения
+          const newValue = Math.max(0, Math.min(resource.value + increment, resource.max));
           // Обновляем ресурс
           updatedState.resources[resourceId] = {
             ...resource,
