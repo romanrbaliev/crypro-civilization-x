@@ -1,4 +1,3 @@
-
 import { GameState, Resource } from '../types';
 import { hasEnoughResources } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -177,46 +176,33 @@ export const processPracticePurchase = (state: GameState): GameState => {
     return state;
   }
   
-  // Вычитаем стоимость
-  const newUsdtValue = state.resources.usdt.value - cost;
+  console.log("processPracticePurchase: Начинаем покупку практики...");
+  console.log(`Текущий уровень практики: ${currentLevel}, Стоимость нового уровня: ${cost} USDT`);
   
-  // Создаем новое состояние
-  let newResources = { ...state.resources };
+  // КЛОНИРУЕМ ВСЁ СОСТОЯНИЕ
+  const newState = { ...state };
   
-  // Обновляем USDT
+  // Обновляем ресурсы - сначала клонируем
+  const newResources = { ...newState.resources };
+  
+  // Вычитаем стоимость из USDT
   if (newResources.usdt) {
     newResources.usdt = {
       ...newResources.usdt,
-      value: newUsdtValue
-    };
-  }
-  
-  // Проверяем наличие ресурса knowledge и создаем его, если отсутствует
-  if (!newResources.knowledge) {
-    newResources.knowledge = {
-      id: 'knowledge',
-      name: 'Знания',
-      description: 'Знания о криптовалюте и блокчейне',
-      type: 'resource',
-      icon: 'book',
-      value: 0,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0,
-      max: 100,
-      unlocked: true
+      value: newResources.usdt.value - cost
     };
   }
   
   // Увеличиваем уровень практики
   const newPracticeLevel = currentLevel + 1;
   
-  // Проверяем существует ли здание практики
-  let updatedBuildings = { ...state.buildings };
+  // Клонируем здания
+  const newBuildings = { ...newState.buildings };
   
-  if (!updatedBuildings.practice) {
+  // Обновляем или создаем здание практики
+  if (!newBuildings.practice) {
     // Создаем здание практики с необходимыми свойствами
-    updatedBuildings.practice = {
+    newBuildings.practice = {
       id: 'practice',
       name: 'Практика',
       description: 'Автоматически генерирует знания',
@@ -227,50 +213,69 @@ export const processPracticePurchase = (state: GameState): GameState => {
       costMultiplier: costMultiplier,
       count: newPracticeLevel,
       unlocked: true,
-      production: {  // Производство знаний
+      production: {
         knowledge: 1
       },
       productionBoost: 0
     };
+    console.log("Создано новое здание 'Практика'");
   } else {
     // Обновляем существующее здание практики
-    updatedBuildings.practice = {
-      ...updatedBuildings.practice,
+    newBuildings.practice = {
+      ...newBuildings.practice,
       count: newPracticeLevel
     };
+    console.log(`Практика улучшена до уровня ${newPracticeLevel}`);
   }
   
-  // Обновляем производство знаний
-  // Важно: обновляем baseProduction, production и perSecond последовательно и согласованно
+  // Настройка производства знаний
   const knowledgePerPractice = 1; // 1 знание в секунду за каждую практику
-  const extraProduction = knowledgePerPractice; // Добавляем +1 за новую практику
+  const totalProduction = newPracticeLevel * knowledgePerPractice;
   
-  let updatedKnowledge = { ...newResources.knowledge };
-  // Устанавливаем базовое производство как уровень практики
-  updatedKnowledge.baseProduction = newPracticeLevel * knowledgePerPractice;
-  updatedKnowledge.production = updatedKnowledge.baseProduction;
-  updatedKnowledge.perSecond = updatedKnowledge.production;
+  // Обновляем или создаем ресурс знаний
+  if (!newResources.knowledge) {
+    // Создаем ресурс знаний, если его ещё нет
+    newResources.knowledge = {
+      id: 'knowledge',
+      name: 'Знания',
+      description: 'Знания о криптовалюте и блокчейне',
+      type: 'resource',
+      icon: 'book',
+      value: 0,
+      baseProduction: totalProduction, // Устанавливаем базовое производство
+      production: totalProduction, // Устанавливаем текущее производство
+      perSecond: totalProduction, // Устанавливаем скорость в секунду
+      max: 100,
+      unlocked: true
+    };
+    console.log(`Создан ресурс знаний с производством ${totalProduction}/сек`);
+  } else {
+    // Обновляем существующий ресурс знаний
+    newResources.knowledge = {
+      ...newResources.knowledge,
+      baseProduction: totalProduction,
+      production: totalProduction,
+      perSecond: totalProduction
+    };
+    console.log(`Обновлен ресурс знаний с производством ${totalProduction}/сек`);
+  }
   
-  // Обновляем ресурс знаний
-  newResources.knowledge = updatedKnowledge;
-  
-  // Создаем окончательное состояние со всеми обновлениями
-  let newState = {
-    ...state,
+  // Собираем окончательное состояние
+  const finalState = {
+    ...newState,
     resources: newResources,
-    buildings: updatedBuildings
+    buildings: newBuildings
   };
   
-  console.log(`Практика улучшена до уровня ${newPracticeLevel}, стоимость: ${cost} USDT`);
-  console.log("Обновлено производство знаний после покупки практики:", {
+  console.log("processPracticePurchase: Итоговое состояние производства знаний:", {
     level: newPracticeLevel,
-    baseProduction: updatedKnowledge.baseProduction,
-    production: updatedKnowledge.production,
-    perSecond: updatedKnowledge.perSecond
+    baseProduction: finalState.resources.knowledge?.baseProduction,
+    production: finalState.resources.knowledge?.production,
+    perSecond: finalState.resources.knowledge?.perSecond
   });
   
   // Отправляем событие об успешной покупке
   safeDispatchGameEvent(`Практика улучшена до уровня ${newPracticeLevel}`, 'success');
   
-  return newState;
+  return finalState;
 };
