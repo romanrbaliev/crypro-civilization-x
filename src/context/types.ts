@@ -51,7 +51,7 @@ export interface Building {
   name: string;
   description: string;
   cost: { [key: string]: number };
-  baseCost?: { [key: string]: number };  // Добавляем поле baseCost, которое может быть опциональным
+  baseCost?: { [key: string]: number };  // Базовая стоимость для расчета
   costMultiplier?: number;
   production?: { [key: string]: number };
   consumption?: { [key: string]: number };

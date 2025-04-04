@@ -4,6 +4,7 @@ import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
 import { UnlockManagerService } from '@/services/UnlockManagerService';
 import { forceCheckAllUnlocks, forceCheckAdvancedUnlocks } from '@/utils/unlockActions';
+import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
@@ -60,55 +61,55 @@ const gameStateService = new GameStateService();
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
   
+  // Создаем экземпляр менеджера разблокировок
+  let unlockManager: UnlockManager | null = null;
+  
   // Добавляем обработку принудительной проверки всех разблокировок
   if (action.type === 'FORCE_RESOURCE_UPDATE' || action.type === 'FORCE_CHECK_UNLOCKS') {
     console.log('Принудительная проверка всех разблокировок');
-    let newState = forceCheckAllUnlocks(state);
-    newState = forceCheckAdvancedUnlocks(newState);
-    return newState;
+    unlockManager = new UnlockManager(state);
+    return unlockManager.forceCheckAllUnlocks();
   }
   
-  // ВАЖНОЕ ДОПОЛНЕНИЕ: Новые действия для разблокировки определенных зданий после выполнения условий
-  if (action.type === 'PURCHASE_BUILDING' && action.payload.buildingId === 'homeComputer') {
-    console.log('Обработка покупки домашнего компьютера, проверка разблокировок');
-    let newState = processPurchaseBuilding(state, action.payload);
-    
-    // Проверяем условие для разблокировки системы охлаждения
-    if (newState.buildings.homeComputer?.count >= 2 && !newState.buildings.coolingSystem?.unlocked) {
-      console.log('Достигнуто 2 уровня домашнего компьютера, разблокируем систему охлаждения');
-      newState = processUpdateResources(newState);
-    }
-    
-    return newState;
+  // Обрабатываем действие
+  let newState = handleAction(state, action);
+  
+  // Если действие может повлиять на разблокировки, проверяем их
+  if (shouldCheckUnlocks(action.type)) {
+    unlockManager = new UnlockManager(newState);
+    newState = unlockManager.updateGameState(newState);
   }
   
-  if (action.type === 'PURCHASE_BUILDING' && action.payload.buildingId === 'cryptoWallet') {
-    console.log('Обработка покупки криптокошелька, проверка разблокировок');
-    let newState = processPurchaseBuilding(state, action.payload);
-    
-    // Проверяем условие для разблокировки улучшенного кошелька
-    if (newState.buildings.cryptoWallet?.count >= 5 && !newState.buildings.enhancedWallet?.unlocked) {
-      console.log('Достигнуто 5 уровней криптокошелька, разблокируем улучшенный кошелек');
-      newState = processUpdateResources(newState);
-    }
-    
-    return newState;
-  }
+  return newState;
+};
+
+/**
+ * Проверяет, нужно ли проверять разблокировки после действия
+ */
+function shouldCheckUnlocks(actionType: string): boolean {
+  // Список действий, которые могут повлиять на разблокировки
+  const unlockAffectingActions = [
+    'INCREMENT_RESOURCE',
+    'PURCHASE_BUILDING',
+    'PURCHASE_UPGRADE',
+    'INCREMENT_COUNTER',
+    'APPLY_KNOWLEDGE',
+    'APPLY_ALL_KNOWLEDGE',
+    'UNLOCK_RESOURCE',
+    'UNLOCK_FEATURE',
+    'SET_BUILDING_UNLOCKED',
+    'SET_UPGRADE_UNLOCKED',
+    'LOAD_GAME',
+    'START_GAME'
+  ];
   
-  if (action.type === 'PURCHASE_UPGRADE' && 
-     (action.payload.upgradeId === 'cryptoCurrencyBasics' || action.payload.upgradeId === 'cryptoBasics')) {
-    console.log('Обработка покупки исследования "Основы криптовалют", проверка разблокировок');
-    let newState = processPurchaseUpgrade(state, action.payload);
-    
-    // Проверяем условие для разблокировки криптобиблиотеки
-    if (!newState.buildings.cryptoLibrary?.unlocked) {
-      console.log('Куплено исследование "Основы криптовалют", разблокируем криптобиблиотеку');
-      newState = processUpdateResources(newState);
-    }
-    
-    return newState;
-  }
-  
+  return unlockAffectingActions.includes(actionType);
+}
+
+/**
+ * Обрабатывает действие без проверки разблокировок
+ */
+function handleAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     // ВАЖНОЕ ИСПРАВЛЕНИЕ: Добавляем обработку обновления ресурсов
     case 'UPDATE_RESOURCES':
@@ -143,27 +144,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case 'EXCHANGE_BTC':
       return processExchangeBtc(state);
     case 'PRACTICE_PURCHASE':
-      // ВАЖНОЕ ИСПРАВЛЕНИЕ: Принудительное обновление ресурсов после покупки практики
-      let newState = processPracticePurchase(state);
-      
-      // Добавляем проверку для отладки
-      console.log('После processPracticePurchase:', {
-        practiceLevel: newState.buildings.practice?.count,
-        knowledgeProduction: newState.resources.knowledge?.perSecond
-      });
-      
-      // Принудительно обновляем состояние производства ресурсов
-      newState = {
-        ...newState,
-        lastUpdate: Date.now() // Обновляем время последнего обновления
-      };
-      
-      // Принудительно обновляем метрики для UI
-      if (newState.resources.knowledge) {
-        console.log('Принудительно гарантируем метрики знаний установлены');
-      }
-      
-      return newState;
+      return processPracticePurchase(state);
       
     // Обработка разблокировок
     case 'UNLOCK_FEATURE':
@@ -216,4 +197,4 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     default:
       return state;
   }
-};
+}

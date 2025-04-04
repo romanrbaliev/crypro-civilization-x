@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +12,7 @@ import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
-import { UnlockManagerService } from "@/services/UnlockManagerService";
+import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
 import {
   Dialog,
   DialogContent,
@@ -23,23 +22,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-import { resetAllGameData } from "@/context/utils/gameStorage";
-import { toast } from "@/hooks/use-toast";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -48,11 +30,10 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
-  const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
-  const hasUnlockedResearch = state.unlocks.research === true;
-  const hasUnlockedSpecialization = state.unlocks.specialization === true;
-  const hasUnlockedReferrals = state.unlocks.referrals === true || 
-                              state.upgrades.cryptoCommunity?.purchased === true;
+  const hasUnlockedEquipment = useUnlockStatus('equipment');
+  const hasUnlockedResearch = useUnlockStatus('research');
+  const hasUnlockedSpecialization = useUnlockStatus('specialization');
+  const hasUnlockedReferrals = useUnlockStatus('referrals');
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
@@ -60,31 +41,15 @@ const GameScreen = () => {
   
   useEffect(() => {
     console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
-    console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
+    console.log("Разблокированные вкладки:", {
+      equipment: hasUnlockedEquipment,
+      research: hasUnlockedResearch,
+      specialization: hasUnlockedSpecialization,
+      referrals: hasUnlockedReferrals
+    });
     
-    // Добавляем отладочную информацию о зданиях
-    console.log("GameScreen: Проверка состояния зданий");
-    console.log("GameScreen: Криптобиблиотека:", state.buildings.cryptoLibrary?.unlocked ? "Разблокирована" : "Заблокирована");
-    console.log("GameScreen: Система охлаждения:", state.buildings.coolingSystem?.unlocked ? "Разблокирована" : "Заблокирована");
-    console.log("GameScreen: Улучшенный кошелек:", 
-      (state.buildings.enhancedWallet?.unlocked || state.buildings.improvedWallet?.unlocked) ? "Разблокирован" : "Заблокирован");
-    
-    // Проверяем условия разблокировки
-    console.log("GameScreen: Условия разблокировки");
-    console.log("GameScreen: - Домашних компьютеров:", state.buildings.homeComputer?.count || 0, "(нужно ≥ 2 для системы охлаждения)");
-    console.log("GameScreen: - Криптокошельков:", state.buildings.cryptoWallet?.count || 0, "(нужно ≥ 5 для улучшенного кошелька)");
-    console.log("GameScreen: - Основы криптовалют куплены:", 
-      state.upgrades.cryptoCurrencyBasics?.purchased || state.upgrades.cryptoBasics?.purchased ? "Да" : "Нет");
-    console.log("GameScreen: - Генераторов:", state.buildings.generator?.count || 0, "(покупка должна разблокировать исследования)");
-    console.log("GameScreen: - Статус разблокировки исследований:", state.unlocks.research ? "Разблокировано" : "Заблокировано");
-    
-    // Принудительно проверяем разблокировки
-    if (state.buildings.generator?.count > 0 && !state.unlocks.research) {
-      console.log("GameScreen: Принудительно запрашиваем разблокировку исследований (есть генератор)");
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-    }
-    
-  }, [state.unlocks, state.buildings, state.upgrades, dispatch]);
+    dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+  }, [state.unlocks, dispatch]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
@@ -136,31 +101,21 @@ const GameScreen = () => {
   }, []);
   
   useEffect(() => {
-    if (hasUnlockedBuildings) {
+    if (hasUnlockedEquipment) {
       setSelectedTab("equipment");
     } else if (hasUnlockedResearch) {
       setSelectedTab("research");
     } else if (hasUnlockedReferrals) {
       setSelectedTab("referrals");
     }
-    
-    console.log("Обновление выбранной вкладки:", {
-      hasUnlockedBuildings,
-      hasUnlockedResearch,
-      hasUnlockedReferrals,
-      selectedTab
-    });
-  }, [hasUnlockedBuildings, hasUnlockedResearch, hasUnlockedReferrals]);
+  }, [hasUnlockedEquipment, hasUnlockedResearch, hasUnlockedReferrals]);
   
-  // Проверяем разблокировку исследований при загрузке компонента
   useEffect(() => {
     if (state.buildings.generator?.count > 0 && !state.unlocks.research) {
       console.log("GameScreen: Принудительная проверка разблокировок при первичной загрузке");
       
-      // Вызываем централизованную систему разблокировок напрямую
       const updatedState = UnlockManagerService.checkAllUnlocks(state);
       
-      // Если есть изменения в разблокировках, обновляем состояние
       if (updatedState.unlocks.research !== state.unlocks.research) {
         console.log("GameScreen: Обнаружено изменение разблокировок, применяем");
         dispatch({ type: "FORCE_RESOURCE_UPDATE" });
@@ -197,7 +152,9 @@ const GameScreen = () => {
     }
   };
   
-  const renderTabButton = (id: string, label: string, icon: React.ReactNode) => {
+  const renderTabButton = (id: string, label: string, icon: React.ReactNode, isUnlocked: boolean) => {
+    if (!isUnlocked) return null;
+    
     return (
       <Button 
         variant={selectedTab === id ? "default" : "ghost"} 
@@ -351,18 +308,15 @@ const GameScreen = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={unlockedResources} />
+            <ResourceList resources={Object.values(state.resources).filter(r => r.unlocked)} />
           </div>
           
           <div className="border-t mt-auto">
             <div className="flex flex-col">
-              {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedSpecialization && renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedReferrals && renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
+              {renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />, hasUnlockedEquipment)}
+              {renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />, hasUnlockedResearch)}
+              {renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />, hasUnlockedSpecialization)}
+              {renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />, hasUnlockedReferrals)}
             </div>
           </div>
         </div>
@@ -370,7 +324,7 @@ const GameScreen = () => {
         <div className="w-3/5 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2 flex flex-col">
             <div className="flex-1 overflow-auto">
-              {selectedTab === "equipment" && hasUnlockedBuildings && (
+              {selectedTab === "equipment" && hasUnlockedEquipment && (
                 <EquipmentTab onAddEvent={addEvent} />
               )}
               

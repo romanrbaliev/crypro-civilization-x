@@ -1,9 +1,9 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
-import { UnlockManagerService } from "@/services/UnlockManagerService";
+import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -12,34 +12,8 @@ interface ResearchTabProps {
 const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   
-  // Проверяем состояние флага research в unlocks
-  const researchUnlocked = state.unlocks.research === true;
-  
-  // Определяем базовое исследование
-  const isInitialResearch = (upgradeId: string) => {
-    return upgradeId === 'basicBlockchain' || 
-           upgradeId === 'blockchain_basics' || 
-           upgradeId === 'blockchainBasics';
-  };
-  
-  // Проверяем, куплены ли "Основы блокчейна"
-  const basicBlockchainPurchased = Object.values(state.upgrades)
-    .some(upgrade => 
-      isInitialResearch(upgrade.id) && upgrade.purchased
-    );
-  
-  // При монтировании компонента проверим разблокировку исследований
-  useEffect(() => {
-    console.log("ResearchTab: Проверка разблокировки исследований");
-    console.log("ResearchTab: Текущий статус разблокировки:", researchUnlocked);
-    console.log("ResearchTab: Количество генераторов:", state.buildings.generator?.count || 0);
-    
-    // Если есть генератор, но исследования не разблокированы, проверяем разблокировки
-    if (state.buildings.generator?.count > 0 && !researchUnlocked) {
-      console.log("ResearchTab: Есть генератор, но исследования не разблокированы. Запрашиваем обновление.");
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-    }
-  }, [researchUnlocked, state.buildings.generator?.count, dispatch]);
+  // Используем новую систему разблокировок
+  const researchUnlocked = useUnlockStatus('research');
   
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)

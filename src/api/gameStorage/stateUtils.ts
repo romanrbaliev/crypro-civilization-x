@@ -1,6 +1,7 @@
 
 import { GameState } from '@/context/types';
 import { initialState } from '@/context/initialState';
+import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 // Валидация структуры данных игры
 export function validateGameState(state: any): boolean {
@@ -87,7 +88,7 @@ export function mergeWithInitialState(loadedState: any): GameState {
   
   if (!loadedState.referralHelpers) {
     loadedState.referralHelpers = [];
-    console.log('✅ Инициализирован пустой масс��в помощников');
+    console.log('✅ Инициализирован пустой массив помощников');
   }
   
   // Проверка наличия счетчиков
@@ -102,69 +103,10 @@ export function mergeWithInitialState(loadedState: any): GameState {
     console.log('✅ Добавлены отсутствующие сообщения о событиях');
   }
   
-  // Корректировка разблокировок при загрузке
-  
-  // USDT должен быть разблокирован только после применения знаний
-  if (loadedState.resources.usdt) {
-    const applyKnowledgeCount = loadedState.counters.applyKnowledge?.value || 0;
-    loadedState.resources.usdt.unlocked = applyKnowledgeCount >= 1;
-    loadedState.unlocks.usdt = applyKnowledgeCount >= 1;
-    console.log(`🔒 Статус разблокировки USDT установлен: ${loadedState.resources.usdt.unlocked}`);
-  }
-  
-  // Исследования доступны только после покупки генератора
-  loadedState.unlocks.research = loadedState.buildings.generator?.count > 0;
-  console.log(`🔒 Статус разблокировки исследований установлен: ${loadedState.unlocks.research}`);
-  
-  // Рефералы доступны только после покупки исследования cryptoCommunity
-  loadedState.unlocks.referrals = loadedState.upgrades.cryptoCommunity?.purchased || false;
-  console.log(`🔒 Статус разблокировки рефералов установлен: ${loadedState.unlocks.referrals}`);
-  
-  // Bitcoin доступен только после покупки майнера
-  if (loadedState.resources.bitcoin) {
-    const hasMiner = loadedState.buildings.miner?.count > 0 || loadedState.buildings.autoMiner?.count > 0;
-    loadedState.resources.bitcoin.unlocked = hasMiner;
-    loadedState.unlocks.bitcoin = hasMiner;
-    console.log(`🔒 Статус разблокировки Bitcoin установлен: ${loadedState.resources.bitcoin.unlocked}`);
-  }
-  
-  // Обмен BTC разблокирован только если есть Bitcoin и он разблокирован
-  loadedState.unlocks.exchangeBtc = loadedState.resources.bitcoin?.unlocked && loadedState.resources.bitcoin?.value > 0;
-  
-  // ИСПРАВЛЕНИЕ: Проверяем разблокировки зданий при загрузке
-  
-  // Криптобиблиотека разблокируется после покупки "Основы криптовалют"
-  const hasCryptoBasics = 
-    loadedState.upgrades.cryptoCurrencyBasics?.purchased || 
-    loadedState.upgrades.cryptoBasics?.purchased;
-    
-  if (hasCryptoBasics && loadedState.buildings.cryptoLibrary) {
-    loadedState.buildings.cryptoLibrary.unlocked = true;
-    loadedState.unlocks.cryptoLibrary = true;
-    console.log('🔒 Криптобиблиотека разблокирована при загрузке');
-  }
-  
-  // Система охлаждения разблокируется после 2+ уровней домашнего компьютера
-  if (loadedState.buildings.homeComputer?.count >= 2 && loadedState.buildings.coolingSystem) {
-    loadedState.buildings.coolingSystem.unlocked = true;
-    loadedState.unlocks.coolingSystem = true;
-    console.log('🔒 Система охлаждения разблокирована при загрузке');
-  }
-  
-  // Улучшенный кошелек разблокируется после 5+ уровней криптокошелька
-  if (loadedState.buildings.cryptoWallet?.count >= 5) {
-    if (loadedState.buildings.enhancedWallet) {
-      loadedState.buildings.enhancedWallet.unlocked = true;
-      loadedState.unlocks.enhancedWallet = true;
-      console.log('🔒 Улучшенный кошелек разблокирован при загрузке');
-    }
-    
-    if (loadedState.buildings.improvedWallet) {
-      loadedState.buildings.improvedWallet.unlocked = true;
-      loadedState.unlocks.improvedWallet = true;
-      console.log('🔒 Улучшенный кошелек (альт.) разблокирован при загрузке');
-    }
-  }
+  // Используем новую систему разблокировок для проверки всех разблокировок при загрузке
+  console.log('🔧 Проверка разблокировок с помощью новой системы');
+  const unlockManager = new UnlockManager(loadedState);
+  loadedState = unlockManager.forceCheckAllUnlocks();
   
   return loadedState as GameState;
 }

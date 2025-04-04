@@ -1,14 +1,11 @@
 
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { 
-  checkAllUnlocks, 
-  checkSpecialUnlocks, 
-  rebuildAllUnlocks 
-} from '@/utils/unlockManager';
+import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 /**
  * Централизованный сервис для управления разблокировками контента в игре
+ * Использует новую систему разблокировок
  */
 export class UnlockManagerService {
   /**
@@ -16,7 +13,8 @@ export class UnlockManagerService {
    */
   public static checkAllUnlocks(state: GameState): GameState {
     console.log("UnlockManagerService: Запуск проверки всех разблокировок");
-    return checkAllUnlocks(state);
+    const unlockManager = new UnlockManager(state);
+    return unlockManager.forceCheckAllUnlocks();
   }
   
   /**
@@ -24,7 +22,7 @@ export class UnlockManagerService {
    */
   public static checkSpecialUnlocks(state: GameState): GameState {
     console.log("UnlockManagerService: Проверка специальных разблокировок");
-    return checkSpecialUnlocks(state);
+    return this.checkAllUnlocks(state);
   }
   
   /**
@@ -32,74 +30,39 @@ export class UnlockManagerService {
    */
   public static rebuildAllUnlocks(state: GameState): GameState {
     console.log("UnlockManagerService: Полное пересоздание всех разблокировок");
-    return rebuildAllUnlocks(state);
+    const unlockManager = new UnlockManager(state);
+    return unlockManager.forceCheckAllUnlocks();
   }
   
   /**
    * Проверяет конкретную разблокировку исследований
    */
   public static checkResearchUnlock(state: GameState): boolean {
-    // Исследования разблокируются после покупки генератора
-    const hasGenerator = state.buildings.generator?.count > 0;
-    const isUnlocked = state.unlocks.research === true;
-    
-    console.log(`UnlockManagerService: Проверка разблокировки исследований:
-      - Есть генератор: ${hasGenerator ? "Да" : "Нет"}
-      - Текущий статус разблокировки: ${isUnlocked ? "Разблокировано" : "Заблокировано"}
-    `);
-    
-    return hasGenerator && !isUnlocked;
+    const unlockManager = new UnlockManager(state);
+    return unlockManager.isUnlocked('research');
   }
   
   /**
    * Проверяет разблокировку криптобиблиотеки
    */
   public static checkCryptoLibraryUnlock(state: GameState): boolean {
-    // Криптобиблиотека разблокируется после покупки "Основы криптовалют"
-    const hasCryptoBasics = state.upgrades.cryptoCurrencyBasics?.purchased || 
-                           state.upgrades.cryptoBasics?.purchased;
-    
-    const isUnlocked = state.buildings.cryptoLibrary?.unlocked === true;
-    
-    console.log(`UnlockManagerService: Проверка разблокировки криптобиблиотеки:
-      - Куплены "Основы криптовалют": ${hasCryptoBasics ? "Да" : "Нет"}
-      - Текущий статус разблокировки: ${isUnlocked ? "Разблокировано" : "Заблокировано"}
-    `);
-    
-    return hasCryptoBasics && !isUnlocked;
+    const unlockManager = new UnlockManager(state);
+    return unlockManager.isUnlocked('cryptoLibrary');
   }
   
   /**
    * Проверяет разблокировку системы охлаждения
    */
   public static checkCoolingSystemUnlock(state: GameState): boolean {
-    // Система охлаждения разблокируется после 2+ уровней домашнего компьютера
-    const hasRequiredLevels = state.buildings.homeComputer?.count >= 2;
-    const isUnlocked = state.buildings.coolingSystem?.unlocked === true;
-    
-    console.log(`UnlockManagerService: Проверка разблокировки системы охлаждения:
-      - Компьютеров 2+ уровня: ${hasRequiredLevels ? "Да" : "Нет"}
-      - Текущий статус разблокировки: ${isUnlocked ? "Разблокировано" : "Заблокировано"}
-    `);
-    
-    return hasRequiredLevels && !isUnlocked;
+    const unlockManager = new UnlockManager(state);
+    return unlockManager.isUnlocked('coolingSystem');
   }
   
   /**
    * Проверяет разблокировку улучшенного кошелька
    */
   public static checkEnhancedWalletUnlock(state: GameState): boolean {
-    // Улучшенный кошелек разблокируется после 5+ уровней криптокошелька
-    const hasRequiredLevels = state.buildings.cryptoWallet?.count >= 5;
-    const isUnlockedEnhanced = state.buildings.enhancedWallet?.unlocked === true;
-    const isUnlockedImproved = state.buildings.improvedWallet?.unlocked === true;
-    
-    console.log(`UnlockManagerService: Проверка разблокировки улучшенного кошелька:
-      - Криптокошельков 5+ уровня: ${hasRequiredLevels ? "Да" : "Нет"}
-      - Текущий статус разблокировки (enhancedWallet): ${isUnlockedEnhanced ? "Разблокировано" : "Заблокировано"}
-      - Текущий статус разблокировки (improvedWallet): ${isUnlockedImproved ? "Разблокировано" : "Заблокировано"}
-    `);
-    
-    return hasRequiredLevels && (!isUnlockedEnhanced || !isUnlockedImproved);
+    const unlockManager = new UnlockManager(state);
+    return unlockManager.isUnlocked('enhancedWallet');
   }
 }
