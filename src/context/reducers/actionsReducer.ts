@@ -32,9 +32,18 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       ...knowledge,
       value: knowledge.value - knowledgeToConvert
     },
-    usdt: {
+    usdt: usdt ? {
       ...usdt,
       value: (usdt.value || 0) + usdtGained,
+      unlocked: true
+    } : {
+      id: 'usdt',
+      name: 'USDT',
+      description: 'Стейблкоин, привязанный к доллару США',
+      type: 'resource',
+      icon: 'dollar-sign',
+      value: usdtGained,
+      max: 100,
       unlocked: true
     }
   };
@@ -90,12 +99,24 @@ export const processApplyKnowledge = (state: GameState): GameState => {
 // Обработка применения всех знаний
 export const processApplyAllKnowledge = (state: GameState): GameState => {
   const knowledge = state.resources.knowledge;
-  const usdt = state.resources.usdt;
   
+  // Проверка на существование ресурса знаний
   if (!knowledge || knowledge.value < 10) {
     console.log('Недостаточно знаний для применения');
     return state;
   }
+  
+  // Проверяем существование USDT или создаем, если его еще нет
+  const usdt = state.resources.usdt || {
+    id: 'usdt',
+    name: 'USDT',
+    description: 'Стейблкоин, привязанный к доллару США',
+    type: 'resource',
+    icon: 'dollar-sign',
+    value: 0,
+    max: 100,
+    unlocked: true
+  };
   
   // Расчет эффективности обмена
   let knowledgeEfficiency = 1.0;
@@ -198,14 +219,26 @@ export const processMiningPower = (state: GameState): GameState => {
   // Расчет добытых биткоинов
   const minedBitcoin = computingPower.value * miningEfficiency;
   
+  // Создаем биткоин, если его нет
+  const updatedBitcoin = bitcoin || {
+    id: 'bitcoin',
+    name: 'Bitcoin',
+    description: 'Криптовалюта Bitcoin',
+    type: 'resource',
+    icon: 'bitcoin',
+    value: 0,
+    max: 10,
+    unlocked: true
+  };
+  
   // Обновляем ресурсы
   return {
     ...state,
     resources: {
       ...state.resources,
       bitcoin: {
-        ...bitcoin,
-        value: (bitcoin.value || 0) + minedBitcoin,
+        ...updatedBitcoin,
+        value: (updatedBitcoin.value || 0) + minedBitcoin,
         unlocked: true
       }
     },
@@ -219,11 +252,22 @@ export const processMiningPower = (state: GameState): GameState => {
 // Обработка обмена BTC на USDT
 export const processExchangeBtc = (state: GameState): GameState => {
   const bitcoin = state.resources.bitcoin;
-  const usdt = state.resources.usdt;
   
   if (!bitcoin || bitcoin.value <= 0) {
     return state;
   }
+  
+  // Проверяем существование USDT или создаем, если его еще нет
+  const usdt = state.resources.usdt || {
+    id: 'usdt',
+    name: 'USDT',
+    description: 'Стейблкоин, привязанный к доллару США',
+    type: 'resource',
+    icon: 'dollar-sign',
+    value: 0,
+    max: 100,
+    unlocked: true
+  };
   
   // Получаем текущий курс BTC
   const btcPrice = state.btcPrice || 20000;
@@ -242,8 +286,13 @@ export const processExchangeBtc = (state: GameState): GameState => {
       },
       usdt: {
         ...usdt,
-        value: usdt.value + exchangedUsdt
+        value: usdt.value + exchangedUsdt,
+        unlocked: true
       }
+    },
+    unlocks: {
+      ...state.unlocks,
+      usdt: true
     }
   };
 };
