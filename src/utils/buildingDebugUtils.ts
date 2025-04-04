@@ -2,6 +2,21 @@
 import { GameState, Counter } from '@/context/types';
 
 /**
+ * Вспомогательная функция для безопасного получения значения счетчика
+ */
+function getCounterValue(counter: Counter | number | undefined): number {
+  if (counter === undefined || counter === null) {
+    return 0;
+  }
+  
+  if (typeof counter === 'number') {
+    return counter;
+  }
+  
+  return counter.value || 0;
+}
+
+/**
  * Отладка состояния здания "Практика"
  */
 export function debugPracticeBuilding(state: GameState): { 
@@ -28,11 +43,7 @@ export function debugPracticeBuilding(state: GameState): {
   const stateInUnlocks = !!state.unlocks.practice;
 
   // Проверка условий разблокировки (2+ применения знаний)
-  const applyKnowledgeCounter = state.counters.applyKnowledge;
-  const applyKnowledgeCount = typeof applyKnowledgeCounter === 'number' 
-    ? applyKnowledgeCounter 
-    : (applyKnowledgeCounter ? ((applyKnowledgeCounter as unknown as Counter).value || 0) : 0);
-  
+  const applyKnowledgeCount = getCounterValue(state.counters.applyKnowledge);
   const conditionalCheck = applyKnowledgeCount >= 2;
   
   // Проверка, отображается ли в BuildingsContainer
@@ -94,12 +105,7 @@ export function debugBuildingDisplay(state: GameState): {
   const unlockedBuildingsList = buildingsList.filter(id => buildings[id].unlocked);
   
   // Получаем значение счетчика разблокированных зданий
-  const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
-  const counterValue = buildingsUnlockedCounter ? 
-    (typeof buildingsUnlockedCounter === 'number' 
-      ? buildingsUnlockedCounter 
-      : ((buildingsUnlockedCounter as unknown as Counter).value || 0)) 
-    : 0;
+  const buildingsUnlockedCounterValue = getCounterValue(state.counters.buildingsUnlocked);
   
   return {
     buildingsCount: buildingsList.length,
@@ -107,7 +113,7 @@ export function debugBuildingDisplay(state: GameState): {
     buildingsList,
     unlockedBuildingsList,
     equipmentTabUnlocked: state.unlocks.equipment === true,
-    buildingsUnlockedCounterValue: counterValue
+    buildingsUnlockedCounterValue
   };
 }
 
@@ -131,10 +137,7 @@ export function debugTabsUnlocks(state: GameState): {
   
   // Проверяем условия разблокировки для каждой вкладки
   // Вкладка Оборудование (Equipment)
-  const buildingsUnlockedValue = state.counters.buildingsUnlocked && 
-    ((typeof state.counters.buildingsUnlocked === 'number' 
-      ? state.counters.buildingsUnlocked 
-      : ((state.counters.buildingsUnlocked as unknown as Counter).value || 0)));
+  const buildingsUnlockedValue = getCounterValue(state.counters.buildingsUnlocked);
   
   const equipmentCondition = buildingsUnlockedValue >= 1
     ? "✅ Разблокировано хотя бы одно здание" 
@@ -199,11 +202,7 @@ export function debugApplyKnowledgeCounter(state: GameState): {
   const counterExists = !!counter;
   
   // Получаем значение счетчика
-  const counterValue = counterExists 
-    ? (typeof counter === 'number' 
-       ? counter 
-       : ((counter as unknown as Counter).value || 0)) 
-    : 0;
+  const counterValue = getCounterValue(counter);
   
   // Определяем тип счетчика
   const counterType = counterExists 
@@ -221,11 +220,7 @@ export function debugApplyKnowledgeCounter(state: GameState): {
   const equipmentTabUnlocked = !!state.unlocks.equipment;
   
   // Получаем значение счетчика разблокированных зданий
-  const buildingsUnlockedCounter = state.counters.buildingsUnlocked 
-    ? (typeof state.counters.buildingsUnlocked === 'number' 
-       ? state.counters.buildingsUnlocked 
-       : ((state.counters.buildingsUnlocked as unknown as Counter).value || 0)) 
-    : 0;
+  const buildingsUnlockedCounter = getCounterValue(state.counters.buildingsUnlocked);
   
   // Формируем рекомендации
   const recommendations: string[] = [];
@@ -275,14 +270,7 @@ export function debugCountersState(state: GameState): {
   const counters = Object.keys(state.counters).map(id => {
     const counter = state.counters[id];
     const counterType = typeof counter;
-    let counterValue: number = 0;
-    
-    if (counterType === 'number') {
-      counterValue = counter as number;
-    } else if (counterType === 'object' && counter) {
-      const counterObj = counter as unknown as Counter;
-      counterValue = counterObj.value || 0;
-    }
+    const counterValue = getCounterValue(counter);
     
     return {
       id,
@@ -295,46 +283,19 @@ export function debugCountersState(state: GameState): {
   const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
   const buildingsUnlockedExists = !!buildingsUnlockedCounter;
   const buildingsUnlockedType = typeof buildingsUnlockedCounter;
-  let buildingsUnlockedValue = 0;
-  
-  if (buildingsUnlockedExists) {
-    if (buildingsUnlockedType === 'number') {
-      buildingsUnlockedValue = buildingsUnlockedCounter as number;
-    } else {
-      const counterObj = buildingsUnlockedCounter as unknown as Counter;
-      buildingsUnlockedValue = counterObj.value || 0;
-    }
-  }
+  const buildingsUnlockedValue = getCounterValue(buildingsUnlockedCounter);
   
   // Получаем значение счетчика applyKnowledge
   const applyKnowledgeCounter = state.counters.applyKnowledge;
   const applyKnowledgeExists = !!applyKnowledgeCounter;
   const applyKnowledgeType = typeof applyKnowledgeCounter;
-  let applyKnowledgeValue = 0;
-  
-  if (applyKnowledgeExists) {
-    if (applyKnowledgeType === 'number') {
-      applyKnowledgeValue = applyKnowledgeCounter as number;
-    } else {
-      const counterObj = applyKnowledgeCounter as unknown as Counter;
-      applyKnowledgeValue = counterObj.value || 0;
-    }
-  }
+  const applyKnowledgeValue = getCounterValue(applyKnowledgeCounter);
   
   // Получаем значение счетчика knowledgeClicks
   const knowledgeClicksCounter = state.counters.knowledgeClicks;
   const knowledgeClicksExists = !!knowledgeClicksCounter;
   const knowledgeClicksType = typeof knowledgeClicksCounter;
-  let knowledgeClicksValue = 0;
-  
-  if (knowledgeClicksExists) {
-    if (knowledgeClicksType === 'number') {
-      knowledgeClicksValue = knowledgeClicksCounter as number;
-    } else {
-      const counterObj = knowledgeClicksCounter as unknown as Counter;
-      knowledgeClicksValue = counterObj.value || 0;
-    }
-  }
+  const knowledgeClicksValue = getCounterValue(knowledgeClicksCounter);
   
   // Ключевые счетчики для разблокировок
   const relevantCounters = `buildingsUnlocked=${buildingsUnlockedValue}, applyKnowledge=${applyKnowledgeValue}, knowledgeClicks=${knowledgeClicksValue}`;
