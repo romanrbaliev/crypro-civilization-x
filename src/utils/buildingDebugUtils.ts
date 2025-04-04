@@ -25,7 +25,7 @@ export function debugPracticeBuilding(state: GameState): {
   
   // Проверка в state.unlocks
   const stateInUnlocks = !!state.unlocks.practice;
-  
+
   // Проверка условий разблокировки (2+ применения знаний)
   const applyKnowledgeCounter = state.counters.applyKnowledge;
   const applyKnowledgeCount = typeof applyKnowledgeCounter === 'number' 
