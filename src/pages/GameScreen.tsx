@@ -13,6 +13,8 @@ import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
+import { UnlockService } from "@/services/UnlockService";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -29,6 +47,7 @@ const GameScreen = () => {
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const { toast } = useToast();
   
   const hasUnlockedEquipment = useUnlockStatus('equipment');
   const hasUnlockedResearch = useUnlockStatus('research');
@@ -114,7 +133,8 @@ const GameScreen = () => {
     if (state.buildings.generator?.count > 0 && !state.unlocks.research) {
       console.log("GameScreen: Принудительная проверка разблокировок при первичной загрузке");
       
-      const updatedState = UnlockManagerService.checkAllUnlocks(state);
+      const unlockService = new UnlockService();
+      const updatedState = unlockService.checkAllUnlocks(state);
       
       if (updatedState.unlocks.research !== state.unlocks.research) {
         console.log("GameScreen: Обнаружено изменение разблокировок, применяем");
@@ -133,7 +153,7 @@ const GameScreen = () => {
   
   const handleResetAll = async () => {
     try {
-      await resetAllGameData();
+      localStorage.clear();
       toast({
         title: "Сброс выполнен",
         description: "Все сохранения успешно удалены. Страница будет перезагружена.",

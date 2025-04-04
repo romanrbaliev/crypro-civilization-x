@@ -1,23 +1,15 @@
+
 import * as React from "react"
 import { type ToastActionElement, ToastProps } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 3 // Уменьшаем лимит тостов
-const TOAST_REMOVE_DELAY = 3000
+const TOAST_LIMIT = 5
+const TOAST_REMOVE_DELAY = 1000000
 
-type ToastType = "default" | "destructive" | "success" | "warning" | "info"
-
-// Расширяем типы ToastProps с нашими вариантами
-export type ExtendedToastProps = Omit<ToastProps, "variant"> & {
-  variant?: ToastType
-}
-
-type ToasterToast = ExtendedToastProps & {
+type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  isDuplicate?: boolean // Добавляем флаг для проверки дубликатов
-  createdAt?: number // Добавляем свойство createdAt для отслеживания времени создания
 }
 
 const actionTypes = {
@@ -43,7 +35,7 @@ type Action =
     }
   | {
       type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast> & { id: string }
+      toast: Partial<ToasterToast>
     }
   | {
       type: ActionType["DISMISS_TOAST"]
@@ -60,89 +52,13 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) {
-    return
-  }
-
-  const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId)
-    dispatch({
-      type: "REMOVE_TOAST",
-      toastId: toastId,
-    })
-  }, TOAST_REMOVE_DELAY)
-
-  toastTimeouts.set(toastId, timeout)
-}
-
-// Функция для проверки дубликатов тостов
-const isDuplicateToast = (state: State, toast: ToasterToast): boolean => {
-  return state.toasts.some(
-    t => 
-      t.title === toast.title && 
-      t.description === toast.description && 
-      t.variant === toast.variant &&
-      Date.now() - (t.createdAt || 0) < 5000 // Проверяем, что тост был создан не более 5 секунд назад
-  )
-}
-
-// Список типов сообщений, которые следует игнорировать при запуске
-const startupIgnoreMessages = [
-  "Игра успешно загружена из облака",
-  "Новая игра создана",
-  "Игра загружена",
-  "Сохранения не найдены",
-  "Ваш прогресс успешно восстановлен"
-];
-
-// Флаг для отслеживания, находимся ли мы в процессе запуска приложения
-let isStartupPhase = true;
-
-// Через 10 секунд после запуска приложения, считаем что стартовая фаза окончена
-setTimeout(() => {
-  isStartupPhase = false;
-}, 10000);
-
-export const reducer = (state: State, action: Action): State => {
+const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD_TOAST": {
-      // Проверка на дубликаты
-      if (isDuplicateToast(state, action.toast)) {
-        return state;
-      }
-      
-      // Проверка на стартовые сообщения, которые следует игнорировать
-      if (isStartupPhase && action.toast.title && 
-          (startupIgnoreMessages.includes(action.toast.title as string) || 
-           startupIgnoreMessages.some(msg => 
-             action.toast.description && 
-             (action.toast.description as string).includes(msg)
-           ))) {
-        return state;
-      }
-      
-      // Добавляем timestamp создания тоста
-      const newToast = {
-        ...action.toast,
-        createdAt: Date.now()
-      }
-      
-      // Автоматически удаляем toast через 5 секунд для типов success, info и warning
-      if (["success", "info", "warning"].includes(newToast.variant as string)) {
-        setTimeout(() => {
-          dispatch({
-            type: "DISMISS_TOAST",
-            toastId: newToast.id,
-          })
-        }, 3500)
-      }
-      
+    case "ADD_TOAST":
       return {
         ...state,
-        toasts: [newToast, ...state.toasts].slice(0, TOAST_LIMIT),
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
       }
-    }
 
     case "UPDATE_TOAST":
       return {
@@ -155,26 +71,24 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // Если toast ID не указан, удаляем все
-      if (toastId === undefined) {
-        state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
-        })
-        return {
-          ...state,
-          toasts: state.toasts.map((t) => ({
-            ...t,
-            open: false,
-          })),
+      // !IMPORTANT: Сначала мы снимаем тайм-аут удаления в случае
+      // если этот тост был с автозакрытием (для избежания утечек)
+      if (toastId) {
+        if (toastTimeouts.has(toastId)) {
+          clearTimeout(toastTimeouts.get(toastId))
+          toastTimeouts.delete(toastId)
+        }
+      } else {
+        for (const [id, timeout] of toastTimeouts.entries()) {
+          clearTimeout(timeout)
+          toastTimeouts.delete(id)
         }
       }
 
-      // Удаляем конкретный toast
-      addToRemoveQueue(toastId)
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === toastId
+          t.id === toastId || toastId === undefined
             ? {
                 ...t,
                 open: false,
@@ -197,7 +111,7 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-const listeners: ((state: State) => void)[] = []
+const listeners: Array<(state: State) => void> = []
 
 let memoryState: State = { toasts: [] }
 
