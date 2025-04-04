@@ -34,18 +34,21 @@ export class UnlockManager {
           return false;
         }
         
+        // Приводим targetValue к числу для сравнения с числовыми значениями
+        const resourceTargetValue = Number(condition.targetValue);
+        
         if (condition.operator === 'gte') {
-          const result = resource.value >= condition.targetValue;
+          const result = resource.value >= resourceTargetValue;
           if (this.debugMode) {
-            this.steps.push(`  • Ресурс ${condition.targetId}: ${resource.value} >= ${condition.targetValue} = ${result}`);
+            this.steps.push(`  • Ресурс ${condition.targetId}: ${resource.value} >= ${resourceTargetValue} = ${result}`);
           }
           return result;
         }
         
         if (condition.operator === 'eq') {
-          const result = resource.value === condition.targetValue;
+          const result = resource.value === resourceTargetValue;
           if (this.debugMode) {
-            this.steps.push(`  • Ресурс ${condition.targetId}: ${resource.value} === ${condition.targetValue} = ${result}`);
+            this.steps.push(`  • Ресурс ${condition.targetId}: ${resource.value} === ${resourceTargetValue} = ${result}`);
           }
           return result;
         }
@@ -59,18 +62,21 @@ export class UnlockManager {
           return false;
         }
         
+        // Приводим targetValue к числу для сравнения с числовыми значениями
+        const buildingTargetValue = Number(condition.targetValue);
+        
         if (condition.operator === 'gte') {
-          const result = building.count >= condition.targetValue;
+          const result = building.count >= buildingTargetValue;
           if (this.debugMode) {
-            this.steps.push(`  • Здание ${condition.targetId}: ${building.count} >= ${condition.targetValue} = ${result}`);
+            this.steps.push(`  • Здание ${condition.targetId}: ${building.count} >= ${buildingTargetValue} = ${result}`);
           }
           return result;
         }
         
         if (condition.operator === 'eq') {
-          const result = building.count === condition.targetValue;
+          const result = building.count === buildingTargetValue;
           if (this.debugMode) {
-            this.steps.push(`  • Здание ${condition.targetId}: ${building.count} === ${condition.targetValue} = ${result}`);
+            this.steps.push(`  • Здание ${condition.targetId}: ${building.count} === ${buildingTargetValue} = ${result}`);
           }
           return result;
         }
@@ -85,9 +91,10 @@ export class UnlockManager {
         }
         
         if (condition.operator === 'eq') {
-          const result = Boolean(upgrade.purchased) === condition.targetValue;
+          // Сравниваем напрямую bool с bool
+          const result = Boolean(upgrade.purchased) === Boolean(condition.targetValue);
           if (this.debugMode) {
-            this.steps.push(`  • Улучшение ${condition.targetId} куплено: ${Boolean(upgrade.purchased)} === ${condition.targetValue} = ${result}`);
+            this.steps.push(`  • Улучшение ${condition.targetId} куплено: ${Boolean(upgrade.purchased)} === ${Boolean(condition.targetValue)} = ${result}`);
           }
           return result;
         }
@@ -102,19 +109,21 @@ export class UnlockManager {
         }
         
         const counterValue = typeof counter === 'number' ? counter : counter.value;
+        // Приводим targetValue к числу для сравнения с числовыми значениями
+        const counterTargetValue = Number(condition.targetValue);
         
         if (condition.operator === 'gte') {
-          const result = counterValue >= condition.targetValue;
+          const result = counterValue >= counterTargetValue;
           if (this.debugMode) {
-            this.steps.push(`  • Счетчик ${condition.targetId}: ${counterValue} >= ${condition.targetValue} = ${result}`);
+            this.steps.push(`  • Счетчик ${condition.targetId}: ${counterValue} >= ${counterTargetValue} = ${result}`);
           }
           return result;
         }
         
         if (condition.operator === 'eq') {
-          const result = counterValue === condition.targetValue;
+          const result = counterValue === counterTargetValue;
           if (this.debugMode) {
-            this.steps.push(`  • Счетчик ${condition.targetId}: ${counterValue} === ${condition.targetValue} = ${result}`);
+            this.steps.push(`  • Счетчик ${condition.targetId}: ${counterValue} === ${counterTargetValue} = ${result}`);
           }
           return result;
         }
