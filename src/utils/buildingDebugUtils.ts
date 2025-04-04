@@ -1,3 +1,4 @@
+
 import { GameState, Counter } from '@/context/types';
 
 /**
@@ -127,7 +128,10 @@ export function debugTabsUnlocks(state: GameState): {
   
   // Проверяем условия разблокировки для каждой вкладки
   // Вкладка Оборудование (Equipment)
-  const equipmentCondition = state.counters.buildingsUnlocked && state.counters.buildingsUnlocked.value >= 1 
+  const equipmentCondition = state.counters.buildingsUnlocked && 
+    ((typeof state.counters.buildingsUnlocked === 'number' ? 
+      state.counters.buildingsUnlocked : 
+      (state.counters.buildingsUnlocked as unknown as Counter).value) >= 1)
     ? "✅ Разблокировано хотя бы одно здание" 
     : "❌ Не разблокировано ни одно здание";
   
@@ -364,3 +368,4 @@ export function debugCountersState(state: GameState): {
     equipmentUnlockedByCounter
   };
 }
+
