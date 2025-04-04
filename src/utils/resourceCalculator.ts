@@ -9,7 +9,7 @@ export function calculateResourceMaxValue(state: GameState, resourceId: string):
   
   if (!resource) return 0;
   
-  let baseMaxValue = resource.maxValue || 100;
+  let baseMaxValue = resource.maxStorage || 100;  // Используем maxStorage вместо maxValue
   let maxValueBonus = 1;
   
   // Добавление бонусов от зданий
