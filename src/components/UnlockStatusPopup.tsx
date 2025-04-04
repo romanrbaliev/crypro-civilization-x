@@ -9,12 +9,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { debugPracticeBuilding, debugBuildingDisplay, listAllBuildings } from '@/utils/buildingDebugUtils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const UnlockStatusPopup = () => {
   const { state, forceUpdate } = useGame();
   const [statusSteps, setStatusSteps] = useState<string[]>([]);
   const [unlockedItems, setUnlockedItems] = useState<string[]>([]);
   const [lockedItems, setLockedItems] = useState<string[]>([]);
+  const [practiceStatus, setPracticeStatus] = useState<any>(null);
+  const [buildingsStatus, setBuildingsStatus] = useState<any>(null);
+  const [allBuildings, setAllBuildings] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
   const updateStatus = async () => {
@@ -23,20 +28,6 @@ const UnlockStatusPopup = () => {
       
       // Форсируем обновление состояния игры
       forceUpdate();
-      
-      // Проверяем состояние здания "Практика" перед вызовом debugUnlockStatus
-      const practiceBuilding = state.buildings.practice;
-      console.log("UnlockStatusPopup: Статус здания Практика перед проверкой:", 
-        practiceBuilding ? 
-        `существует, unlocked=${practiceBuilding.unlocked}, count=${practiceBuilding.count}` : 
-        "отсутствует в state.buildings");
-      
-      // Выводим список всех зданий
-      console.log("UnlockStatusPopup: Все здания:", Object.keys(state.buildings));
-      console.log("UnlockStatusPopup: Разблокированные здания:", 
-        Object.values(state.buildings)
-          .filter(b => b.unlocked)
-          .map(b => `${b.id} (unlocked=${b.unlocked}, count=${b.count})`));
       
       // Небольшая задержка, чтобы обновление успело применится
       setTimeout(() => {
@@ -47,12 +38,16 @@ const UnlockStatusPopup = () => {
           setUnlockedItems(result.unlocked || []); // Разблокированные элементы
           setLockedItems(result.locked || []); // Заблокированные элементы
           
-          // Проверяем состояние здания "Практика" после вызова debugUnlockStatus
-          const practiceBuilding = state.buildings.practice;
-          console.log("UnlockStatusPopup: Статус здания Практика после проверки:", 
-            practiceBuilding ? 
-            `существует, unlocked=${practiceBuilding.unlocked}, count=${practiceBuilding.count}` : 
-            "отсутствует в state.buildings");
+          // Добавляем детальную отладку здания "Практика"
+          const practiceDebug = debugPracticeBuilding(state);
+          setPracticeStatus(practiceDebug);
+          
+          // Добавляем информацию о всех зданиях
+          setAllBuildings(listAllBuildings(state));
+          
+          // Добавляем информацию об отображении зданий
+          const displayDebug = debugBuildingDisplay(state);
+          setBuildingsStatus(displayDebug);
           
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
@@ -86,51 +81,153 @@ const UnlockStatusPopup = () => {
           Проверка разблокировок
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0">
+      <PopoverContent className="w-[500px] p-0">
         <div className="p-4 bg-white rounded-md">
           <h3 className="text-sm font-bold text-gray-700 mb-2">Статус разблокировок контента</h3>
           
-          <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
-            <div>
-              <h4 className="font-semibold text-green-600">Разблокировано ({unlockedItems.length}):</h4>
-              <ul className="mt-1 space-y-1 text-green-600">
-                {unlockedItems.slice(0, 6).map((item, idx) => (
-                  <li key={idx}>✅ {item}</li>
-                ))}
-                {unlockedItems.length > 6 && (
-                  <li>... и еще {unlockedItems.length - 6}</li>
-                )}
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-500">Заблокировано ({lockedItems.length}):</h4>
-              <ul className="mt-1 space-y-1 text-gray-500">
-                {lockedItems.slice(0, 6).map((item, idx) => (
-                  <li key={idx}>❌ {item}</li>
-                ))}
-                {lockedItems.length > 6 && (
-                  <li>... и еще {lockedItems.length - 6}</li>
-                )}
-              </ul>
-            </div>
-          </div>
-          
-          <div className="mt-2 p-2 bg-gray-50 rounded border text-xs text-gray-600 max-h-80 overflow-y-auto whitespace-pre-line">
-            {loading ? (
-              <div className="text-center py-2">Загрузка данных...</div>
-            ) : (
-              statusSteps.map((step, index) => (
-                <div key={index} className={
-                  step.includes('✅') ? 'text-green-600' : 
-                  step.includes('❌') ? 'text-red-500' : 
-                  step.startsWith('•') ? 'pl-2' :
-                  step.startsWith('📊') || step.startsWith('🔓') || step.startsWith('🏗️') || step.startsWith('📚') ? 'font-semibold mt-2' : ''
-                }>
-                  {step}
+          <Tabs defaultValue="unlocks">
+            <TabsList className="w-full mb-2">
+              <TabsTrigger value="unlocks">Разблокировки</TabsTrigger>
+              <TabsTrigger value="practice">Отладка "Практика"</TabsTrigger>
+              <TabsTrigger value="buildings">Все здания</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="unlocks">
+              <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+                <div>
+                  <h4 className="font-semibold text-green-600">Разблокировано ({unlockedItems.length}):</h4>
+                  <ul className="mt-1 space-y-1 text-green-600">
+                    {unlockedItems.slice(0, 6).map((item, idx) => (
+                      <li key={idx}>✅ {item}</li>
+                    ))}
+                    {unlockedItems.length > 6 && (
+                      <li>... и еще {unlockedItems.length - 6}</li>
+                    )}
+                  </ul>
                 </div>
-              ))
-            )}
-          </div>
+                <div>
+                  <h4 className="font-semibold text-gray-500">Заблокировано ({lockedItems.length}):</h4>
+                  <ul className="mt-1 space-y-1 text-gray-500">
+                    {lockedItems.slice(0, 6).map((item, idx) => (
+                      <li key={idx}>❌ {item}</li>
+                    ))}
+                    {lockedItems.length > 6 && (
+                      <li>... и еще {lockedItems.length - 6}</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="mt-2 p-2 bg-gray-50 rounded border text-xs text-gray-600 max-h-60 overflow-y-auto whitespace-pre-line">
+                {loading ? (
+                  <div className="text-center py-2">Загрузка данных...</div>
+                ) : (
+                  statusSteps.map((step, index) => (
+                    <div key={index} className={
+                      step.includes('✅') ? 'text-green-600' : 
+                      step.includes('❌') ? 'text-red-500' : 
+                      step.startsWith('•') ? 'pl-2' :
+                      step.startsWith('📊') || step.startsWith('🔓') || step.startsWith('🏗️') || step.startsWith('📚') ? 'font-semibold mt-2' : ''
+                    }>
+                      {step}
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="practice">
+              {practiceStatus ? (
+                <div className="p-2 bg-gray-50 rounded border text-xs">
+                  <h4 className="font-semibold mb-2">Детальная отладка здания "Практика"</h4>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                    <div className={practiceStatus.exists ? "text-green-600" : "text-red-500"}>
+                      Существует в state.buildings: {practiceStatus.exists ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div className={practiceStatus.unlocked ? "text-green-600" : "text-red-500"}>
+                      Разблокировано в здании: {practiceStatus.unlocked ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div>
+                      Количество: {practiceStatus.count}
+                    </div>
+                    <div className={practiceStatus.stateInUnlocks ? "text-green-600" : "text-red-500"}>
+                      Разблокировано в state.unlocks: {practiceStatus.stateInUnlocks ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div className={practiceStatus.conditionalCheck ? "text-green-600" : "text-red-500"}>
+                      Условие разблокировки: {practiceStatus.conditionalCheck ? "✅ Выполнено" : "❌ Не выполнено"}
+                    </div>
+                    <div className={practiceStatus.displayInBuildingsContainer ? "text-green-600" : "text-red-500"}>
+                      Отображается в BuildingsContainer: {practiceStatus.displayInBuildingsContainer ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div className={practiceStatus.displayInEquipmentTab ? "text-green-600" : "text-red-500"}>
+                      Отображается в EquipmentTab: {practiceStatus.displayInEquipmentTab ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div className={practiceStatus.inBuildingsList ? "text-green-600" : "text-red-500"}>
+                      В списке зданий: {practiceStatus.inBuildingsList ? "✅ Да" : "❌ Нет"}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                    <h5 className="font-semibold text-yellow-700">Решение проблемы</h5>
+                    {!practiceStatus.exists && (
+                      <p>Здание "Практика" отсутствует в state.buildings. Возможно, оно не было корректно инициализировано.</p>
+                    )}
+                    {practiceStatus.exists && !practiceStatus.unlocked && (
+                      <p>Здание существует, но флаг unlocked = false. Необходимо проверить логику разблокировки.</p>
+                    )}
+                    {practiceStatus.unlocked && !practiceStatus.displayInBuildingsContainer && (
+                      <p>Здание разблокировано, но не отображается в контейнере зданий. Проверьте фильтрацию в компоненте.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">Нет данных. Нажмите "Обновить статус".</div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="buildings">
+              {buildingsStatus ? (
+                <div className="p-2 bg-gray-50 rounded border text-xs overflow-auto max-h-60">
+                  <h4 className="font-semibold mb-2">Статистика зданий</h4>
+                  <div className="grid grid-cols-2 gap-1 mb-2">
+                    <div>Всего зданий: {buildingsStatus.buildingsCount}</div>
+                    <div>Разблокировано: {buildingsStatus.unlockedBuildingsCount}</div>
+                    <div className={buildingsStatus.equipmentTabUnlocked ? "text-green-600" : "text-red-500"}>
+                      Вкладка Equipment: {buildingsStatus.equipmentTabUnlocked ? "✅ Разблокирована" : "❌ Заблокирована"}
+                    </div>
+                  </div>
+                  
+                  <h4 className="font-semibold mt-2 mb-1">Все здания в игре:</h4>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border px-1 py-1 text-left">ID</th>
+                        <th className="border px-1 py-1 text-center">Существует</th>
+                        <th className="border px-1 py-1 text-center">Разблокировано</th>
+                        <th className="border px-1 py-1 text-center">Количество</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allBuildings.map((building, index) => (
+                        <tr key={index} className={building.id === 'practice' ? 'bg-yellow-50' : ''}>
+                          <td className="border px-1 py-1">{building.id}</td>
+                          <td className={`border px-1 py-1 text-center ${building.exists ? 'text-green-600' : 'text-red-500'}`}>
+                            {building.exists ? '✅' : '❌'}
+                          </td>
+                          <td className={`border px-1 py-1 text-center ${building.unlocked ? 'text-green-600' : 'text-red-500'}`}>
+                            {building.unlocked ? '✅' : '❌'}
+                          </td>
+                          <td className="border px-1 py-1 text-center">{building.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-4">Нет данных. Нажмите "Обновить статус".</div>
+              )}
+            </TabsContent>
+          </Tabs>
           
           <div className="mt-3 flex justify-end">
             <Button 

@@ -9,7 +9,10 @@ export function debugPracticeBuilding(state: GameState): {
   unlocked: boolean,
   count: number,
   stateInUnlocks: boolean,
-  conditionalCheck: boolean
+  conditionalCheck: boolean,
+  displayInBuildingsContainer: boolean,
+  displayInEquipmentTab: boolean,
+  inBuildingsList: boolean
 } {
   // Проверка существования здания в state.buildings
   const practiceBuilding = state.buildings.practice;
@@ -32,12 +35,24 @@ export function debugPracticeBuilding(state: GameState): {
   
   const conditionalCheck = applyKnowledgeCount >= 2;
   
+  // Проверка, отображается ли в BuildingsContainer
+  const displayInBuildingsContainer = exists && unlocked; 
+  
+  // Проверка, отображается ли в EquipmentTab
+  const displayInEquipmentTab = exists && unlocked;
+  
+  // Проверка наличия в списке зданий
+  const inBuildingsList = Object.keys(state.buildings).includes('practice');
+  
   return {
     exists,
     unlocked,
     count,
     stateInUnlocks,
-    conditionalCheck
+    conditionalCheck,
+    displayInBuildingsContainer,
+    displayInEquipmentTab,
+    inBuildingsList
   };
 }
 
@@ -60,4 +75,27 @@ export function listAllBuildings(state: GameState): {
       count: building ? (building.count || 0) : 0
     };
   });
+}
+
+/**
+ * Детальная отладка компонентов отображения зданий
+ */
+export function debugBuildingDisplay(state: GameState): {
+  buildingsCount: number,
+  unlockedBuildingsCount: number,
+  buildingsList: string[], 
+  unlockedBuildingsList: string[],
+  equipmentTabUnlocked: boolean
+} {
+  const buildings = state.buildings;
+  const buildingsList = Object.keys(buildings);
+  const unlockedBuildingsList = buildingsList.filter(id => buildings[id].unlocked);
+  
+  return {
+    buildingsCount: buildingsList.length,
+    unlockedBuildingsCount: unlockedBuildingsList.length,
+    buildingsList,
+    unlockedBuildingsList,
+    equipmentTabUnlocked: state.unlocks.equipment === true
+  };
 }
