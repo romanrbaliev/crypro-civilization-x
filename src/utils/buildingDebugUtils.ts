@@ -96,7 +96,10 @@ export function debugBuildingDisplay(state: GameState): {
   // Получаем значение счетчика разблокированных зданий
   const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
   const counterValue = buildingsUnlockedCounter ? 
-    (typeof buildingsUnlockedCounter === 'number' ? buildingsUnlockedCounter : ((buildingsUnlockedCounter as unknown as Counter).value)) : 0;
+    (typeof buildingsUnlockedCounter === 'number' 
+      ? buildingsUnlockedCounter 
+      : ((buildingsUnlockedCounter as unknown as Counter).value || 0)) 
+    : 0;
   
   return {
     buildingsCount: buildingsList.length,
@@ -128,10 +131,12 @@ export function debugTabsUnlocks(state: GameState): {
   
   // Проверяем условия разблокировки для каждой вкладки
   // Вкладка Оборудование (Equipment)
-  const equipmentCondition = state.counters.buildingsUnlocked && 
-    ((typeof state.counters.buildingsUnlocked === 'number' ? 
-      state.counters.buildingsUnlocked : 
-      ((state.counters.buildingsUnlocked as unknown as Counter).value)) >= 1)
+  const buildingsUnlockedValue = state.counters.buildingsUnlocked && 
+    ((typeof state.counters.buildingsUnlocked === 'number' 
+      ? state.counters.buildingsUnlocked 
+      : ((state.counters.buildingsUnlocked as unknown as Counter).value || 0)));
+  
+  const equipmentCondition = buildingsUnlockedValue >= 1
     ? "✅ Разблокировано хотя бы одно здание" 
     : "❌ Не разблокировано ни одно здание";
   
@@ -195,7 +200,9 @@ export function debugApplyKnowledgeCounter(state: GameState): {
   
   // Получаем значение счетчика
   const counterValue = counterExists 
-    ? (typeof counter === 'number' ? counter : ((counter as unknown as Counter).value)) 
+    ? (typeof counter === 'number' 
+       ? counter 
+       : ((counter as unknown as Counter).value || 0)) 
     : 0;
   
   // Определяем тип счетчика
@@ -217,7 +224,7 @@ export function debugApplyKnowledgeCounter(state: GameState): {
   const buildingsUnlockedCounter = state.counters.buildingsUnlocked 
     ? (typeof state.counters.buildingsUnlocked === 'number' 
        ? state.counters.buildingsUnlocked 
-       : ((state.counters.buildingsUnlocked as unknown as Counter).value)) 
+       : ((state.counters.buildingsUnlocked as unknown as Counter).value || 0)) 
     : 0;
   
   // Формируем рекомендации
