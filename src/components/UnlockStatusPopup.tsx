@@ -24,6 +24,20 @@ const UnlockStatusPopup = () => {
       // Форсируем обновление состояния игры
       forceUpdate();
       
+      // Проверяем состояние здания "Практика" перед вызовом debugUnlockStatus
+      const practiceBuilding = state.buildings.practice;
+      console.log("UnlockStatusPopup: Статус здания Практика перед проверкой:", 
+        practiceBuilding ? 
+        `существует, unlocked=${practiceBuilding.unlocked}, count=${practiceBuilding.count}` : 
+        "отсутствует в state.buildings");
+      
+      // Выводим список всех зданий
+      console.log("UnlockStatusPopup: Все здания:", Object.keys(state.buildings));
+      console.log("UnlockStatusPopup: Разблокированные здания:", 
+        Object.values(state.buildings)
+          .filter(b => b.unlocked)
+          .map(b => `${b.id} (unlocked=${b.unlocked}, count=${b.count})`));
+      
       // Небольшая задержка, чтобы обновление успело применится
       setTimeout(() => {
         try {
@@ -32,6 +46,14 @@ const UnlockStatusPopup = () => {
           setStatusSteps(result.steps || []); // Шаги проверки условий
           setUnlockedItems(result.unlocked || []); // Разблокированные элементы
           setLockedItems(result.locked || []); // Заблокированные элементы
+          
+          // Проверяем состояние здания "Практика" после вызова debugUnlockStatus
+          const practiceBuilding = state.buildings.practice;
+          console.log("UnlockStatusPopup: Статус здания Практика после проверки:", 
+            practiceBuilding ? 
+            `существует, unlocked=${practiceBuilding.unlocked}, count=${practiceBuilding.count}` : 
+            "отсутствует в state.buildings");
+          
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);

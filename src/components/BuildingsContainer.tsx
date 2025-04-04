@@ -16,6 +16,18 @@ export function BuildingsContainer() {
     building => building.unlocked
   );
   
+  // Выводим дополнительную отладочную информацию
+  console.log("BuildingsContainer: Все здания:", Object.keys(state.buildings));
+  console.log("BuildingsContainer: Разблокированные здания:", 
+    unlockedBuildings.map(b => `${b.id} (unlocked=${b.unlocked}, count=${b.count})`));
+  
+  // Проверяем состояние здания "Практика"
+  const practiceBuilding = state.buildings.practice;
+  console.log("BuildingsContainer: Статус здания Практика:", 
+    practiceBuilding ? 
+    `существует, unlocked=${practiceBuilding.unlocked}, count=${practiceBuilding.count}` : 
+    "отсутствует в state.buildings");
+  
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm">
       <h2 className="text-lg font-medium mb-3">Здания</h2>

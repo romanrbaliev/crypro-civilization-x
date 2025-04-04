@@ -1,12 +1,21 @@
 
 import { GameState } from '@/context/types';
 import { UnlockManager } from '@/systems/unlock/UnlockManager';
+import { debugPracticeBuilding, listAllBuildings } from './buildingDebugUtils';
 
 /**
  * Получает полную отладочную информацию о разблокировках
  */
 export function debugUnlockStatus(state: GameState): { steps: string[], unlocked: string[], locked: string[] } {
   try {
+    // Добавим дополнительную отладку для здания "Практика"
+    const practiceDebug = debugPracticeBuilding(state);
+    console.log("Отладка здания Практика:", practiceDebug);
+    
+    // Получаем список всех зданий
+    const allBuildings = listAllBuildings(state);
+    console.log("Все здания в состоянии:", allBuildings);
+    
     // Создаем менеджер с включенным режимом отладки
     const unlockManager = new UnlockManager(state, true);
     
