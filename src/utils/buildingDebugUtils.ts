@@ -1,3 +1,4 @@
+
 import { GameState, Counter } from '@/context/types';
 
 /**
@@ -30,7 +31,7 @@ export function debugPracticeBuilding(state: GameState): {
   const applyKnowledgeCounter = state.counters.applyKnowledge;
   const applyKnowledgeCount = typeof applyKnowledgeCounter === 'number' 
     ? applyKnowledgeCounter 
-    : (applyKnowledgeCounter ? ((applyKnowledgeCounter as unknown as Counter).value) : 0);
+    : (applyKnowledgeCounter ? ((applyKnowledgeCounter as unknown as Counter).value || 0) : 0);
   
   const conditionalCheck = applyKnowledgeCount >= 2;
   
