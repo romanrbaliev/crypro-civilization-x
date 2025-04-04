@@ -39,16 +39,11 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     }
   };
   
-  // Разблокируем USDT, если еще не разблокировано
+  // Сохраняем текущие разблокировки и добавляем USDT
   const newUnlocks = {
     ...state.unlocks,
     usdt: true
   };
-  
-  // Проверяем, существует ли ключ 'practice' в unlocks
-  if (state.unlocks.practice !== undefined) {
-    newUnlocks.practice = state.unlocks.practice;
-  }
   
   // Увеличиваем счетчик применений знаний
   let newCounters = { ...state.counters };
@@ -128,16 +123,11 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     }
   };
   
-  // Разблокируем USDT, если еще не разблокировано
+  // Сохраняем текущие разблокировки и добавляем USDT
   const newUnlocks = {
     ...state.unlocks,
     usdt: true
   };
-  
-  // Проверяем, существует ли ключ 'practice' в unlocks
-  if (state.unlocks.practice !== undefined) {
-    newUnlocks.practice = state.unlocks.practice;
-  }
   
   // Увеличиваем счетчик применений знаний
   let newCounters = { ...state.counters };
