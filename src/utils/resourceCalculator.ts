@@ -47,3 +47,25 @@ export function calculateResourceMaxValue(state: GameState, resourceId: string):
   
   return baseMaxValue * maxValueBonus;
 }
+
+/**
+ * Обновляет максимальные значения ресурсов на основе эффектов от зданий и исследований
+ * Эта функция добавлена для устранения ошибки с отсутствующей функцией updateResourceMaxValues
+ */
+export function updateResourceMaxValues(state: GameState): GameState {
+  const newResources = { ...state.resources };
+  
+  // Обходим все ресурсы и обновляем их максимальные значения
+  for (const resourceId in newResources) {
+    const maxValue = calculateResourceMaxValue(state, resourceId);
+    newResources[resourceId] = {
+      ...newResources[resourceId],
+      max: maxValue
+    };
+  }
+  
+  return {
+    ...state,
+    resources: newResources
+  };
+}

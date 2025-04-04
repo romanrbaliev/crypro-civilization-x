@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { calculateResourceMaxValue } from '@/utils/resourceCalculator';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
@@ -86,19 +87,28 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   );
   
   // Создаем новое состояние игры с обновленными ресурсами, разблокировками и счетчиками
-  return updateResourceMaxValues({
+  // ИСПРАВЛЕНИЕ: Вместо updateResourceMaxValues используем просто обновленное состояние
+  return {
     ...state,
     resources: newResources,
     unlocks: newUnlocks,
     counters: newCounters
-  });
+  };
 };
 
 // Обработка массового применения знаний
 export const processApplyAllKnowledge = (state: GameState): GameState => {
   // Получаем количество доступных знаний
   const knowledgeValue = state.resources.knowledge?.value || 0;
-  const knowledgeEfficiency = state.resources.knowledge?.efficiency || 1;
+  
+  // ИСПРАВЛЕНИЕ: Удаляем ссылку на несуществующее свойство efficiency
+  // Вместо этого проверяем наличие бонуса эффективности из улучшений
+  let knowledgeEfficiency = 1;
+  
+  // Проверяем наличие улучшений, которые дают бонус к эффективности знаний
+  if (state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased) {
+    knowledgeEfficiency += 0.1; // +10% к эффективности применения знаний
+  }
   
   // Если знаний меньше 10, ничего не применяем
   if (knowledgeValue < 10) {

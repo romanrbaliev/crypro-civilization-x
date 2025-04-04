@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 
 /**
@@ -260,12 +261,17 @@ export function debugCountersState(state: GameState): {
   equipmentUnlockedByCounter: boolean
 } {
   // Получаем все счетчики
+  // ИСПРАВЛЕНИЕ: Исправляем обработку типов счетчиков
   const counters = Object.keys(state.counters).map(id => {
     const counter = state.counters[id];
     const counterType = typeof counter;
-    const counterValue = counterType === 'number' 
-      ? counter 
-      : (counterType === 'object' && counter ? counter.value : 0);
+    let counterValue: number = 0;
+    
+    if (counterType === 'number') {
+      counterValue = counter as number;
+    } else if (counterType === 'object' && counter) {
+      counterValue = counter.value || 0;
+    }
     
     return {
       id,
@@ -280,7 +286,7 @@ export function debugCountersState(state: GameState): {
   const buildingsUnlockedType = typeof buildingsUnlockedCounter;
   const buildingsUnlockedValue = buildingsUnlockedExists 
     ? (buildingsUnlockedType === 'number' 
-       ? buildingsUnlockedCounter 
+       ? buildingsUnlockedCounter as number 
        : (buildingsUnlockedCounter as any).value || 0) 
     : 0;
   
@@ -290,7 +296,7 @@ export function debugCountersState(state: GameState): {
   const applyKnowledgeType = typeof applyKnowledgeCounter;
   const applyKnowledgeValue = applyKnowledgeExists 
     ? (applyKnowledgeType === 'number' 
-       ? applyKnowledgeCounter 
+       ? applyKnowledgeCounter as number 
        : (applyKnowledgeCounter as any).value || 0) 
     : 0;
   
@@ -300,7 +306,7 @@ export function debugCountersState(state: GameState): {
   const knowledgeClicksType = typeof knowledgeClicksCounter;
   const knowledgeClicksValue = knowledgeClicksExists 
     ? (knowledgeClicksType === 'number' 
-       ? knowledgeClicksCounter 
+       ? knowledgeClicksCounter as number 
        : (knowledgeClicksCounter as any).value || 0) 
     : 0;
   
