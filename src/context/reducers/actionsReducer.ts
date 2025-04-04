@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { calculateResourceMaxValue } from '@/utils/resourceCalculator';
@@ -43,6 +44,11 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     ...state.unlocks,
     usdt: true
   };
+  
+  // Проверяем, существует ли ключ 'practice' в unlocks
+  if (state.unlocks.practice !== undefined) {
+    newUnlocks.practice = state.unlocks.practice;
+  }
   
   // Увеличиваем счетчик применений знаний
   let newCounters = { ...state.counters };
@@ -127,6 +133,11 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     ...state.unlocks,
     usdt: true
   };
+  
+  // Проверяем, существует ли ключ 'practice' в unlocks
+  if (state.unlocks.practice !== undefined) {
+    newUnlocks.practice = state.unlocks.practice;
+  }
   
   // Увеличиваем счетчик применений знаний
   let newCounters = { ...state.counters };

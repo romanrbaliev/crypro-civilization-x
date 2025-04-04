@@ -1,3 +1,4 @@
+
 import { GameState } from '../types';
 import { getCost, getRefundAmount } from '@/utils/buildingCosts';
 import { formatNumberWithAbbreviation } from '@/utils/formatters';
@@ -160,9 +161,6 @@ export const processChooseSpecialization = (
   
   return {
     ...state,
-    player: {
-      ...state.player,
-      roleId: specializationType
-    }
+    specialization: specializationType
   };
 };
