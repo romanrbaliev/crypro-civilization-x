@@ -15,6 +15,7 @@ import ActionButtons from "@/components/ActionButtons";
 import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
 import { UnlockService } from "@/services/UnlockService";
 import { useToast } from "@/hooks/use-toast";
+import UnlockStatusPopup from "@/components/UnlockStatusPopup";
 import {
   Dialog,
   DialogContent,
@@ -192,7 +193,7 @@ const GameScreen = () => {
       <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
         <div className="flex justify-between items-center h-full">
           <div className="flex-1 flex items-center pl-2 gap-2">
-            {/* Удалены компоненты KnowledgeProductionPopup и UnlockStatusPopup */}
+            <UnlockStatusPopup />
           </div>
           <div className="flex items-center justify-between px-2">
             <Dialog>

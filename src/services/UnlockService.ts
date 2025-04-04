@@ -4,18 +4,18 @@ import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 /**
  * Сервис для управления разблокировками элементов игры
- * Является адаптером между новой системой разблокировок и старым кодом
+ * Использует централизованную систему разблокировок
  */
 export class UnlockService {
   /**
    * Проверяет все разблокировки и обновляет состояние
    */
   checkAllUnlocks(state: GameState): GameState {
-    console.log("UnlockService: Проверка всех разблокировок через новую систему");
+    console.log("UnlockService: Проверка всех разблокировок через централизованную систему");
     
-    // Используем новую систему разблокировок
+    // Используем централизованную систему разблокировок
     const unlockManager = new UnlockManager(state);
-    return unlockManager.forceCheckAllUnlocks();
+    return unlockManager.updateGameState(state);
   }
   
   /**
@@ -24,7 +24,7 @@ export class UnlockService {
   rebuildAllUnlocks(state: GameState): GameState {
     console.log("UnlockService: Полная перепроверка всех разблокировок");
     
-    // Используем новую систему разблокировок
+    // Используем централизованную систему разблокировок
     const unlockManager = new UnlockManager(state);
     return unlockManager.forceCheckAllUnlocks();
   }
@@ -33,7 +33,7 @@ export class UnlockService {
    * Проверяет, разблокирован ли элемент
    */
   isUnlocked(state: GameState, itemId: string): boolean {
-    // Используем новую систему разблокировок
+    // Используем централизованную систему разблокировок
     const unlockManager = new UnlockManager(state);
     return unlockManager.isUnlocked(itemId);
   }
@@ -42,8 +42,17 @@ export class UnlockService {
    * Принудительно разблокирует элемент
    */
   forceUnlock(state: GameState, itemId: string): GameState {
-    // Используем новую систему разблокировок
+    // Используем централизованную систему разблокировок
     const unlockManager = new UnlockManager(state);
     return unlockManager.forceUnlock(itemId);
+  }
+  
+  /**
+   * Получает полный отчет о разблокировках для отладки
+   */
+  getDebugReport(state: GameState): { steps: string[], unlocked: string[], locked: string[] } {
+    const unlockManager = new UnlockManager(state, true);
+    unlockManager.forceCheckAllUnlocks();
+    return unlockManager.getUnlockReport();
   }
 }

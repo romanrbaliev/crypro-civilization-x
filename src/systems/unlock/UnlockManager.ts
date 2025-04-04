@@ -11,10 +11,15 @@ export class UnlockManager {
   private gameState: GameState;
   private debugMode: boolean;
   private steps: string[] = [];
+  private lockedItems: string[] = [];
+  private unlockedItems: string[] = [];
 
   constructor(gameState: GameState, debugMode: boolean = false) {
     this.gameState = gameState;
     this.debugMode = debugMode;
+    this.steps = [];
+    this.lockedItems = [];
+    this.unlockedItems = [];
   }
 
   /**
@@ -92,9 +97,12 @@ export class UnlockManager {
         
         if (condition.operator === 'eq') {
           // Сравниваем напрямую bool с bool
-          const result = Boolean(upgrade.purchased) === Boolean(condition.targetValue);
+          const targetValueAsBool = Boolean(condition.targetValue);
+          const upgradePurchased = Boolean(upgrade.purchased);
+          const result = upgradePurchased === targetValueAsBool;
+          
           if (this.debugMode) {
-            this.steps.push(`  • Улучшение ${condition.targetId} куплено: ${Boolean(upgrade.purchased)} === ${Boolean(condition.targetValue)} = ${result}`);
+            this.steps.push(`  • Улучшение ${condition.targetId} куплено: ${upgradePurchased} === ${targetValueAsBool} = ${result}`);
           }
           return result;
         }
@@ -152,7 +160,20 @@ export class UnlockManager {
     const result = item.conditions.every(condition => this.checkCondition(condition));
     if (this.debugMode) {
       this.steps.push(`• Итоговый результат: ${result ? "✅ Разблокировано" : "❌ Заблокировано"}`);
+      
+      // Добавляем сообщение о том, что должно произойти для разблокировки
+      if (!result) {
+        this.steps.push(`• Для разблокировки необходимо выполнить все условия выше`);
+      }
     }
+    
+    // Сохраняем информацию о разблокировке/блокировке для отчетов
+    if (result) {
+      this.unlockedItems.push(item.name);
+    } else {
+      this.lockedItems.push(item.name);
+    }
+    
     return result;
   }
 
@@ -165,6 +186,10 @@ export class UnlockManager {
     if (this.debugMode) {
       this.steps.push("🔓 Начало проверки разблокировок");
     }
+    
+    // Сбрасываем списки разблокированных/заблокированных элементов
+    this.unlockedItems = [];
+    this.lockedItems = [];
     
     // Проходим по всем элементам в реестре
     Object.values(unlockableItemsRegistry).forEach(item => {
@@ -197,19 +222,26 @@ export class UnlockManager {
               ...updatedState.unlocks,
               [item.id]: true
             };
-            
-            // Если электричество, проверяем, есть ли генератор
-            if (item.id === 'electricity') {
-              const hasGenerator = updatedState.buildings.generator?.count > 0;
-              if (!hasGenerator) {
-                // Если генератора нет, отменяем разблокировку
-                updatedState.resources[item.id].unlocked = false;
-                updatedState.unlocks[item.id] = false;
-                if (this.debugMode) {
-                  this.steps.push(`❌ Отмена разблокировки электричества: нет генератора`);
-                }
-              }
+          } else if (!shouldBeUnlocked && updatedState.resources[item.id]?.unlocked) {
+            // Если элемент должен быть заблокирован, но разблокирован сейчас
+            if (this.debugMode) {
+              this.steps.push(`❌ Заблокирован ресурс: ${item.name}`);
             }
+            
+            // Обновляем ресурс
+            updatedState.resources = {
+              ...updatedState.resources,
+              [item.id]: {
+                ...updatedState.resources[item.id],
+                unlocked: false
+              }
+            };
+            
+            // Обновляем разблокировки
+            updatedState.unlocks = {
+              ...updatedState.unlocks,
+              [item.id]: false
+            };
           }
           break;
           
@@ -234,21 +266,26 @@ export class UnlockManager {
               ...updatedState.unlocks,
               [item.id]: true
             };
-            
-            // Особая проверка для здания "Практика" - требуется 2 применения знаний
-            if (item.id === 'practice') {
-              const applyKnowledgeCount = 
-                updatedState.counters.applyKnowledge?.value || 0;
-              
-              if (applyKnowledgeCount < 2) {
-                // Если применений меньше 2, отменяем разблокировку
-                updatedState.buildings[item.id].unlocked = false;
-                updatedState.unlocks[item.id] = false;
-                if (this.debugMode) {
-                  this.steps.push(`❌ Отмена разблокировки практики: применений знаний меньше 2 (${applyKnowledgeCount})`);
-                }
-              }
+          } else if (!shouldBeUnlocked && updatedState.buildings[item.id]?.unlocked) {
+            // Если элемент должен быть заблокирован, но разблокирован сейчас
+            if (this.debugMode) {
+              this.steps.push(`❌ Заблокировано здание: ${item.name}`);
             }
+            
+            // Обновляем здание
+            updatedState.buildings = {
+              ...updatedState.buildings,
+              [item.id]: {
+                ...updatedState.buildings[item.id],
+                unlocked: false
+              }
+            };
+            
+            // Обновляем разблокировки
+            updatedState.unlocks = {
+              ...updatedState.unlocks,
+              [item.id]: false
+            };
           }
           break;
           
@@ -273,6 +310,26 @@ export class UnlockManager {
               ...updatedState.unlocks,
               [item.id]: true
             };
+          } else if (!shouldBeUnlocked && updatedState.upgrades[item.id]?.unlocked) {
+            // Если элемент должен быть заблокирован, но разблокирован сейчас
+            if (this.debugMode) {
+              this.steps.push(`❌ Заблокировано улучшение: ${item.name}`);
+            }
+            
+            // Обновляем улучшение
+            updatedState.upgrades = {
+              ...updatedState.upgrades,
+              [item.id]: {
+                ...updatedState.upgrades[item.id],
+                unlocked: false
+              }
+            };
+            
+            // Обновляем разблокировки
+            updatedState.unlocks = {
+              ...updatedState.unlocks,
+              [item.id]: false
+            };
           }
           break;
           
@@ -288,19 +345,17 @@ export class UnlockManager {
               ...updatedState.unlocks,
               [item.id]: true
             };
-            
-            // Специальная обработка для вкладки исследований
-            if (item.id === 'research') {
-              // Проверяем, есть ли генератор
-              const hasGenerator = updatedState.buildings.generator?.count > 0;
-              if (!hasGenerator) {
-                // Если генератора нет, отменяем разблокировку
-                updatedState.unlocks[item.id] = false;
-                if (this.debugMode) {
-                  this.steps.push(`❌ Отмена разблокировки исследований: нет генератора`);
-                }
-              }
+          } else if (!shouldBeUnlocked && updatedState.unlocks[item.id]) {
+            // Если элемент должен быть заблокирован, но разблокирован сейчас
+            if (this.debugMode) {
+              this.steps.push(`❌ Заблокирована функция: ${item.name}`);
             }
+            
+            // Обновляем разблокировки
+            updatedState.unlocks = {
+              ...updatedState.unlocks,
+              [item.id]: false
+            };
           }
           break;
       }
@@ -397,48 +452,15 @@ export class UnlockManager {
    * Проверяет все разблокировки принудительно
    */
   public forceCheckAllUnlocks(): GameState {
+    this.debugMode = true;
+    // Сбрасываем шаги для новой проверки
+    this.steps = [];
+    this.steps.push("📊 Начало полной проверки всех разблокировок");
+    
     // Обновляем состояние
     const updatedState = this.updateGameState(this.gameState);
     
-    // Особая проверка для важных разблокировок, чтобы гарантировать
-    // корректное состояние игры
-    
-    // 1. Проверяем "Практика"
-    if (updatedState.counters.applyKnowledge?.value >= 2) {
-      const practiceBuilding = updatedState.buildings.practice;
-      if (practiceBuilding) {
-        practiceBuilding.unlocked = true;
-        updatedState.unlocks.practice = true;
-      }
-    } else {
-      const practiceBuilding = updatedState.buildings.practice;
-      if (practiceBuilding) {
-        practiceBuilding.unlocked = false;
-        updatedState.unlocks.practice = false;
-      }
-    }
-    
-    // 2. Проверяем "Электричество" и "Исследования"
-    if (updatedState.buildings.generator?.count > 0) {
-      // Если есть генератор, разблокируем электричество
-      if (updatedState.resources.electricity) {
-        updatedState.resources.electricity.unlocked = true;
-        updatedState.unlocks.electricity = true;
-      }
-      
-      // Разблокируем вкладку исследований
-      updatedState.unlocks.research = true;
-    } else {
-      // Если генератора нет, блокируем электричество
-      if (updatedState.resources.electricity) {
-        updatedState.resources.electricity.unlocked = false;
-        updatedState.unlocks.electricity = false;
-      }
-      
-      // Блокируем вкладку исследований
-      updatedState.unlocks.research = false;
-    }
-    
+    this.steps.push("📊 Завершение полной проверки всех разблокировок");
     return updatedState;
   }
 
@@ -447,5 +469,30 @@ export class UnlockManager {
    */
   public getDebugSteps(): string[] {
     return this.steps;
+  }
+  
+  /**
+   * Возвращает список разблокированных элементов
+   */
+  public getUnlockedItems(): string[] {
+    return this.unlockedItems;
+  }
+  
+  /**
+   * Возвращает список заблокированных элементов
+   */
+  public getLockedItems(): string[] {
+    return this.lockedItems;
+  }
+  
+  /**
+   * Возвращает полный отчет о разблокировках
+   */
+  public getUnlockReport(): { steps: string[], unlocked: string[], locked: string[] } {
+    return {
+      steps: this.steps,
+      unlocked: this.unlockedItems,
+      locked: this.lockedItems
+    };
   }
 }

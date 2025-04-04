@@ -1,9 +1,6 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
-import { UnlockManagerService } from '@/services/UnlockManagerService';
-import { forceCheckAllUnlocks, forceCheckAdvancedUnlocks } from '@/utils/unlockActions';
 import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 // Импортируем все обработчики редьюсеров
@@ -55,19 +52,13 @@ import {
 // Импортируем обработчик обновления ресурсов
 import { processUpdateResources } from './reducers/resourceUpdateReducer';
 
-// Создаем экземпляр централизованного сервиса состояния
-const gameStateService = new GameStateService();
-
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Received action:', action.type);
-  
-  // Создаем экземпляр менеджера разблокировок
-  let unlockManager: UnlockManager | null = null;
   
   // Добавляем обработку принудительной проверки всех разблокировок
   if (action.type === 'FORCE_RESOURCE_UPDATE' || action.type === 'FORCE_CHECK_UNLOCKS') {
     console.log('Принудительная проверка всех разблокировок');
-    unlockManager = new UnlockManager(state);
+    const unlockManager = new UnlockManager(state);
     return unlockManager.forceCheckAllUnlocks();
   }
   
@@ -76,7 +67,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   
   // Если действие может повлиять на разблокировки, проверяем их
   if (shouldCheckUnlocks(action.type)) {
-    unlockManager = new UnlockManager(newState);
+    const unlockManager = new UnlockManager(newState);
     newState = unlockManager.updateGameState(newState);
   }
   

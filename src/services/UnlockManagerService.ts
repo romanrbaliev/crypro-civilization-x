@@ -5,7 +5,7 @@ import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 /**
  * Централизованный сервис для управления разблокировками контента в игре
- * Использует новую систему разблокировок
+ * Использует централизованную систему разблокировок
  */
 export class UnlockManagerService {
   /**
@@ -14,7 +14,7 @@ export class UnlockManagerService {
   public static checkAllUnlocks(state: GameState): GameState {
     console.log("UnlockManagerService: Запуск проверки всех разблокировок");
     const unlockManager = new UnlockManager(state);
-    return unlockManager.forceCheckAllUnlocks();
+    return unlockManager.updateGameState(state);
   }
   
   /**
@@ -43,26 +43,19 @@ export class UnlockManagerService {
   }
   
   /**
-   * Проверяет разблокировку криптобиблиотеки
+   * Проверяет разблокировку любого элемента
    */
-  public static checkCryptoLibraryUnlock(state: GameState): boolean {
+  public static checkItemUnlock(state: GameState, itemId: string): boolean {
     const unlockManager = new UnlockManager(state);
-    return unlockManager.isUnlocked('cryptoLibrary');
+    return unlockManager.isUnlocked(itemId);
   }
   
   /**
-   * Проверяет разблокировку системы охлаждения
+   * Получает полный отчет о разблокировках для отладки
    */
-  public static checkCoolingSystemUnlock(state: GameState): boolean {
-    const unlockManager = new UnlockManager(state);
-    return unlockManager.isUnlocked('coolingSystem');
-  }
-  
-  /**
-   * Проверяет разблокировку улучшенного кошелька
-   */
-  public static checkEnhancedWalletUnlock(state: GameState): boolean {
-    const unlockManager = new UnlockManager(state);
-    return unlockManager.isUnlocked('enhancedWallet');
+  public static getDebugReport(state: GameState): { steps: string[], unlocked: string[], locked: string[] } {
+    const unlockManager = new UnlockManager(state, true);
+    unlockManager.forceCheckAllUnlocks();
+    return unlockManager.getUnlockReport();
   }
 }

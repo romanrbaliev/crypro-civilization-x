@@ -13,6 +13,8 @@ import {
 const UnlockStatusPopup = () => {
   const { state, forceUpdate } = useGame();
   const [statusSteps, setStatusSteps] = useState<string[]>([]);
+  const [unlockedItems, setUnlockedItems] = useState<string[]>([]);
+  const [lockedItems, setLockedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
   const updateStatus = async () => {
@@ -27,7 +29,9 @@ const UnlockStatusPopup = () => {
         try {
           // Получаем отчет о статусе разблокировок
           const result = debugUnlockStatus(state);
-          setStatusSteps(result.steps || []); // Используем steps из результата
+          setStatusSteps(result.steps || []); // Шаги проверки условий
+          setUnlockedItems(result.unlocked || []); // Разблокированные элементы
+          setLockedItems(result.locked || []); // Заблокированные элементы
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);
@@ -57,12 +61,37 @@ const UnlockStatusPopup = () => {
           className="h-8 px-2 text-xs gap-1 bg-white"
         >
           <Unlock className="h-3.5 w-3.5" /> 
-          Статус разблокировок
+          Проверка разблокировок
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-96 p-0">
         <div className="p-4 bg-white rounded-md">
           <h3 className="text-sm font-bold text-gray-700 mb-2">Статус разблокировок контента</h3>
+          
+          <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+            <div>
+              <h4 className="font-semibold text-green-600">Разблокировано ({unlockedItems.length}):</h4>
+              <ul className="mt-1 space-y-1 text-green-600">
+                {unlockedItems.slice(0, 6).map((item, idx) => (
+                  <li key={idx}>✅ {item}</li>
+                ))}
+                {unlockedItems.length > 6 && (
+                  <li>... и еще {unlockedItems.length - 6}</li>
+                )}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-500">Заблокировано ({lockedItems.length}):</h4>
+              <ul className="mt-1 space-y-1 text-gray-500">
+                {lockedItems.slice(0, 6).map((item, idx) => (
+                  <li key={idx}>❌ {item}</li>
+                ))}
+                {lockedItems.length > 6 && (
+                  <li>... и еще {lockedItems.length - 6}</li>
+                )}
+              </ul>
+            </div>
+          </div>
           
           <div className="mt-2 p-2 bg-gray-50 rounded border text-xs text-gray-600 max-h-80 overflow-y-auto whitespace-pre-line">
             {loading ? (
