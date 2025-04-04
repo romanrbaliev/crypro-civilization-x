@@ -28,6 +28,21 @@ export const processSetBuildingUnlocked = (
     return state;
   }
   
+  // Обновляем счетчик разблокированных зданий при разблокировке
+  let updatedCounters = { ...state.counters };
+  
+  if (unlocked && !state.buildings[buildingId].unlocked) {
+    // Увеличиваем счетчик только если здание действительно было заблокировано ранее
+    const buildingsUnlockedCounter = state.counters.buildingsUnlocked || { id: 'buildingsUnlocked', name: 'buildingsUnlocked', value: 0 };
+    
+    updatedCounters.buildingsUnlocked = {
+      ...(typeof buildingsUnlockedCounter === 'object' ? buildingsUnlockedCounter : { id: 'buildingsUnlocked', name: 'buildingsUnlocked' }),
+      value: (typeof buildingsUnlockedCounter === 'object' ? buildingsUnlockedCounter.value : buildingsUnlockedCounter) + 1
+    };
+    
+    console.log(`processSetBuildingUnlocked: Увеличиваем счетчик buildingsUnlocked на 1 для здания ${buildingId}`);
+  }
+  
   return {
     ...state,
     buildings: {
@@ -36,7 +51,8 @@ export const processSetBuildingUnlocked = (
         ...state.buildings[buildingId],
         unlocked
       }
-    }
+    },
+    counters: updatedCounters
   };
 };
 
@@ -72,6 +88,7 @@ export const processIncrementCounter = (
   
   // Если счетчик не существует, создаем его
   if (!state.counters[counterId]) {
+    console.log(`processIncrementCounter: Создаем новый счетчик ${counterId} со значением ${value}`);
     return {
       ...state,
       counters: {
@@ -88,6 +105,8 @@ export const processIncrementCounter = (
   // Обновляем существующий счетчик
   const counter = state.counters[counterId];
   const currentValue = typeof counter === 'number' ? counter : counter.value;
+  
+  console.log(`processIncrementCounter: Увеличиваем счетчик ${counterId} с ${currentValue} на ${value}`);
   
   return {
     ...state,

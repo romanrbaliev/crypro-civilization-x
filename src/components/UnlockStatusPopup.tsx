@@ -13,12 +13,13 @@ import {
   debugPracticeBuilding, 
   debugBuildingDisplay, 
   listAllBuildings,
-  debugTabsUnlocks 
+  debugTabsUnlocks,
+  debugApplyKnowledgeCounter
 } from '@/utils/buildingDebugUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const UnlockStatusPopup = () => {
-  const { state, forceUpdate } = useGame();
+  const { state, dispatch, forceUpdate } = useGame();
   const [statusSteps, setStatusSteps] = useState<string[]>([]);
   const [unlockedItems, setUnlockedItems] = useState<string[]>([]);
   const [lockedItems, setLockedItems] = useState<string[]>([]);
@@ -26,6 +27,7 @@ const UnlockStatusPopup = () => {
   const [buildingsStatus, setBuildingsStatus] = useState<any>(null);
   const [allBuildings, setAllBuildings] = useState<any[]>([]);
   const [tabsStatus, setTabsStatus] = useState<any>(null);
+  const [counterStatus, setCounterStatus] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   
   const updateStatus = async () => {
@@ -59,6 +61,10 @@ const UnlockStatusPopup = () => {
           const tabsDebug = debugTabsUnlocks(state);
           setTabsStatus(tabsDebug);
           
+          // Добавляем информацию о счетчике applyKnowledge
+          const applyKnowledgeDebug = debugApplyKnowledgeCounter(state);
+          setCounterStatus(applyKnowledgeDebug);
+          
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);
@@ -79,6 +85,31 @@ const UnlockStatusPopup = () => {
     }
   };
   
+  const handleForceUnlockEquipment = () => {
+    dispatch({ type: 'UNLOCK_FEATURE', payload: { featureId: 'equipment' } });
+    // Также обновляем статус отладки
+    updateStatus();
+  };
+  
+  const handleForceUnlockPractice = () => {
+    dispatch({ type: 'SET_BUILDING_UNLOCKED', payload: { buildingId: 'practice', unlocked: true } });
+    // Также обновляем счетчик разблокированных зданий
+    dispatch({ 
+      type: 'INCREMENT_COUNTER', 
+      payload: { 
+        counterId: 'buildingsUnlocked', 
+        value: 1 
+      } 
+    });
+    // Обновляем статус отладки
+    updateStatus();
+  };
+  
+  const handleForceCheckAllUnlocks = () => {
+    dispatch({ type: 'FORCE_CHECK_UNLOCKS' });
+    updateStatus();
+  };
+  
   return (
     <Popover onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -91,17 +122,93 @@ const UnlockStatusPopup = () => {
           Проверка разблокировок
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[500px] p-0">
+      <PopoverContent className="w-[580px] p-0">
         <div className="p-4 bg-white rounded-md">
           <h3 className="text-sm font-bold text-gray-700 mb-2">Статус разблокировок контента</h3>
           
-          <Tabs defaultValue="unlocks">
+          <Tabs defaultValue="counters">
             <TabsList className="w-full mb-2">
+              <TabsTrigger value="counters">Счетчики</TabsTrigger>
               <TabsTrigger value="unlocks">Разблокировки</TabsTrigger>
               <TabsTrigger value="practice">Отладка "Практика"</TabsTrigger>
               <TabsTrigger value="buildings">Все здания</TabsTrigger>
               <TabsTrigger value="tabs">Вкладки</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="counters">
+              {counterStatus ? (
+                <div className="p-2 bg-gray-50 rounded border text-xs mb-3">
+                  <h4 className="font-semibold mb-2">Анализ счетчика applyKnowledge и разблокировок</h4>
+                  
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 mb-3">
+                    <div>
+                      <strong>Статус счетчика:</strong> {counterStatus.counterExists ? "✅ Существует" : "❌ Не существует"}
+                    </div>
+                    <div>
+                      <strong>Значение счетчика:</strong> {counterStatus.counterValue}
+                    </div>
+                    <div>
+                      <strong>Тип счетчика:</strong> {counterStatus.counterType}
+                    </div>
+                    <div>
+                      <strong>Порог разблокировки "Практика":</strong> {counterStatus.practiceUnlockThreshold}
+                    </div>
+                    <div className={counterStatus.practiceExists ? "text-green-600" : "text-red-500"}>
+                      <strong>Существование "Практика":</strong> {counterStatus.practiceExists ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div className={counterStatus.practiceUnlocked ? "text-green-600" : "text-red-500"}>
+                      <strong>Разблокировка "Практика":</strong> {counterStatus.practiceUnlocked ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div className={counterStatus.equipmentTabUnlocked ? "text-green-600" : "text-red-500"}>
+                      <strong>Разблокировка "Оборудование":</strong> {counterStatus.equipmentTabUnlocked ? "✅ Да" : "❌ Нет"}
+                    </div>
+                    <div>
+                      <strong>Счетчик разблокированных зданий:</strong> {counterStatus.buildingsUnlockedCounter}
+                    </div>
+                  </div>
+                  
+                  {counterStatus.recommendations.length > 0 && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                      <h5 className="font-semibold text-yellow-700 mb-1">Рекомендации:</h5>
+                      <ul className="list-disc pl-4">
+                        {counterStatus.recommendations.map((rec, idx) => (
+                          <li key={idx} className="text-yellow-800">{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  <div className="mt-3 flex justify-end space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs bg-blue-50 text-blue-600" 
+                      onClick={handleForceCheckAllUnlocks}
+                    >
+                      Полная проверка разблокировок
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs bg-green-50 text-green-600" 
+                      onClick={handleForceUnlockPractice}
+                    >
+                      Разблокировать "Практику"
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs bg-purple-50 text-purple-600" 
+                      onClick={handleForceUnlockEquipment}
+                    >
+                      Разблокировать вкладку "Оборудование"
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">Нет данных. Нажмите "Обновить статус".</div>
+              )}
+            </TabsContent>
             
             <TabsContent value="unlocks">
               <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
@@ -208,6 +315,9 @@ const UnlockStatusPopup = () => {
                     <div>Разблокировано: {buildingsStatus.unlockedBuildingsCount}</div>
                     <div className={buildingsStatus.equipmentTabUnlocked ? "text-green-600" : "text-red-500"}>
                       Вкладка Equipment: {buildingsStatus.equipmentTabUnlocked ? "✅ Разблокирована" : "❌ Заблокирована"}
+                    </div>
+                    <div className={buildingsStatus.unlockedBuildingsCount > 0 && buildingsStatus.buildingsUnlockedCounterValue > 0 ? "text-green-600" : "text-red-500"}>
+                      Счетчик разблокированных зданий: {buildingsStatus.buildingsUnlockedCounterValue}
                     </div>
                   </div>
                   
