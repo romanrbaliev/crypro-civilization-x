@@ -42,7 +42,7 @@ export const unlockableItemsRegistry: { [itemId: string]: UnlockableItem } = {
         description: 'Иметь хотя бы один генератор'
       }
     ],
-    autoUnlock: false,
+    autoUnlock: true,
     influencesOthers: false
   },
   'bitcoin': {

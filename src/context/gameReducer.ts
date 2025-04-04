@@ -100,7 +100,9 @@ function shouldCheckUnlocks(actionType: string): boolean {
     'SET_BUILDING_UNLOCKED',
     'SET_UPGRADE_UNLOCKED',
     'LOAD_GAME',
-    'START_GAME'
+    'START_GAME',
+    'MINING_POWER',
+    'EXCHANGE_BTC'
   ];
   
   return unlockAffectingActions.includes(actionType);

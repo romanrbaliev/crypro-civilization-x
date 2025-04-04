@@ -126,6 +126,20 @@ export const processPurchaseBuilding = (
         perSecond: 0.5
       };
     }
+    
+    // Явно разблокируем электричество после покупки генератора
+    newState.unlocks = {
+      ...newState.unlocks,
+      electricity: true
+    };
+    
+    // Явно разблокируем вкладку исследований после покупки генератора
+    newState.unlocks = {
+      ...newState.unlocks,
+      research: true
+    };
+    
+    console.log("Генератор разблокировал электричество и исследования:", newState.unlocks);
   } else if (buildingId === 'generator' && newState.buildings.generator.count > 1) {
     // Увеличиваем производство электричества для каждого дополнительного генератора
     newState.resources.electricity = {

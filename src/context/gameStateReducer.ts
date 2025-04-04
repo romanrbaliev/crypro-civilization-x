@@ -122,21 +122,28 @@ export const processLoadGame = (
   // Убеждаемся, что игра отмечена как запущенная
   loadedState.gameStarted = true;
   
-  // КРИТИЧЕСКИЙ ФИХ: синхронизация разблокировки практики
-  if (loadedState.unlocks && loadedState.unlocks.practice) {
-    console.log('Обнаружена разблокированная функция practice, проверяем здание...');
-    
-    if (loadedState.buildings && loadedState.buildings.practice) {
-      // Обязательно разблокируем здание practice если функция разблокирована
-      loadedState.buildings.practice = {
-        ...loadedState.buildings.practice,
-        unlocked: true
-      };
-      console.log('✅ Синхронизировали разблокировку здания практики с функцией практики');
-    } else {
-      console.warn('⚠️ Здание practice не найдено в загруженном состоянии!');
-    }
+  // КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ РАЗБЛОКИРОВОК:
+  
+  // 1. Проверяем разблокировку электричества - должно быть разблокировано только если есть генератор
+  if (loadedState.resources.electricity) {
+    const hasGenerator = loadedState.buildings.generator?.count > 0;
+    loadedState.resources.electricity.unlocked = hasGenerator;
+    loadedState.unlocks.electricity = hasGenerator;
+    console.log(`Корректировка разблокировки электричества: ${hasGenerator ? 'разблокировано' : 'заблокировано'}`);
   }
+  
+  // 2. Проверяем разблокировку практики - должна быть разблокирована только после 2 применений знаний
+  if (loadedState.buildings.practice) {
+    const applyKnowledgeCount = loadedState.counters.applyKnowledge?.value || 0;
+    loadedState.buildings.practice.unlocked = applyKnowledgeCount >= 2;
+    loadedState.unlocks.practice = applyKnowledgeCount >= 2;
+    console.log(`Корректировка разблокировки практики: ${applyKnowledgeCount >= 2 ? 'разблокировано' : 'заблокировано'} (применений знаний: ${applyKnowledgeCount})`);
+  }
+  
+  // 3. Проверяем разблокировку исследований - должны быть разблокированы только если есть генератор
+  const hasGenerator = loadedState.buildings.generator?.count > 0;
+  loadedState.unlocks.research = hasGenerator;
+  console.log(`Корректировка разблокировки исследований: ${hasGenerator ? 'разблокировано' : 'заблокировано'}`);
   
   // ВАЖНО: Проверяем наличие cryptoWallet в зданиях
   if (loadedState.buildings && !loadedState.buildings.cryptoWallet && initialState.buildings.cryptoWallet) {
@@ -175,7 +182,7 @@ export const processLoadGame = (
   // Проверка и добавление новых полей, которые могли отсутствовать в сохранении
   if (!loadedState.specializationSynergies) {
     loadedState.specializationSynergies = { ...initialState.specializationSynergies };
-    console.log('✅ Добавлены отсутствующие данные о синергиях специализаций в редьюсере');
+    console.log('✅ Добавлены отсутствующие данные о синергиях специализаций в редь��сере');
   }
   
   // Проверка и инициализация реферальных систем
