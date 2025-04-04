@@ -1,5 +1,5 @@
 import { GameState } from '../types';
-import { updateResourceMaxValues } from '../utils/resourceUtils';
+import { calculateResourceMaxValue } from '@/utils/resourceCalculator';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 // Количество знаний, необходимое для обмена
@@ -96,100 +96,65 @@ export const processApplyKnowledge = (state: GameState): GameState => {
 
 // Обработка массового применения знаний
 export const processApplyAllKnowledge = (state: GameState): GameState => {
-  // Проверяем наличие ресурсов
-  if (!state.resources.knowledge) {
-    console.log('Ресурс knowledge не найден в состоянии');
+  // Получаем количество доступных знаний
+  const knowledgeValue = state.resources.knowledge?.value || 0;
+  const knowledgeEfficiency = state.resources.knowledge?.efficiency || 1;
+  
+  // Если знаний меньше 10, ничего не применяем
+  if (knowledgeValue < 10) {
     return state;
   }
   
-  const knowledge = state.resources.knowledge;
+  // Рассчитываем, сколько знаний можно применить (должно быть кратно 10)
+  const applicableKnowledge = Math.floor(knowledgeValue / 10) * 10;
   
-  // Проверяем, достаточно ли знаний для обмена
-  if (knowledge.value < KNOWLEDGE_EXCHANGE_RATE) {
-    console.log(`Недостаточно знаний для обмена: ${knowledge.value}/${KNOWLEDGE_EXCHANGE_RATE}`);
-    return state;
-  }
+  // Рассчитываем, сколько USDT получим (1 USDT за каждые 10 знаний)
+  const usdtToAdd = (applicableKnowledge / 10) * knowledgeEfficiency;
   
-  // Рассчитываем, сколько знаний можно обменять
-  const exchangeCount = Math.floor(knowledge.value / KNOWLEDGE_EXCHANGE_RATE);
-  const knowledgeToExchange = exchangeCount * KNOWLEDGE_EXCHANGE_RATE;
+  // Проверяем, не превысим ли максимум USDT
+  const usdtMax = calculateResourceMaxValue(state, 'usdt');
+  const currentUsdt = state.resources.usdt?.value || 0;
+  const newUsdt = Math.min(currentUsdt + usdtToAdd, usdtMax);
+  const actualUsdtToAdd = newUsdt - currentUsdt;
   
-  // Рассчитываем бонус к эффективности знаний (если есть)
-  const knowledgeEfficiencyBonus = state.resources.knowledgeEfficiency?.value || 0;
+  console.log(`processApplyAllKnowledge: Применяем ${applicableKnowledge} знаний и получаем ${actualUsdtToAdd} USDT`);
   
-  // Количество USDT, которое получим после обмена с учетом бонуса
-  const usdtGain = exchangeCount * (1 + knowledgeEfficiencyBonus);
+  // Исправление: убираем инкремент счетчика applyKnowledge отсюда, 
+  // так как он уже инкрементируется в ActionButtons.tsx
   
-  // Создаем новый объект для знаний
-  const newKnowledge = {
-    ...knowledge,
-    value: knowledge.value - knowledgeToExchange
-  };
-  
-  // Проверяем, существует ли USDT
-  let newUsdt;
-  if (state.resources.usdt) {
-    newUsdt = {
-      ...state.resources.usdt,
-      value: state.resources.usdt.value + usdtGain,
-      unlocked: true
-    };
-  } else {
-    // Если USDT не существует, создаем его
-    newUsdt = {
-      id: 'usdt',
-      name: 'USDT',
-      description: 'Стейблкоин, привязанный к доллару США',
-      icon: 'dollar',
-      type: 'currency',
-      value: usdtGain,
-      unlocked: true,
-      max: 100,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0
-    };
-  }
-  
-  // Создаем новый объект ресурсов
-  const newResources = {
+  // Обновляем ресурсы
+  const updatedResources = {
     ...state.resources,
-    knowledge: newKnowledge,
-    usdt: newUsdt
+    knowledge: {
+      ...state.resources.knowledge,
+      value: knowledgeValue - applicableKnowledge
+    },
+    usdt: {
+      ...(state.resources.usdt || {
+        id: 'usdt',
+        name: 'USDT',
+        unlocked: true,
+        value: 0,
+        max: 100
+      }),
+      value: newUsdt,
+      unlocked: true
+    }
   };
   
-  // Создаем новый объект разблокировок с разблокированным USDT
-  const newUnlocks: { [key: string]: boolean } = {
+  // Разблокируем USDT как ресурс, если это не было сделано ранее
+  const updatedUnlocks: { [key: string]: boolean } = {
     ...state.unlocks,
     usdt: true
   };
   
-  // Увеличиваем счетчик применений знаний
-  const newCounters = {
-    ...state.counters,
-    applyKnowledge: {
-      ...(state.counters.applyKnowledge || { id: 'applyKnowledge', name: 'Применить знания', value: 0 }),
-      value: (state.counters.applyKnowledge?.value || 0) + 1
-    }
-  };
+  safeDispatchGameEvent(`Применено ${applicableKnowledge} знаний, получено ${actualUsdtToAdd.toFixed(2)} USDT`, "success");
   
-  // Выводим информацию в консоль для отладки
-  console.log(`Массовый обмен знаний: ${knowledgeToExchange} знаний обменяно на ${usdtGain} USDT`);
-  console.log(`Новый счетчик applyKnowledge: ${newCounters.applyKnowledge.value}`);
-  
-  // Отправляем сообщение о событии
-  safeDispatchGameEvent(
-    `Обменяно ${knowledgeToExchange} знаний на ${usdtGain} USDT`,
-    "success"
-  );
-  
-  // Создаем новое состояние игры с обновленными ресурсами, разблокировками и счетчиками
-  return updateResourceMaxValues({
+  return {
     ...state,
-    resources: newResources,
-    unlocks: newUnlocks,
-    counters: newCounters
-  });
+    resources: updatedResources,
+    unlocks: updatedUnlocks
+  };
 };
 
 // Обработка майнинга

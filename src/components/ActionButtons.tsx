@@ -39,13 +39,19 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   const handleApplyAllKnowledge = () => {
     if (canApplyKnowledge) {
-      dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
+      // ИСПРАВЛЕНИЕ: Сначала отправляем действие INCREMENT_COUNTER, потом APPLY_ALL_KNOWLEDGE
+      // Это гарантирует, что счетчик увеличится только один раз до применения знаний
       
-      // Увеличиваем счетчик применений знаний (но только на 1, так как это единичное действие)
+      // Увеличиваем счетчик применений знаний ровно на 1
       dispatch({ 
         type: "INCREMENT_COUNTER", 
         payload: { counterId: "applyKnowledge", value: 1 } 
       });
+      
+      // Применяем знания
+      dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
+      
+      console.log("handleApplyAllKnowledge: Увеличение счетчика applyKnowledge на 1");
       
       onAddEvent(`Все знания применены! Получено USDT`, "success");
       

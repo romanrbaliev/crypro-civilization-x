@@ -8,6 +8,22 @@ export const processUnlockFeature = (
 ): GameState => {
   const { featureId } = payload;
   
+  // ВАЖНОЕ ИСПРАВЛЕНИЕ: Проверка перед разблокировкой вкладки Оборудование
+  if (featureId === 'equipment') {
+    console.log(`processUnlockFeature: Попытка разблокировки вкладки Оборудование`);
+    
+    // Проверка наличия разблокированных зданий
+    const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
+    console.log(`processUnlockFeature: Наличие разблокированных зданий = ${hasUnlockedBuildings}`);
+    
+    if (hasUnlockedBuildings) {
+      console.log(`processUnlockFeature: Условие разблокировки вкладки Оборудование выполнено`);
+    } else {
+      console.log(`processUnlockFeature: Условие разблокировки вкладки Оборудование НЕ выполнено`);
+      return state; // Не разблокируем, если нет разблокированных зданий
+    }
+  }
+  
   return {
     ...state,
     unlocks: {
@@ -28,6 +44,13 @@ export const processSetBuildingUnlocked = (
     return state;
   }
   
+  // Проверяем, действительно ли изменится статус разблокировки
+  const isCurrentlyUnlocked = !!state.buildings[buildingId].unlocked;
+  if (isCurrentlyUnlocked === unlocked) {
+    // Статус не изменится, просто возвращаем текущее состояние
+    return state;
+  }
+  
   // Обновляем счетчик разблокированных зданий при разблокировке
   let updatedCounters = { ...state.counters };
   
@@ -41,6 +64,28 @@ export const processSetBuildingUnlocked = (
     };
     
     console.log(`processSetBuildingUnlocked: Увеличиваем счетчик buildingsUnlocked на 1 для здания ${buildingId}`);
+    
+    // ВАЖНОЕ ИСПРАВЛЕНИЕ: Если счетчик стал равен 1, автоматически разблокируем вкладку оборудования
+    if (updatedCounters.buildingsUnlocked.value === 1) {
+      console.log(`processSetBuildingUnlocked: Автоматическая разблокировка вкладки Оборудование`);
+      
+      // Обновляем разблокировки
+      return {
+        ...state,
+        buildings: {
+          ...state.buildings,
+          [buildingId]: {
+            ...state.buildings[buildingId],
+            unlocked
+          }
+        },
+        counters: updatedCounters,
+        unlocks: {
+          ...state.unlocks,
+          equipment: true // Разблокируем вкладку оборудования
+        }
+      };
+    }
   }
   
   return {
@@ -85,6 +130,11 @@ export const processIncrementCounter = (
   payload: { counterId: string; value?: number }
 ): GameState => {
   const { counterId, value = 1 } = payload;
+  
+  // ИСПРАВЛЕНИЕ: Улучшаем логгирование для счетчика applyKnowledge
+  if (counterId === 'applyKnowledge') {
+    console.log(`processIncrementCounter: Увеличение счетчика applyKnowledge на ${value}`);
+  }
   
   // Если счетчик не существует, создаем его
   if (!state.counters[counterId]) {

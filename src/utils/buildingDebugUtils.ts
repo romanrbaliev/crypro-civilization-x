@@ -246,3 +246,94 @@ export function debugApplyKnowledgeCounter(state: GameState): {
     recommendations
   };
 }
+
+/**
+ * Глубокая проверка состояния счетчиков, связанных с разблокировками
+ */
+export function debugCountersState(state: GameState): {
+  counters: { id: string, type: string, value: number }[],
+  buildingsUnlockedCounter: { exists: boolean, type: string, value: number },
+  applyKnowledgeCounter: { exists: boolean, type: string, value: number },
+  knowledgeClicksCounter: { exists: boolean, type: string, value: number },
+  relevantCounters: string,
+  practiceUnlockedByCounter: boolean,
+  equipmentUnlockedByCounter: boolean
+} {
+  // Получаем все счетчики
+  const counters = Object.keys(state.counters).map(id => {
+    const counter = state.counters[id];
+    const counterType = typeof counter;
+    const counterValue = counterType === 'number' 
+      ? counter 
+      : (counterType === 'object' && counter ? counter.value : 0);
+    
+    return {
+      id,
+      type: counterType,
+      value: counterValue
+    };
+  });
+  
+  // Получаем значение счетчика buildingsUnlocked
+  const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
+  const buildingsUnlockedExists = !!buildingsUnlockedCounter;
+  const buildingsUnlockedType = typeof buildingsUnlockedCounter;
+  const buildingsUnlockedValue = buildingsUnlockedExists 
+    ? (buildingsUnlockedType === 'number' 
+       ? buildingsUnlockedCounter 
+       : (buildingsUnlockedCounter as any).value || 0) 
+    : 0;
+  
+  // Получаем значение счетчика applyKnowledge
+  const applyKnowledgeCounter = state.counters.applyKnowledge;
+  const applyKnowledgeExists = !!applyKnowledgeCounter;
+  const applyKnowledgeType = typeof applyKnowledgeCounter;
+  const applyKnowledgeValue = applyKnowledgeExists 
+    ? (applyKnowledgeType === 'number' 
+       ? applyKnowledgeCounter 
+       : (applyKnowledgeCounter as any).value || 0) 
+    : 0;
+  
+  // Получаем значение счетчика knowledgeClicks
+  const knowledgeClicksCounter = state.counters.knowledgeClicks;
+  const knowledgeClicksExists = !!knowledgeClicksCounter;
+  const knowledgeClicksType = typeof knowledgeClicksCounter;
+  const knowledgeClicksValue = knowledgeClicksExists 
+    ? (knowledgeClicksType === 'number' 
+       ? knowledgeClicksCounter 
+       : (knowledgeClicksCounter as any).value || 0) 
+    : 0;
+  
+  // Ключевые счетчики для разблокировок
+  const relevantCounters = `buildingsUnlocked=${buildingsUnlockedValue}, applyKnowledge=${applyKnowledgeValue}, knowledgeClicks=${knowledgeClicksValue}`;
+  
+  // Проверяем разблокировку здания Практика по счетчику
+  // По документации: "Практика" разблокируется после 2+ применений знаний
+  const practiceUnlockedByCounter = applyKnowledgeValue >= 2;
+  
+  // Проверяем разблокировку вкладки Оборудование по счетчику
+  // Вкладка Оборудование разблокируется, когда есть хотя бы одно разблокированное здание
+  const equipmentUnlockedByCounter = buildingsUnlockedValue >= 1;
+  
+  return {
+    counters,
+    buildingsUnlockedCounter: {
+      exists: buildingsUnlockedExists,
+      type: buildingsUnlockedType,
+      value: buildingsUnlockedValue
+    },
+    applyKnowledgeCounter: {
+      exists: applyKnowledgeExists,
+      type: applyKnowledgeType,
+      value: applyKnowledgeValue
+    },
+    knowledgeClicksCounter: {
+      exists: knowledgeClicksExists,
+      type: knowledgeClicksType,
+      value: knowledgeClicksValue
+    },
+    relevantCounters,
+    practiceUnlockedByCounter,
+    equipmentUnlockedByCounter
+  };
+}

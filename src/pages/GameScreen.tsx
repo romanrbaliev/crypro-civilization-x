@@ -50,10 +50,17 @@ const GameScreen = () => {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const { toast } = useToast();
   
-  const hasUnlockedEquipment = useUnlockStatus('equipment');
-  const hasUnlockedResearch = useUnlockStatus('research');
-  const hasUnlockedSpecialization = useUnlockStatus('specialization');
-  const hasUnlockedReferrals = useUnlockStatus('referrals');
+  const hasUnlockedEquipment = state.unlocks.equipment === true;
+  const hasUnlockedResearch = state.unlocks.research === true;
+  const hasUnlockedSpecialization = state.unlocks.specialization === true;
+  const hasUnlockedReferrals = state.unlocks.referrals === true;
+  
+  console.log("GameScreen: Состояние вкладок:", {
+    equipment: hasUnlockedEquipment,
+    research: hasUnlockedResearch,
+    specialization: hasUnlockedSpecialization,
+    referrals: hasUnlockedReferrals
+  });
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
@@ -61,15 +68,29 @@ const GameScreen = () => {
   
   useEffect(() => {
     console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
-    console.log("Разблокированные вкладки:", {
-      equipment: hasUnlockedEquipment,
-      research: hasUnlockedResearch,
-      specialization: hasUnlockedSpecialization,
-      referrals: hasUnlockedReferrals
-    });
     
     dispatch({ type: "FORCE_RESOURCE_UPDATE" });
   }, [state.unlocks, dispatch]);
+  
+  useEffect(() => {
+    const buildingsUnlockedCount = state.counters.buildingsUnlocked ? 
+      (typeof state.counters.buildingsUnlocked === 'number' ? 
+        state.counters.buildingsUnlocked : 
+        state.counters.buildingsUnlocked.value) : 0;
+    
+    console.log("GameScreen: Счетчик разблокированных зданий =", buildingsUnlockedCount);
+    
+    const unlockedBuildings = Object.values(state.buildings).filter(b => b.unlocked);
+    console.log("GameScreen: Разблокированные здания:", unlockedBuildings.map(b => b.id));
+    
+    if (unlockedBuildings.length > 0 && !state.unlocks.equipment) {
+      console.log("GameScreen: Принудительная разблокировка вкладки оборудования");
+      dispatch({ 
+        type: "UNLOCK_FEATURE", 
+        payload: { featureId: "equipment" } 
+      });
+    }
+  }, [state.buildings, state.unlocks.equipment, dispatch]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
@@ -174,6 +195,8 @@ const GameScreen = () => {
   };
   
   const renderTabButton = (id: string, label: string, icon: React.ReactNode, isUnlocked: boolean) => {
+    console.log(`Вкладка ${id}: разблокирована = ${isUnlocked}, выбрана = ${selectedTab === id}`);
+    
     if (!isUnlocked) return null;
     
     return (
