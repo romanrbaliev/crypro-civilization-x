@@ -1,4 +1,3 @@
-
 import { GameState, Counter } from '@/context/types';
 
 /**
@@ -31,7 +30,7 @@ export function debugPracticeBuilding(state: GameState): {
   const applyKnowledgeCounter = state.counters.applyKnowledge;
   const applyKnowledgeCount = typeof applyKnowledgeCounter === 'number' 
     ? applyKnowledgeCounter 
-    : (applyKnowledgeCounter ? applyKnowledgeCounter.value : 0);
+    : (applyKnowledgeCounter ? (applyKnowledgeCounter as unknown as Counter).value : 0);
   
   const conditionalCheck = applyKnowledgeCount >= 2;
   
@@ -88,6 +87,7 @@ export function debugBuildingDisplay(state: GameState): {
   equipmentTabUnlocked: boolean,
   buildingsUnlockedCounterValue: number
 } {
+  // Получаем список всех зданий из state.buildings
   const buildings = state.buildings;
   const buildingsList = Object.keys(buildings);
   const unlockedBuildingsList = buildingsList.filter(id => buildings[id].unlocked);
@@ -95,7 +95,7 @@ export function debugBuildingDisplay(state: GameState): {
   // Получаем значение счетчика разблокированных зданий
   const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
   const counterValue = buildingsUnlockedCounter ? 
-    (typeof buildingsUnlockedCounter === 'number' ? buildingsUnlockedCounter : buildingsUnlockedCounter.value) : 0;
+    (typeof buildingsUnlockedCounter === 'number' ? buildingsUnlockedCounter : (buildingsUnlockedCounter as unknown as Counter).value) : 0;
   
   return {
     buildingsCount: buildingsList.length,
@@ -191,7 +191,7 @@ export function debugApplyKnowledgeCounter(state: GameState): {
   
   // Получаем значение счетчика
   const counterValue = counterExists 
-    ? (typeof counter === 'number' ? counter : counter.value) 
+    ? (typeof counter === 'number' ? counter : (counter as unknown as Counter).value) 
     : 0;
   
   // Определяем тип счетчика
@@ -213,7 +213,7 @@ export function debugApplyKnowledgeCounter(state: GameState): {
   const buildingsUnlockedCounter = state.counters.buildingsUnlocked 
     ? (typeof state.counters.buildingsUnlocked === 'number' 
        ? state.counters.buildingsUnlocked 
-       : state.counters.buildingsUnlocked.value) 
+       : (state.counters.buildingsUnlocked as unknown as Counter).value) 
     : 0;
   
   // Формируем рекомендации
