@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -97,5 +96,69 @@ export function debugBuildingDisplay(state: GameState): {
     buildingsList,
     unlockedBuildingsList,
     equipmentTabUnlocked: state.unlocks.equipment === true
+  };
+}
+
+/**
+ * Отладка состояния разблокировок вкладок интерфейса
+ */
+export function debugTabsUnlocks(state: GameState): { 
+  equipment: { unlocked: boolean, condition: string },
+  research: { unlocked: boolean, condition: string },
+  specialization: { unlocked: boolean, condition: string },
+  referrals: { unlocked: boolean, condition: string },
+  trading: { unlocked: boolean, condition: string },
+  allTabs: { id: string, unlocked: boolean }[]
+} {
+  // Получаем базовую информацию о вкладках
+  const equipmentUnlocked = !!state.unlocks.equipment;
+  const researchUnlocked = !!state.unlocks.research;
+  const specializationUnlocked = !!state.unlocks.specialization;
+  const referralsUnlocked = !!state.unlocks.referrals;
+  const tradingUnlocked = !!state.unlocks.trading;
+  
+  // Проверяем условия разблокировки для каждой вкладки
+  // Вкладка Оборудование (Equipment)
+  const equipmentCondition = state.counters.buildingsUnlocked && state.counters.buildingsUnlocked.value >= 1 
+    ? "✅ Разблокировано хотя бы одно здание" 
+    : "❌ Не разблокировано ни одно здание";
+  
+  // Вкладка Исследования (Research)
+  const researchCondition = state.buildings.generator && state.buildings.generator.count > 0 
+    ? "✅ Имеется хотя бы один генератор" 
+    : "❌ Не куплен генератор";
+  
+  // Вкладка Специализация (Specialization)
+  const specializationCondition = state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased 
+    ? "✅ Изучены Основы криптовалют" 
+    : "❌ Не изучены Основы криптовалют";
+  
+  // Вкладка Рефералы (Referrals)
+  const referralsCondition = state.upgrades.cryptoCommunity && state.upgrades.cryptoCommunity.purchased 
+    ? "✅ Изучено Криптосообщество" 
+    : "❌ Не изучено Криптосообщество";
+  
+  // Вкладка Трейдинг (Trading)
+  const tradingCondition = state.upgrades.cryptoTrading && state.upgrades.cryptoTrading.purchased 
+    ? "✅ Изучен Криптовалютный трейдинг" 
+    : "❌ Не изучен Криптовалютный трейдинг";
+  
+  // Получаем список всех вкладок
+  const allTabs = [
+    { id: 'main', unlocked: true }, // Главная вкладка всегда разблокирована
+    { id: 'equipment', unlocked: equipmentUnlocked },
+    { id: 'research', unlocked: researchUnlocked },
+    { id: 'specialization', unlocked: specializationUnlocked },
+    { id: 'referrals', unlocked: referralsUnlocked },
+    { id: 'trading', unlocked: tradingUnlocked }
+  ];
+  
+  return {
+    equipment: { unlocked: equipmentUnlocked, condition: equipmentCondition },
+    research: { unlocked: researchUnlocked, condition: researchCondition },
+    specialization: { unlocked: specializationUnlocked, condition: specializationCondition },
+    referrals: { unlocked: referralsUnlocked, condition: referralsCondition },
+    trading: { unlocked: tradingUnlocked, condition: tradingCondition },
+    allTabs
   };
 }

@@ -9,7 +9,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { debugPracticeBuilding, debugBuildingDisplay, listAllBuildings } from '@/utils/buildingDebugUtils';
+import { 
+  debugPracticeBuilding, 
+  debugBuildingDisplay, 
+  listAllBuildings,
+  debugTabsUnlocks 
+} from '@/utils/buildingDebugUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const UnlockStatusPopup = () => {
@@ -20,6 +25,7 @@ const UnlockStatusPopup = () => {
   const [practiceStatus, setPracticeStatus] = useState<any>(null);
   const [buildingsStatus, setBuildingsStatus] = useState<any>(null);
   const [allBuildings, setAllBuildings] = useState<any[]>([]);
+  const [tabsStatus, setTabsStatus] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   
   const updateStatus = async () => {
@@ -48,6 +54,10 @@ const UnlockStatusPopup = () => {
           // Добавляем информацию об отображении зданий
           const displayDebug = debugBuildingDisplay(state);
           setBuildingsStatus(displayDebug);
+          
+          // Добавляем информацию о вкладках
+          const tabsDebug = debugTabsUnlocks(state);
+          setTabsStatus(tabsDebug);
           
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
@@ -90,6 +100,7 @@ const UnlockStatusPopup = () => {
               <TabsTrigger value="unlocks">Разблокировки</TabsTrigger>
               <TabsTrigger value="practice">Отладка "Практика"</TabsTrigger>
               <TabsTrigger value="buildings">Все здания</TabsTrigger>
+              <TabsTrigger value="tabs">Вкладки</TabsTrigger>
             </TabsList>
             
             <TabsContent value="unlocks">
@@ -178,6 +189,9 @@ const UnlockStatusPopup = () => {
                     {practiceStatus.unlocked && !practiceStatus.displayInBuildingsContainer && (
                       <p>Здание разблокировано, но не отображается в контейнере зданий. Проверьте фильтрацию в компоненте.</p>
                     )}
+                    {practiceStatus.exists && practiceStatus.unlocked && !buildingsStatus?.equipmentTabUnlocked && (
+                      <p>Здание разблокировано, но вкладка "Оборудование" заблокирована. Необходимо разблокировать вкладку.</p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -222,6 +236,76 @@ const UnlockStatusPopup = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              ) : (
+                <div className="text-center py-4">Нет данных. Нажмите "Обновить статус".</div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="tabs">
+              {tabsStatus ? (
+                <div className="p-2 bg-gray-50 rounded border text-xs overflow-auto max-h-60">
+                  <h4 className="font-semibold mb-2">Статус вкладок интерфейса</h4>
+                  
+                  <div className="mb-3 border p-2 rounded bg-white">
+                    <h5 className="font-semibold mb-1">Оборудование</h5>
+                    <div className={tabsStatus.equipment.unlocked ? "text-green-600" : "text-red-500"}>
+                      Статус: {tabsStatus.equipment.unlocked ? "✅ Разблокировано" : "❌ Заблокировано"}
+                    </div>
+                    <div className="mt-1">
+                      Условие: {tabsStatus.equipment.condition}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3 border p-2 rounded bg-white">
+                    <h5 className="font-semibold mb-1">Исследования</h5>
+                    <div className={tabsStatus.research.unlocked ? "text-green-600" : "text-red-500"}>
+                      Статус: {tabsStatus.research.unlocked ? "✅ Разблокировано" : "❌ Заблокировано"}
+                    </div>
+                    <div className="mt-1">
+                      Условие: {tabsStatus.research.condition}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3 border p-2 rounded bg-white">
+                    <h5 className="font-semibold mb-1">Специализация</h5>
+                    <div className={tabsStatus.specialization.unlocked ? "text-green-600" : "text-red-500"}>
+                      Статус: {tabsStatus.specialization.unlocked ? "✅ Разблокировано" : "❌ Заблокировано"}
+                    </div>
+                    <div className="mt-1">
+                      Условие: {tabsStatus.specialization.condition}
+                    </div>
+                  </div>
+                  
+                  <h4 className="font-semibold mt-3 mb-1">Все вкладки:</h4>
+                  <table className="w-full border-collapse text-xs mt-1">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border px-1 py-1 text-left">ID</th>
+                        <th className="border px-1 py-1 text-center">Разблокировано</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tabsStatus.allTabs.map((tab, index) => (
+                        <tr key={index} className={tab.id === 'equipment' ? 'bg-yellow-50' : ''}>
+                          <td className="border px-1 py-1">{tab.id}</td>
+                          <td className={`border px-1 py-1 text-center ${tab.unlocked ? 'text-green-600' : 'text-red-500'}`}>
+                            {tab.unlocked ? '✅' : '❌'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                    <h5 className="font-semibold text-yellow-700">Возможная проблема</h5>
+                    {practiceStatus && practiceStatus.unlocked && !tabsStatus.equipment.unlocked && (
+                      <p>Здание "Практика" разблокировано, но вкладка "Оборудование" - нет. Проверьте счетчик buildingsUnlocked и логику разблокировки вкладки.</p>
+                    )}
+                    {practiceStatus && practiceStatus.unlocked && tabsStatus.equipment.unlocked && (
+                      <p>И здание "Практика", и вкладка "Оборудование" разблокированы, но здание все равно не отображается. Проверьте компонент EquipmentTab и фильтрацию зданий.</p>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-4">Нет данных. Нажмите "Обновить статус".</div>
