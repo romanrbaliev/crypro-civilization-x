@@ -1,5 +1,5 @@
 
-import { GameState } from '@/context/types';
+import { GameState, Counter } from '@/context/types';
 
 /**
  * Отладка состояния здания "Практика"
@@ -261,16 +261,19 @@ export function debugCountersState(state: GameState): {
   equipmentUnlockedByCounter: boolean
 } {
   // Получаем все счетчики
-  // ИСПРАВЛЕНИЕ: Исправляем обработку типов счетчиков
   const counters = Object.keys(state.counters).map(id => {
     const counter = state.counters[id];
     const counterType = typeof counter;
     let counterValue: number = 0;
     
     if (counterType === 'number') {
+      // Приводим number к number (безопасно)
       counterValue = counter as number;
     } else if (counterType === 'object' && counter) {
-      counterValue = counter.value || 0;
+      // Для объекта Counter, получаем значение value
+      // Используем явное приведение типов через unknown
+      const counterObj = counter as unknown as Counter;
+      counterValue = counterObj.value || 0;
     }
     
     return {
@@ -284,31 +287,49 @@ export function debugCountersState(state: GameState): {
   const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
   const buildingsUnlockedExists = !!buildingsUnlockedCounter;
   const buildingsUnlockedType = typeof buildingsUnlockedCounter;
-  const buildingsUnlockedValue = buildingsUnlockedExists 
-    ? (buildingsUnlockedType === 'number' 
-       ? buildingsUnlockedCounter as number 
-       : (buildingsUnlockedCounter as any).value || 0) 
-    : 0;
+  let buildingsUnlockedValue = 0;
+  
+  if (buildingsUnlockedExists) {
+    if (buildingsUnlockedType === 'number') {
+      buildingsUnlockedValue = buildingsUnlockedCounter as number;
+    } else {
+      // Безопасное приведение типа через unknown
+      const counterObj = buildingsUnlockedCounter as unknown as Counter;
+      buildingsUnlockedValue = counterObj.value || 0;
+    }
+  }
   
   // Получаем значение счетчика applyKnowledge
   const applyKnowledgeCounter = state.counters.applyKnowledge;
   const applyKnowledgeExists = !!applyKnowledgeCounter;
   const applyKnowledgeType = typeof applyKnowledgeCounter;
-  const applyKnowledgeValue = applyKnowledgeExists 
-    ? (applyKnowledgeType === 'number' 
-       ? applyKnowledgeCounter as number 
-       : (applyKnowledgeCounter as any).value || 0) 
-    : 0;
+  let applyKnowledgeValue = 0;
+  
+  if (applyKnowledgeExists) {
+    if (applyKnowledgeType === 'number') {
+      applyKnowledgeValue = applyKnowledgeCounter as number;
+    } else {
+      // Безопасное приведение типа через unknown
+      const counterObj = applyKnowledgeCounter as unknown as Counter;
+      applyKnowledgeValue = counterObj.value || 0;
+    }
+  }
   
   // Получаем значение счетчика knowledgeClicks
   const knowledgeClicksCounter = state.counters.knowledgeClicks;
   const knowledgeClicksExists = !!knowledgeClicksCounter;
   const knowledgeClicksType = typeof knowledgeClicksCounter;
-  const knowledgeClicksValue = knowledgeClicksExists 
-    ? (knowledgeClicksType === 'number' 
-       ? knowledgeClicksCounter as number 
-       : (knowledgeClicksCounter as any).value || 0) 
-    : 0;
+  let knowledgeClicksValue = 0;
+  
+  if (knowledgeClicksExists) {
+    if (knowledgeClicksType === 'number') {
+      knowledgeClicksValue = knowledgeClicksCounter as number;
+    } else {
+      // Безопасное приведение типа через unknown
+      const counterObj = knowledgeClicksCounter as unknown as Counter;
+      knowledgeClicksValue = counterObj.value || 0;
+    }
+  }
   
   // Ключевые счетчики для разблокировок
   const relevantCounters = `buildingsUnlocked=${buildingsUnlockedValue}, applyKnowledge=${applyKnowledgeValue}, knowledgeClicks=${knowledgeClicksValue}`;
