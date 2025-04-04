@@ -116,13 +116,15 @@ function checkBuildingUnlocks(state: GameState): GameState {
         id: "cryptoLibrary",
         name: "Криптобиблиотека",
         description: "Увеличивает скорость получения знаний на 50% и максимальное количество знаний на 100",
-        baseCost: {
+        cost: {
           usdt: 200,
           knowledge: 200
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0
       };
     }
     
@@ -149,17 +151,15 @@ function checkBuildingUnlocks(state: GameState): GameState {
         id: "coolingSystem",
         name: "Система охлаждения",
         description: "Уменьшает потребление вычислительной мощности всеми устройствами на 20%",
-        baseCost: {
-          usdt: 200,
-          electricity: 50
-        },
-        cost: { // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем свойство cost для отображения в интерфейсе
+        cost: {
           usdt: 200,
           electricity: 50
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0
       };
     }
     
@@ -186,17 +186,15 @@ function checkBuildingUnlocks(state: GameState): GameState {
         id: "enhancedWallet",
         name: "Улучшенный кошелек",
         description: "Увеличивает максимальное хранение USDT на 150, Bitcoin на 1, эффективность конвертации BTC на 8%",
-        baseCost: {
-          usdt: 300,
-          knowledge: 250
-        },
-        cost: { // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем свойство cost для отображения в интерфейсе
+        cost: {
           usdt: 300,
           knowledge: 250
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0
       };
     }
     

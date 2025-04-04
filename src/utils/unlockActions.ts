@@ -59,24 +59,22 @@ export function forceCheckAdvancedUnlocks(state: GameState): GameState {
         id: "cryptoLibrary",
         name: "Криптобиблиотека",
         description: "Увеличивает скорость получения знаний на 50% и максимальное количество знаний на 100",
-        baseCost: {
-          usdt: 200,
-          knowledge: 200
-        },
-        cost: { // Добавляем cost для отображения
+        cost: {
           usdt: 200,
           knowledge: 200
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0
       };
     } else {
       updatedState.buildings.cryptoLibrary.unlocked = true;
       
       // Проверяем и добавляем свойство cost, если его нет
-      if (!updatedState.buildings.cryptoLibrary.cost && updatedState.buildings.cryptoLibrary.baseCost) {
-        updatedState.buildings.cryptoLibrary.cost = { ...updatedState.buildings.cryptoLibrary.baseCost };
+      if (!updatedState.buildings.cryptoLibrary.cost) {
+        updatedState.buildings.cryptoLibrary.cost = { usdt: 200, knowledge: 200 };
       }
     }
     
@@ -93,24 +91,22 @@ export function forceCheckAdvancedUnlocks(state: GameState): GameState {
         id: "coolingSystem",
         name: "Система охлаждения",
         description: "Уменьшает потребление вычислительной мощности всеми устройствами на 20%",
-        baseCost: {
-          usdt: 200,
-          electricity: 50
-        },
-        cost: { // Добавляем cost для отображения
+        cost: {
           usdt: 200,
           electricity: 50
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0
       };
     } else {
       updatedState.buildings.coolingSystem.unlocked = true;
       
       // Проверяем и добавляем свойство cost, если его нет
-      if (!updatedState.buildings.coolingSystem.cost && updatedState.buildings.coolingSystem.baseCost) {
-        updatedState.buildings.coolingSystem.cost = { ...updatedState.buildings.coolingSystem.baseCost };
+      if (!updatedState.buildings.coolingSystem.cost) {
+        updatedState.buildings.coolingSystem.cost = { usdt: 200, electricity: 50 };
       }
     }
     
@@ -127,8 +123,8 @@ export function forceCheckAdvancedUnlocks(state: GameState): GameState {
       updatedState.buildings.enhancedWallet.unlocked = true;
       
       // Проверяем и добавляем свойство cost, если его нет
-      if (!updatedState.buildings.enhancedWallet.cost && updatedState.buildings.enhancedWallet.baseCost) {
-        updatedState.buildings.enhancedWallet.cost = { ...updatedState.buildings.enhancedWallet.baseCost };
+      if (!updatedState.buildings.enhancedWallet.cost) {
+        updatedState.buildings.enhancedWallet.cost = { usdt: 300, knowledge: 250 };
       }
       
       updatedState.unlocks.enhancedWallet = true;
@@ -136,8 +132,8 @@ export function forceCheckAdvancedUnlocks(state: GameState): GameState {
       updatedState.buildings.improvedWallet.unlocked = true;
       
       // Проверяем и добавляем свойство cost, если его нет
-      if (!updatedState.buildings.improvedWallet.cost && updatedState.buildings.improvedWallet.baseCost) {
-        updatedState.buildings.improvedWallet.cost = { ...updatedState.buildings.improvedWallet.baseCost };
+      if (!updatedState.buildings.improvedWallet.cost) {
+        updatedState.buildings.improvedWallet.cost = { usdt: 300, knowledge: 250 };
       }
       
       updatedState.unlocks.improvedWallet = true;
@@ -147,17 +143,15 @@ export function forceCheckAdvancedUnlocks(state: GameState): GameState {
         id: "enhancedWallet",
         name: "Улучшенный кошелек",
         description: "Увеличивает максимальное хранение USDT на 150, Bitcoin на 1, эффективность конвертации BTC на 8%",
-        baseCost: {
-          usdt: 300,
-          knowledge: 250
-        },
-        cost: { // Добавляем cost для отображения
+        cost: {
           usdt: 300,
           knowledge: 250
         },
         costMultiplier: 1.15,
         count: 0,
-        unlocked: true
+        unlocked: true,
+        production: {},
+        productionBoost: 0
       };
       
       updatedState.unlocks.enhancedWallet = true;
@@ -177,14 +171,22 @@ function ensureBuildingsCostProperty(state: GameState): GameState {
   for (const buildingKey in newState.buildings) {
     const building = newState.buildings[buildingKey];
     
-    if (building && !building.cost && building.baseCost) {
+    if (building && !building.cost) {
       console.log(`ensureBuildingsCostProperty: Добавляем свойство cost для здания ${buildingKey}`);
       
-      // Копируем baseCost в cost
-      newState.buildings[buildingKey] = {
-        ...building,
-        cost: { ...building.baseCost }
-      };
+      // Если у здания есть baseCost, используем его значение
+      if (building.baseCost) {
+        newState.buildings[buildingKey] = {
+          ...building,
+          cost: { ...building.baseCost }
+        };
+      } else {
+        // Если baseCost отсутствует, создаем пустой объект cost для предотвращения ошибок
+        newState.buildings[buildingKey] = {
+          ...building,
+          cost: {}
+        };
+      }
     }
   }
   

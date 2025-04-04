@@ -51,14 +51,15 @@ export interface Building {
   name: string;
   description: string;
   cost: { [key: string]: number };
+  baseCost?: { [key: string]: number };  // Добавляем поле baseCost, которое может быть опциональным
   costMultiplier?: number;
-  production: { [key: string]: number };
+  production?: { [key: string]: number };
   consumption?: { [key: string]: number };
   count: number;
   unlocked: boolean;
   requirements?: { [key: string]: number };
   maxCount?: number;
-  productionBoost: { [key: string]: number } | number;
+  productionBoost?: { [key: string]: number } | number;
   unlockedBy?: string;
   resourceProduction?: { [key: string]: number };
   type?: string;
