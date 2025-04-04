@@ -72,13 +72,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700"
+            className={`border-gray-200 ${bitcoin <= 0 ? 'text-gray-400' : 'text-gray-900'}`}
             onClick={handleExchangeBTC}
             disabled={bitcoin <= 0}
           >
-            Обменять BTC <span className="ml-1 text-xs">
-              ({bitcoin > 0 ? bitcoin.toFixed(8) : 0} BTC)
-            </span>
+            Обменять BTC
           </Button>
         )}
         
@@ -86,13 +84,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700"
+            className={`border-gray-200 ${!canApplyKnowledge ? 'text-gray-400' : 'text-gray-900'}`}
             onClick={handleApplyAllKnowledge}
             disabled={!canApplyKnowledge}
           >
-            Применить знания <span className="ml-1 text-xs">
-              ({knowledge >= 10 ? Math.floor(knowledge / 10) * 10 : 0} → {knowledge >= 10 ? Math.floor(knowledge / 10) : 0} USDT)
-            </span>
+            Применить знания
           </Button>
         )}
         
@@ -100,12 +96,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
+          className="border-gray-200 text-gray-900"
           onClick={handleStudyClick}
         >
-          Изучить крипту <span className="ml-1 text-xs">
-            ({formatNumberWithAbbreviation(knowledge)}/{formatNumberWithAbbreviation(knowledgeMax)})
-          </span>
+          Изучить крипту
         </Button>
       </div>
       

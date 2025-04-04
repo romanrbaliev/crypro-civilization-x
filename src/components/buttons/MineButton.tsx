@@ -26,8 +26,8 @@ export const MineButton: React.FC<MineButtonProps> = ({
         <TooltipTrigger asChild>
           <Button
             onClick={onClick}
-            className={`w-full ${className}`}
-            variant={disabled ? "outline" : "default"}
+            className={`w-full border-gray-200 ${disabled ? 'text-gray-400' : 'text-gray-900'} ${className}`}
+            variant="outline"
             size="sm"
             disabled={disabled}
           >

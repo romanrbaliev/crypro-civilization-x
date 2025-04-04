@@ -28,8 +28,9 @@ export const LearnButton: React.FC<LearnButtonProps> = ({
   return (
     <Button
       onClick={handleClick}
-      className={`w-full ${className}`}
+      className={`w-full border-gray-200 ${disabled ? 'text-gray-400' : 'text-gray-900'} ${className}`}
       disabled={disabled}
+      variant="outline"
       size="sm"
     >
       Изучать знания

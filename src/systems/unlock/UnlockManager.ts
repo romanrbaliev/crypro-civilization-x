@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { 
   UnlockableItem, 
@@ -179,16 +178,59 @@ export class UnlockManager {
     const buildings = { ...this.gameState.buildings };
     const upgrades = { ...this.gameState.upgrades };
     
+    // ВАЖНО: Добавляем проверку и обработку счетчика applyKnowledge для разблокировки practice
+    const applyKnowledgeCounter = this.gameState.counters.applyKnowledge;
+    
+    if (applyKnowledgeCounter && applyKnowledgeCounter.value >= 2) {
+      // Проверяем наличие и обновляем здание practice, если счетчик >= 2
+      if (buildings.practice && !buildings.practice.unlocked) {
+        console.log("UnlockManager: Явная проверка разблокировки practice. Счетчик применений:", applyKnowledgeCounter.value);
+        
+        buildings.practice = {
+          ...buildings.practice,
+          unlocked: true
+        };
+        
+        unlocks.practice = true;
+        stateChanged = true;
+        
+        // Уведомляем о разблокировке
+        safeDispatchGameEvent("Разблокировано новое здание: Практика", "success");
+      }
+    }
+    
     // Проверяем каждый элемент в реестре
     for (const itemId in this.registry) {
       const item = this.registry[itemId];
       const isCurrentlyUnlocked = this.unlockState.items[itemId] === true;
+      
+      // Особый случай для электричества - должно разблокироваться только через покупку генератора
+      if (itemId === 'electricity') {
+        const generatorBuilding = buildings.generator;
+        if (generatorBuilding && generatorBuilding.count > 0 && !resources.electricity?.unlocked) {
+          console.log("UnlockManager: Разблокировка электричества через генератор");
+          
+          resources.electricity = {
+            ...resources.electricity,
+            unlocked: true
+          };
+          
+          unlocks.electricity = true;
+          stateChanged = true;
+          
+          // Уведомляем о разблокировке
+          safeDispatchGameEvent("Разблокирован новый ресурс: Электричество", "success");
+        }
+        continue; // Пропускаем обычную проверку для электричества
+      }
       
       // Проверяем, нужно ли разблокировать элемент
       if (item.autoUnlock && !isCurrentlyUnlocked) {
         const canUnlock = this.checkItemUnlockConditions(itemId);
         
         if (canUnlock) {
+          console.log(`UnlockManager: Проверка разблокировки ${itemId}, результат: можно разблокировать`);
+          
           // Обновляем состояние разблокировки
           this.unlockState.items[itemId] = true;
           unlocks[itemId] = true;
@@ -358,6 +400,18 @@ export class UnlockManager {
   private initializeUnlockState() {
     // Установка разблокировок, которые должны быть всегда активны
     this.unlockState.items['knowledge'] = true;
+    
+    // Проверяем, нужно ли разблокировать practice
+    const applyKnowledgeCounter = this.gameState.counters.applyKnowledge;
+    if (applyKnowledgeCounter && applyKnowledgeCounter.value >= 2) {
+      this.unlockState.items['practice'] = true;
+    }
+    
+    // Проверка наличия генератора для электричества
+    const generator = this.gameState.buildings.generator;
+    if (generator && generator.count > 0) {
+      this.unlockState.items['electricity'] = true;
+    }
   }
   
   /**

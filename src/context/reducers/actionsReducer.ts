@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 import { calculateResourceMaxValue } from '@/utils/resourceCalculator';
@@ -6,7 +5,6 @@ import { calculateResourceMaxValue } from '@/utils/resourceCalculator';
 // Обработка применения знаний
 export const processApplyKnowledge = (state: GameState): GameState => {
   const knowledge = state.resources.knowledge;
-  const usdt = state.resources.usdt;
   
   if (!knowledge || knowledge.value < 10) {
     console.log('Недостаточно знаний для применения');
@@ -25,6 +23,18 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   const knowledgeToConvert = 10;
   const usdtGained = 1 * knowledgeEfficiency;
   
+  // Проверяем существование USDT или создаем, если его еще нет
+  const usdt = state.resources.usdt || {
+    id: 'usdt',
+    name: 'USDT',
+    description: 'Стейблкоин, привязанный к доллару США',
+    type: 'resource',
+    icon: 'dollar-sign',
+    value: 0,
+    max: 100,
+    unlocked: true
+  };
+  
   // Обновляем ресурсы
   const newResources = {
     ...state.resources,
@@ -32,24 +42,15 @@ export const processApplyKnowledge = (state: GameState): GameState => {
       ...knowledge,
       value: knowledge.value - knowledgeToConvert
     },
-    usdt: usdt ? {
+    usdt: {
       ...usdt,
-      value: (usdt.value || 0) + usdtGained,
-      unlocked: true
-    } : {
-      id: 'usdt',
-      name: 'USDT',
-      description: 'Стейблкоин, привязанный к доллару США',
-      type: 'resource',
-      icon: 'dollar-sign',
-      value: usdtGained,
-      max: 100,
+      value: usdt.value + usdtGained,
       unlocked: true
     }
   };
   
-  // Копируем все существующие разблокировки и добавляем USDT
-  const newUnlocks: { [key: string]: boolean } = {
+  // Копируем все существующие разблокировки
+  let newUnlocks: { [key: string]: boolean } = {
     ...state.unlocks,
     usdt: true
   };
@@ -139,13 +140,13 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     },
     usdt: {
       ...usdt,
-      value: (usdt.value || 0) + usdtGained,
+      value: usdt.value + usdtGained,
       unlocked: true
     }
   };
   
-  // Копируем все существующие разблокировки и добавляем USDT
-  const newUnlocks: { [key: string]: boolean } = {
+  // Копируем все существующие разблокировки
+  let newUnlocks: { [key: string]: boolean } = {
     ...state.unlocks,
     usdt: true
   };
