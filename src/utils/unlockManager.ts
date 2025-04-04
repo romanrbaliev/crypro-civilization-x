@@ -4,25 +4,26 @@ import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 /**
  * Проверяет все возможные разблокировки в игре
+ * ВАЖНО: Не блокирует повторно то, что уже было разблокировано
  */
 export function checkAllUnlocks(state: GameState): GameState {
   console.log('unlockManager: Запуск проверки всех разблокировок');
   
   let updatedState = { ...state };
   
-  // Проверяем разблокировки ресурсов
+  // Проверяем разблокировки ресурсов (только новые разблокировки)
   updatedState = checkResourceUnlocks(updatedState);
   
-  // Проверяем разблокировки зданий
+  // Проверяем разблокировки зданий (только новые разблокировки)
   updatedState = checkBuildingUnlocks(updatedState);
   
-  // Проверяем разблокировки исследований
+  // Проверяем разблокировки исследований (только новые разблокировки)
   updatedState = checkUpgradeUnlocks(updatedState);
   
-  // Проверяем разблокировки действий
+  // Проверяем разблокировки действий (только новые разблокировки)
   updatedState = checkActionUnlocks(updatedState);
   
-  // Проверяем разблокировки функций
+  // Проверяем разблокировки функций (только новые разблокировки)
   updatedState = checkFeatureUnlocks(updatedState);
   
   return updatedState;
@@ -30,6 +31,7 @@ export function checkAllUnlocks(state: GameState): GameState {
 
 /**
  * Проверяет специальные разблокировки, такие как разблокировка вкладок интерфейса, пороговые значения и т.д.
+ * ВАЖНО: Не блокирует повторно то, что уже было разблокировано
  */
 export function checkSpecialUnlocks(state: GameState): GameState {
   console.log('unlockManager: Проверка специальных разблокировок');
@@ -86,6 +88,7 @@ export function checkSpecialUnlocks(state: GameState): GameState {
 
 /**
  * Полная перестройка всех разблокировок с нуля на основе состояния
+ * СОХРАНЯЕТ ранее разблокированные элементы
  */
 export function rebuildAllUnlocks(state: GameState): GameState {
   console.log('unlockManager: Полная перестройка всех разблокировок');
@@ -100,7 +103,7 @@ export function rebuildAllUnlocks(state: GameState): GameState {
   }
   
   // USDT разблокируется после 1+ применения знаний
-  if (updatedState.counters.applyKnowledge && updatedState.counters.applyKnowledge.value >= 1) {
+  if (updatedState.counters.applyKnowledge && getCounterValue(updatedState, 'applyKnowledge') >= 1) {
     if (updatedState.resources.usdt) {
       updatedState.resources.usdt.unlocked = true;
       updatedState.unlocks.usdt = true;
@@ -116,6 +119,13 @@ export function rebuildAllUnlocks(state: GameState): GameState {
     
     // Также разблокируем вкладку исследований
     updatedState.unlocks.research = true;
+    
+    // И базовое исследование
+    for (const id of ['blockchainBasics', 'blockchain_basics', 'basicBlockchain']) {
+      if (updatedState.upgrades[id]) {
+        updatedState.upgrades[id].unlocked = true;
+      }
+    }
   }
   
   // Вычислительная мощность разблокируется после покупки домашнего компьютера
@@ -506,9 +516,18 @@ function rebuildBuildingUnlocks(state: GameState): GameState {
   const buildings = { ...state.buildings };
   const unlocks = { ...state.unlocks };
   
+  // ВАЖНО: Сначала сохраняем текущие разблокировки
+  for (const buildingId in buildings) {
+    if (buildings[buildingId].unlocked) {
+      unlocks[buildingId] = true;
+    }
+  }
+  
+  // Добавляем ТОЛЬКО новые разблокировки, не перезаписываем существующие
+  
   // Practice разблокируется после 2+ применений знаний
   const applyKnowledgeCount = getCounterValue(state, 'applyKnowledge');
-  if (applyKnowledgeCount >= 2) {
+  if (applyKnowledgeCount >= 2 && !buildings.practice?.unlocked) {
     if (buildings.practice) {
       buildings.practice.unlocked = true;
       unlocks.practice = true;
@@ -516,7 +535,7 @@ function rebuildBuildingUnlocks(state: GameState): GameState {
   }
   
   // Generator разблокируется после накопления 11+ USDT
-  if (state.resources.usdt?.unlocked && state.resources.usdt?.value >= 11) {
+  if (state.resources.usdt?.unlocked && state.resources.usdt?.value >= 11 && !buildings.generator?.unlocked) {
     if (buildings.generator) {
       buildings.generator.unlocked = true;
       unlocks.generator = true;
@@ -524,7 +543,7 @@ function rebuildBuildingUnlocks(state: GameState): GameState {
   }
   
   // Home Computer разблокируется после 50+ электричества
-  if (state.resources.electricity?.unlocked && state.resources.electricity?.value >= 50) {
+  if (state.resources.electricity?.unlocked && state.resources.electricity?.value >= 50 && !buildings.homeComputer?.unlocked) {
     if (buildings.homeComputer) {
       buildings.homeComputer.unlocked = true;
       unlocks.homeComputer = true;
@@ -535,7 +554,7 @@ function rebuildBuildingUnlocks(state: GameState): GameState {
   const hasBlockchainBasics = state.upgrades.blockchainBasics?.purchased || 
                              state.upgrades.blockchain_basics?.purchased || 
                              state.upgrades.basicBlockchain?.purchased;
-  if (hasBlockchainBasics) {
+  if (hasBlockchainBasics && !buildings.cryptoWallet?.unlocked) {
     if (buildings.cryptoWallet) {
       buildings.cryptoWallet.unlocked = true;
       unlocks.cryptoWallet = true;
@@ -545,7 +564,7 @@ function rebuildBuildingUnlocks(state: GameState): GameState {
   // Crypto Library разблокируется после покупки исследования "Основы криптовалют"
   const hasCryptoBasics = state.upgrades.cryptoCurrencyBasics?.purchased || 
                          state.upgrades.cryptoBasics?.purchased;
-  if (hasCryptoBasics) {
+  if (hasCryptoBasics && !buildings.cryptoLibrary?.unlocked) {
     if (buildings.cryptoLibrary) {
       buildings.cryptoLibrary.unlocked = true;
       unlocks.cryptoLibrary = true;
@@ -553,7 +572,7 @@ function rebuildBuildingUnlocks(state: GameState): GameState {
   }
   
   // Cooling System разблокируется после 2+ уровней домашнего компьютера
-  if (state.buildings.homeComputer?.count >= 2) {
+  if (state.buildings.homeComputer?.count >= 2 && !buildings.coolingSystem?.unlocked) {
     if (buildings.coolingSystem) {
       buildings.coolingSystem.unlocked = true;
       unlocks.coolingSystem = true;
@@ -562,12 +581,12 @@ function rebuildBuildingUnlocks(state: GameState): GameState {
   
   // Enhanced Wallet разблокируется после 5+ уровней крипто кошелька
   if (state.buildings.cryptoWallet?.count >= 5) {
-    if (buildings.enhancedWallet) {
+    if (buildings.enhancedWallet && !buildings.enhancedWallet.unlocked) {
       buildings.enhancedWallet.unlocked = true;
       unlocks.enhancedWallet = true;
     }
     
-    if (buildings.improvedWallet) {
+    if (buildings.improvedWallet && !buildings.improvedWallet.unlocked) {
       buildings.improvedWallet.unlocked = true;
       unlocks.improvedWallet = true;
     }
@@ -585,13 +604,24 @@ function rebuildUpgradeUnlocks(state: GameState): GameState {
   
   const upgrades = { ...state.upgrades };
   
+  // ВАЖНО: Сохраняем уже разблокированные исследования
+  for (const upgradeId in upgrades) {
+    // Не трогаем уже разблокированные исследования
+    if (upgrades[upgradeId].unlocked) {
+      continue;
+    }
+    
+    // Ниже проверяем только новые разблокировки
+  }
+  
   // "Основы блокчейна" разблокируется после покупки генератора
   if (state.buildings.generator?.count > 0) {
     const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
     
     for (const id of blockchainBasicsIds) {
-      if (upgrades[id]) {
+      if (upgrades[id] && !upgrades[id].unlocked) {
         upgrades[id].unlocked = true;
+        console.log(`rebuildUpgradeUnlocks: Разблокировка ${id}`);
       }
     }
   }
@@ -601,7 +631,7 @@ function rebuildUpgradeUnlocks(state: GameState): GameState {
     const walletSecurityIds = ['walletSecurity', 'cryptoWalletSecurity'];
     
     for (const id of walletSecurityIds) {
-      if (upgrades[id]) {
+      if (upgrades[id] && !upgrades[id].unlocked) {
         upgrades[id].unlocked = true;
       }
     }
@@ -612,7 +642,7 @@ function rebuildUpgradeUnlocks(state: GameState): GameState {
     const cryptoBasicsIds = ['cryptoCurrencyBasics', 'cryptoBasics'];
     
     for (const id of cryptoBasicsIds) {
-      if (upgrades[id]) {
+      if (upgrades[id] && !upgrades[id].unlocked) {
         upgrades[id].unlocked = true;
       }
     }
@@ -629,3 +659,4 @@ function getCounterValue(state: GameState, counterId: string): number {
   if (!counter) return 0;
   return typeof counter === 'object' ? counter.value : counter;
 }
+
