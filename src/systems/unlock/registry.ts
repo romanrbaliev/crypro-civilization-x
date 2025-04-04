@@ -1,4 +1,3 @@
-
 import { UnlockableItem } from './types';
 
 // Централизованный реестр всех разблокируемых элементов
@@ -43,7 +42,7 @@ export const unlockableItemsRegistry: { [itemId: string]: UnlockableItem } = {
         description: 'Иметь хотя бы один генератор'
       }
     ],
-    autoUnlock: true,
+    autoUnlock: false,
     influencesOthers: false
   },
   'bitcoin': {

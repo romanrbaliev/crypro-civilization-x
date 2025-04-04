@@ -14,7 +14,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   
   // Используем новую систему разблокировок
-  const isApplyKnowledgeUnlocked = true; // Это действие всегда разблокировано
   const isApplyAllKnowledgeUnlocked = true; // Доступно с самого начала
   const isExchangeBtcUnlocked = useUnlockStatus('exchangeBtc');
   
@@ -36,23 +35,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
     
     // Проверяем разблокировки после клика
     dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-  };
-  
-  const handleApplyKnowledge = () => {
-    if (canApplyKnowledge) {
-      dispatch({ type: "APPLY_KNOWLEDGE" });
-      
-      // Увеличиваем счетчик применений знаний
-      dispatch({ 
-        type: "INCREMENT_COUNTER", 
-        payload: { counterId: "applyKnowledge", value: 1 } 
-      });
-      
-      onAddEvent(`Знания применены! Получено USDT`, "success");
-      
-      // Проверяем разблокировки после применения знаний
-      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-    }
   };
   
   const handleApplyAllKnowledge = () => {
@@ -84,46 +66,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   return (
     <div className="mt-4 border-t pt-3">
-      <div className="flex flex-wrap gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
-          onClick={handleStudyClick}
-        >
-          Изучить крипту <span className="ml-1 text-xs">
-            ({formatNumberWithAbbreviation(knowledge)}/{formatNumberWithAbbreviation(knowledgeMax)})
-          </span>
-        </Button>
-        
-        {isApplyKnowledgeUnlocked && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700"
-            onClick={handleApplyKnowledge}
-            disabled={!canApplyKnowledge}
-          >
-            Применить знания <span className="ml-1 text-xs">
-              (10 → 1 USDT)
-            </span>
-          </Button>
-        )}
-        
-        {isApplyAllKnowledgeUnlocked && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700"
-            onClick={handleApplyAllKnowledge}
-            disabled={!canApplyKnowledge}
-          >
-            Применить все знания <span className="ml-1 text-xs">
-              ({knowledge >= 10 ? Math.floor(knowledge / 10) * 10 : 0} → {knowledge >= 10 ? Math.floor(knowledge / 10) : 0} USDT)
-            </span>
-          </Button>
-        )}
-        
+      <div className="flex flex-col gap-2">
+        {/* Кнопки отображаются снизу вверх в порядке разблокировки */}
         {isExchangeBtcUnlocked && (
           <Button 
             variant="outline" 
@@ -137,6 +81,32 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
             </span>
           </Button>
         )}
+        
+        {isApplyAllKnowledgeUnlocked && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700"
+            onClick={handleApplyAllKnowledge}
+            disabled={!canApplyKnowledge}
+          >
+            Применить знания <span className="ml-1 text-xs">
+              ({knowledge >= 10 ? Math.floor(knowledge / 10) * 10 : 0} → {knowledge >= 10 ? Math.floor(knowledge / 10) : 0} USDT)
+            </span>
+          </Button>
+        )}
+        
+        {/* Кнопка изучения криптовалюты всегда внизу */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
+          onClick={handleStudyClick}
+        >
+          Изучить крипту <span className="ml-1 text-xs">
+            ({formatNumberWithAbbreviation(knowledge)}/{formatNumberWithAbbreviation(knowledgeMax)})
+          </span>
+        </Button>
       </div>
       
       <div className="mt-1 text-xs text-gray-500 flex justify-between">

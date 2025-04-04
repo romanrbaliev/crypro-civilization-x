@@ -1,326 +1,168 @@
-
 import { GameState } from '../types';
+import { getCost, getRefundAmount } from '@/utils/buildingCosts';
+import { formatNumberWithAbbreviation } from '@/utils/formatters';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { UnlockManagerService } from '@/services/UnlockManagerService';
 
-// Функция для проверки, достаточно ли ресурсов для покупки
-function hasEnoughResources(state: GameState, cost: Record<string, number>): boolean {
-  for (const [resourceId, amount] of Object.entries(cost)) {
-    const resource = state.resources[resourceId];
-    if (!resource || resource.value < Number(amount)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-// Функция для обработки покупки здания
+// Обработка покупки здания
 export const processPurchaseBuilding = (
-  state: GameState, 
+  state: GameState,
   payload: { buildingId: string }
 ): GameState => {
   const { buildingId } = payload;
+  const building = state.buildings[buildingId];
   
-  // Проверяем, существует ли такое здание
-  if (!state.buildings[buildingId]) {
-    console.log(`Здание с ID ${buildingId} не найдено`);
+  if (!building) {
+    console.error(`Building ${buildingId} not found`);
     return state;
   }
-  
-  const building = state.buildings[buildingId];
   
   // Проверяем, разблокировано ли здание
   if (!building.unlocked) {
-    console.log(`Здание ${building.name} не разблокировано`);
+    console.error(`Building ${buildingId} is not unlocked`);
     return state;
   }
   
-  // Получаем стоимость с учетом текущего количества
-  let currentCost = { ...building.cost };
+  // Рассчитываем стоимость покупки
+  const cost = getCost(building);
   
-  // Масштабируем стоимость в зависимости от количества
-  if (building.count > 0 && building.costMultiplier) {
-    const scaling = building.costMultiplier;
-    for (const resourceId in currentCost) {
-      if (typeof currentCost[resourceId] === 'number' && typeof scaling === 'number') {
-        currentCost[resourceId] = currentCost[resourceId] * Math.pow(scaling, building.count);
-      }
+  // Проверяем наличие достаточного количества ресурсов
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    if (!state.resources[resourceId] || state.resources[resourceId].value < Number(amount)) {
+      console.error(`Not enough ${resourceId} to purchase ${buildingId}`);
+      return state;
     }
   }
   
-  // Проверка наличия ресурсов
-  if (!hasEnoughResources(state, currentCost)) {
-    console.log(`Недостаточно ресурсов для покупки ${building.name}`);
-    return state;
+  // Обработка специального случая: покупка генератора должна разблокировать электричество
+  let newUnlocks = { ...state.unlocks };
+  let newResources = { ...state.resources };
+  
+  if (buildingId === 'generator') {
+    console.log("Покупка генератора: разблокируем электричество");
+    newUnlocks = {
+      ...newUnlocks,
+      electricity: true
+    };
+    
+    if (newResources.electricity) {
+      newResources = {
+        ...newResources,
+        electricity: {
+          ...newResources.electricity,
+          unlocked: true
+        }
+      };
+    }
+    
+    // Отправляем сообщение о разблокировке
+    safeDispatchGameEvent("Разблокирован новый ресурс: Электричество", "success");
   }
   
-  // Создаем копии для изменения
-  let updatedResources = { ...state.resources };
-  
-  // Вычитаем стоимость здания
-  for (const resourceId in currentCost) {
-    updatedResources[resourceId] = {
-      ...updatedResources[resourceId],
-      value: updatedResources[resourceId].value - Number(currentCost[resourceId])
+  // Обновляем состояние ресурсов
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    newResources = {
+      ...newResources,
+      [resourceId]: {
+        ...newResources[resourceId],
+        value: newResources[resourceId].value - Number(amount)
+      }
     };
   }
   
-  // Обновляем здание (увеличиваем счетчик)
-  const updatedBuilding = {
-    ...building,
-    count: building.count + 1
+  // Обновляем состояние здания
+  const newBuildings = {
+    ...state.buildings,
+    [buildingId]: {
+      ...building,
+      count: building.count + 1
+    }
   };
   
-  // Объединяем все изменения в новое состояние
-  let newState = {
+  // Уведомляем пользователя о покупке
+  const buildingName = building.name || buildingId;
+  const costString = Object.entries(cost)
+    .map(([resourceId, amount]) => `${formatNumberWithAbbreviation(Number(amount))} ${state.resources[resourceId]?.name || resourceId}`)
+    .join(', ');
+  
+  safeDispatchGameEvent(`Приобретено: ${buildingName} (${costString})`, "success");
+  
+  return {
     ...state,
-    resources: updatedResources,
-    buildings: {
-      ...state.buildings,
-      [buildingId]: updatedBuilding
-    }
+    resources: newResources,
+    buildings: newBuildings,
+    unlocks: newUnlocks
   };
-  
-  // Специальная обработка для некоторых зданий
-  if (buildingId === 'homeComputer') {
-    // Разблокируем вычислительную мощность, если ещё не разблокирована
-    if (!newState.unlocks.computingPower) {
-      newState = {
-        ...newState,
-        unlocks: {
-          ...newState.unlocks,
-          computingPower: true
-        }
-      };
-      
-      // Создаем ресурс computingPower, если его нет
-      if (!newState.resources.computingPower) {
-        newState.resources.computingPower = {
-          id: 'computingPower',
-          name: 'Вычислительная мощность',
-          description: 'Вычислительная мощность для майнинга',
-          type: 'resource',
-          icon: 'cpu',
-          value: 0,
-          baseProduction: 0,
-          production: 0,
-          perSecond: 0,
-          max: 1000,
-          unlocked: true
-        };
-        
-        safeDispatchGameEvent('Разблокирована вычислительная мощность!', 'success');
-      } else {
-        newState.resources.computingPower = {
-          ...newState.resources.computingPower,
-          unlocked: true
-        };
-        
-        safeDispatchGameEvent('Разблокирована вычислительная мощность!', 'success');
-      }
-    }
-  } 
-  else if (buildingId === 'generator') {
-    // Разблокируем электричество, если ещё не разблокировано
-    if (!newState.unlocks.electricity) {
-      newState = {
-        ...newState,
-        unlocks: {
-          ...newState.unlocks,
-          electricity: true,
-          // Разблокируем исследования при покупке генератора
-          research: true
-        }
-      };
-      
-      // Создаем ресурс электричества, если его нет
-      if (!newState.resources.electricity) {
-        newState.resources.electricity = {
-          id: 'electricity',
-          name: 'Электричество',
-          description: 'Электроэнергия для питания устройств',
-          type: 'resource',
-          icon: 'zap',
-          value: 0,
-          baseProduction: 0,
-          production: 0,
-          perSecond: 0,
-          max: 100,
-          unlocked: true
-        };
-      } else {
-        newState.resources.electricity = {
-          ...newState.resources.electricity,
-          unlocked: true
-        };
-      }
-      
-      safeDispatchGameEvent('Разблокировано электричество!', 'success');
-      safeDispatchGameEvent('Разблокированы исследования!', 'success');
-    }
-  }
-  
-  // Отправляем уведомление о покупке
-  safeDispatchGameEvent(`Приобретено здание: ${building.name}`, "success");
-  
-  // Увеличиваем счетчик купленных зданий
-  newState = {
-    ...newState,
-    counters: {
-      ...newState.counters,
-      totalBuildings: {
-        ...(typeof newState.counters.totalBuildings === 'object' ? newState.counters.totalBuildings : { id: 'totalBuildings', name: 'Всего зданий', value: 0 }),
-        value: (typeof newState.counters.totalBuildings === 'object' ? newState.counters.totalBuildings.value : 0) + 1
-      }
-    }
-  };
-  
-  // Проверяем все разблокировки через новую централизованную систему
-  newState = UnlockManagerService.checkAllUnlocks(newState);
-  
-  return newState;
 };
 
-// Функция для обработки продажи здания
+// Обработка продажи здания
 export const processSellBuilding = (
-  state: GameState, 
+  state: GameState,
   payload: { buildingId: string }
 ): GameState => {
   const { buildingId } = payload;
-  
-  // Проверяем, существует ли такое здание
-  if (!state.buildings[buildingId]) {
-    console.log(`Здание с ID ${buildingId} не найдено`);
-    return state;
-  }
-  
   const building = state.buildings[buildingId];
   
-  // Проверяем, есть ли здания для продажи
-  if (building.count <= 0) {
-    console.log(`У вас нет зданий ${building.name} для продажи`);
+  if (!building) {
+    console.error(`Building ${buildingId} not found`);
     return state;
   }
   
-  // Получаем стоимость продажи (50% от текущей стоимости)
-  let sellValue = { ...building.cost };
-  
-  // Масштабируем стоимость в зависимости от количества
-  if (building.count > 1 && building.costMultiplier) {
-    const scaling = building.costMultiplier;
-    for (const resourceId in sellValue) {
-      if (typeof sellValue[resourceId] === 'number' && typeof scaling === 'number') {
-        sellValue[resourceId] = sellValue[resourceId] * Math.pow(scaling, building.count - 1) * 0.5; // 50% возврат
-      } else {
-        sellValue[resourceId] = Number(sellValue[resourceId]) * 0.5; // 50% возврат
-      }
-    }
-  } else {
-    // Для первого здания - просто 50%
-    for (const resourceId in sellValue) {
-      sellValue[resourceId] = Number(sellValue[resourceId]) * 0.5;
-    }
+  if (building.count <= 0) {
+    console.error(`Cannot sell ${buildingId}, count is already 0`);
+    return state;
   }
   
-  // Создаем копии для изменения
-  let updatedResources = { ...state.resources };
+  // Рассчитываем сумму возврата
+  const refund = getRefundAmount(building);
   
-  // Возвращаем часть стоимости
-  for (const resourceId in sellValue) {
-    if (updatedResources[resourceId]) {
-      updatedResources[resourceId] = {
-        ...updatedResources[resourceId],
-        value: updatedResources[resourceId].value + Number(sellValue[resourceId])
-      };
-      
-      // Ограничиваем значение максимумом
-      if (updatedResources[resourceId].max !== undefined && updatedResources[resourceId].max !== Infinity) {
-        updatedResources[resourceId].value = Math.min(
-          updatedResources[resourceId].value, 
-          updatedResources[resourceId].max
-        );
+  // Обновляем состояние ресурсов
+  let newResources = { ...state.resources };
+  for (const [resourceId, amount] of Object.entries(refund)) {
+    newResources = {
+      ...newResources,
+      [resourceId]: {
+        ...newResources[resourceId],
+        value: newResources[resourceId].value + Number(amount)
       }
-    }
+    };
   }
   
-  // Обновляем здание (уменьшаем счетчик)
-  const updatedBuilding = {
-    ...building,
-    count: building.count - 1
+  // Обновляем состояние здания
+  const newBuildings = {
+    ...state.buildings,
+    [buildingId]: {
+      ...building,
+      count: building.count - 1
+    }
   };
   
-  // Объединяем все изменения в новое состояние
-  const newState = {
+  // Уведомляем пользователя о продаже
+  const buildingName = building.name || buildingId;
+  const refundString = Object.entries(refund)
+    .map(([resourceId, amount]) => `${formatNumberWithAbbreviation(Number(amount))} ${state.resources[resourceId]?.name || resourceId}`)
+    .join(', ');
+  
+  safeDispatchGameEvent(`Продано: ${buildingName} (+${refundString})`, "success");
+  
+  return {
     ...state,
-    resources: updatedResources,
-    buildings: {
-      ...state.buildings,
-      [buildingId]: updatedBuilding
-    }
+    resources: newResources,
+    buildings: newBuildings
   };
-  
-  // Отправляем уведомление о продаже
-  safeDispatchGameEvent(`Продано здание: ${building.name}`, "info");
-  
-  return newState;
 };
 
-// Функция для обработки выбора специализации
+// Обработка выбора специализации
 export const processChooseSpecialization = (
   state: GameState,
   payload: { specializationType: string }
 ): GameState => {
   const { specializationType } = payload;
   
-  if (!specializationType) {
-    console.log('Тип специализации не указан');
-    return state;
-  }
-  
-  // Проверяем, доступен ли выбор специализации
-  if (state.phase < 3) {
-    console.log('Выбор специализации недоступен на текущей фазе игры');
-    return state;
-  }
-  
-  // Проверяем, была ли уже выбрана специализация
-  if (state.specialization && !state.prestigePoints) {
-    console.log('Специализация уже выбрана. Для изменения требуется престиж.');
-    return state;
-  }
-  
-  // Проверяем корректность типа специализации
-  const validTypes = ['miner', 'trader', 'investor', 'analyst', 'influencer'];
-  if (!validTypes.includes(specializationType)) {
-    console.log(`Некорректный тип специализации: ${specializationType}`);
-    return state;
-  }
-  
-  // Отправляем уведомление о выборе специализации
-  let specializationName = '';
-  switch (specializationType) {
-    case 'miner':
-      specializationName = 'Майнер';
-      break;
-    case 'trader':
-      specializationName = 'Трейдер';
-      break;
-    case 'investor':
-      specializationName = 'Инвестор';
-      break;
-    case 'analyst':
-      specializationName = 'Аналитик';
-      break;
-    case 'influencer':
-      specializationName = 'Инфлюенсер';
-      break;
-  }
-  
-  safeDispatchGameEvent(`Выбрана специализация: ${specializationName}`, "success");
-  
-  // Обновляем состояние с выбранной специализацией
   return {
     ...state,
-    specialization: specializationType
+    player: {
+      ...state.player,
+      roleId: specializationType
+    }
   };
 };
