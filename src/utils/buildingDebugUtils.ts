@@ -1,4 +1,3 @@
-
 import { GameState, Counter } from '@/context/types';
 
 /**
@@ -278,11 +277,8 @@ export function debugCountersState(state: GameState): {
     let counterValue: number = 0;
     
     if (counterType === 'number') {
-      // Приводим number к number (безопасно)
       counterValue = counter as number;
     } else if (counterType === 'object' && counter) {
-      // Для объекта Counter, получаем значение value
-      // Используем явное приведение типов через unknown
       const counterObj = counter as unknown as Counter;
       counterValue = counterObj.value || 0;
     }
@@ -304,7 +300,6 @@ export function debugCountersState(state: GameState): {
     if (buildingsUnlockedType === 'number') {
       buildingsUnlockedValue = buildingsUnlockedCounter as number;
     } else {
-      // Безопасное приведение типа через unknown
       const counterObj = buildingsUnlockedCounter as unknown as Counter;
       buildingsUnlockedValue = counterObj.value || 0;
     }
@@ -320,7 +315,6 @@ export function debugCountersState(state: GameState): {
     if (applyKnowledgeType === 'number') {
       applyKnowledgeValue = applyKnowledgeCounter as number;
     } else {
-      // Безопасное приведение типа через unknown
       const counterObj = applyKnowledgeCounter as unknown as Counter;
       applyKnowledgeValue = counterObj.value || 0;
     }
@@ -336,7 +330,6 @@ export function debugCountersState(state: GameState): {
     if (knowledgeClicksType === 'number') {
       knowledgeClicksValue = knowledgeClicksCounter as number;
     } else {
-      // Безопасное приведение типа через unknown
       const counterObj = knowledgeClicksCounter as unknown as Counter;
       knowledgeClicksValue = counterObj.value || 0;
     }
