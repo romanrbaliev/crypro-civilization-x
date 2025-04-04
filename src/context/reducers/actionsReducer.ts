@@ -40,7 +40,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   };
   
   // Копируем все существующие разблокировки и добавляем USDT
-  const newUnlocks = {
+  const newUnlocks: { [key: string]: boolean } = {
     ...state.unlocks,
     usdt: true
   };
@@ -124,7 +124,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   };
   
   // Копируем все существующие разблокировки и добавляем USDT
-  const newUnlocks = {
+  const newUnlocks: { [key: string]: boolean } = {
     ...state.unlocks,
     usdt: true
   };
