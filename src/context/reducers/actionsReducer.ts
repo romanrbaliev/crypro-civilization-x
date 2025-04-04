@@ -39,7 +39,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
     }
   };
   
-  // Сохраняем текущие разблокировки и добавляем USDT
+  // Копируем все существующие разблокировки и добавляем USDT
   const newUnlocks = {
     ...state.unlocks,
     usdt: true
@@ -123,7 +123,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
     }
   };
   
-  // Сохраняем текущие разблокировки и добавляем USDT
+  // Копируем все существующие разблокировки и добавляем USDT
   const newUnlocks = {
     ...state.unlocks,
     usdt: true
