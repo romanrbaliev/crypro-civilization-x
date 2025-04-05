@@ -65,14 +65,28 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
   
   // Обновляем счетчики
   if (buildingId === 'practice' && building.count === 0) {
+    const practiceBuilt = (typeof newState.counters.practiceBuilt === 'object' ? 
+                           newState.counters.practiceBuilt.value : 
+                           newState.counters.practiceBuilt) || 0;
+    
     newState.counters = {
       ...newState.counters,
-      practiceBuilt: (newState.counters.practiceBuilt || 0) + 1
+      practiceBuilt: {
+        id: 'practiceBuilt',
+        value: practiceBuilt + 1
+      }
     };
   } else if (buildingId === 'generator' && building.count === 0) {
+    const generatorBuilt = (typeof newState.counters.generatorBuilt === 'object' ? 
+                            newState.counters.generatorBuilt.value : 
+                            newState.counters.generatorBuilt) || 0;
+    
     newState.counters = {
       ...newState.counters,
-      generatorBuilt: (newState.counters.generatorBuilt || 0) + 1
+      generatorBuilt: {
+        id: 'generatorBuilt',
+        value: generatorBuilt + 1
+      }
     };
     
     // Разблокировка электричества
@@ -88,12 +102,19 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
         consumption: 0
       };
       
-      safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'unlock');
+      safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'info');
     }
   } else if (buildingId === 'homeComputer' && building.count === 0) {
+    const computerBuilt = (typeof newState.counters.computerBuilt === 'object' ? 
+                          newState.counters.computerBuilt.value : 
+                          newState.counters.computerBuilt) || 0;
+    
     newState.counters = {
       ...newState.counters,
-      computerBuilt: (newState.counters.computerBuilt || 0) + 1
+      computerBuilt: {
+        id: 'computerBuilt',
+        value: computerBuilt + 1
+      }
     };
     
     // Разблокировка вычислительной мощности
@@ -109,12 +130,19 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
         consumption: 0
       };
       
-      safeDispatchGameEvent('Разблокирован ресурс: Вычислительная мощность', 'unlock');
+      safeDispatchGameEvent('Разблокирован ресурс: Вычислительная мощность', 'info');
     }
   } else if (buildingId === 'cryptoWallet' && building.count === 0) {
+    const walletBuilt = (typeof newState.counters.walletBuilt === 'object' ? 
+                         newState.counters.walletBuilt.value : 
+                         newState.counters.walletBuilt) || 0;
+    
     newState.counters = {
       ...newState.counters,
-      walletBuilt: (newState.counters.walletBuilt || 0) + 1
+      walletBuilt: {
+        id: 'walletBuilt',
+        value: walletBuilt + 1
+      }
     };
   } else if (buildingId === 'miner' && building.count === 0) {
     // Разблокировка биткоина
@@ -142,8 +170,8 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
         volatility: 0.05
       };
       
-      safeDispatchGameEvent('Разблокирован ресурс: Bitcoin', 'unlock');
-      safeDispatchGameEvent('Разблокирована возможность: Майнинг', 'unlock');
+      safeDispatchGameEvent('Разблокирован ресурс: Bitcoin', 'info');
+      safeDispatchGameEvent('Разблокирована возможность: Майнинг', 'info');
     }
   }
   

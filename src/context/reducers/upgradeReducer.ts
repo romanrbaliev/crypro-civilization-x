@@ -75,7 +75,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: PurchaseUpgrad
     // Разблокировка исследований
     if (!newState.unlocks.research) {
       newState.unlocks.research = true;
-      safeDispatchGameEvent('Разблокирована возможность: Исследования', 'unlock');
+      safeDispatchGameEvent('Разблокирована возможность: Исследования', 'info');
     }
     
   } else if (upgradeId === 'walletSecurity') {
@@ -121,15 +121,15 @@ export const processPurchaseUpgrade = (state: GameState, payload: PurchaseUpgrad
   } else if (upgradeId === 'cryptoTrading') {
     // Разблокируем возможность трейдинга
     newState.unlocks.trading = true;
-    safeDispatchGameEvent('Разблокирована возможность: Трейдинг', 'unlock');
+    safeDispatchGameEvent('Разблокирована возможность: Трейдинг', 'info');
     
   } else if (upgradeId === 'tradingBot') {
     // Разблокируем автоматический трейдинг
     newState.unlocks.autoSell = true;
-    safeDispatchGameEvent('Разблокирована возможность: Автоматический трейдинг', 'unlock');
+    safeDispatchGameEvent('Разблокирована возможность: Автоматический трейдинг', 'info');
   }
   
-  safeDispatchGameEvent(`Изучено: ${upgrade.name}`, 'research');
+  safeDispatchGameEvent(`Изучено: ${upgrade.name}`, 'info');
   
   return newState;
 };
