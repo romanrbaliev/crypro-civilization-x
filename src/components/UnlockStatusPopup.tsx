@@ -17,6 +17,8 @@ import {
   debugApplyKnowledgeCounter
 } from '@/utils/buildingDebugUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { unlockableItemsRegistry } from '@/systems/unlock/registry';
+import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 const UnlockStatusPopup = () => {
   const { state, dispatch, forceUpdate } = useGame();
@@ -28,6 +30,7 @@ const UnlockStatusPopup = () => {
   const [allBuildings, setAllBuildings] = useState<any[]>([]);
   const [tabsStatus, setTabsStatus] = useState<any>(null);
   const [counterStatus, setCounterStatus] = useState<any>(null);
+  const [registryStatus, setRegistryStatus] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
   const updateStatus = async () => {
@@ -37,14 +40,14 @@ const UnlockStatusPopup = () => {
       // Форсируем обновление состояния игры
       forceUpdate();
       
-      // Небольшая задержка, чтобы обновление успело применится
+      // Небольшая задержка, чтобы обновление успело примениться
       setTimeout(() => {
         try {
           // Получаем отчет о статусе разблокировок
           const result = debugUnlockStatus(state);
-          setStatusSteps(result.steps || []); // Шаги проверки условий
-          setUnlockedItems(result.unlocked || []); // Разблокированные элементы
-          setLockedItems(result.locked || []); // Заблокированные элементы
+          setStatusSteps(result.steps || []); 
+          setUnlockedItems(result.unlocked || []); 
+          setLockedItems(result.locked || []); 
           
           // Добавляем детальную отладку здания "Практика"
           const practiceDebug = debugPracticeBuilding(state);
@@ -65,6 +68,11 @@ const UnlockStatusPopup = () => {
           const applyKnowledgeDebug = debugApplyKnowledgeCounter(state);
           setCounterStatus(applyKnowledgeDebug);
           
+          // Получаем статус элементов из реестра
+          const unlockManager = new UnlockManager(state);
+          const registryDetails = analyzeRegistryItems(unlockManager);
+          setRegistryStatus(registryDetails);
+          
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);
@@ -78,11 +86,140 @@ const UnlockStatusPopup = () => {
     }
   };
   
+  // Анализ элементов из реестра разблокировок
+  const analyzeRegistryItems = (unlockManager: UnlockManager) => {
+    return Object.entries(unlockableItemsRegistry).map(([id, item]) => {
+      // Проверяем статус разблокировки
+      const isUnlocked = unlockManager.isUnlocked(id);
+      
+      // Проверяем условия разблокировки
+      const conditionsDetails = item.conditions.map(condition => {
+        let currentValue: any = null;
+        let conditionMet = false;
+        
+        // Получаем текущее значение в зависимости от типа условия
+        switch (condition.type) {
+          case 'resource':
+            currentValue = state.resources[condition.targetId]?.value || 0;
+            break;
+          case 'building':
+            currentValue = state.buildings[condition.targetId]?.count || 0;
+            break;
+          case 'upgrade':
+            currentValue = state.upgrades[condition.targetId]?.purchased || false;
+            break;
+          case 'counter':
+            const counter = state.counters[condition.targetId];
+            currentValue = typeof counter === 'object' ? counter?.value : counter || 0;
+            break;
+        }
+        
+        // Определяем, выполнено ли условие
+        switch (condition.operator) {
+          case 'eq':
+            conditionMet = currentValue === condition.targetValue;
+            break;
+          case 'gte':
+            conditionMet = currentValue >= condition.targetValue;
+            break;
+          case 'gt':
+            conditionMet = currentValue > condition.targetValue;
+            break;
+          case 'lte':
+            conditionMet = currentValue <= condition.targetValue;
+            break;
+          case 'lt':
+            conditionMet = currentValue < condition.targetValue;
+            break;
+        }
+        
+        return {
+          description: condition.description,
+          type: condition.type,
+          targetId: condition.targetId,
+          targetValue: condition.targetValue,
+          currentValue,
+          conditionMet
+        };
+      });
+      
+      // Проверяем состояние в зависимости от типа элемента
+      let stateInGame: boolean = false;
+      let stateInRegistry: boolean = isUnlocked;
+      
+      switch (item.type) {
+        case 'resource':
+          stateInGame = state.resources[id]?.unlocked || false;
+          break;
+        case 'building':
+          stateInGame = state.buildings[id]?.unlocked || false;
+          break;
+        case 'upgrade':
+          stateInGame = state.upgrades[id]?.unlocked || false;
+          break;
+        case 'feature':
+          stateInGame = state.unlocks[id] || false;
+          break;
+      }
+      
+      return {
+        id,
+        name: item.name,
+        type: item.type,
+        autoUnlock: item.autoUnlock,
+        stateInGame,
+        stateInRegistry,
+        conditions: conditionsDetails,
+        allConditionsMet: conditionsDetails.every(c => c.conditionMet),
+        divergence: stateInGame !== stateInRegistry
+      };
+    });
+  };
+  
   // Обновляем статус при открытии popover
   const handleOpenChange = (open: boolean) => {
     if (open) {
       updateStatus();
     }
+  };
+  
+  const handleForceUnlockItem = (itemId: string, itemType: string) => {
+    switch (itemType) {
+      case 'resource':
+        dispatch({ 
+          type: 'UNLOCK_RESOURCE', 
+          payload: { resourceId: itemId } 
+        });
+        break;
+      case 'building':
+        dispatch({ 
+          type: 'SET_BUILDING_UNLOCKED', 
+          payload: { buildingId: itemId, unlocked: true } 
+        });
+        // Также обновляем счетчик разблокированных зданий
+        dispatch({ 
+          type: 'INCREMENT_COUNTER', 
+          payload: { 
+            counterId: 'buildingsUnlocked', 
+            value: 1 
+          } 
+        });
+        break;
+      case 'upgrade':
+        dispatch({ 
+          type: 'SET_UPGRADE_UNLOCKED', 
+          payload: { upgradeId: itemId, unlocked: true } 
+        });
+        break;
+      case 'feature':
+        dispatch({ 
+          type: 'UNLOCK_FEATURE', 
+          payload: { featureId: itemId } 
+        });
+        break;
+    }
+    // Обновляем статус отладки
+    updateStatus();
   };
   
   const handleForceUnlockEquipment = () => {
@@ -110,6 +247,15 @@ const UnlockStatusPopup = () => {
     updateStatus();
   };
   
+  // Группировка элементов реестра по типу
+  const groupedRegistryItems = registryStatus.reduce((acc, item) => {
+    if (!acc[item.type]) {
+      acc[item.type] = [];
+    }
+    acc[item.type].push(item);
+    return acc;
+  }, {} as Record<string, typeof registryStatus>);
+  
   return (
     <Popover onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -126,14 +272,107 @@ const UnlockStatusPopup = () => {
         <div className="p-4 bg-white rounded-md">
           <h3 className="text-sm font-bold text-gray-700 mb-2">Статус разблокировок контента</h3>
           
-          <Tabs defaultValue="counters">
+          <Tabs defaultValue="registry">
             <TabsList className="w-full mb-2">
+              <TabsTrigger value="registry">Реестр разблокировок</TabsTrigger>
               <TabsTrigger value="counters">Счетчики</TabsTrigger>
               <TabsTrigger value="unlocks">Разблокировки</TabsTrigger>
               <TabsTrigger value="practice">Отладка "Практика"</TabsTrigger>
               <TabsTrigger value="buildings">Все здания</TabsTrigger>
               <TabsTrigger value="tabs">Вкладки</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="registry">
+              <div className="text-xs mb-2">
+                <p className="mb-2">Полный реестр элементов и их состояние разблокировки:</p>
+                
+                <div className="mb-2 flex justify-between">
+                  <div>
+                    <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded mr-2">Разблокировано</span>
+                    <span className="px-1.5 py-0.5 bg-red-100 text-red-800 rounded">Заблокировано</span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs" 
+                    onClick={handleForceCheckAllUnlocks}
+                  >
+                    Проверить все разблокировки
+                  </Button>
+                </div>
+                
+                {Object.entries(groupedRegistryItems).map(([type, items]) => (
+                  <div key={type} className="mb-4">
+                    <h4 className="font-semibold mb-1 text-gray-700 capitalize">
+                      {type === 'resource' ? 'Ресурсы' : 
+                       type === 'building' ? 'Здания' : 
+                       type === 'upgrade' ? 'Исследования' : 
+                       'Функции'}
+                      <span className="text-xs font-normal ml-1 text-gray-500">
+                        ({items.filter(i => i.stateInGame).length} / {items.length})
+                      </span>
+                    </h4>
+                    
+                    <div className="space-y-1 max-h-60 overflow-y-auto border rounded p-1">
+                      {items.map(item => (
+                        <div 
+                          key={item.id}
+                          className={`p-1 rounded border ${item.stateInGame ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">
+                              {item.name} 
+                              <span className="text-gray-500 ml-1">({item.id})</span>
+                            </span>
+                            {!item.stateInGame && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-5 px-1 py-0 text-xs text-blue-600"
+                                onClick={() => handleForceUnlockItem(item.id, item.type)}
+                              >
+                                Разблокировать
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <div className="mt-1 text-xs">
+                            <div className="flex justify-between text-gray-600">
+                              <span>Статус в игре: {item.stateInGame ? '✅' : '❌'}</span>
+                              <span>Статус в реестре: {item.stateInRegistry ? '✅' : '❌'}</span>
+                              <span>Автоматическая разблокировка: {item.autoUnlock ? '✅' : '❌'}</span>
+                            </div>
+                            
+                            {item.conditions.length > 0 && (
+                              <div className="mt-1">
+                                <span className="text-gray-600">Условия разблокировки:</span>
+                                <ul className="pl-3 mt-0.5 space-y-1">
+                                  {item.conditions.map((condition, idx) => (
+                                    <li 
+                                      key={idx}
+                                      className={condition.conditionMet ? 'text-green-600' : 'text-red-600'}
+                                    >
+                                      {condition.description}: {condition.currentValue} {condition.operator} {condition.targetValue}
+                                      {' '}{condition.conditionMet ? '✅' : '❌'}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {item.divergence && (
+                              <div className="mt-1 text-orange-600">
+                                Внимание: Расхождение между состоянием в игре и в реестре!
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
             
             <TabsContent value="counters">
               {counterStatus ? (

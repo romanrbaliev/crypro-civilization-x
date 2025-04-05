@@ -1,244 +1,207 @@
 
-import { GameState, Counter } from '@/context/types';
+import { GameState } from '@/context/types';
+import { unlockableItemsRegistry } from '@/systems/unlock/registry';
 
 /**
- * Вспомогательная функция для безопасного получения значения счетчика
+ * Возвращает отладочную информацию о здании "Практика"
  */
-function getCounterValue(counter: Counter | number | undefined): number {
-  if (counter === undefined || counter === null) {
-    return 0;
+export function debugPracticeBuilding(state: GameState) {
+  // Проверяем наличие здания в state.buildings
+  const practiceExists = !!state.buildings.practice;
+  
+  // Проверяем, разблокировано ли здание
+  const practiceUnlocked = practiceExists && state.buildings.practice.unlocked;
+  
+  // Количество зданий "Практика"
+  const practiceCount = practiceExists ? state.buildings.practice.count : 0;
+  
+  // Проверяем наличие разблокировки в state.unlocks
+  const practiceStateInUnlocks = !!state.unlocks.practice;
+  
+  // Проверяем, выполнено ли условие разблокировки (счетчик applyKnowledge >= 2)
+  const applyKnowledgeCounter = state.counters.applyKnowledge;
+  let applyKnowledgeValue = 0;
+  
+  if (applyKnowledgeCounter) {
+    applyKnowledgeValue = typeof applyKnowledgeCounter === 'object' 
+      ? applyKnowledgeCounter.value 
+      : applyKnowledgeCounter;
   }
   
-  if (typeof counter === 'number') {
-    return counter;
-  }
+  const conditionalCheck = applyKnowledgeValue >= 2;
   
-  return counter.value || 0;
-}
-
-/**
- * Отладка состояния здания "Практика"
- */
-export function debugPracticeBuilding(state: GameState): { 
-  exists: boolean,
-  unlocked: boolean,
-  count: number,
-  stateInUnlocks: boolean,
-  conditionalCheck: boolean,
-  displayInBuildingsContainer: boolean,
-  displayInEquipmentTab: boolean,
-  inBuildingsList: boolean
-} {
-  // Проверка существования здания в state.buildings
-  const practiceBuilding = state.buildings.practice;
-  const exists = !!practiceBuilding;
+  // Проверяем, отображается ли здание в BuildingsContainer
+  // (это можно определить только косвенно)
+  const displayInBuildingsContainer = practiceExists && practiceUnlocked;
   
-  // Проверка разблокировки в state.buildings
-  const unlocked = exists ? !!practiceBuilding.unlocked : false;
+  // Проверяем, отображается ли здание в EquipmentTab
+  // (это тоже можно определить только косвенно)
+  const equipmentTabUnlocked = !!state.unlocks.equipment;
+  const displayInEquipmentTab = displayInBuildingsContainer && equipmentTabUnlocked;
   
-  // Количество купленных зданий
-  const count = exists ? (practiceBuilding.count || 0) : 0;
-  
-  // Проверка в state.unlocks
-  const stateInUnlocks = !!state.unlocks.practice;
-
-  // Проверка условий разблокировки (2+ применения знаний)
-  const applyKnowledgeCount = getCounterValue(state.counters.applyKnowledge);
-  const conditionalCheck = applyKnowledgeCount >= 2;
-  
-  // Проверка, отображается ли в BuildingsContainer
-  const displayInBuildingsContainer = exists && unlocked; 
-  
-  // Проверка, отображается ли в EquipmentTab
-  const displayInEquipmentTab = exists && unlocked;
-  
-  // Проверка наличия в списке зданий
-  const inBuildingsList = Object.keys(state.buildings).includes('practice');
+  // Проверяем, есть ли здание в списке всех зданий
+  const inBuildingsList = practiceExists;
   
   return {
-    exists,
-    unlocked,
-    count,
-    stateInUnlocks,
+    exists: practiceExists,
+    unlocked: practiceUnlocked,
+    count: practiceCount,
+    stateInUnlocks: practiceStateInUnlocks,
     conditionalCheck,
     displayInBuildingsContainer,
     displayInEquipmentTab,
-    inBuildingsList
+    inBuildingsList,
+    applyKnowledgeCounter: applyKnowledgeValue
   };
 }
 
 /**
- * Проверяет все здания и их состояние
+ * Возвращает отладочную информацию о состоянии отображения зданий
  */
-export function listAllBuildings(state: GameState): { 
-  id: string, 
-  exists: boolean, 
-  unlocked: boolean, 
-  count: number
-}[] {
-  // Получаем список всех зданий из state.buildings
-  return Object.keys(state.buildings).map(id => {
-    const building = state.buildings[id];
-    return {
-      id,
-      exists: !!building,
-      unlocked: building ? !!building.unlocked : false,
-      count: building ? (building.count || 0) : 0
-    };
-  });
-}
-
-/**
- * Детальная отладка компонентов отображения зданий
- */
-export function debugBuildingDisplay(state: GameState): {
-  buildingsCount: number,
-  unlockedBuildingsCount: number,
-  buildingsList: string[], 
-  unlockedBuildingsList: string[],
-  equipmentTabUnlocked: boolean,
-  buildingsUnlockedCounterValue: number
-} {
-  // Получаем список всех зданий из state.buildings
-  const buildings = state.buildings;
-  const buildingsList = Object.keys(buildings);
-  const unlockedBuildingsList = buildingsList.filter(id => buildings[id].unlocked);
+export function debugBuildingDisplay(state: GameState) {
+  // Подсчитываем количество зданий
+  const buildingsCount = Object.keys(state.buildings).length;
   
-  // Получаем значение счетчика разблокированных зданий
-  const buildingsUnlockedCounterValue = getCounterValue(state.counters.buildingsUnlocked);
+  // Подсчитываем количество разблокированных зданий
+  const unlockedBuildingsCount = Object.values(state.buildings)
+    .filter(building => building.unlocked)
+    .length;
+  
+  // Проверяем, разблокирована ли вкладка "Equipment"
+  const equipmentTabUnlocked = !!state.unlocks.equipment;
+  
+  // Проверяем счетчик разблокированных зданий
+  const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
+  let buildingsUnlockedCounterValue = 0;
+  
+  if (buildingsUnlockedCounter) {
+    buildingsUnlockedCounterValue = typeof buildingsUnlockedCounter === 'object'
+      ? buildingsUnlockedCounter.value
+      : buildingsUnlockedCounter;
+  }
   
   return {
-    buildingsCount: buildingsList.length,
-    unlockedBuildingsCount: unlockedBuildingsList.length,
-    buildingsList,
-    unlockedBuildingsList,
-    equipmentTabUnlocked: state.unlocks.equipment === true,
+    buildingsCount,
+    unlockedBuildingsCount,
+    equipmentTabUnlocked,
     buildingsUnlockedCounterValue
   };
 }
 
 /**
- * Отладка состояния разблокировок вкладок интерфейса
+ * Возвращает список всех зданий с их статусом
  */
-export function debugTabsUnlocks(state: GameState): { 
-  equipment: { unlocked: boolean, condition: string },
-  research: { unlocked: boolean, condition: string },
-  specialization: { unlocked: boolean, condition: string },
-  referrals: { unlocked: boolean, condition: string },
-  trading: { unlocked: boolean, condition: string },
-  allTabs: { id: string, unlocked: boolean }[]
-} {
-  // Получаем базовую информацию о вкладках
+export function listAllBuildings(state: GameState) {
+  return Object.keys(state.buildings).map(buildingId => {
+    const building = state.buildings[buildingId];
+    
+    return {
+      id: buildingId,
+      exists: true,
+      unlocked: building.unlocked,
+      count: building.count
+    };
+  });
+}
+
+/**
+ * Возвращает отладочную информацию о разблокировке вкладок
+ */
+export function debugTabsUnlocks(state: GameState) {
+  // Проверяем статус вкладки "Оборудование"
   const equipmentUnlocked = !!state.unlocks.equipment;
+  
+  // Проверяем статус вкладки "Исследования"
   const researchUnlocked = !!state.unlocks.research;
+  
+  // Проверяем статус вкладки "Специализация"
   const specializationUnlocked = !!state.unlocks.specialization;
-  const referralsUnlocked = !!state.unlocks.referrals;
-  const tradingUnlocked = !!state.unlocks.trading;
   
-  // Проверяем условия разблокировки для каждой вкладки
-  // Вкладка Оборудование (Equipment)
-  const buildingsUnlockedValue = getCounterValue(state.counters.buildingsUnlocked);
-  
-  const equipmentCondition = buildingsUnlockedValue >= 1
-    ? "✅ Разблокировано хотя бы одно здание" 
-    : "❌ Не разблокировано ни одно здание";
-  
-  // Вкладка Исследования (Research)
-  const researchCondition = state.buildings.generator && state.buildings.generator.count > 0 
-    ? "✅ Имеется хотя бы один генератор" 
-    : "❌ Не куплен генератор";
-  
-  // Вкладка Специализация (Specialization)
-  const specializationCondition = state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased 
-    ? "✅ Изучены Основы криптовалют" 
-    : "❌ Не изучены Основы криптовалют";
-  
-  // Вкладка Рефералы (Referrals)
-  const referralsCondition = state.upgrades.cryptoCommunity && state.upgrades.cryptoCommunity.purchased 
-    ? "✅ Изучено Криптосообщество" 
-    : "❌ Не изучено Криптосообщество";
-  
-  // Вкладка Трейдинг (Trading)
-  const tradingCondition = state.upgrades.cryptoTrading && state.upgrades.cryptoTrading.purchased 
-    ? "✅ Изучен Криптовалютный трейдинг" 
-    : "❌ Не изучен Криптовалютный трейдинг";
-  
-  // Получаем список всех вкладок
-  const allTabs = [
-    { id: 'main', unlocked: true }, // Главная вкладка всегда разблокирована
-    { id: 'equipment', unlocked: equipmentUnlocked },
-    { id: 'research', unlocked: researchUnlocked },
-    { id: 'specialization', unlocked: specializationUnlocked },
-    { id: 'referrals', unlocked: referralsUnlocked },
-    { id: 'trading', unlocked: tradingUnlocked }
-  ];
+  // Получаем все вкладки
+  const allTabs = Object.entries(state.unlocks)
+    .filter(([key]) => ['equipment', 'research', 'specialization', 'referrals', 'trading'].includes(key))
+    .map(([id, unlocked]) => ({ id, unlocked }));
   
   return {
-    equipment: { unlocked: equipmentUnlocked, condition: equipmentCondition },
-    research: { unlocked: researchUnlocked, condition: researchCondition },
-    specialization: { unlocked: specializationUnlocked, condition: specializationCondition },
-    referrals: { unlocked: referralsUnlocked, condition: referralsCondition },
-    trading: { unlocked: tradingUnlocked, condition: tradingCondition },
+    equipment: {
+      unlocked: equipmentUnlocked,
+      condition: 'buildingsUnlocked > 0'
+    },
+    research: {
+      unlocked: researchUnlocked,
+      condition: 'generator count > 0'
+    },
+    specialization: {
+      unlocked: specializationUnlocked,
+      condition: 'cryptoBasics = true'
+    },
     allTabs
   };
 }
 
 /**
- * Анализ состояния счетчика applyKnowledge и его влияния на разблокировки
+ * Анализирует состояние счетчика applyKnowledge
  */
-export function debugApplyKnowledgeCounter(state: GameState): {
-  counterExists: boolean,
-  counterValue: number,
-  counterType: string,
-  practiceUnlockThreshold: number,
-  practiceUnlocked: boolean,
-  practiceExists: boolean,
-  equipmentTabUnlocked: boolean,
-  buildingsUnlockedCounter: number,
-  recommendations: string[]
-} {
-  // Проверяем существование счетчика
+export function debugApplyKnowledgeCounter(state: GameState) {
+  // Проверяем наличие счетчика
   const counter = state.counters.applyKnowledge;
   const counterExists = !!counter;
   
-  // Получаем значение счетчика
-  const counterValue = getCounterValue(counter);
+  // Определяем тип и значение счетчика
+  let counterValue = 0;
+  let counterType = 'undefined';
   
-  // Определяем тип счетчика
-  const counterType = counterExists 
-    ? (typeof counter === 'number' ? 'number' : 'object') 
-    : 'не существует';
+  if (counterExists) {
+    counterType = typeof counter === 'object' ? 'object' : typeof counter;
+    counterValue = typeof counter === 'object' ? counter.value : counter;
+  }
   
-  // Пороговое значение для разблокировки Практики (по документации)
-  const practiceUnlockThreshold = 2;
+  // Находим порог разблокировки здания "Практика"
+  const practiceUnlockItem = unlockableItemsRegistry['practice'];
+  let practiceUnlockThreshold = 0;
   
-  // Проверяем разблокировку здания Практика
+  if (practiceUnlockItem) {
+    const applyKnowledgeCondition = practiceUnlockItem.conditions.find(
+      condition => condition.targetId === 'applyKnowledge'
+    );
+    
+    if (applyKnowledgeCondition) {
+      practiceUnlockThreshold = applyKnowledgeCondition.targetValue;
+    }
+  }
+  
+  // Проверяем состояние здания "Практика"
   const practiceExists = !!state.buildings.practice;
-  const practiceUnlocked = practiceExists ? !!state.buildings.practice.unlocked : false;
+  const practiceUnlocked = practiceExists && state.buildings.practice.unlocked;
   
-  // Проверяем разблокировку вкладки Оборудование
+  // Проверяем разблокировку вкладки "Оборудование"
   const equipmentTabUnlocked = !!state.unlocks.equipment;
   
-  // Получаем значение счетчика разблокированных зданий
-  const buildingsUnlockedCounter = getCounterValue(state.counters.buildingsUnlocked);
+  // Проверяем счетчик разблокированных зданий
+  const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
+  let buildingsUnlockedValue = 0;
+  
+  if (buildingsUnlockedCounter) {
+    buildingsUnlockedValue = typeof buildingsUnlockedCounter === 'object'
+      ? buildingsUnlockedCounter.value
+      : buildingsUnlockedCounter;
+  }
   
   // Формируем рекомендации
-  const recommendations: string[] = [];
+  const recommendations = [];
   
-  if (counterValue >= practiceUnlockThreshold && !practiceUnlocked && practiceExists) {
-    recommendations.push('Здание "Практика" должно быть разблокировано, но не разблокировано. Возможно, нужно вызвать FORCE_CHECK_UNLOCKS.');
+  if (!counterExists) {
+    recommendations.push('Создайте счетчик applyKnowledge');
+  } else if (counterValue < practiceUnlockThreshold && !practiceUnlocked && practiceExists) {
+    recommendations.push(`Увеличьте счетчик applyKnowledge до ${practiceUnlockThreshold} или разблокируйте здание "Практика" вручную`);
   }
   
   if (practiceUnlocked && !equipmentTabUnlocked) {
-    recommendations.push('Здание "Практика" разблокировано, но вкладка "Оборудование" не разблокирована. Проверьте счетчик buildingsUnlocked.');
+    recommendations.push('Разблокируйте вкладку "Оборудование"');
   }
   
-  if (practiceUnlocked && buildingsUnlockedCounter < 1) {
-    recommendations.push('Обнаружено расхождение: здание разблокировано, но счетчик buildingsUnlocked = 0. Требуется корректировка.');
-  }
-  
-  if (counterValue < practiceUnlockThreshold && practiceUnlocked) {
-    recommendations.push(`Значение счетчика applyKnowledge (${counterValue}) меньше порогового (${practiceUnlockThreshold}), но здание "Практика" уже разблокировано.`);
+  if (buildingsUnlockedValue === 0 && practiceUnlocked) {
+    recommendations.push('Увеличьте счетчик buildingsUnlocked');
   }
   
   return {
@@ -246,87 +209,10 @@ export function debugApplyKnowledgeCounter(state: GameState): {
     counterValue,
     counterType,
     practiceUnlockThreshold,
-    practiceUnlocked,
     practiceExists,
+    practiceUnlocked,
     equipmentTabUnlocked,
-    buildingsUnlockedCounter,
+    buildingsUnlockedCounter: buildingsUnlockedValue,
     recommendations
-  };
-}
-
-/**
- * Глубокая проверка состояния счетчиков, связанных с разблокировками
- */
-export function debugCountersState(state: GameState): {
-  counters: { id: string, type: string, value: number }[],
-  buildingsUnlockedCounter: { exists: boolean, type: string, value: number },
-  applyKnowledgeCounter: { exists: boolean, type: string, value: number },
-  knowledgeClicksCounter: { exists: boolean, type: string, value: number },
-  relevantCounters: string,
-  practiceUnlockedByCounter: boolean,
-  equipmentUnlockedByCounter: boolean
-} {
-  // Получаем все счетчики
-  const counters = Object.keys(state.counters).map(id => {
-    const counter = state.counters[id];
-    const counterType = typeof counter;
-    const counterValue = getCounterValue(counter);
-    
-    return {
-      id,
-      type: counterType,
-      value: counterValue
-    };
-  });
-  
-  // Получаем значение счетчика buildingsUnlocked
-  const buildingsUnlockedCounter = state.counters.buildingsUnlocked;
-  const buildingsUnlockedExists = !!buildingsUnlockedCounter;
-  const buildingsUnlockedType = typeof buildingsUnlockedCounter;
-  const buildingsUnlockedValue = getCounterValue(buildingsUnlockedCounter);
-  
-  // Получаем значение счетчика applyKnowledge
-  const applyKnowledgeCounter = state.counters.applyKnowledge;
-  const applyKnowledgeExists = !!applyKnowledgeCounter;
-  const applyKnowledgeType = typeof applyKnowledgeCounter;
-  const applyKnowledgeValue = getCounterValue(applyKnowledgeCounter);
-  
-  // Получаем значение счетчика knowledgeClicks
-  const knowledgeClicksCounter = state.counters.knowledgeClicks;
-  const knowledgeClicksExists = !!knowledgeClicksCounter;
-  const knowledgeClicksType = typeof knowledgeClicksCounter;
-  const knowledgeClicksValue = getCounterValue(knowledgeClicksCounter);
-  
-  // Ключевые счетчики для разблокировок
-  const relevantCounters = `buildingsUnlocked=${buildingsUnlockedValue}, applyKnowledge=${applyKnowledgeValue}, knowledgeClicks=${knowledgeClicksValue}`;
-  
-  // Проверяем разблокировку здания Практика по счетчику
-  // По документации: "Практика" разблокируется после 2+ применений знаний
-  const practiceUnlockedByCounter = applyKnowledgeValue >= 2;
-  
-  // Проверяем разблокировку вкладки Оборудование по счетчику
-  // Вкладка Оборудование разблокируется, когда есть хотя бы одно разблокированное здание
-  const equipmentUnlockedByCounter = buildingsUnlockedValue >= 1;
-  
-  return {
-    counters,
-    buildingsUnlockedCounter: {
-      exists: buildingsUnlockedExists,
-      type: buildingsUnlockedType,
-      value: buildingsUnlockedValue
-    },
-    applyKnowledgeCounter: {
-      exists: applyKnowledgeExists,
-      type: applyKnowledgeType,
-      value: applyKnowledgeValue
-    },
-    knowledgeClicksCounter: {
-      exists: knowledgeClicksExists,
-      type: knowledgeClicksType,
-      value: knowledgeClicksValue
-    },
-    relevantCounters,
-    practiceUnlockedByCounter,
-    equipmentUnlockedByCounter
   };
 }
