@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NotFound from '@/pages/NotFound';
 import GameScreen from '@/pages/GameScreen';
 import { I18nProvider } from '@/context/I18nContext';
+import { GameProvider } from '@/context/GameContext';
+import { UnlockManagerProvider } from '@/systems/unlock/hooks/useUnlockManager';
 import './App.css';
 
 // Создаем клиент для React Query
@@ -22,15 +24,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Navigate to="/game" replace />} />
-            <Route path="/game" element={<GameScreen />} />
-            <Route path="/404" element={<NotFound />} />
-            <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
-        </Router>
-        <Toaster />
+        <GameProvider>
+          <UnlockManagerProvider>
+            <Router>
+              <Routes>
+                <Route path="/" element={<Navigate to="/game" replace />} />
+                <Route path="/game" element={<GameScreen />} />
+                <Route path="/404" element={<NotFound />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </Router>
+            <Toaster />
+          </UnlockManagerProvider>
+        </GameProvider>
       </I18nProvider>
     </QueryClientProvider>
   );

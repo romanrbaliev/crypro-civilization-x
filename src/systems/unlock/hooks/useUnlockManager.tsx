@@ -103,42 +103,49 @@ export const useUnlockStatus = (itemId: string): boolean => {
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
-  // Защита от undefined itemId
+  // ИСПРАВЛЕНО: Используем пустую строку вместо undefined
   const safeItemId = itemId || '';
   
-  // ИСПРАВЛЕНИЕ: Безопасно нормализуем ID
+  // ИСПРАВЛЕНО: Мемоизируем ID с защитой от undefined
   const normalizedItemId = useMemo(() => {
-    // Дополнительная проверка на undefined и пустую строку
     if (!safeItemId) return '';
     return normalizeId(safeItemId);
   }, [safeItemId]);
   
-  // Проверка статуса разблокировки
+  // ИСПРАВЛЕНО: Улучшенный callback с проверками на undefined
   const checkUnlockStatus = useCallback(() => {
-    if (!unlockManager || !normalizedItemId) return false;
+    if (!unlockManager || !normalizedItemId) {
+      setIsUnlocked(false);
+      return;
+    }
     
-    // Получаем результат проверки
-    const status = unlockManager.isUnlocked(normalizedItemId);
-    setIsUnlocked(status);
+    try {
+      const status = unlockManager.isUnlocked(normalizedItemId);
+      setIsUnlocked(!!status);
+    } catch (error) {
+      console.error(`Ошибка при проверке разблокировки элемента ${normalizedItemId}`, error);
+      setIsUnlocked(false);
+    }
   }, [unlockManager, normalizedItemId]);
   
-  // Мемоизируем обработчик событий разблокировки
+  // ИСПРАВЛЕНО: Безопасный обработчик событий
   const handleUnlockEvent = useCallback((event: Event) => {
     if (!(event instanceof CustomEvent) || !event.detail) return;
     
-    // Нормализуем ID для сравнения
     const eventId = event.detail?.itemId || '';
     if (!eventId || !normalizedItemId) return;
     
-    const normalizedEventId = normalizeId(eventId);
-    
-    // Проверяем совпадение после нормализации
-    if (normalizedEventId === normalizedItemId) {
-      checkUnlockStatus();
+    try {
+      const normalizedEventId = normalizeId(eventId);
+      if (normalizedEventId === normalizedItemId) {
+        checkUnlockStatus();
+      }
+    } catch (error) {
+      console.error('Ошибка при обработке события разблокировки', error);
     }
   }, [checkUnlockStatus, normalizedItemId]);
   
-  // Эффект для проверки статуса разблокировки и подписки на события
+  // ИСПРАВЛЕНО: Безопасная проверка эффектов
   useEffect(() => {
     // Проверяем при монтировании
     checkUnlockStatus();
@@ -149,7 +156,7 @@ export const useUnlockStatus = (itemId: string): boolean => {
     return () => {
       window.removeEventListener('unlock-event', handleUnlockEvent);
     };
-  }, [checkUnlockStatus, handleUnlockEvent]); // Используем только мемоизированные зависимости
+  }, [checkUnlockStatus, handleUnlockEvent]);
   
   return isUnlocked;
 };
@@ -164,7 +171,7 @@ export const UnlockedContent = ({
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) => {
-  // ИСПРАВЛЕНИЕ: Дополнительная проверка на undefined
+  // ИСПРАВЛЕНО: Безопасная проверка itemId
   const safeItemId = itemId || '';
   const isUnlocked = useUnlockStatus(safeItemId);
   

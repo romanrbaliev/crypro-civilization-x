@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
@@ -51,6 +52,7 @@ const GameScreen = () => {
   const { toast } = useToast();
   const { t } = useI18nContext();
   
+  // ИСПРАВЛЕНО: Используем безопасный способ получения идентификаторов функций
   const featureIds = useMemo(() => ({
     equipment: gameIds?.features?.equipment || 'equipment',
     research: gameIds?.features?.research || 'research',
@@ -58,10 +60,11 @@ const GameScreen = () => {
     referrals: gameIds?.features?.referrals || 'referrals'
   }), []);
   
-  const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment || '');
-  const hasUnlockedResearch = useUnlockStatus(featureIds.research || '');
-  const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization || '');
-  const hasUnlockedReferrals = useUnlockStatus(featureIds.referrals || '');
+  // ИСПРАВЛЕНО: Корректно обрабатываем возможное отсутствие ID, передавая пустую строку вместо undefined
+  const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment);
+  const hasUnlockedResearch = useUnlockStatus(featureIds.research);
+  const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization);
+  const hasUnlockedReferrals = useUnlockStatus(featureIds.referrals);
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });

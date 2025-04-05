@@ -15,8 +15,9 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // Используем новую систему разблокировок с унифицированными ID
-  const researchUnlocked = useUnlockStatus(gameIds.features.research);
+  // ИСПРАВЛЕНО: Убедимся, что ID всегда определен
+  const researchId = gameIds?.features?.research || 'research';
+  const researchUnlocked = useUnlockStatus(researchId);
   
   // Расширенные диагностические логи для отслеживания проблемы
   useEffect(() => {
@@ -24,10 +25,13 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     console.log("ResearchTab: total upgrades =", Object.keys(state.upgrades || {}).length);
     console.log("ResearchTab: upgrades keys =", Object.keys(state.upgrades || {}));
     
+    // ИСПРАВЛЕНО: Добавляем проверку на undefined
+    const blockchainBasicsId = gameIds?.upgrades?.blockchainBasics || 'blockchainBasics';
+    
     // Проверяем наличие блокчейн-исследования
     console.log("ResearchTab: Проверка blockchainBasics", 
-      state.upgrades[gameIds.upgrades.blockchainBasics] ? 
-      `exists, unlocked=${state.upgrades[gameIds.upgrades.blockchainBasics].unlocked}` : 
+      state.upgrades[blockchainBasicsId] ? 
+      `exists, unlocked=${state.upgrades[blockchainBasicsId].unlocked}` : 
       "not exists");
     
     // Проверяем общее состояние системы разблокировок
