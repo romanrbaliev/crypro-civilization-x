@@ -82,8 +82,8 @@ export class BonusCalculationService {
         if (blockchainBasics && blockchainBasics.purchased) {
           console.log("BonusCalculation: Исследование Основы блокчейна имеет эффекты:", blockchainBasics.effects);
           const knowledgeBoost = blockchainBasics.effects?.knowledgeBoost || 0.1; // 10% бонус к производству знаний
-          multiplier += knowledgeBoost;
-          console.log(`BonusCalculation: Основы блокчейна добавляет +${knowledgeBoost * 100}% к производству знаний`);
+          multiplier += Number(knowledgeBoost);
+          console.log(`BonusCalculation: Основы блокчейна добавляет +${Number(knowledgeBoost) * 100}% к производству знаний`);
         }
       }
       
@@ -92,14 +92,14 @@ export class BonusCalculationService {
       if (resourceId === 'knowledge' && state.upgrades.cryptoCurrencyBasics?.purchased && state.upgrades.cryptoCurrencyBasics?.effects?.knowledgeEfficiencyBoost) {
         const knowledgeEffBoost = state.upgrades.cryptoCurrencyBasics.effects.knowledgeEfficiencyBoost || 0.1; // 10% бонус к эффективности знаний
         // Этот бонус на самом деле не влияет на производство знаний, а только на их эффективность при обмене
-        console.log(`BonusCalculation: Основы криптовалют дают +${knowledgeEffBoost * 100}% к эффективности применения знаний`);
+        console.log(`BonusCalculation: Основы криптовалют дают +${Number(knowledgeEffBoost) * 100}% к эффективности применения знаний`);
       }
       
       // Альтернативное имя улучшения
       if (resourceId === 'knowledge' && state.upgrades.cryptoBasics?.purchased && state.upgrades.cryptoBasics?.effects?.knowledgeEfficiencyBoost) {
         const knowledgeEffBoost = state.upgrades.cryptoBasics.effects.knowledgeEfficiencyBoost || 0.1;
         // Этот бонус на самом деле не влияет на производство знаний
-        console.log(`BonusCalculation: Основы криптовалют дают +${knowledgeEffBoost * 100}% к эффективности применения знаний`);
+        console.log(`BonusCalculation: Основы криптовалют дают +${Number(knowledgeEffBoost) * 100}% к эффективности применения знаний`);
       }
       
       // Проверяем наличие бонусов от специализаций
@@ -136,7 +136,7 @@ export class BonusCalculationService {
             // Проверяем наличие бонуса производства для указанного ресурса
             const boostKey = `${resourceId}ProductionBoost`;
             if (synergy.bonus[boostKey]) {
-              const boost = synergy.bonus[boostKey];
+              const boost = Number(synergy.bonus[boostKey]);
               multiplier += boost;
               console.log(`BonusCalculation: Синергия ${synergy.name} добавляет +${boost * 100}% к производству ${resourceId}`);
             }
@@ -185,8 +185,8 @@ export class BonusCalculationService {
         if (blockchainBasics && blockchainBasics.purchased) {
           // Этот эффект может быть записан в разных местах, поэтому проверяем все варианты
           const knowledgeMaxBoost = blockchainBasics.effects?.knowledgeMaxBoost || 0.5; // 50% бонус к макс. знаниям
-          multiplier += knowledgeMaxBoost;
-          console.log(`BonusCalculation: Основы блокчейна добавляет +${knowledgeMaxBoost * 100}% к максимуму знаний`);
+          multiplier += Number(knowledgeMaxBoost);
+          console.log(`BonusCalculation: Основы блокчейна добавляет +${Number(knowledgeMaxBoost) * 100}% к максимуму знаний`);
         }
       }
       
@@ -196,8 +196,8 @@ export class BonusCalculationService {
                                 
         if (walletSecurity && walletSecurity.purchased) {
           const usdtMaxBoost = walletSecurity.effects?.usdtMaxBoost || 0.25; // 25% бонус к макс. USDT
-          multiplier += usdtMaxBoost;
-          console.log(`BonusCalculation: Безопасность криптокошельков добавляет +${usdtMaxBoost * 100}% к максимуму USDT`);
+          multiplier += Number(usdtMaxBoost);
+          console.log(`BonusCalculation: Безопасность криптокошельков добавляет +${Number(usdtMaxBoost) * 100}% к максимуму USDT`);
         }
       }
       
@@ -262,8 +262,8 @@ export class BonusCalculationService {
       // Специальный случай для электричества - "Энергоэффективные компоненты"
       if (resourceId === 'electricity' && state.miningParams) {
         const energyEfficiency = state.miningParams.energyEfficiency || 0;
-        reduction += energyEfficiency;
-        console.log(`BonusCalculation: Энергоэффективность снижает потребление электричества на ${energyEfficiency * 100}%`);
+        reduction += Number(energyEfficiency);
+        console.log(`BonusCalculation: Энергоэффективность снижает потребление электричества на ${Number(energyEfficiency) * 100}%`);
       }
       
       // Проверяем наличие бонусов от зданий
@@ -275,7 +275,7 @@ export class BonusCalculationService {
           // Проверяем наличие бонуса снижения потребления для указанного ресурса
           const reductionKey = `${resourceId}ConsumptionReduction`;
           if (building.effects[reductionKey]) {
-            const reductionValue = building.effects[reductionKey] * building.count;
+            const reductionValue = Number(building.effects[reductionKey]) * building.count;
             reduction += reductionValue;
             console.log(`BonusCalculation: ${building.name} (x${building.count}) снижает потребление ${resourceId} на ${reductionValue * 100}%`);
           }
@@ -286,7 +286,7 @@ export class BonusCalculationService {
       if (resourceId === 'computingPower') {
         const coolingSystem = state.buildings.coolingSystem;
         if (coolingSystem && coolingSystem.count > 0 && coolingSystem.effects?.computingPowerConsumptionReduction) {
-          const coolingReduction = coolingSystem.effects.computingPowerConsumptionReduction * coolingSystem.count;
+          const coolingReduction = Number(coolingSystem.effects.computingPowerConsumptionReduction) * coolingSystem.count;
           reduction += coolingReduction;
           console.log(`BonusCalculation: Система охлаждения (x${coolingSystem.count}) снижает потребление вычислительной мощности на ${coolingReduction * 100}%`);
         }
@@ -315,7 +315,7 @@ export class BonusCalculationService {
       // Проверяем улучшенный кошелек
       const enhancedWallet = state.buildings.enhancedWallet;
       if (enhancedWallet && enhancedWallet.count > 0 && enhancedWallet.effects?.btcExchangeBonus) {
-        const walletBonus = enhancedWallet.effects.btcExchangeBonus * enhancedWallet.count;
+        const walletBonus = Number(enhancedWallet.effects.btcExchangeBonus) * enhancedWallet.count;
         bonus += walletBonus;
         console.log(`BonusCalculation: Улучшенный кошелек (x${enhancedWallet.count}) даёт +${walletBonus * 100}% к эффективности обмена BTC`);
       }
