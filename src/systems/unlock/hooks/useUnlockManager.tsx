@@ -3,13 +3,54 @@ import { useContext, createContext, useEffect, useState } from 'react';
 import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { normalizeId } from '@/i18n';
+import { GameState } from '@/context/types';
+
+// Создаем заглушку состояния для случаев, когда контекст недоступен
+const createEmptyGameState = (): GameState => ({
+  resources: {},
+  buildings: {},
+  upgrades: {},
+  counters: {},
+  knowledge: 0,
+  btcPrice: 0,
+  miningPower: 0,
+  usdtBalance: 0,
+  btcBalance: 0,
+  gameStarted: false,
+  lastUpdate: Date.now(),
+  lastSaved: Date.now(),
+  version: '1.0.0',
+  featureFlags: {},
+  buildingUnlocked: {},
+  specializationSynergies: {},
+  referralCode: null,
+  referredBy: null,
+  referrals: [],
+  referralHelpers: [],
+  unlocks: {},
+  prestigePoints: 0,
+  eventMessages: {},
+  gameTime: 0,
+  miningParams: {
+    miningEfficiency: 1.0,
+    networkDifficulty: 1.0,
+    energyEfficiency: 1.0,
+    exchangeRate: 1.0,
+    exchangeCommission: 0.01,
+    volatility: 0.05,
+    exchangePeriod: 60,
+    baseConsumption: 1.0
+  },
+  phase: 1
+});
 
 // Создаем контекст для предоставления доступа к менеджеру разблокировок
 const UnlockManagerContext = createContext<UnlockManager | null>(null);
 
 // Провайдер контекста
 export const UnlockManagerProvider = ({ children }: { children: React.ReactNode }) => {
-  const { state } = useGame();
+  const gameContext = useContext(useGame["_context"]); // Получаем напрямую контекст
+  const state = gameContext?.state || createEmptyGameState();
   const [unlockManager, setUnlockManager] = useState<UnlockManager | null>(null);
   
   // Инициализируем менеджер разблокировок при изменении состояния игры
@@ -48,7 +89,7 @@ export const useUnlockManager = (): UnlockManager => {
     const { state } = useGame();
     
     // Возвращаем новый экземпляр менеджера
-    return new UnlockManager(state || {});
+    return new UnlockManager(state || createEmptyGameState());
   }
   
   return context;
