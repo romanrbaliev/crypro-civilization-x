@@ -1,6 +1,8 @@
 
 import { GameState, GameAction } from '../types/game';
 import { initialState } from './initialState';
+import { processApplyKnowledge, processApplyAllKnowledge } from './reducers/building/applyKnowledge';
+import { processUpdateResources } from './reducers/resourceUpdateReducer';
 
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Получено действие:', action.type);
@@ -22,10 +24,16 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return purchaseUpgrade(state, action.payload);
       
     case 'APPLY_KNOWLEDGE':
-      return applyKnowledge(state);
+      return processApplyKnowledge(state);
+      
+    case 'APPLY_ALL_KNOWLEDGE':
+      return processApplyAllKnowledge(state);
       
     case 'UPDATE_RESOURCES':
-      return updateResources(state);
+      return processUpdateResources(state, action.payload);
+      
+    case 'INCREMENT_COUNTER':
+      return incrementCounter(state, action.payload);
       
     case 'START_GAME':
       return {
@@ -232,136 +240,34 @@ function purchaseUpgrade(state: GameState, payload: { upgradeId: string }): Game
   };
 }
 
-// Функция для применения знаний
-function applyKnowledge(state: GameState): GameState {
-  // Проверяем наличие знаний
-  const knowledge = state.resources.knowledge;
+// Функция для увеличения счетчика
+function incrementCounter(state: GameState, payload: { counterId: string; amount?: number }): GameState {
+  const { counterId, amount = 1 } = payload;
   
-  if (!knowledge || knowledge.value < 10) {
-    return state;
-  }
-  
-  // Получаем USDT из знаний
-  const conversionRate = 10; // 10 знаний = 1 USDT
-  const knowledgeToConvert = Math.floor(knowledge.value / conversionRate) * conversionRate;
-  const usdtGained = knowledgeToConvert / conversionRate;
-  
-  // Если USDT не разблокирован, разблокируем его
-  let usdtResource = state.resources.usdt;
-  let usdtUnlocked = usdtResource.unlocked;
-  
-  if (!usdtUnlocked) {
-    usdtUnlocked = true;
-  }
-  
-  // Обновляем счетчик применений знаний
-  const newCounters = {
-    ...state.counters,
-    applyKnowledge: {
-      ...state.counters.applyKnowledge,
-      value: state.counters.applyKnowledge.value + 1
-    }
-  };
-  
-  // Обновляем ресурсы
-  return {
-    ...state,
-    resources: {
-      ...state.resources,
-      knowledge: {
-        ...knowledge,
-        value: knowledge.value - knowledgeToConvert
-      },
-      usdt: {
-        ...usdtResource,
-        unlocked: usdtUnlocked,
-        value: usdtResource.value + usdtGained
-      }
-    },
-    counters: newCounters,
-    unlocks: {
-      ...state.unlocks,
-      usdt: usdtUnlocked
-    }
-  };
-}
-
-// Функция обновления ресурсов (вызывается каждую секунду)
-function updateResources(state: GameState): GameState {
-  const now = Date.now();
-  const deltaTime = (now - state.lastUpdate) / 1000; // Время в секундах
-  
-  if (deltaTime <= 0 || !state.gameStarted) {
+  // Если счетчик существует, увеличиваем его значение
+  if (state.counters[counterId]) {
     return {
       ...state,
-      lastUpdate: now
+      counters: {
+        ...state.counters,
+        [counterId]: {
+          ...state.counters[counterId],
+          value: state.counters[counterId].value + amount
+        }
+      }
     };
   }
   
-  // Копируем ресурсы для обновления
-  const newResources = { ...state.resources };
-  
-  // Сначала рассчитываем производство от зданий
-  Object.values(state.buildings).forEach(building => {
-    if (building.count > 0 && building.production) {
-      Object.entries(building.production).forEach(([resourceId, amount]) => {
-        const resource = newResources[resourceId];
-        if (resource && resource.unlocked) {
-          // Добавляем производство в perSecond
-          const productionPerSecond = amount * building.count;
-          resource.perSecond = (resource.perSecond || 0) + productionPerSecond;
-        }
-      });
-    }
-  });
-  
-  // Теперь рассчитываем потребление ресурсов
-  Object.values(state.buildings).forEach(building => {
-    if (building.count > 0 && building.consumption) {
-      Object.entries(building.consumption).forEach(([resourceId, amount]) => {
-        const resource = newResources[resourceId];
-        if (resource && resource.unlocked) {
-          // Вычитаем потребление из perSecond
-          const consumptionPerSecond = amount * building.count;
-          resource.perSecond = (resource.perSecond || 0) - consumptionPerSecond;
-        }
-      });
-    }
-  });
-  
-  // Теперь обновляем значения ресурсов
-  Object.keys(newResources).forEach(resourceId => {
-    const resource = newResources[resourceId];
-    if (resource.unlocked) {
-      // Обновляем значение ресурса на основе perSecond
-      const newValue = resource.value + (resource.perSecond * deltaTime);
-      // Проверяем максимум
-      resource.value = Math.max(0, Math.min(newValue, resource.max));
-    }
-  });
-  
-  // Проверяем разблокировки
-  const newUnlocks = { ...state.unlocks };
-  const newBuildings = { ...state.buildings };
-  
-  // Если у нас есть 2+ применения знаний, разблокируем практику
-  if (state.counters.applyKnowledge.value >= 2 && !newBuildings.practice.unlocked) {
-    newBuildings.practice.unlocked = true;
-    newUnlocks.practice = true;
-  }
-  
-  // Если у нас есть 11+ USDT, разблокируем генератор
-  if (newResources.usdt.value >= 11 && !newBuildings.generator.unlocked) {
-    newBuildings.generator.unlocked = true;
-    newUnlocks.generator = true;
-  }
-  
+  // Если счетчик не существует, создаем его
   return {
     ...state,
-    resources: newResources,
-    buildings: newBuildings,
-    unlocks: newUnlocks,
-    lastUpdate: now,
-    gameTime: state.gameTime + deltaTime
+    counters: {
+      ...state.counters,
+      [counterId]: {
+        id: counterId,
+        name: counterId,
+        value: amount
+      }
+    }
   };
 }

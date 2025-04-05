@@ -10,7 +10,6 @@ import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
 export function processApplyKnowledge(state: GameState): GameState {
   // Проверка наличия ресурса знаний
   if (!state.resources.knowledge) {
-    console.error("Ресурс 'knowledge' не найден");
     return state;
   }
   
@@ -18,7 +17,6 @@ export function processApplyKnowledge(state: GameState): GameState {
   
   // Минимум 10 знаний для обмена
   if (knowledgeValue < 10) {
-    console.log("Недостаточно знаний для обмена");
     return state;
   }
   
@@ -88,6 +86,21 @@ export function processApplyKnowledge(state: GameState): GameState {
     usdt: true
   };
   
+  // Проверяем разблокировку Практики после второго применения знаний
+  if (newCounters.applyKnowledge.value >= 2 && !state.buildings.practice?.unlocked) {
+    const newBuildings = { ...state.buildings };
+    if (newBuildings.practice) {
+      newBuildings.practice = {
+        ...newBuildings.practice,
+        unlocked: true
+      };
+      newUnlocks.practice = true;
+      
+      // Отправляем уведомление о разблокировке
+      safeDispatchGameEvent("Разблокировано здание: Практика", "success");
+    }
+  }
+  
   // Отправляем уведомление
   safeDispatchGameEvent(
     `Обменяно ${exchangeKnowledge} знаний на ${usdtToAdd.toFixed(2)} USDT`,
@@ -111,7 +124,6 @@ export function processApplyKnowledge(state: GameState): GameState {
 export function processApplyAllKnowledge(state: GameState): GameState {
   // Проверка наличия ресурса знаний
   if (!state.resources.knowledge) {
-    console.error("Ресурс 'knowledge' не найден");
     return state;
   }
   
@@ -119,7 +131,6 @@ export function processApplyAllKnowledge(state: GameState): GameState {
   
   // Минимум 10 знаний для обмена
   if (knowledgeValue < 10) {
-    console.log("Недостаточно знаний для обмена");
     return state;
   }
   
@@ -189,6 +200,21 @@ export function processApplyAllKnowledge(state: GameState): GameState {
     usdt: true,
     applyAllKnowledge: true
   };
+  
+  // Проверяем разблокировку Практики после второго применения знаний
+  if (newCounters.applyKnowledge.value >= 2 && !state.buildings.practice?.unlocked) {
+    const newBuildings = { ...state.buildings };
+    if (newBuildings.practice) {
+      newBuildings.practice = {
+        ...newBuildings.practice,
+        unlocked: true
+      };
+      newUnlocks.practice = true;
+      
+      // Отправляем уведомление о разблокировке
+      safeDispatchGameEvent("Разблокировано здание: Практика", "success");
+    }
+  }
   
   // Отправляем уведомление
   safeDispatchGameEvent(

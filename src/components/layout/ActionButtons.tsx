@@ -2,7 +2,6 @@
 import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
 
 const ActionButtons: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -23,52 +22,33 @@ const ActionButtons: React.FC = () => {
   
   // Функция применения знаний
   const handleApplyKnowledge = () => {
-    // Проверяем, что у нас достаточно знаний для обмена (минимум 10)
-    if (state.resources.knowledge?.value < 10) {
-      toast({
-        title: "Недостаточно знаний",
-        description: "Для обмена нужно минимум 10 знаний",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     dispatch({ type: 'APPLY_KNOWLEDGE' });
-    
-    // Определяем кол-во знаний для обмена (кратно 10)
-    const exchangeAmount = Math.floor(state.resources.knowledge.value / 10) * 10;
-    const usdtGained = exchangeAmount / 10;
-    
-    toast({
-      title: "Знания применены",
-      description: `Вы обменяли ${exchangeAmount} знаний на ${usdtGained} USDT`,
-      variant: "default",
-    });
+  };
+
+  // Функция применения всех знаний
+  const handleApplyAllKnowledge = () => {
+    dispatch({ type: 'APPLY_ALL_KNOWLEDGE' });
   };
 
   // Функция обмена BTC
   const handleExchangeBtc = () => {
-    if (state.resources.bitcoin?.value <= 0) {
-      toast({
-        title: "Недостаточно Bitcoin",
-        description: "У вас нет Bitcoin для обмена",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     dispatch({ type: 'EXCHANGE_BTC' });
-    
-    toast({
-      title: "Bitcoin обменян",
-      description: "Вы успешно обменяли Bitcoin на USDT",
-      variant: "default",
-    });
+  };
+  
+  // Функция для заполнения USDT (служебная)
+  const handleFullUsdt = () => {
+    if (state.resources.usdt) {
+      dispatch({
+        type: 'INCREMENT_RESOURCE',
+        payload: { resourceId: 'usdt', amount: state.resources.usdt.max - state.resources.usdt.value }
+      });
+    }
   };
   
   // Проверка, достаточно ли знаний для обмена
   const canApplyKnowledge = state.resources.knowledge?.value >= 10;
   const hasBitcoin = state.resources.bitcoin?.value > 0;
+  const applyKnowledgeUnlocked = state.counters.knowledgeClicks?.value >= 3 || state.unlocks.applyKnowledge;
   
   return (
     <div className="space-y-3">
@@ -76,7 +56,7 @@ const ActionButtons: React.FC = () => {
       {state.buildings.miner && state.buildings.miner.unlocked && (
         <Button 
           variant="outline"
-          className="w-full justify-center py-6 text-base"
+          className="w-full justify-center py-4 text-sm"
           disabled={!hasBitcoin}
           onClick={handleExchangeBtc}
         >
@@ -84,23 +64,46 @@ const ActionButtons: React.FC = () => {
         </Button>
       )}
       
+      {/* Применить все знания - показывается после разблокировки "Применить знания" */}
+      {applyKnowledgeUnlocked && (
+        <Button 
+          variant="outline"
+          className="w-full justify-center py-4 text-sm"
+          disabled={!canApplyKnowledge}
+          onClick={handleApplyAllKnowledge}
+        >
+          Применить все знания
+        </Button>
+      )}
+      
       {/* Применить знания */}
-      <Button 
-        variant="default"
-        className="w-full justify-center py-6 text-base bg-gray-900 hover:bg-gray-800"
-        disabled={!canApplyKnowledge}
-        onClick={handleApplyKnowledge}
-      >
-        Применить знания
-      </Button>
+      {applyKnowledgeUnlocked && (
+        <Button 
+          variant="default"
+          className="w-full justify-center py-4 text-sm bg-gray-900 hover:bg-gray-800"
+          disabled={!canApplyKnowledge}
+          onClick={handleApplyKnowledge}
+        >
+          Применить знания
+        </Button>
+      )}
       
       {/* Изучить крипту - всегда доступна */}
       <Button 
         variant="outline"
-        className="w-full justify-center py-6 text-base"
+        className="w-full justify-center py-4 text-sm"
         onClick={handleGetKnowledge}
       >
         Изучить крипту
+      </Button>
+      
+      {/* Служебная кнопка для тестирования */}
+      <Button 
+        variant="outline"
+        className="w-full justify-center py-2 text-xs text-gray-500"
+        onClick={handleFullUsdt}
+      >
+        Full USDT
       </Button>
     </div>
   );

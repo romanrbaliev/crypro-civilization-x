@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useGame } from '@/context/GameContext';
+import React from 'react';
 import { Building } from '@/types/game';
+import { useGame } from '@/context/hooks/useGame';
+import { Button } from './ui/button';
 import { formatNumber } from '@/utils/helpers';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { canAfford, calculateCost } from '@/utils/helpers';
 
 interface BuildingCardProps {
   building: Building;
@@ -12,8 +12,14 @@ interface BuildingCardProps {
 
 const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
   const { state, dispatch } = useGame();
-  const [expanded, setExpanded] = useState(false);
   
+  // Получаем стоимость здания с учетом уже построенных
+  const cost = calculateCost(building);
+  
+  // Проверяем, можем ли мы позволить себе это здание
+  const affordable = canAfford(state.resources, cost);
+  
+  // Обработчик покупки здания
   const handlePurchase = () => {
     dispatch({
       type: 'PURCHASE_BUILDING',
@@ -21,143 +27,81 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
     });
   };
   
-  const handleSell = () => {
-    dispatch({
-      type: 'SELL_BUILDING',
-      payload: { buildingId: building.id }
-    });
-  };
-  
-  // Функции для вычисления стоимости здания
-  const calculateCost = (building: Building) => {
-    const cost: {[key: string]: number} = {};
-    if (!building.cost) return cost;
+  // Вычисляем эффекты здания
+  const renderEffects = () => {
+    if (building.production) {
+      return Object.entries(building.production).map(([resourceId, amount]) => (
+        <div key={resourceId} className="text-xs text-gray-600">
+          +{amount} {state.resources[resourceId]?.name || resourceId}/сек
+        </div>
+      ));
+    }
     
-    Object.entries(building.cost).forEach(([resourceId, baseAmount]) => {
-      const multiplier = building.costMultiplier || 1.15;
-      cost[resourceId] = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
-    });
-    return cost;
+    return null;
   };
   
-  const canAfford = (resources: any, cost: {[key: string]: number}) => {
-    return Object.entries(cost).every(([resourceId, amount]) => {
-      const resource = resources[resourceId];
-      return resource && resource.value >= amount;
-    });
+  // Вычисляем потребление ресурсов
+  const renderConsumption = () => {
+    if (building.consumption) {
+      return Object.entries(building.consumption).map(([resourceId, amount]) => (
+        <div key={resourceId} className="text-xs text-gray-600">
+          -{amount} {state.resources[resourceId]?.name || resourceId}/сек
+        </div>
+      ));
+    }
+    
+    return null;
   };
   
-  const cost = calculateCost(building);
-  const canPurchase = canAfford(state.resources, cost);
-  
-  // Преобразуем стоимость в строку
+  // Отображаем стоимость здания
   const renderCost = () => {
     return Object.entries(cost).map(([resourceId, amount]) => {
-      const resourceName = state.resources[resourceId]?.name || resourceId;
+      const resource = state.resources[resourceId];
+      const resourceName = resource?.name || resourceId;
+      const hasEnough = resource && resource.value >= amount;
+      
       return (
-        <div key={resourceId} className="flex justify-between">
-          <span>{resourceName}</span>
-          <span className="text-red-500">{formatNumber(amount)}</span>
-        </div>
-      );
-    });
-  };
-  
-  // Преобразуем производство в строку
-  const renderProduction = () => {
-    if (!building.production) return null;
-    
-    return Object.entries(building.production).map(([resourceId, amount]) => {
-      const resourceName = state.resources[resourceId]?.name || resourceId;
-      return (
-        <div key={resourceId} className="flex justify-between">
-          <span className="text-green-500">{resourceName}</span>
-          <span className="text-green-500">+{formatNumber(Number(amount))}/сек</span>
-        </div>
-      );
-    });
-  };
-  
-  // Преобразуем потребление в строку
-  const renderConsumption = () => {
-    if (!building.consumption) return null;
-    
-    return Object.entries(building.consumption).map(([resourceId, amount]) => {
-      const resourceName = state.resources[resourceId]?.name || resourceId;
-      return (
-        <div key={resourceId} className="flex justify-between">
-          <span className="text-red-500">{resourceName}</span>
-          <span className="text-red-500">-{formatNumber(Number(amount))}/сек</span>
+        <div key={resourceId} className={`text-xs ${hasEnough ? 'text-gray-600' : 'text-red-500'}`}>
+          {formatNumber(amount)} {resourceName}
         </div>
       );
     });
   };
   
   return (
-    <div className="bg-gray-50 rounded-lg overflow-hidden mb-3">
-      {/* Заголовок карточки */}
-      <div 
-        className="p-4 flex justify-between items-center cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
-      >
+    <div className="building-card mb-4 p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <h3 className="font-medium">
-            {building.name} {building.count > 0 && `×${building.count}`}
-          </h3>
+          <h3 className="text-sm font-medium">{building.name}</h3>
+          <p className="text-xs text-gray-500">{building.description}</p>
         </div>
-        {expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+        <div className="bg-gray-100 px-2 py-1 rounded text-xs">
+          {building.count}
+        </div>
       </div>
       
-      {/* Содержимое карточки (раскрывается при клике) */}
-      {expanded && (
-        <div className="p-4 pt-0 border-t border-gray-200">
-          <p className="text-gray-500 mb-3">{building.description}</p>
-          
-          {/* Стоимость */}
-          <div className="mb-3">
-            <h4 className="font-medium mb-1">Стоимость:</h4>
-            {renderCost()}
-          </div>
-          
-          {/* Производство */}
-          {building.production && Object.keys(building.production).length > 0 && (
-            <div className="mb-3">
-              <h4 className="font-medium mb-1">Производит:</h4>
-              {renderProduction()}
-            </div>
-          )}
-          
-          {/* Потребление */}
-          {building.consumption && Object.keys(building.consumption).length > 0 && (
-            <div className="mb-3">
-              <h4 className="font-medium mb-1">Потребляет:</h4>
-              {renderConsumption()}
-            </div>
-          )}
-          
-          {/* Кнопки действий */}
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <Button
-              onClick={handlePurchase}
-              disabled={!canPurchase}
-              variant="outline"
-              className="w-full"
-            >
-              Купить
-            </Button>
-            
-            {building.count > 0 && (
-              <Button
-                onClick={handleSell}
-                variant="outline"
-                className="w-full"
-              >
-                Продать
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Эффекты здания */}
+      <div className="mb-2">
+        {renderEffects()}
+        {renderConsumption()}
+      </div>
+      
+      {/* Стоимость */}
+      <div className="mb-3">
+        <p className="text-xs text-gray-700 mb-1">Стоимость:</p>
+        {renderCost()}
+      </div>
+      
+      {/* Кнопка покупки */}
+      <Button 
+        onClick={handlePurchase} 
+        disabled={!affordable}
+        variant={affordable ? "default" : "outline"}
+        size="sm"
+        className="w-full text-xs"
+      >
+        Построить
+      </Button>
     </div>
   );
 };
