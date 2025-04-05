@@ -3,7 +3,7 @@ import React from 'react';
 import { useGame } from '@/context/GameContext';
 import BuildingCard from './BuildingCard';
 import { Building } from '@/types/game';
-import { calculateCost, canAfford } from '@/utils/helpers';
+import { canAfford, calculateCost } from '@/utils/helpers';
 
 const BuildingsTab: React.FC = () => {
   const { state } = useGame();
@@ -15,8 +15,8 @@ const BuildingsTab: React.FC = () => {
       // Сначала сортируем по доступности покупки
       const costA = calculateCost(a);
       const costB = calculateCost(b);
-      const canAffordA = canAfford(state, costA);
-      const canAffordB = canAfford(state, costB);
+      const canAffordA = canAfford(state.resources, costA);
+      const canAffordB = canAfford(state.resources, costB);
       
       if (canAffordA && !canAffordB) return -1;
       if (!canAffordA && canAffordB) return 1;

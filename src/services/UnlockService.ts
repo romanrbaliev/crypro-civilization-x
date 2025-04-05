@@ -1,170 +1,107 @@
 
 import { GameState } from '@/context/types';
-import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
+/**
+ * Сервис для управления разблокировками элементов в игре
+ */
 export class UnlockService {
-  /**
-   * Проверяет условия разблокировки и обновляет состояние
-   * @param state Текущее состояние игры
-   * @returns Обновленное состояние
-   */
-  public checkUnlocks(state: GameState): GameState {
-    let updatedState = { ...state };
-    
-    // Проверяем разблокировку ресурсов
-    updatedState = this.checkResourceUnlocks(updatedState);
-    
-    // Проверяем разблокировку зданий
-    updatedState = this.checkBuildingUnlocks(updatedState);
-    
-    // Проверяем разблокировку улучшений
-    updatedState = this.checkUpgradeUnlocks(updatedState);
-    
-    // Проверяем разблокировку функций
-    updatedState = this.checkFunctionUnlocks(updatedState);
-    
-    return updatedState;
-  }
   
   /**
-   * Проверяет условия разблокировки ресурсов
+   * Принудительно разблокирует элемент
    * @param state Текущее состояние игры
-   * @returns Обновленное состояние
+   * @param itemId Идентификатор элемента для разблокировки
+   * @returns Обновленное состояние игры
    */
-  private checkResourceUnlocks(state: GameState): GameState {
-    const updatedResources = { ...state.resources };
-    const updatedUnlocks = { ...state.unlocks };
-    let isUpdated = false;
+  forceUnlock(state: GameState, itemId: string): GameState {
+    console.log(`Принудительная разблокировка элемента: ${itemId}`);
     
-    // Проверка разблокировки USDT
-    if (state.counters.applyKnowledge?.value > 0 && !updatedResources.usdt.unlocked) {
-      updatedResources.usdt.unlocked = true;
-      updatedUnlocks.usdt = true;
-      
-      safeDispatchGameEvent('Разблокирован ресурс: USDT', 'success');
-      isUpdated = true;
-    }
+    const newState = { ...state };
     
-    // Проверка разблокировки Электричества
-    if (state.buildings.generator?.count > 0 && !updatedResources.electricity.unlocked) {
-      updatedResources.electricity.unlocked = true;
-      updatedUnlocks.electricity = true;
-      
-      safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'success');
-      isUpdated = true;
-    }
+    // Обновляем флаг разблокировки
+    newState.unlocks = {
+      ...newState.unlocks,
+      [itemId]: true
+    };
     
-    if (isUpdated) {
-      return {
-        ...state,
-        resources: updatedResources,
-        unlocks: updatedUnlocks
+    // Если элемент - здание
+    if (itemId in newState.buildings) {
+      newState.buildings = {
+        ...newState.buildings,
+        [itemId]: {
+          ...newState.buildings[itemId],
+          unlocked: true
+        }
       };
     }
     
-    return state;
-  }
-  
-  /**
-   * Проверяет условия разблокировки зданий
-   * @param state Текущее состояние игры
-   * @returns Обновленное состояние
-   */
-  private checkBuildingUnlocks(state: GameState): GameState {
-    const updatedBuildings = { ...state.buildings };
-    const updatedUnlocks = { ...state.unlocks };
-    let isUpdated = false;
-    
-    // Практика
-    if (state.counters.applyKnowledge?.value >= 2 && 
-        updatedBuildings.practice && 
-        !updatedBuildings.practice.unlocked) {
-      updatedBuildings.practice.unlocked = true;
-      updatedUnlocks.practice = true;
-      
-      safeDispatchGameEvent('Разблокировано здание: Практика', 'success');
-      isUpdated = true;
-    }
-    
-    // Генератор
-    if (state.resources.usdt?.value >= 11 && 
-        updatedBuildings.generator && 
-        !updatedBuildings.generator.unlocked) {
-      updatedBuildings.generator.unlocked = true;
-      updatedUnlocks.generator = true;
-      
-      safeDispatchGameEvent('Разблокировано здание: Генератор', 'success');
-      isUpdated = true;
-    }
-    
-    if (isUpdated) {
-      return {
-        ...state,
-        buildings: updatedBuildings,
-        unlocks: updatedUnlocks
+    // Если элемент - исследование
+    if (itemId in newState.upgrades) {
+      newState.upgrades = {
+        ...newState.upgrades,
+        [itemId]: {
+          ...newState.upgrades[itemId],
+          unlocked: true
+        }
       };
     }
     
-    return state;
-  }
-  
-  /**
-   * Проверяет условия разблокировки улучшений
-   * @param state Текущее состояние игры
-   * @returns Обновленное состояние
-   */
-  private checkUpgradeUnlocks(state: GameState): GameState {
-    const updatedUpgrades = { ...state.upgrades };
-    const updatedUnlocks = { ...state.unlocks };
-    let isUpdated = false;
-    
-    // Основы блокчейна
-    if (state.buildings.generator?.count > 0 && 
-        updatedUpgrades.blockchainBasics && 
-        !updatedUpgrades.blockchainBasics.unlocked) {
-      updatedUpgrades.blockchainBasics.unlocked = true;
-      updatedUnlocks.blockchainBasics = true;
-      updatedUnlocks.research = true;
-      
-      safeDispatchGameEvent('Разблокировано исследование: Основы блокчейна', 'success');
-      isUpdated = true;
-    }
-    
-    if (isUpdated) {
-      return {
-        ...state,
-        upgrades: updatedUpgrades,
-        unlocks: updatedUnlocks
+    // Если элемент - ресурс
+    if (itemId in newState.resources) {
+      newState.resources = {
+        ...newState.resources,
+        [itemId]: {
+          ...newState.resources[itemId],
+          unlocked: true
+        }
       };
     }
     
-    return state;
+    console.log(`Элемент ${itemId} успешно разблокирован`);
+    return newState;
   }
   
   /**
-   * Проверяет условия разблокировки функций
+   * Получает отладочную информацию о разблокировках
    * @param state Текущее состояние игры
-   * @returns Обновленное состояние
+   * @returns Отчет о разблокировках
    */
-  private checkFunctionUnlocks(state: GameState): GameState {
-    const updatedUnlocks = { ...state.unlocks };
-    let isUpdated = false;
+  getDebugReport(state: GameState): { steps: string[], unlocked: string[], locked: string[] } {
+    const unlocked: string[] = [];
+    const locked: string[] = [];
+    const steps: string[] = [];
     
-    // Применение знаний
-    if (state.counters.knowledgeClicks?.value >= 3 && !updatedUnlocks.applyKnowledge) {
-      updatedUnlocks.applyKnowledge = true;
-      
-      safeDispatchGameEvent('Разблокирована функция: Применить знания', 'success');
-      isUpdated = true;
-    }
+    steps.push("Проверка разблокировок...");
     
-    if (isUpdated) {
-      return {
-        ...state,
-        unlocks: updatedUnlocks
-      };
-    }
+    // Проверяем здания
+    Object.entries(state.buildings || {}).forEach(([id, building]) => {
+      steps.push(`Проверка здания ${id}: ${building.unlocked ? "разблокировано" : "заблокировано"}`);
+      if (building.unlocked) {
+        unlocked.push(`Здание: ${building.name || id}`);
+      } else {
+        locked.push(`Здание: ${building.name || id}`);
+      }
+    });
     
-    return state;
+    // Проверяем исследования
+    Object.entries(state.upgrades || {}).forEach(([id, upgrade]) => {
+      steps.push(`Проверка исследования ${id}: ${upgrade.unlocked ? "разблокировано" : "заблокировано"}`);
+      if (upgrade.unlocked) {
+        unlocked.push(`Исследование: ${upgrade.name || id}`);
+      } else {
+        locked.push(`Исследование: ${upgrade.name || id}`);
+      }
+    });
+    
+    // Проверяем ресурсы
+    Object.entries(state.resources || {}).forEach(([id, resource]) => {
+      steps.push(`Проверка ресурса ${id}: ${resource.unlocked ? "разблокирован" : "заблокирован"}`);
+      if (resource.unlocked) {
+        unlocked.push(`Ресурс: ${resource.name || id}`);
+      } else {
+        locked.push(`Ресурс: ${resource.name || id}`);
+      }
+    });
+    
+    return { steps, unlocked, locked };
   }
 }

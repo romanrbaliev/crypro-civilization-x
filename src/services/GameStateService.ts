@@ -1,124 +1,94 @@
 
 import { GameState } from '@/context/types';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
+/**
+ * Сервис для управления состоянием игры
+ */
 export class GameStateService {
+  
   /**
-   * Обрабатывает обновление состояния игры
+   * Выполняет полную синхронизацию состояния игры
    * @param state Текущее состояние игры
    * @returns Обновленное состояние игры
    */
-  public processGameStateUpdate(state: GameState): GameState {
-    // Проверяем разблокировку зданий
-    state = this.checkBuildingUnlocks(state);
+  performFullStateSync(state: GameState): GameState {
+    console.log('Выполняем полную синхронизацию состояния игры');
     
-    // Проверяем разблокировку улучшений
-    state = this.checkUpgradeUnlocks(state);
+    const newState = { ...state };
     
-    // Проверяем специальные условия
-    state = this.checkSpecialConditions(state);
+    // Обновляем время последнего обновления
+    newState.lastUpdate = Date.now();
     
-    return state;
+    // Проверяем разблокировки, если игра запущена
+    if (newState.gameStarted) {
+      newState.unlocks = this.checkAndUpdateUnlocks(newState);
+    }
+    
+    // Обновляем ресурсы
+    this.updateResourceProduction(newState);
+    
+    // Проверяем специальные события
+    this.checkSpecialEvents(newState);
+    
+    return newState;
   }
   
   /**
-   * Проверяет условия разблокировки зданий
-   * @param state Состояние игры
-   * @returns Обновленное состояние игры
+   * Проверяет и обновляет разблокировки
+   * @param state Текущее состояние игры
+   * @returns Обновленные разблокировки
    */
-  private checkBuildingUnlocks(state: GameState): GameState {
-    const updatedBuildings = { ...state.buildings };
-    const updatedUnlocks = { ...state.unlocks };
-    let isUpdated = false;
+  private checkAndUpdateUnlocks(state: GameState): { [key: string]: boolean } {
+    const unlocks = { ...state.unlocks };
     
-    // Практика разблокируется после 2+ применений знаний
-    if (state.counters.applyKnowledge?.value >= 2 && 
-        updatedBuildings.practice && 
-        !updatedBuildings.practice.unlocked) {
-      updatedBuildings.practice.unlocked = true;
-      updatedUnlocks.practice = true;
-      isUpdated = true;
-      console.log('🔓 Разблокировано здание: Практика');
+    // Здесь логика проверки разблокировок
+    // Например, базовые разблокировки в начале игры
+    
+    if (!unlocks.applyKnowledge && (state.counters.learnButtonClicks?.value || 0) >= 3) {
+      unlocks.applyKnowledge = true;
+      safeDispatchGameEvent('Разблокировано: "Применить знания"', 'success');
     }
     
-    // Генератор разблокируется после накопления 11+ USDT
-    if (state.resources.usdt?.value >= 11 && 
-        updatedBuildings.generator && 
-        !updatedBuildings.generator.unlocked) {
-      updatedBuildings.generator.unlocked = true;
-      updatedUnlocks.generator = true;
-      isUpdated = true;
-      console.log('🔓 Разблокировано здание: Генератор');
+    if (!unlocks.practice && (state.counters.applyKnowledgeButtonClicks?.value || 0) >= 2) {
+      unlocks.practice = true;
+      safeDispatchGameEvent('Разблокировано: "Практика"', 'success');
     }
     
-    // Обновляем состояние, только если были изменения
-    if (isUpdated) {
-      return {
-        ...state,
-        buildings: updatedBuildings,
-        unlocks: updatedUnlocks
-      };
-    }
+    // Добавьте другие проверки разблокировок по мере необходимости
     
-    return state;
+    return unlocks;
   }
   
   /**
-   * Проверяет условия разблокировки улучшений
-   * @param state Состояние игры
-   * @returns Обновленное состояние игры
+   * Обновляет производство ресурсов
+   * @param state Текущее состояние игры
    */
-  private checkUpgradeUnlocks(state: GameState): GameState {
-    const updatedUpgrades = { ...state.upgrades };
-    const updatedUnlocks = { ...state.unlocks };
-    let isUpdated = false;
+  private updateResourceProduction(state: GameState): void {
+    // Здесь логика расчета производства ресурсов
+    // Обновляем perSecond для всех ресурсов
     
-    // Основы блокчейна разблокируются после покупки генератора
-    if (state.buildings.generator?.count > 0 && 
-        updatedUpgrades.blockchainBasics && 
-        !updatedUpgrades.blockchainBasics.unlocked) {
-      updatedUpgrades.blockchainBasics.unlocked = true;
-      updatedUnlocks.blockchainBasics = true;
-      updatedUnlocks.research = true;
-      isUpdated = true;
-      console.log('🔓 Разблокировано исследование: Основы блокчейна');
+    // Пример: обновление производства знаний на основе зданий
+    let knowledgePerSecond = state.resources.knowledge?.baseProduction || 0;
+    
+    // Добавляем производство от "Практики"
+    if (state.buildings.practice && state.buildings.practice.unlocked) {
+      const practiceCount = state.buildings.practice.count || 0;
+      knowledgePerSecond += practiceCount * 1; // 1 знание за каждую практику
     }
     
-    // Обновляем состояние, только если были изменения
-    if (isUpdated) {
-      return {
-        ...state,
-        upgrades: updatedUpgrades,
-        unlocks: updatedUnlocks
-      };
+    // Устанавливаем новое значение производства
+    if (state.resources.knowledge) {
+      state.resources.knowledge.perSecond = knowledgePerSecond;
     }
-    
-    return state;
   }
   
   /**
-   * Проверяет специальные условия разблокировки
-   * @param state Состояние игры
-   * @returns Обновленное состояние игры
+   * Проверяет специальные события
+   * @param state Текущее состояние игры
    */
-  private checkSpecialConditions(state: GameState): GameState {
-    const updatedUnlocks = { ...state.unlocks };
-    let isUpdated = false;
-    
-    // Разблокировка вкладки "Применить знания" после 3+ кликов на "Изучить крипту"
-    if (state.counters.knowledgeClicks?.value >= 3 && !updatedUnlocks.applyKnowledge) {
-      updatedUnlocks.applyKnowledge = true;
-      isUpdated = true;
-      console.log('🔓 Разблокирована функция: Применить знания');
-    }
-    
-    // Обновляем состояние, только если были изменения
-    if (isUpdated) {
-      return {
-        ...state,
-        unlocks: updatedUnlocks
-      };
-    }
-    
-    return state;
+  private checkSpecialEvents(state: GameState): void {
+    // Здесь логика проверки и обработки специальных событий
+    // Например, достижение определенных порогов, случайные события и т.д.
   }
 }

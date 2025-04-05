@@ -28,13 +28,13 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
   };
   
   const cost = calculateCost(building);
-  const canPurchase = canAfford(state, cost);
+  const canPurchase = canAfford(state.resources, cost);
   
   // Преобразуем объект cost в читабельную строку
   const costString = Object.entries(cost)
     .map(([resourceId, amount]) => {
       const resourceName = state.resources[resourceId]?.name || resourceId;
-      return `${formatNumber(amount)} ${resourceName}`;
+      return `${formatNumber(Number(amount))} ${resourceName}`;
     })
     .join(', ');
   
@@ -43,7 +43,7 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
     Object.entries(building.production)
       .map(([resourceId, amount]) => {
         const resourceName = state.resources[resourceId]?.name || resourceId;
-        return `+${formatNumber(amount)}/сек ${resourceName}`;
+        return `+${formatNumber(Number(amount))}/сек ${resourceName}`;
       })
       .join(', ') : '';
   
@@ -52,7 +52,7 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
     Object.entries(building.consumption)
       .map(([resourceId, amount]) => {
         const resourceName = state.resources[resourceId]?.name || resourceId;
-        return `-${formatNumber(amount)}/сек ${resourceName}`;
+        return `-${formatNumber(Number(amount))}/сек ${resourceName}`;
       })
       .join(', ') : '';
   
