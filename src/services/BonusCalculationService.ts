@@ -24,7 +24,21 @@ export class BonusCalculationService {
     newState = this.applySynergyBonuses(newState);
     
     // Пересчитываем производство ресурсов с учетом всех бонусов
-    newState = ResourceCalculations.calculateResourceProduction(newState);
+    const resources = { ...newState.resources };
+    
+    // Для каждого ресурса вычисляем производство с учетом всех бонусов
+    for (const resourceId in resources) {
+      const productionRate = ResourceCalculations.calculateResourceProductionRate(resourceId, newState);
+      const consumptionRate = ResourceCalculations.calculateResourceConsumptionRate(resourceId, newState);
+      
+      resources[resourceId] = {
+        ...resources[resourceId],
+        production: productionRate,
+        perSecond: productionRate - consumptionRate
+      };
+    }
+    
+    newState.resources = resources;
     
     return newState;
   }

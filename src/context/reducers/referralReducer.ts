@@ -1,5 +1,5 @@
 
-import { GameState } from '../types';
+import { GameState, ReferralHelper } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
 export const processSetReferralCode = (
@@ -72,7 +72,10 @@ export const processHireReferralHelper = (
     name: `Помощник ${payload.referralId.substring(0, 6)}`,
     level: 1,
     productivity: 1,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    employerId: undefined,
+    respondedAt: undefined,
+    assignedTo: undefined
   };
   
   // Добавляем в список запросов помощи
