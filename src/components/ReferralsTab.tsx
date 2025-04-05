@@ -79,7 +79,9 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
     ? directDbStatus 
     : (typeof referral.activated === 'boolean' 
         ? referral.activated 
-        : String(referral.activated).toLowerCase() === 'true');
+        : (typeof referral.activated === 'string' 
+            ? referral.activated.toLowerCase() === 'true'
+            : false));
   
   useEffect(() => {
     const checkStatusInDb = async () => {
@@ -1067,7 +1069,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             <div className="mb-2">
               <div className="text-[10px] font-medium mb-1 flex items-center">
                 <MessageSquare className="h-3 w-3 mr-1 text-blue-500" />
-                Запросы на сотрудничество:
+                Запр��сы на сотрудничество:
               </div>
               <div className="space-y-1">
                 {helperRequests.map(request => (

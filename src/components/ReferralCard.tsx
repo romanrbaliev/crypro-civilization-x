@@ -21,9 +21,25 @@ import {
 import { useGame } from '@/context/hooks/useGame';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { isReferralHelperForBuilding, getHelperRequestId } from '@/utils/helpers';
 import { updateReferralHiredStatus } from '@/api/referralService';
 import { toast } from '@/hooks/use-toast';
+
+// Вспомогательные функции вместо импорта из utils/helpers
+function isReferralHelperForBuilding(referralId: string, buildingId: string, referralHelpers: any[]): boolean {
+  return referralHelpers.some(
+    helper => helper.helperId === referralId && 
+              helper.buildingId === buildingId && 
+              helper.status === 'accepted'
+  );
+}
+
+function getHelperRequestId(referralId: string, buildingId: string, referralHelpers: any[]): string | null {
+  const helper = referralHelpers.find(
+    h => h.helperId === referralId && 
+         h.buildingId === buildingId
+  );
+  return helper ? helper.id : null;
+}
 
 interface ReferralCardProps {
   referral: {

@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import {
   type ToastActionElement,
@@ -14,7 +13,7 @@ export type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  variant?: ToastType | "info" | "error"  // Поддерживаем эти типы для обратной совместимости
+  variant?: ToastType
 }
 
 const actionTypes = {
@@ -156,6 +155,8 @@ function toast({ ...props }: Toast) {
     normalizedVariant = "success";
   } else if (props.variant === "warning") {
     normalizedVariant = "warning";
+  } else if (props.variant === "info") {
+    normalizedVariant = "info";
   } else {
     normalizedVariant = "default";
   }

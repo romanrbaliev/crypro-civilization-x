@@ -12,7 +12,6 @@ const StartScreen = () => {
   const [loadAttempted, setLoadAttempted] = useState(false);
   
   useEffect(() => {
-    // Предотвращаем повторные запросы после первой попытки загрузки
     if (loadAttempted) {
       return;
     }
@@ -22,10 +21,8 @@ const StartScreen = () => {
       setLoadAttempted(true);
       
       try {
-        // Получаем текущий ID пользователя
         const currentUserId = await getUserIdentifier();
         
-        // Генерируем реферальный код, если его нет
         if (!state.referralCode) {
           const newCode = Array.from({ length: 8 }, () => 
               Math.floor(Math.random() * 16).toString(16).toUpperCase()
@@ -36,12 +33,10 @@ const StartScreen = () => {
             payload: { ...state, referralCode: newCode } 
           });
         }
-
-        // Проверяем наличие реферального кода в URL
+        
         const referrerCode = extractReferralCodeFromUrl();
         
         if (referrerCode) {
-          // Сохраняем информацию о том, кто пригласил этого пользователя
           dispatch({ 
             type: "LOAD_GAME", 
             payload: { 
@@ -50,15 +45,14 @@ const StartScreen = () => {
             } 
           });
           
-          // Обновляем реферальную информацию в базе данных
           await checkReferralInfo(currentUserId, referrerCode);
         }
         
-        // Пытаемся загрузить сохраненную игру
         const savedGame = await loadGameFromServer();
         
         if (savedGame) {
-          // Проверяем реферальный код и устанавливаем, если отсутствует
+          const castedGame = savedGame as unknown as import('@/types/game').GameState;
+          
           if (!savedGame.referralCode) {
             const newCode = Array.from({ length: 8 }, () => 
               Math.floor(Math.random() * 16).toString(16).toUpperCase()
@@ -67,61 +61,47 @@ const StartScreen = () => {
             savedGame.referralCode = newCode;
           }
           
-          // Фиксируем, что игра запущена
           savedGame.gameStarted = true;
           
-          // ВАЖНО: Убедимся, что USDT не разблокирован при загрузке
           if (savedGame.resources && savedGame.resources.usdt) {
             savedGame.resources.usdt.unlocked = false;
-            // Проверяем условие для разблокировки USDT
             if (savedGame.counters && 
                 savedGame.counters.applyKnowledge && 
                 savedGame.counters.applyKnowledge.value >= 2) {
               savedGame.resources.usdt.unlocked = true;
               savedGame.unlocks.usdt = true;
             } else {
-              // Если условие не выполнено, убедимся что USDT заблокирован
               savedGame.resources.usdt.unlocked = false;
               savedGame.unlocks.usdt = false;
             }
           }
           
-          // Обновляем состояние с данными о рефералах
           setHasExistingSave(true);
           
           dispatch({ type: "LOAD_GAME", payload: savedGame });
           
-          // Принудительно обновляем информацию в таблице referral_data
           await saveReferralInfo(savedGame.referralCode, state.referredBy || null);
           
-          // Принудительно запрашиваем обновление статусов рефералов из БД
           setTimeout(() => {
             const refreshEvent = new CustomEvent('refresh-referrals');
             window.dispatchEvent(refreshEvent);
           }, 500);
           
-          // Автоматически перенаправляем на экран игры
           navigate('/game');
         } else {
           setHasExistingSave(false);
           
-          // Сразу сохраняем реферальную информацию для ��ового пользователя
           if (state.referralCode) {
             await saveReferralInfo(state.referralCode, state.referredBy || null);
           }
           
-          // НОВАЯ ИГРА: Перед запуском новой игры очищаем состояние
-          // Используем правильный тип для действия START_GAME
           dispatch({ type: "START_GAME" });
-          
-          // Автоматически перенаправляем на экран игры
           navigate('/game');
         }
       } catch (error) {
         console.error('Ошибка при проверке сохранений:', error);
         setHasExistingSave(false);
         
-        // Даже при ошибке запускаем новую игру и переходим на игровой экран
         dispatch({ type: "START_GAME" });
         navigate('/game');
       } finally {
@@ -132,23 +112,18 @@ const StartScreen = () => {
     checkForSavedGame();
   }, [dispatch, state.referralCode, navigate, state.referredBy, loadAttempted]);
   
-  // Извлечение реферального кода из URL-параметра start
   const extractReferralCodeFromUrl = () => {
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
-      // В Telegram стартовые параметры доступны через initDataUnsafe.start_param
-      // или через startapp для прямого запуска mini app
       if (tg.initDataUnsafe?.start_param) {
         return tg.initDataUnsafe.start_param;
       }
       
-      // Проверяем на наличие startapp параметра
       if (tg.initDataUnsafe?.startapp) {
         return tg.initDataUnsafe.startapp;
       }
     }
     
-    // Проверка параметра URL для веб-версии
     const urlParams = new URLSearchParams(window.location.search);
     const startParam = urlParams.get('start') || urlParams.get('startapp');
     

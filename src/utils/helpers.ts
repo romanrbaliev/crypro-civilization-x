@@ -1,4 +1,3 @@
-
 /**
  * Форматирует числовое значение с указанным количеством десятичных знаков
  * @param value Значение для форматирования
@@ -73,15 +72,15 @@ export function generateReferralCode(): string {
 
 /**
  * Проверяет, является ли пользователь помощником для указанного здания
- * @param referralHelpers Массив помощников
  * @param referralId ID реферала
  * @param buildingId ID здания
+ * @param referralHelpers Массив помощников
  * @returns true, если пользователь является помощником для здания
  */
 export function isReferralHelperForBuilding(
-  referralHelpers: any[],
   referralId: string,
-  buildingId: string
+  buildingId: string,
+  referralHelpers: any[]
 ): boolean {
   return referralHelpers.some(
     helper => helper.helperId === referralId && 
@@ -92,15 +91,15 @@ export function isReferralHelperForBuilding(
 
 /**
  * Получает ID запроса на помощь
- * @param referralHelpers Массив помощников
  * @param referralId ID реферала
  * @param buildingId ID здания
+ * @param referralHelpers Массив помощников
  * @returns ID запроса на помощь или null
  */
 export function getHelperRequestId(
-  referralHelpers: any[],
   referralId: string,
-  buildingId: string
+  buildingId: string,
+  referralHelpers: any[]
 ): string | null {
   const helper = referralHelpers.find(
     h => h.helperId === referralId && 
@@ -153,43 +152,4 @@ export function calculateTimeToReach(
   if (current >= target) return 0;
   
   return (target - current) / perSecond;
-}
-
-// Объект для работы с Telegram WebApp API, если доступен
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: {
-        ready: () => void;
-        expand: () => void;
-        close: () => void;
-        platform: string;
-        version: string;
-        initData?: string;
-        initDataUnsafe?: {
-          user?: {
-            id: number;
-            first_name?: string;
-            last_name?: string;
-            username?: string;
-            language_code?: string;
-          };
-          start_param?: string;
-          startapp?: string;
-        };
-        colorScheme?: string;
-        themeParams?: {
-          bg_color?: string;
-          text_color?: string;
-          hint_color?: string;
-          link_color?: string;
-          button_color?: string;
-          button_text_color?: string;
-        };
-        onEvent?: (eventType: string, callback: Function) => void;
-        offEvent?: (eventType: string, callback: Function) => void;
-        share?: (url: string) => void;
-      };
-    };
-  }
 }

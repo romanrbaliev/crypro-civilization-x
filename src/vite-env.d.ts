@@ -8,6 +8,7 @@ interface Window {
     WebApp: {
       ready: () => void;
       expand: () => void;
+      close: () => void;
       platform: string;
       version: string;
       initData?: string;
@@ -22,11 +23,22 @@ interface Window {
         start_param?: string;
         startapp?: string; // Добавляем поле startapp для параметра запуска мини-приложения
       };
+      ColorScheme?: 'light' | 'dark';
+      backgroundColor?: string;
+      isExpanded?: boolean;
+      viewportHeight?: number;
+      viewportStableHeight?: number;
+      MainButton?: any;
+      BackButton?: any;
       CloudStorage?: any;
       showPopup?: (params: any) => void;
+      showAlert?: (message: string) => void;
+      showConfirm?: (message: string) => void;
       openTelegramLink?: (url: string) => void;
+      openLink?: (url: string) => void;
       close?: () => void;
       share?: (url: string) => void;
+      HapticFeedback?: any;
     }
   };
   __telegramInitialized?: boolean;
