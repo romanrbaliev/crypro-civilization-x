@@ -5,6 +5,7 @@ import { useGame } from '@/context/hooks/useGame';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isBlockchainBasicsUnlocked } from '@/utils/researchUtils';
 import { UnlockService } from '@/services/UnlockService';
+import { convertGameState } from '@/utils/typeConverters';
 
 const DebugCalculator = () => {
   const { state, dispatch } = useGame();
@@ -23,7 +24,9 @@ const DebugCalculator = () => {
   const unlockCryptoWallet = () => {
     if (state.buildings.cryptoWallet) {
       const unlockService = new UnlockService();
-      unlockService.forceUnlock(state, 'cryptoWallet');
+      // Используем функцию-помощник для преобразования типов
+      const typedState = convertGameState(state);
+      unlockService.forceUnlock(typedState, 'cryptoWallet');
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }
   };
@@ -32,7 +35,9 @@ const DebugCalculator = () => {
   const unlockCryptoCurrencyBasics = () => {
     if (state.upgrades.cryptoCurrencyBasics) {
       const unlockService = new UnlockService();
-      unlockService.forceUnlock(state, 'cryptoBasics');
+      // Используем функцию-помощник для преобразования типов
+      const typedState = convertGameState(state);
+      unlockService.forceUnlock(typedState, 'cryptoBasics');
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }
   };

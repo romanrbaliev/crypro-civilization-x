@@ -1,9 +1,7 @@
 import * as React from "react"
-import {
-  type ToastActionElement,
-  type ToastProps,
-  type ToastType
-} from "@/components/ui/toast"
+import type { ToastProps, ToastType } from "@/components/ui/toast"
+
+export type ToastActionElement = React.ReactElement<any, string | React.JSXElementConstructor<any>>;
 
 const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 1000000
@@ -155,11 +153,9 @@ function toast({ ...props }: Toast) {
     normalizedVariant = "success";
   } else if (props.variant === "warning") {
     normalizedVariant = "warning";
-  } else if (props.variant === "info") {
-    normalizedVariant = "info";
-  } else {
+  } else if (props.variant === "info" || props.variant === "default") {
     normalizedVariant = "default";
-  }
+  } 
 
   const update = (props: ToasterToast) =>
     dispatch({

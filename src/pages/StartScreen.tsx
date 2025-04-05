@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/hooks/useGame';
@@ -51,36 +52,37 @@ const StartScreen = () => {
         const savedGame = await loadGameFromServer();
         
         if (savedGame) {
-          const castedGame = savedGame as unknown as import('@/types/game').GameState;
+          // Используем явное приведение типов для устранения ошибки типизации
+          const typedSavedGame = savedGame as typeof state;
           
-          if (!savedGame.referralCode) {
+          if (!typedSavedGame.referralCode) {
             const newCode = Array.from({ length: 8 }, () => 
               Math.floor(Math.random() * 16).toString(16).toUpperCase()
             ).join('');
             
-            savedGame.referralCode = newCode;
+            typedSavedGame.referralCode = newCode;
           }
           
-          savedGame.gameStarted = true;
+          typedSavedGame.gameStarted = true;
           
-          if (savedGame.resources && savedGame.resources.usdt) {
-            savedGame.resources.usdt.unlocked = false;
-            if (savedGame.counters && 
-                savedGame.counters.applyKnowledge && 
-                savedGame.counters.applyKnowledge.value >= 2) {
-              savedGame.resources.usdt.unlocked = true;
-              savedGame.unlocks.usdt = true;
+          if (typedSavedGame.resources && typedSavedGame.resources.usdt) {
+            typedSavedGame.resources.usdt.unlocked = false;
+            if (typedSavedGame.counters && 
+                typedSavedGame.counters.applyKnowledge && 
+                typedSavedGame.counters.applyKnowledge.value >= 2) {
+              typedSavedGame.resources.usdt.unlocked = true;
+              typedSavedGame.unlocks.usdt = true;
             } else {
-              savedGame.resources.usdt.unlocked = false;
-              savedGame.unlocks.usdt = false;
+              typedSavedGame.resources.usdt.unlocked = false;
+              typedSavedGame.unlocks.usdt = false;
             }
           }
           
           setHasExistingSave(true);
           
-          dispatch({ type: "LOAD_GAME", payload: savedGame });
+          dispatch({ type: "LOAD_GAME", payload: typedSavedGame });
           
-          await saveReferralInfo(savedGame.referralCode, state.referredBy || null);
+          await saveReferralInfo(typedSavedGame.referralCode, state.referredBy || null);
           
           setTimeout(() => {
             const refreshEvent = new CustomEvent('refresh-referrals');
@@ -110,7 +112,7 @@ const StartScreen = () => {
     };
     
     checkForSavedGame();
-  }, [dispatch, state.referralCode, navigate, state.referredBy, loadAttempted]);
+  }, [dispatch, state.referralCode, navigate, state.referredBy, loadAttempted, state]);
   
   const extractReferralCodeFromUrl = () => {
     if (window.Telegram?.WebApp) {

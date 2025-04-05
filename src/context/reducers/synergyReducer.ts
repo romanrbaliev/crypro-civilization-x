@@ -1,3 +1,4 @@
+
 import { GameState, SpecializationSynergy } from '@/types/game';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -13,7 +14,9 @@ export const initializeSynergies = (state: GameState): GameState => {
       unlocked: state.upgrades.blockchainBasics?.purchased,
       requiredCategories: ['tech', 'mining'],
       bonus: { productionBoost: 0.2 },
-      requirement: 'tech'
+      requirement: 'tech',
+      // Исправляем тип effects, чтобы соответствовал интерфейсу
+      effects: { homeComputer: 1.2, miner: 1.2 }
     },
     
     // Образовательная синергия
@@ -25,7 +28,9 @@ export const initializeSynergies = (state: GameState): GameState => {
       unlocked: state.upgrades.cryptoSecurity?.purchased,
       requiredCategories: ['education', 'research'],
       bonus: { knowledgeBoost: 0.15 },
-      requirement: 'education'
+      requirement: 'education',
+      // Исправляем тип effects, чтобы соответствовал интерфейсу
+      effects: { practice: 1.15 }
     },
     
     // Финансовая синергия
@@ -37,7 +42,9 @@ export const initializeSynergies = (state: GameState): GameState => {
       unlocked: state.upgrades.cryptoBasics?.purchased,
       requiredCategories: ['finance', 'storage'],
       bonus: { storageBoost: 0.25 },
-      requirement: 'finance'
+      requirement: 'finance',
+      // Исправляем тип effects, чтобы соответствовал интерфейсу
+      effects: { cryptoWallet: 1.25 }
     }
   };
   

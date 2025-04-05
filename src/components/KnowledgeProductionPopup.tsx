@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { convertGameState } from '@/utils/typeConverters';
 
 const KnowledgeProductionPopup = () => {
   const { state, forceUpdate } = useGame();
@@ -41,8 +42,9 @@ const KnowledgeProductionPopup = () => {
             perSecond: state.resources.knowledge?.perSecond || 0
           });
           
-          // Получаем расчеты
-          const { steps, finalValue } = debugKnowledgeProduction(state);
+          // Получаем расчеты, используя функцию-помощник для преобразования типов
+          const typedState = convertGameState(state);
+          const { steps, finalValue } = debugKnowledgeProduction(typedState);
           setCalculationSteps(steps);
           setFinalValue(finalValue);
           

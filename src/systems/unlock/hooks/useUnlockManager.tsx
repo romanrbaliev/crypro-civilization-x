@@ -4,6 +4,7 @@ import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { normalizeId } from '@/i18n';
 import { GameState } from '@/context/types';
+import { convertGameState } from '@/utils/typeConverters';
 
 const createEmptyGameState = (): GameState => ({
   resources: {},
@@ -52,7 +53,9 @@ export const UnlockManagerProvider = ({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (state) {
       try {
-        const manager = new UnlockManager(state);
+        // Используем функцию-помощник для преобразования типов
+        const typedState = convertGameState(state);
+        const manager = new UnlockManager(typedState);
         setUnlockManager(manager);
         console.log("UnlockManagerProvider: Создан новый экземпляр UnlockManager");
       } catch (error) {
@@ -64,7 +67,9 @@ export const UnlockManagerProvider = ({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (unlockManager && state) {
       try {
-        unlockManager.updateGameState(state);
+        // Используем функцию-помощник для преобразования типов
+        const typedState = convertGameState(state);
+        unlockManager.updateGameState(typedState);
       } catch (error) {
         console.error("Ошибка при обновлении состояния в UnlockManager:", error);
       }
@@ -87,8 +92,10 @@ export const useUnlockManager = (): UnlockManager => {
     }
     
     const { state } = useGame();
+    // Используем функцию-помощник для преобразования типов
+    const typedState = state ? convertGameState(state) : createEmptyGameState();
     
-    return new UnlockManager(state || createEmptyGameState());
+    return new UnlockManager(typedState);
   }
   
   return context;

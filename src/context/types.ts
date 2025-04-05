@@ -56,6 +56,7 @@ export interface ReferralInfo {
   activated: boolean;
   hired?: boolean;
   assignedBuildingId?: string;
+  buildingId?: string;
   joinedAt?: string | number; // Допускаем как строку, так и число
 }
 
@@ -68,7 +69,7 @@ export interface ReferralHelper {
   created?: number;
 }
 
-// Специализации
+// Специализации - унифицируем тип effects, чтобы он соответствовал определению в types/game.ts
 export interface SpecializationSynergy {
   id: string;
   name: string;
@@ -78,7 +79,7 @@ export interface SpecializationSynergy {
   requirement?: string;
   requiredCategories?: string[];
   bonus?: { [key: string]: number };
-  effects?: { [key: string]: number };
+  effects?: { [key: string]: number } | string; // Изменено для совместимости
 }
 
 // Параметры майнинга
