@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
@@ -66,16 +66,19 @@ const GameScreen = () => {
   const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization);
   const hasUnlockedReferrals = useUnlockStatus(featureIds.referrals);
   
+  // Инициализируем игру при монтировании
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
   
+  // Обрабатываем изменения разблокировок
   useEffect(() => {
     console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
     
     dispatch({ type: "FORCE_RESOURCE_UPDATE" });
   }, [state.unlocks, dispatch]);
   
+  // Обрабатываем разблокировку вкладки оборудования
   useEffect(() => {
     const buildingsUnlockedCount = state.counters.buildingsUnlocked ? 
       (typeof state.counters.buildingsUnlocked === 'number' ? 
@@ -96,7 +99,8 @@ const GameScreen = () => {
     }
   }, [state.buildings, state.unlocks.equipment, dispatch, featureIds.equipment]);
   
-  const addEvent = (message: string, type: GameEvent["type"] = "info") => {
+  // Функция добавления события в лог
+  const addEvent = useCallback((message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
       id: generateId(),
       timestamp: Date.now(),
@@ -115,8 +119,9 @@ const GameScreen = () => {
       
       return [newEvent, ...prev];
     });
-  };
+  }, []);
   
+  // Обрабатываем игровые события
   useEffect(() => {
     const handleGameEvent = (event: Event) => {
       if (event instanceof CustomEvent && event.detail) {
@@ -143,7 +148,9 @@ const GameScreen = () => {
         }
       };
     }
-  }, []);
+    
+    return undefined;
+  }, [addEvent]);
   
   // Обновляем выбранную вкладку при разблокировке функций
   useEffect(() => {
@@ -171,13 +178,14 @@ const GameScreen = () => {
     }
   }, [state.buildings.generator?.count, state.unlocks.research, state, dispatch]);
   
-  const handleResetGame = () => {
+  // Обработчики событий UI
+  const handleResetGame = useCallback(() => {
     dispatch({ type: "RESET_GAME" });
     setResetConfirmOpen(false);
     addEvent(t('events.gameReset'), "info");
-  };
+  }, [dispatch, addEvent, t]);
   
-  const handleResetAll = async () => {
+  const handleResetAll = useCallback(async () => {
     try {
       localStorage.clear();
       toast({
@@ -196,9 +204,10 @@ const GameScreen = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast, t]);
   
-  const renderTabButton = (id: string, labelKey: string, icon: React.ReactNode, isUnlocked: boolean) => {
+  // Рендерим кнопки вкладок
+  const renderTabButton = useCallback((id: string, labelKey: string, icon: React.ReactNode, isUnlocked: boolean) => {
     if (!isUnlocked) return null;
     
     return (
@@ -211,7 +220,15 @@ const GameScreen = () => {
         <span className="ml-2">{t(`tabs.${labelKey}`)}</span>
       </Button>
     );
-  };
+  }, [selectedTab, t]);
+  
+  // Подготавливаем контент вкладок - мемоизируем, чтобы избежать лишних перерендеров
+  const tabContent = useMemo(() => ({
+    equipment: hasUnlockedEquipment && <EquipmentTab onAddEvent={addEvent} />,
+    research: hasUnlockedResearch && <ResearchContainer onAddEvent={addEvent} />,
+    specialization: hasUnlockedSpecialization && <SpecializationTab onAddEvent={addEvent} />,
+    referrals: hasUnlockedReferrals && <ReferralsTab onAddEvent={addEvent} />
+  }), [hasUnlockedEquipment, hasUnlockedResearch, hasUnlockedSpecialization, hasUnlockedReferrals, addEvent]);
   
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
@@ -372,21 +389,10 @@ const GameScreen = () => {
         <div className="w-3/5 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2 flex flex-col">
             <div className="flex-1 overflow-auto">
-              {selectedTab === "equipment" && hasUnlockedEquipment && (
-                <EquipmentTab onAddEvent={addEvent} />
-              )}
-              
-              {selectedTab === "research" && hasUnlockedResearch && (
-                <ResearchContainer onAddEvent={addEvent} />
-              )}
-              
-              {selectedTab === "specialization" && hasUnlockedSpecialization && (
-                <SpecializationTab onAddEvent={addEvent} />
-              )}
-              
-              {selectedTab === "referrals" && hasUnlockedReferrals && (
-                <ReferralsTab onAddEvent={addEvent} />
-              )}
+              {selectedTab === "equipment" && tabContent.equipment}
+              {selectedTab === "research" && tabContent.research}
+              {selectedTab === "specialization" && tabContent.specialization}
+              {selectedTab === "referrals" && tabContent.referrals}
             </div>
             
             <ActionButtons onAddEvent={addEvent} />

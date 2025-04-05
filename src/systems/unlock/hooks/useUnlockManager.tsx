@@ -1,5 +1,5 @@
 
-import { useContext, createContext, useEffect, useState } from 'react';
+import { useContext, createContext, useEffect, useState, useMemo } from 'react';
 import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { normalizeId } from '@/i18n';
@@ -103,24 +103,23 @@ export const useUnlockStatus = (itemId: string): boolean => {
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
-  // Нормализуем ID для проверки - выполняем это один раз при монтировании
-  const normalizedItemId = normalizeId(itemId);
+  // Нормализуем ID для проверки и мемоизируем его
+  const normalizedItemId = useMemo(() => normalizeId(itemId), [itemId]);
   
-  useEffect(() => {
-    // Проверяем текущий статус разблокировки
-    const checkUnlockStatus = () => {
+  // Мемоизируем функцию проверки статуса разблокировки
+  const checkUnlockStatus = useMemo(() => {
+    return () => {
       if (!unlockManager) return false;
       
       // Получаем результат проверки
       const status = unlockManager.isUnlocked(normalizedItemId);
       setIsUnlocked(status);
     };
-    
-    // Проверяем при монтировании и при изменении зависимостей
-    checkUnlockStatus();
-    
-    // Подписываемся на события разблокировки
-    const handleUnlockEvent = (event: Event) => {
+  }, [unlockManager, normalizedItemId]);
+  
+  // Мемоизируем обработчик событий разблокировки
+  const handleUnlockEvent = useMemo(() => {
+    return (event: Event) => {
       if (event instanceof CustomEvent) {
         // Нормализуем ID для сравнения
         const eventId = event.detail?.itemId;
@@ -134,13 +133,20 @@ export const useUnlockStatus = (itemId: string): boolean => {
         }
       }
     };
+  }, [checkUnlockStatus, normalizedItemId]);
+  
+  // Эффект для проверки статуса разблокировки и подписки на события
+  useEffect(() => {
+    // Проверяем при монтировании
+    checkUnlockStatus();
     
+    // Подписываемся на события разблокировки
     window.addEventListener('unlock-event', handleUnlockEvent);
     
     return () => {
       window.removeEventListener('unlock-event', handleUnlockEvent);
     };
-  }, [unlockManager, state, normalizedItemId]); // Используем нормализованный ID в зависимостях
+  }, [checkUnlockStatus, handleUnlockEvent]); // Используем только мемоизированные зависимости
   
   return isUnlocked;
 };
