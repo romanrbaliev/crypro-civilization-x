@@ -52,14 +52,20 @@ const GameScreen = () => {
   const { t } = useI18nContext();
   
   const featureIds = useMemo(() => ({
-    equipment: gameIds?.features?.equipment || 'equipment',
-    research: gameIds?.features?.research || 'research',
-    specialization: gameIds?.features?.specialization || 'specialization',
-    referrals: gameIds?.features?.referrals || 'referrals'
+    equipment: 'equipment',
+    research: 'research',
+    specialization: 'specialization',
+    referrals: 'referrals'
   }), []);
   
   useEffect(() => {
-    console.log("GameScreen: Проверка ID функций:", featureIds);
+    console.log("GameScreen: Инициализированные ID функций:", featureIds);
+    
+    if (gameIds?.features) {
+      console.log("GameScreen: ID функций из gameIds:", gameIds.features);
+    } else {
+      console.log("GameScreen: gameIds.features не определены!");
+    }
   }, [featureIds]);
   
   const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment);

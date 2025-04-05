@@ -5,7 +5,7 @@ import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
 import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
 import { useI18nContext } from "@/context/I18nContext";
-import { gameIds, normalizeId } from "@/i18n";
+import { gameIds } from "@/i18n";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -15,34 +15,27 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // ИСПРАВЛЕНИЕ: Убедимся, что ID всегда существует
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем действительно безопасный ID с дефолтным значением
   const researchId = gameIds?.features?.research || 'research';
   
-  // Добавляем диагностический консоль-лог для проверки researchId
+  // ИСПРАВЛЕНИЕ: Явно логгируем используемый ID
   useEffect(() => {
-    console.log("ResearchTab: ID исследований:", researchId);
+    console.log("ResearchTab: Используется ID для проверки разблокировки исследований:", researchId);
   }, [researchId]);
   
-  // ИСПРАВЛЕНИЕ: Используем дефолтное значение researchId для защиты от undefined
+  // ИСПРАВЛЕНИЕ: Используем researchId, который теперь никогда не будет undefined
   const researchUnlocked = useUnlockStatus(researchId);
   
-  // Расширенные диагностические логи
+  // ИСПРАВЛЕНИЕ: Усиленное логгирование для отладки
   useEffect(() => {
-    console.log("ResearchTab: research unlocked =", researchUnlocked);
-    console.log("ResearchTab: total upgrades =", Object.keys(state.upgrades || {}).length);
-    console.log("ResearchTab: upgrades keys =", Object.keys(state.upgrades || {}));
+    console.log("ResearchTab: Состояние разблокировки исследований =", researchUnlocked);
+    console.log("ResearchTab: Общее количество улучшений =", Object.keys(state.upgrades || {}).length);
     
-    // Проверяем наличие блокчейн-исследования
-    const blockchainBasicsId = gameIds?.upgrades?.blockchainBasics || 'blockchainBasics';
-    
-    console.log("ResearchTab: Проверка blockchainBasics", 
-      state.upgrades[blockchainBasicsId] ? 
-      `exists, unlocked=${state.upgrades[blockchainBasicsId].unlocked}` : 
-      "not exists");
-    
-    // Проверяем общее состояние системы разблокировок
-    console.log("ResearchTab: Разблокировки (unlocks):", state.unlocks);
-  }, [state.upgrades, researchUnlocked, state.unlocks]);
+    if (researchUnlocked && Object.keys(state.upgrades || {}).length === 0) {
+      console.log("ResearchTab: Предупреждение! Вкладка исследований разблокирована, но улучшения отсутствуют.");
+      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
+    }
+  }, [researchUnlocked, state.upgrades, dispatch]);
   
   // Безопасно получаем нормализованные исследования
   const getNormalizedUpgrades = () => {
@@ -89,21 +82,6 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const purchasedUpgrades = Object.entries(normalizedUpgrades)
     .filter(([_, upgrade]) => upgrade && upgrade.purchased)
     .map(([_, upgrade]) => upgrade);
-  
-  // Проверка, есть ли разблокированные исследования
-  useEffect(() => {
-    if (researchUnlocked && unlockedUpgrades.length === 0) {
-      console.log("ResearchTab: Warning! Research tab is unlocked but no upgrades are available.");
-      console.log("ResearchTab: Unlocks state:", state.unlocks);
-      
-      // Проверка, есть ли в state.upgrades исследования, но они не разблокированы
-      const potentialUpgrades = Object.values(state.upgrades || {}).filter(u => u && !u.unlocked);
-      console.log("ResearchTab: Potential upgrades (not unlocked):", potentialUpgrades.map(u => u.id));
-      
-      // Заставляем систему проверить все разблокировки
-      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-    }
-  }, [researchUnlocked, unlockedUpgrades.length, state.unlocks, dispatch, state.upgrades]);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {
