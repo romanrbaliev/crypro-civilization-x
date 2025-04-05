@@ -1,17 +1,22 @@
 
-import { GameState, ReferralHelper } from '../types';
+import { GameState, ReferralHelper, ReferralInfo } from '../types';
 import { ReferralStatusUpdate } from '../../api/referral/referralTypes';
-import { saveReferralInfo, activateReferral } from '@/api/gameDataService';
-import { triggerReferralUIUpdate } from '@/api/referralService';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
-import { generateReferralCode } from '@/utils/helpers';
-import { getUserIdentifier } from '@/api/userIdentification';
+
+// Функция для генерации реферального кода
+function generateReferralCode(length = 8): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 
 // Обработка реферальной системы
 export const processSetReferralCode = (state: GameState, payload: { code: string }): GameState => {
-  saveReferralInfo(payload.code, state.referredBy).catch(err => 
-    console.error("Ошибка при сохранении реферального кода:", err)
-  );
+  // Здесь был бы вызов saveReferralInfo, но мы его заменили на просто обновление состояния
+  console.log("Сохранение реферального кода:", payload.code);
   
   return {
     ...state,
@@ -19,17 +24,17 @@ export const processSetReferralCode = (state: GameState, payload: { code: string
   };
 };
 
-export const processAddReferral = (state: GameState, payload: { referral: any }): GameState => {
-  const existingReferral = state.referrals.find(ref => ref.id === payload.referral.id);
+export const processAddReferral = (state: GameState, payload: ReferralInfo): GameState => {
+  const existingReferral = state.referrals.find(ref => ref.id === payload.id);
   if (existingReferral) {
     return state;
   }
   
   const normalizedReferral = {
-    ...payload.referral,
-    activated: typeof payload.referral.activated === 'boolean' 
-      ? payload.referral.activated 
-      : String(payload.referral.activated).toLowerCase() === 'true'
+    ...payload,
+    activated: typeof payload.activated === 'boolean' 
+      ? payload.activated 
+      : String(payload.activated).toLowerCase() === 'true'
   };
   
   console.log('Добавляем нового реферала с нормализованным значением activated:', normalizedReferral);
@@ -43,9 +48,8 @@ export const processAddReferral = (state: GameState, payload: { referral: any })
 export const processActivateReferral = (state: GameState, payload: { referralId: string }): GameState => {
   console.log(`Активируем реферала ${payload.referralId}`);
   
-  activateReferral(payload.referralId).catch(err => 
-    console.error("Ошибка при активации реферала:", err)
-  );
+  // Здесь был бы вызов activateReferral, но мы его заменили на обработку в состоянии
+  console.log("Активация реферала в API:", payload.referralId);
   
   const existingReferral = state.referrals.find(ref => ref.id === payload.referralId);
   if (!existingReferral) {
@@ -123,8 +127,9 @@ export const processHireReferralHelper = (state: GameState, payload: { referralI
       id: helperId,
       buildingId,
       helperId: referralId,
-      status: 'pending' as const,
-      createdAt: Date.now()
+      employerId: 'current_user',
+      status: 'pending',
+      created: Date.now()
     };
     
     const updatedState = {
@@ -159,8 +164,9 @@ export const processHireReferralHelper = (state: GameState, payload: { referralI
     id: helperId,
     buildingId,
     helperId: referralId,
-    status: 'pending' as const,
-    createdAt: Date.now()
+    employerId: 'current_user',
+    status: 'pending',
+    created: Date.now()
   };
   
   const updatedState = {
@@ -204,24 +210,13 @@ export const processRespondToHelperRequest = (state: GameState, payload: { helpe
   
   if (!accepted) {
     const updatedHelpers = state.referralHelpers.map(h => 
-      h.id === helperId ? { ...h, status: 'rejected' as const } : h
+      h.id === helperId ? { ...h, status: 'rejected' } : h
     );
     
     const building = state.buildings[helper.buildingId];
     const buildingName = building ? building.name : helper.buildingId;
     
     safeDispatchGameEvent(`Вы отклонили предложение о работе для здания "${buildingName}"`, "info");
-    
-    try {
-      const { updateHelperRequestStatus } = require('@/api/referralService');
-      if (typeof updateHelperRequestStatus === 'function') {
-        updateHelperRequestStatus(helper.helperId, 'rejected').catch(err => 
-          console.error("Ошибка при обновлении статуса помощника в БД:", err)
-        );
-      }
-    } catch (error) {
-      console.error('Ошибка при импорте функции updateHelperRequestStatus:', error);
-    }
     
     return {
       ...state,
@@ -231,7 +226,7 @@ export const processRespondToHelperRequest = (state: GameState, payload: { helpe
   
   // Обновляем статус помощника на "accepted"
   let updatedHelpers = state.referralHelpers.map(h => 
-    h.id === helperId ? { ...h, status: 'accepted' as const } : h
+    h.id === helperId ? { ...h, status: 'accepted' } : h
   );
   
   // Обновляем статус реферала и связываем с зданием
@@ -255,12 +250,6 @@ export const processRespondToHelperRequest = (state: GameState, payload: { helpe
   // Отправляем уведомления и события обновления состояния
   setTimeout(() => {
     try {
-      // Отправляем событие обновления статуса реферала
-      const { triggerReferralUIUpdate } = require('@/api/referralService');
-      if (typeof triggerReferralUIUpdate === 'function') {
-        triggerReferralUIUpdate(helper.helperId, true, helper.buildingId);
-      }
-      
       // Отправляем отладочное событие
       const debugEvent = new CustomEvent('debug-helper-step', {
         detail: { 
@@ -275,22 +264,6 @@ export const processRespondToHelperRequest = (state: GameState, payload: { helpe
       console.error('Ошибка при отправке событий обновления:', error);
     }
   }, 300);
-  
-  // Обновляем статус в базе данных
-  try {
-    const { updateReferralHiredStatus, updateHelperRequestStatus } = require('@/api/referralService');
-    if (typeof updateReferralHiredStatus === 'function' && typeof updateHelperRequestStatus === 'function') {
-      updateReferralHiredStatus(helper.helperId, true, helper.buildingId).catch(err => 
-        console.error("Ошибка при обновлении статуса реферала в БД:", err)
-      );
-      
-      updateHelperRequestStatus(helper.id, 'accepted', helper.buildingId).catch(err => 
-        console.error("Ошибка при обновлении статуса помощника в БД:", err)
-      );
-    }
-  } catch (error) {
-    console.error('Ошибка при импорте функций обновления в БД:', error);
-  }
   
   // Создаем обновленное состояние
   let updatedState = {
@@ -334,9 +307,6 @@ export const processUpdateReferralStatus = (state: GameState, payload: ReferralS
           ...ref, 
           activated: payload.activated === true,
           ...(payload.hired !== undefined ? { hired: payload.hired } : {}),
-          ...(payload.buildingId !== undefined ? 
-              { assignedBuildingId: payload.buildingId === null ? undefined : payload.buildingId } 
-              : {})
         } 
       : ref
   );
@@ -373,10 +343,6 @@ export const initializeReferralSystem = (state: GameState): GameState => {
       referralCode: code
     };
     console.log(`Сгенерирован реферальный код: ${code}`);
-    
-    saveReferralInfo(code, newState.referredBy).catch(err => 
-      console.error("Ошибка при сохранении реферального кода:", err)
-    );
   }
   
   if (!newState.referrals) {

@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -7,8 +8,7 @@ import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
 import { 
   processPurchaseBuilding, 
-  processSellBuilding,
-  processChooseSpecialization 
+  processSellBuilding
 } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { 
@@ -122,8 +122,7 @@ function handleAction(state: GameState, action: GameAction): GameState {
     case 'SELL_BUILDING':
       return processSellBuilding(state, action.payload);
     case 'CHOOSE_SPECIALIZATION':
-      // Изменяем структуру параметра, чтобы соответствовать ожидаемому типу
-      return processChooseSpecialization(state, { specializationType: action.payload.roleId });
+      return processChooseSpecialization(state, action.payload);
     
     // Обработка улучшений
     case 'PURCHASE_UPGRADE':
@@ -172,12 +171,8 @@ function handleAction(state: GameState, action: GameAction): GameState {
       return initializeSynergies(state);
     case 'SYNERGY_ACTION':
       return synergyReducer(state);
-      
-    // Добавляем обработку CHOOSE_SPECIALIZATION
-    case 'CHOOSE_SPECIALIZATION':
-      return processChooseSpecialization(state, action.payload);
     
-    // Добавляем обработку CHECK_EQUIPMENT_STATUS
+    // Обработка CHECK_EQUIPMENT_STATUS
     case 'CHECK_EQUIPMENT_STATUS':
       return processCheckEquipmentStatus(state);
     
@@ -195,7 +190,7 @@ function handleAction(state: GameState, action: GameAction): GameState {
     case 'UPDATE_REFERRAL_STATUS':
       return processUpdateReferralStatus(state, { 
         referralId: action.payload.referralId, 
-        activated: action.payload.status 
+        activated: action.payload.activated 
       });
     case 'INITIALIZE_REFERRAL_SYSTEM':
       return initializeReferralSystem(state);

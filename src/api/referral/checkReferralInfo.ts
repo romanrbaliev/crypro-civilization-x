@@ -26,10 +26,11 @@ export const checkReferralInfo = async (referralCode?: string): Promise<{
     
     // Если передан код, проверяем его валидность
     if (referralCode) {
+      // Вместо обращения к таблице referral_codes обращаемся к referral_data
       const { data: codeData, error: codeError } = await supabase
-        .from('referral_codes')
+        .from('referral_data')
         .select('*')
-        .eq('code', referralCode)
+        .eq('referral_code', referralCode)
         .single();
       
       if (codeError || !codeData) {

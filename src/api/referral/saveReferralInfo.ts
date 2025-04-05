@@ -21,7 +21,8 @@ export const saveReferralInfo = async (referralCode: string): Promise<boolean> =
         user_id: userId,
         referred_by: referralCode,
         created_at: new Date().toISOString(),
-        is_activated: false
+        is_activated: false,
+        referral_code: referralCode // Добавляем обязательное поле referral_code
       }, {
         onConflict: 'user_id'
       });

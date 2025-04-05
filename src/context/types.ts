@@ -64,7 +64,7 @@ export interface ReferralHelper {
   employerId: string;
   buildingId: string;
   status: string;
-  created?: number; // Это уже существует, не createdAt
+  created?: number; // Используем created вместо createdAt
 }
 
 // Специализации
@@ -75,6 +75,8 @@ export interface SpecializationSynergy {
   active: boolean;
   effects: { [key: string]: number };
   requirement?: { [key: string]: number };
+  requiredCategories?: string[]; // Добавляем для synergyReducer
+  bonus?: number; // Добавляем для SynergyCard
 }
 
 // Параметры майнинга
@@ -113,7 +115,7 @@ export interface GameState {
   featureFlags: { [key: string]: boolean };
   buildingUnlocked: { [key: string]: boolean };
   specializationSynergies: { [key: string]: any };
-  specialization?: string; // Добавляем поле для специализации
+  specialization?: string; // Поле для специализации
   referralCode: string | null;
   referredBy: string | null;
   referrals: ReferralInfo[];
@@ -154,9 +156,9 @@ export type GameAction =
   | { type: 'SET_REFERRAL_CODE'; payload: { code: string } }
   | { type: 'ADD_REFERRAL'; payload: ReferralInfo }
   | { type: 'ACTIVATE_REFERRAL'; payload: { referralId: string } }
-  | { type: 'HIRE_REFERRAL_HELPER'; payload: { helperId: string; buildingId: string } }
-  | { type: 'RESPOND_TO_HELPER_REQUEST'; payload: { helperId: string; accept: boolean } }
-  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; status: boolean } }
+  | { type: 'HIRE_REFERRAL_HELPER'; payload: { referralId: string; buildingId: string } }
+  | { type: 'RESPOND_TO_HELPER_REQUEST'; payload: { helperId: string; accepted: boolean } }
+  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; activated: boolean } }
   | { type: 'INITIALIZE_REFERRAL_SYSTEM'; }
   | { type: 'UPDATE_RESOURCES'; payload?: any }
   | { type: 'FORCE_RESOURCE_UPDATE'; }
