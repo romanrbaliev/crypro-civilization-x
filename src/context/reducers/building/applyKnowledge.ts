@@ -49,16 +49,16 @@ export function processApplyKnowledge(state: GameState): GameState {
     }
   };
   
-  // Обновляем состояние ресурсов
-  const newResources = {
-    ...state.resources,
-    knowledge: {
-      ...state.resources.knowledge,
-      value: state.resources.knowledge.value - exchangeKnowledge
-    }
+  // Создаем копию ресурсов
+  const newResources = { ...state.resources };
+  
+  // Обновляем значение ресурса знаний
+  newResources.knowledge = {
+    ...state.resources.knowledge,
+    value: state.resources.knowledge.value - exchangeKnowledge
   };
   
-  // Если ресурс USDT уже разблокирован, увеличиваем его значение
+  // Если ресурс USDT уже существует, увеличиваем его значение
   if (newResources.usdt && newResources.usdt.unlocked) {
     newResources.usdt = {
       ...newResources.usdt,
@@ -150,16 +150,16 @@ export function processApplyAllKnowledge(state: GameState): GameState {
     }
   };
   
-  // Обновляем состояние ресурсов
-  const newResources = {
-    ...state.resources,
-    knowledge: {
-      ...state.resources.knowledge,
-      value: state.resources.knowledge.value - exchangeKnowledge
-    }
+  // Создаем копию ресурсов
+  const newResources = { ...state.resources };
+  
+  // Обновляем значение ресурса знаний
+  newResources.knowledge = {
+    ...state.resources.knowledge,
+    value: state.resources.knowledge.value - exchangeKnowledge
   };
   
-  // Если ресурс USDT уже разблокирован, увеличиваем его значение
+  // Если ресурс USDT уже существует, увеличиваем его значение
   if (newResources.usdt && newResources.usdt.unlocked) {
     newResources.usdt = {
       ...newResources.usdt,

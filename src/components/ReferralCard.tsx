@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Card, 
@@ -30,7 +31,7 @@ interface ReferralCardProps {
     username: string;
     activated: boolean | string;
     hired?: boolean;
-    joinedAt: number;
+    joinedAt: string | number;
     assignedBuildingId?: string;
   };
   onHire?: (referralId: string, buildingId: string) => void;

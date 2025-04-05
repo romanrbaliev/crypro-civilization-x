@@ -1,3 +1,4 @@
+
 // Базовые типы игровых объектов
 export interface Resource {
   id: string;
@@ -55,6 +56,7 @@ export interface ReferralInfo {
   activated: boolean;
   hired?: boolean;
   assignedBuildingId?: string;
+  joinedAt?: string | number; // Допускаем как строку, так и число
 }
 
 export interface ReferralHelper {
@@ -72,10 +74,11 @@ export interface SpecializationSynergy {
   name: string;
   description: string;
   active: boolean;
+  unlocked?: boolean;
+  requirement?: string;
   requiredCategories?: string[];
-  bonus?: {
-    [key: string]: number;
-  };
+  bonus?: { [key: string]: number };
+  effects?: { [key: string]: number };
 }
 
 // Параметры майнинга
@@ -113,7 +116,7 @@ export interface GameState {
   version: string;
   featureFlags: { [key: string]: boolean };
   buildingUnlocked: { [key: string]: boolean };
-  specializationSynergies: { [key: string]: any };
+  specializationSynergies: { [key: string]: SpecializationSynergy };
   specialization?: string;
   referralCode: string | null;
   referredBy: string | null;
@@ -125,6 +128,7 @@ export interface GameState {
   gameTime: number;
   miningParams: MiningParams;
   phase: number;
+  features?: { [key: string]: boolean };
 }
 
 // Типы действий для редьюсера
@@ -157,11 +161,11 @@ export type GameAction =
   | { type: 'ACTIVATE_REFERRAL'; payload: { referralId: string } }
   | { type: 'HIRE_REFERRAL_HELPER'; payload: { referralId: string; buildingId: string } }
   | { type: 'RESPOND_TO_HELPER_REQUEST'; payload: { helperId: string; accepted: boolean } }
-  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; activated: boolean } }
+  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; activated: boolean; hired?: boolean; buildingId?: string } }
   | { type: 'INITIALIZE_REFERRAL_SYSTEM'; }
   | { type: 'UPDATE_RESOURCES'; payload?: any }
   | { type: 'FORCE_RESOURCE_UPDATE'; }
   | { type: 'FORCE_CHECK_UNLOCKS'; }
   | { type: 'UPDATE_HELPERS'; payload: { updatedHelpers: ReferralHelper[] } }
-  | { type: 'CHOOSE_SPECIALIZATION'; payload: { roleId: string } }
+  | { type: 'CHOOSE_SPECIALIZATION'; payload: { specializationType: string } }
   | { type: 'CHECK_EQUIPMENT_STATUS'; };

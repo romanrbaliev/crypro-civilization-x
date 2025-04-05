@@ -1,5 +1,6 @@
 
 import { GameState } from '@/types/game';
+import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
 
 /**
  * Обрабатывает выбор специализации игроком
@@ -14,6 +15,12 @@ export function processChooseSpecialization(
   const { specializationType } = payload;
   
   console.log(`Выбрана специализация: ${specializationType}`);
+  
+  // Отправляем уведомление о выборе специализации
+  safeDispatchGameEvent(
+    `Выбрана специализация: ${specializationType}`,
+    "success"
+  );
   
   return {
     ...state,

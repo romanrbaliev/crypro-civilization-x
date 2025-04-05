@@ -16,14 +16,18 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, ...props }) {
-        // Преобразуем error в destructive для обратной совместимости
-        let adjustedVariant = props.variant;
-        if (adjustedVariant === "error") {
+        // Нормализуем тип тоста
+        let adjustedVariant: ToastType = (props.variant || "default") as ToastType;
+        
+        // Преобразуем варианты, которые не соответствуют ToastType
+        if (props.variant === "error") {
           adjustedVariant = "destructive";
+        } else if (props.variant === "info") {
+          adjustedVariant = "default";
         }
         
         return (
-          <Toast key={id} {...props} variant={adjustedVariant as any}>
+          <Toast key={id} {...props} variant={adjustedVariant}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (

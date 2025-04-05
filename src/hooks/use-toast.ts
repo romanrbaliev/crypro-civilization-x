@@ -1,17 +1,20 @@
 import * as React from "react"
+import {
+  type ToastActionElement,
+  type ToastProps,
+} from "@/components/ui/toast"
 
-import { ToastActionElement, ToastType } from "@/components/ui/toast"
-
-const TOAST_LIMIT = 10
+const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 1000000
 
-type ToastProps = {
+type ToastType = "default" | "destructive" | "success" | "warning" | "info";
+
+export type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
   variant?: ToastType
-  duration?: number
 }
 
 const actionTypes = {
@@ -23,8 +26,9 @@ const actionTypes = {
 
 let count = 0
 
-function generateId() {
-  return (++count).toString()
+function genId() {
+  count = (count + 1) % Number.MAX_VALUE
+  return count.toString()
 }
 
 type ActionType = typeof actionTypes
@@ -32,11 +36,11 @@ type ActionType = typeof actionTypes
 type Action =
   | {
       type: ActionType["ADD_TOAST"]
-      toast: ToastProps
+      toast: ToasterToast
     }
   | {
       type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToastProps>
+      toast: Partial<ToasterToast> & { id: string }
     }
   | {
       type: ActionType["DISMISS_TOAST"]
@@ -48,7 +52,7 @@ type Action =
     }
 
 interface State {
-  toasts: ToastProps[]
+  toasts: ToasterToast[]
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
@@ -104,9 +108,7 @@ export const reducer = (state: State, action: Action): State => {
           t.id === toastId || toastId === undefined
             ? {
                 ...t,
-                onOpenChange: (open: boolean) => {
-                  if (!open) dispatch({ type: "DISMISS_TOAST", toastId: t.id })
-                },
+                open: false,
               }
             : t
         ),
@@ -137,12 +139,23 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToastProps, "id">
+type Toast = Omit<ToasterToast, "id"> & {
+  id?: string
+  onOpenChange?: (open: boolean) => void
+}
 
 function toast({ ...props }: Toast) {
-  const id = generateId()
+  const id = props.id || genId()
 
-  const update = (props: ToastProps) =>
+  // Преобразование "error" в "destructive" и "info" в "default"
+  let normalizedVariant = props.variant;
+  if (normalizedVariant === "error") {
+    normalizedVariant = "destructive" as ToastType;
+  } else if (normalizedVariant === "info") {
+    normalizedVariant = "default" as ToastType;
+  }
+
+  const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
       toast: { ...props, id },
@@ -153,9 +166,12 @@ function toast({ ...props }: Toast) {
     type: "ADD_TOAST",
     toast: {
       ...props,
+      variant: normalizedVariant,
       id,
-      onOpenChange: (open: boolean) => {
+      open: true,
+      onOpenChange: (open) => {
         if (!open) dismiss()
+        props.onOpenChange?.(open)
       },
     },
   })

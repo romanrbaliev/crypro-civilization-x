@@ -5,19 +5,24 @@ import { ToastType } from '@/components/ui/toast';
 /**
  * Безопасно отправляет игровое событие для отображения уведомления
  * @param message Сообщение события
- * @param variant Тип события (success, warning, error, info)
+ * @param variant Тип события (success, warning, error, info, default)
  */
 export const safeDispatchGameEvent = (
   message: string, 
-  variant: "success" | "warning" | "error" | "default" = "default"
+  variant: "success" | "warning" | "error" | "default" | "info" = "default"
 ): void => {
   if (!message) return;
   
   try {
     // Преобразуем variant в допустимый тип ToastType
-    const toastVariant: ToastType = 
-      variant === "error" ? "destructive" : 
-      variant as ToastType;
+    let toastVariant: ToastType = variant as ToastType;
+    
+    // Специальная обработка для info и error
+    if (variant === "info") {
+      toastVariant = "default";
+    } else if (variant === "error") {
+      toastVariant = "destructive";
+    }
     
     // Отображаем уведомление
     toast({
@@ -46,6 +51,7 @@ function getTitle(variant: string): string {
     case "success": return "Успех!";
     case "warning": return "Внимание!";
     case "error": return "Ошибка!";
+    case "info": return "Информация";
     default: return "Уведомление";
   }
 }

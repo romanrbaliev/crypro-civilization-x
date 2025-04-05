@@ -1,28 +1,26 @@
 
 import React from 'react';
-import { useGame } from '@/context/GameContext';
+import { useGame } from '@/context/hooks/useGame';
 import BuildingCard from './BuildingCard';
+import { Building } from '@/types/game';
+import { canAfford, calculateCost } from '@/utils/helpers';
 
-const BuildingList: React.FC = () => {
+interface BuildingListProps {
+  // дополнительные свойства, если нужны
+}
+
+const BuildingList: React.FC<BuildingListProps> = () => {
   const { state } = useGame();
-
-  // Рендер доступных зданий
-  const renderBuildingItems = () => {
-    return Object.entries(state.buildings)
-      .filter(([, building]) => building.unlocked)
-      .map(([id, building]) => (
-        <BuildingCard 
-          key={id} 
-          building={building} 
-          id={id}
-        />
-      ));
-  };
-
+  
+  // Получаем только разблокированные здания
+  const unlockedBuildings = Object.values(state.buildings)
+    .filter(building => building.unlocked);
+  
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-3">Здания</h2>
-      {renderBuildingItems()}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {unlockedBuildings.map(building => (
+        <BuildingCard key={building.id} building={building} />
+      ))}
     </div>
   );
 };

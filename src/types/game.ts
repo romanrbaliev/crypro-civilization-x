@@ -62,7 +62,7 @@ export interface ReferralInfo {
   activated: boolean;
   hired?: boolean;
   buildingId?: string;
-  joinedAt?: string;
+  joinedAt?: string | number; // Допускаем как строку, так и число
 }
 
 export interface ReferralHelper {
