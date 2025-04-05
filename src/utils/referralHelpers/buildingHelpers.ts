@@ -47,3 +47,28 @@ export const hasHelperForBuilding = (
       helper.status === 'accepted'
   );
 };
+
+// Добавляем недостающие функции
+export const isReferralHiredForBuilding = (
+  referralId: string,
+  buildingId: string,
+  helpers: ReferralHelper[]
+): boolean => {
+  if (!helpers || !helpers.length) return false;
+  
+  return helpers.some(
+    helper => 
+      helper.buildingId === buildingId && 
+      helper.helperId === referralId
+  );
+};
+
+export const getReferralAssignedBuildingId = (
+  referralId: string,
+  helpers: ReferralHelper[]
+): string | null => {
+  if (!helpers || !helpers.length) return null;
+  
+  const helper = helpers.find(h => h.helperId === referralId);
+  return helper ? helper.buildingId : null;
+};

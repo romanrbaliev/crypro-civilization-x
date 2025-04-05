@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -9,42 +8,16 @@ import Header from "@/components/Header";
 import EquipmentTab from "@/components/EquipmentTab";
 import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";
-import SpecializationTab from "@/components/SpecializationTab";
+import { SpecializationTab } from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
-import LanguageSwitch from "@/components/LanguageSwitch"; // Импортируем компонент переключения языка
-import { useTranslation } from "@/i18n"; // Импортируем хук для переводов
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-import { resetAllGameData } from "@/context/utils/gameStorage";
-import { toast } from "@/hooks/use-toast";
+import LanguageSwitch from "@/components/LanguageSwitch";
+import { useTranslation } from "@/i18n";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
-  const { t } = useTranslation(); // Используем хук для переводов
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
@@ -178,7 +151,6 @@ const GameScreen = () => {
       <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
         <div className="flex justify-between items-center h-full">
           <div className="flex-1 flex items-center pl-2 gap-2">
-            {/* Удалены компоненты KnowledgeProductionPopup и UnlockStatusPopup */}
           </div>
           <div className="flex items-center justify-between px-2">
             <Dialog>
@@ -273,7 +245,6 @@ const GameScreen = () => {
                   </SheetDescription>
                 </SheetHeader>
                 <div className="py-4">
-                  {/* Добавляем переключатель языка */}
                   <h3 className="font-medium mb-2">{t('settings.language')}</h3>
                   <div className="mb-4">
                     <LanguageSwitch />

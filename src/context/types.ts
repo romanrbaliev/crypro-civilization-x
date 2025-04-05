@@ -24,11 +24,11 @@ export interface Building {
   count: number;
   unlocked: boolean;
   baseCost: Record<string, number>;
-  cost?: Record<string, number>; // Добавляем для обратной совместимости
+  cost: Record<string, number>; // Добавляем для обратной совместимости
   costMultiplier: number;
   production: Record<string, number>;
   consumption?: Record<string, number>;
-  effects?: Record<string, any>; // Добавляем эффекты зданий
+  effects?: Record<string, any>;
   maxCount?: number;
   requirements?: Record<string, number>;
   resourceProduction?: Record<string, number>;
@@ -53,6 +53,18 @@ export interface Upgrade {
   effect?: any; // Альтернативное название для effects
 }
 
+// Интерфейс для майнинга параметров
+export interface MiningParams {
+  difficulty: number;
+  hashrate: number;
+  blockReward: number;
+  lastBlockTime: number;
+  exchangeRate?: number;
+  exchangeCommission?: number;
+  miningEfficiency?: number;
+  energyEfficiency?: number;
+}
+
 export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };
@@ -70,7 +82,7 @@ export interface GameState {
   referralCode?: string;
   referredBy?: string;
   referrals?: any[];
-  referralHelpers?: any[];
+  referralHelpers?: ReferralHelper[];
   stats?: {
     totalKnowledgeGained?: number;
     totalUsdtGained?: number;
@@ -89,12 +101,7 @@ export interface GameState {
     };
   };
   language?: string;
-  miningParams?: {
-    difficulty: number;
-    hashrate: number;
-    blockReward: number;
-    lastBlockTime: number;
-  };
+  miningParams?: MiningParams;
   eventMessages?: string[];
   gameTime?: number;
 }
@@ -137,7 +144,7 @@ export type GameAction =
   | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
-  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; status: any; activated?: boolean } }
+  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; status: any; activated?: boolean; hired?: boolean } }
   | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: any[] } }
   | { type: "UNLOCK_BUILDING"; payload: { buildingId: string } }
   | { type: "RESEARCH_UPGRADE"; payload: { upgradeId: string } }
@@ -155,6 +162,7 @@ export interface SpecializationSynergy {
   requiredCategories: string[];
   requiredCount: number;
   bonus: Record<string, number>;
+  unlocked?: boolean;
 }
 
 // Тип для объекта диспетчера действий
@@ -166,4 +174,12 @@ export interface ReferralHelper {
   buildingId: string;
   helperId: string;
   status: string;
+}
+
+// Интерфейс для GameContext
+export interface GameContextProps {
+  state: GameState;
+  dispatch: GameDispatch;
+  forceUpdate?: () => void;
+  isPageVisible?: boolean;
 }

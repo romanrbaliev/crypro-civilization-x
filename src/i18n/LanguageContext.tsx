@@ -1,78 +1,63 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SupportedLanguage, TranslationKey } from './types';
 import { translations } from './translations';
+import { Language, TranslationsType } from './types';
 
-// Установка языка по умолчанию
-const DEFAULT_LANGUAGE: SupportedLanguage = 'ru';
-
-// Создание интерфейса для контекста
 interface LanguageContextType {
-  language: SupportedLanguage;
-  setLanguage: (lang: SupportedLanguage) => void;
-  t: (key: TranslationKey) => string;
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (key: string) => string;
 }
 
-// Создание контекста с начальными значениями
+const defaultLanguage: Language = 'ru';
+
 const LanguageContext = createContext<LanguageContextType>({
-  language: DEFAULT_LANGUAGE,
+  language: defaultLanguage,
   setLanguage: () => {},
-  t: () => '',
+  t: (key: string) => key
 });
 
-// Хук для доступа к контексту языка
-export const useTranslation = () => {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error('useTranslation must be used within a LanguageProvider');
-  }
-  return context;
-};
-
-// Функция для сохранения выбранного языка в localStorage
-const saveLanguagePreference = (language: SupportedLanguage): void => {
-  try {
-    localStorage.setItem('preferredLanguage', language);
-  } catch (error) {
-    console.error('Error saving language preference:', error);
-  }
-};
-
-// Функция для загрузки выбранного языка из localStorage
-const loadLanguagePreference = (): SupportedLanguage => {
-  try {
-    const savedLanguage = localStorage.getItem('preferredLanguage');
-    return (savedLanguage as SupportedLanguage) || DEFAULT_LANGUAGE;
-  } catch (error) {
-    console.error('Error loading language preference:', error);
-    return DEFAULT_LANGUAGE;
-  }
-};
-
-// Провайдер для контекста языка
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<SupportedLanguage>(DEFAULT_LANGUAGE);
+  const [language, setLanguage] = useState<Language>(defaultLanguage);
   
-  // Загружаем сохраненный язык при инициализации
+  // Проверяем localStorage при первом рендере
   useEffect(() => {
-    const savedLanguage = loadLanguagePreference();
-    setLanguageState(savedLanguage);
+    const savedLanguage = localStorage.getItem('language');
+    if (savedLanguage === 'ru' || savedLanguage === 'en') {
+      setLanguage(savedLanguage);
+    }
   }, []);
   
-  // Функция для изменения языка
-  const setLanguage = (lang: SupportedLanguage) => {
-    setLanguageState(lang);
-    saveLanguagePreference(lang);
+  // Сохраняем выбранный язык
+  const handleSetLanguage = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem('language', lang);
   };
   
-  // Функция для получения перевода по ключу
-  const t = (key: TranslationKey): string => {
-    return translations[language][key] || key;
+  // Функция перевода
+  const t = (key: string): string => {
+    if (!key) return '';
+    
+    try {
+      const currentTranslations = translations[language] as TranslationsType;
+      return currentTranslations[key] || key;
+    } catch (error) {
+      console.error(`Translation error for key: ${key}`, error);
+      return key;
+    }
+  };
+  
+  const contextValue = {
+    language,
+    setLanguage: handleSetLanguage,
+    t
   };
   
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );
 };
+
+export const useTranslation = () => useContext(LanguageContext);

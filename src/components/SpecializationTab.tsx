@@ -1,176 +1,119 @@
-import React, { useState, useEffect } from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { roles } from '@/utils/gameConfig';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
 
-export function SpecializationTab() {
+import React from 'react';
+import { useGame } from '@/context/hooks/useGame';
+import { useTranslation } from '@/i18n';
+
+interface SpecializationTabProps {
+  onAddEvent: (message: string, type: string) => void;
+}
+
+export function SpecializationTab({ onAddEvent }: SpecializationTabProps) {
   const { state, dispatch } = useGame();
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const { t } = useTranslation();
   
-  // Получаем текущую специализацию из состояния
-  const currentSpecialization = state.player?.specialization || state.specialization;
-  
-  // Эффект для установки выбранной роли при загрузке компонента
-  useEffect(() => {
-    if (currentSpecialization) {
-      setSelectedRole(currentSpecialization);
+  // Специализации
+  const specializations = [
+    {
+      id: 'miner',
+      name: 'Майнер',
+      description: 'Фокусируется на эффективном майнинге криптовалют',
+      effects: [
+        '+25% к эффективности майнинга',
+        '+10% к максимальной вычислительной мощности',
+        '-15% к энергопотреблению майнеров'
+      ]
+    },
+    {
+      id: 'trader',
+      name: 'Трейдер',
+      description: 'Эксперт по торговле и обмену криптовалютами',
+      effects: [
+        '+15% к курсу обмена криптовалют',
+        '-20% комиссия при обмене',
+        '+10% к максимальному хранению валют'
+      ]
+    },
+    {
+      id: 'investor',
+      name: 'Инвестор',
+      description: 'Профессионал в долгосрочных инвестициях',
+      effects: [
+        '+20% к пассивному доходу',
+        '+25% к эффективности стейкинга',
+        '+15% к максимальному хранению всех ресурсов'
+      ]
+    },
+    {
+      id: 'analyst',
+      name: 'Аналитик',
+      description: 'Эксперт по анализу данных и прогнозированию',
+      effects: [
+        '+25% к эффективности исследований',
+        '-20% к стоимости улучшений',
+        '+10% к всем производственным бонусам'
+      ]
+    },
+    {
+      id: 'influencer',
+      name: 'Инфлюенсер',
+      description: 'Специалист по социальному влиянию и сообществам',
+      effects: [
+        '+30% к реферальным бонусам',
+        '+20% к эффективности коллективных проектов',
+        '+15% к репутации в сообществе'
+      ]
     }
-  }, [currentSpecialization]);
+  ];
   
-  // Обработчик выбора специализации
-  const handleRoleSelect = (roleId: string) => {
-    setSelectedRole(roleId);
-  };
-  
-  // Обработчик подтверждения выбора специализации
   const handleChooseSpecialization = (specializationId: string) => {
-    dispatch({
-      type: "CHOOSE_SPECIALIZATION",
+    dispatch({ 
+      type: "CHOOSE_SPECIALIZATION", 
       payload: { specializationId }
     });
-  };
-  
-  // Проверка доступности роли
-  const isRoleAvailable = (roleId: string) => {
-    const role = roles[roleId];
-    if (!role.requiredUpgrades) return true;
     
-    return role.requiredUpgrades.every(upgradeId => 
-      state.upgrades[upgradeId]?.purchased
-    );
-  };
-  
-  // Получение списка требуемых апгрейдов для роли
-  const getRequiredUpgrades = (roleId: string) => {
-    const role = roles[roleId];
-    if (!role.requiredUpgrades) return [];
-    
-    return role.requiredUpgrades.map(upgradeId => ({
-      id: upgradeId,
-      name: state.upgrades[upgradeId]?.name || upgradeId,
-      purchased: state.upgrades[upgradeId]?.purchased || false
-    }));
-  };
-  
-  // Форматирование бонуса для отображения
-  const formatBonus = (key: string, value: number) => {
-    const sign = value >= 0 ? '+' : '';
-    const percentage = Math.abs(value * 100).toFixed(0);
-    return `${sign}${percentage}% ${key}`;
+    const spec = specializations.find(s => s.id === specializationId);
+    if (spec) {
+      onAddEvent(`Выбрана специализация: ${spec.name}`, "success");
+    }
   };
   
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Выбор специализации</h1>
+    <div className="p-4">
+      <h2 className="text-lg font-semibold mb-4">Выберите специализацию</h2>
+      <p className="text-sm text-gray-600 mb-6">
+        Специализация определяет уникальные бонусы для вашего развития. 
+        Выбор можно изменить только после престижа.
+      </p>
       
-      {currentSpecialization && (
-        <Alert className="mb-4">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Текущая специализация: {roles[currentSpecialization]?.name || currentSpecialization}</AlertTitle>
-          <AlertDescription>
-            Вы уже выбрали специализацию. Изменить её можно будет после престижа.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(roles).map(([roleId, role]) => {
-          const isAvailable = isRoleAvailable(roleId);
-          const isSelected = selectedRole === roleId;
-          const isActive = currentSpecialization === roleId;
-          const requiredUpgrades = getRequiredUpgrades(roleId);
-          
-          return (
-            <Card 
-              key={roleId} 
-              className={`
-                ${isSelected ? 'border-blue-500 shadow-md' : ''}
-                ${isActive ? 'bg-blue-50' : ''}
-                ${!isAvailable ? 'opacity-70' : ''}
-              `}
-            >
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>{role.name}</CardTitle>
-                  {isActive && <Badge>Активно</Badge>}
-                </div>
-                <CardDescription>{role.description}</CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="mb-4">
-                  <AspectRatio ratio={16/9} className="bg-muted rounded-md overflow-hidden">
-                    <div className="flex items-center justify-center h-full">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={`/images/roles/${roleId}.png`} alt={role.name} />
-                        <AvatarFallback>{role.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </AspectRatio>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Бонусы:</h3>
-                  <ul className="text-sm space-y-1">
-                    {Object.entries(role.bonuses).map(([key, value]) => (
-                      <li key={key} className="flex justify-between">
-                        <span>{key}</span>
-                        <span className="text-green-600">{formatBonus(key, value)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                {requiredUpgrades.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <h3 className="text-sm font-medium">Требуемые исследования:</h3>
-                    <ul className="text-sm space-y-1">
-                      {requiredUpgrades.map(upgrade => (
-                        <li key={upgrade.id} className="flex justify-between">
-                          <span>{upgrade.name}</span>
-                          <span className={upgrade.purchased ? 'text-green-600' : 'text-red-600'}>
-                            {upgrade.purchased ? '✓' : '✗'}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </CardContent>
-              
-              <CardFooter>
-                <div className="w-full space-y-2">
-                  <Button
-                    variant={isSelected ? "default" : "outline"}
-                    className="w-full"
-                    onClick={() => handleRoleSelect(roleId)}
-                    disabled={!isAvailable || isActive}
-                  >
-                    {isSelected ? 'Выбрано' : 'Выбрать'}
-                  </Button>
-                  
-                  {isSelected && !isActive && (
-                    <Button
-                      variant="default"
-                      className="w-full"
-                      onClick={() => handleChooseSpecialization(roleId)}
-                      disabled={!isAvailable || isActive}
-                    >
-                      Подтвердить выбор
-                    </Button>
-                  )}
-                </div>
-              </CardFooter>
-            </Card>
-          );
-        })}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {specializations.map(spec => (
+          <div 
+            key={spec.id}
+            className={`
+              border rounded-lg p-4 hover:border-blue-500 cursor-pointer transition-colors
+              ${state.specialization === spec.id ? 'bg-blue-50 border-blue-500' : 'bg-white'}
+            `}
+            onClick={() => handleChooseSpecialization(spec.id)}
+          >
+            <h3 className="font-medium text-lg">{spec.name}</h3>
+            <p className="text-sm text-gray-600 mb-2">{spec.description}</p>
+            <div className="mt-2">
+              <span className="text-sm font-semibold">Эффекты:</span>
+              <ul className="mt-1 text-sm">
+                {spec.effects.map((effect, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-green-500 mr-1">•</span>
+                    <span>{effect}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
+
+// Именованный экспорт по умолчанию для обратной совместимости
+export default SpecializationTab;

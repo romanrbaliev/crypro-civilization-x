@@ -1,39 +1,67 @@
 
 import React from 'react';
-import { useGameState } from '@/context/GameStateContext';
-import { useTranslation } from '@/i18n';
+import { Resource } from '@/context/types';
 import { formatNumber } from '@/utils/helpers';
-import { TranslationKey } from '@/i18n/types';
+import { Zap, TrendingUp } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
-export function ResourceContainer() {
-  const { state } = useGameState();
+interface ResourceContainerProps {
+  resource: Resource;
+  onClick?: () => void;
+  className?: string;
+}
+
+export const ResourceContainer: React.FC<ResourceContainerProps> = ({ 
+  resource, 
+  onClick,
+  className = ""
+}) => {
   const { t } = useTranslation();
   
-  // Фильтруем только разблокированные ресурсы
-  const unlockedResources = Object.values(state.resources).filter(
-    resource => resource.unlocked
-  );
+  // Функция для получения ключа перевода ресурса
+  const getResourceTranslationKey = (resourceId: string): string => {
+    // Мэппинг ID ресурсов в ключи перевода
+    const resourceKeyMap: Record<string, string> = {
+      'knowledge': 'resources.knowledge',
+      'usdt': 'resources.usdt',
+      'electricity': 'resources.electricity', 
+      'computingPower': 'resources.computingPower',
+      'bitcoin': 'resources.bitcoin'
+    };
+    
+    return resourceKeyMap[resourceId] || `resources.${resourceId}`;
+  };
   
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm">
-      <h2 className="text-lg font-medium mb-3">{t('resources.title')}</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {unlockedResources.map((resource) => (
-          <div key={resource.id} className="flex justify-between items-center border-b pb-1">
-            <div className="flex items-center">
-              <span className="text-sm font-medium">{t(`resources.${resource.id}` as TranslationKey)}</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-bold">{formatNumber(resource.value)}</span>
-              {resource.perSecond !== 0 && (
-                <span className={`text-xs ${resource.perSecond > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {resource.perSecond > 0 ? '+' : ''}{formatNumber(resource.perSecond)}{t('resources.perSecond')}
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+    <div 
+      className={`bg-white p-3 rounded-lg shadow-sm border border-gray-100 
+        flex justify-between items-center ${className} 
+        ${onClick ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+      onClick={onClick}
+    >
+      <div>
+        <div className="text-sm font-medium">
+          {t(getResourceTranslationKey(resource.id) as any)}
+        </div>
+        <div className="text-lg font-semibold">
+          {formatNumber(resource.value)}
+          {resource.max !== Infinity && (
+            <span className="text-xs text-gray-500">
+              /{formatNumber(resource.max)}
+            </span>
+          )}
+        </div>
       </div>
+      
+      {resource.perSecond !== 0 && (
+        <div className={`px-2 py-1 rounded-md flex items-center text-xs
+          ${resource.perSecond > 0 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
+          {resource.perSecond > 0 ? <TrendingUp size={12} className="mr-1" /> : <Zap size={12} className="mr-1" />}
+          {formatNumber(resource.perSecond)}/{t('resources.perSecond')}
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default ResourceContainer;
