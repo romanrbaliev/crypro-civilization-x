@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { GameState } from '@/context/types';
 import { getUserIdentifier } from '../userIdentification';
@@ -41,22 +40,19 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
         // Создаем таблицу, если её нет
         // Импортируем динамически для избежания циклических зависимостей
         const { createSavesTableIfNotExists } = await import('../tableManagement');
-        const tableCreated = await createSavesTableIfNotExists();
-        
-        if (tableCreated) {
-          console.log('✅ Таблица сохранений создана');
+        await createSavesTableIfNotExists();
+        console.log('✅ Таблица сохранений создана');
           
-          // Сразу попытаемся получить данные еще раз (после создания таблицы)
-          const retryResult = await supabase
-            .from(SAVES_TABLE)
-            .select('game_data, updated_at')
-            .eq('user_id', userId)
-            .maybeSingle();
+        // Сразу попытаемся получить данные еще раз (после создания таблицы)
+        const retryResult = await supabase
+          .from(SAVES_TABLE)
+          .select('game_data, updated_at')
+          .eq('user_id', userId)
+          .maybeSingle();
             
-          if (retryResult.data && retryResult.data.game_data) {
-            console.log('✅ Данные успешно загружены после создания таблицы');
-            return retryResult.data.game_data as any;
-          }
+        if (retryResult.data && retryResult.data.game_data) {
+          console.log('✅ Данные успешно загружены после создания таблицы');
+          return retryResult.data.game_data as any;
         }
       }
       

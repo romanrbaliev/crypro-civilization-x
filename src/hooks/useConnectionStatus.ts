@@ -1,56 +1,64 @@
 
 import { useState, useEffect } from 'react';
-import { checkSupabaseConnection, createSavesTableIfNotExists } from '@/api/gameDataService';
+import { checkSupabaseConnection } from '@/api/connectionUtils';
 
 /**
- * Хук для отслеживания статуса соединения
+ * Хук для проверки статуса соединения
  */
-export const useConnectionStatus = () => {
-  const [hasConnection, setHasConnection] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [cloudflareError, setCloudflareError] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("Загрузка игры...");
-
+export function useConnectionStatus() {
+  const [hasConnection, setHasConnection] = useState<boolean>(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [cloudflareError, setCloudflareError] = useState<boolean>(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>('Инициализация...');
+  
+  // Проверка соединения при инициализации
   useEffect(() => {
-    const checkConnection = async () => {
-      setLoadingMessage("Проверка соединения с сервером...");
-      const isConnected = await checkSupabaseConnection();
-      setHasConnection(isConnected);
-      
-      if (isConnected) {
-        try {
-          await createSavesTableIfNotExists();
-          console.log('✅ Проверка и создание таблиц в Supabase выполнены');
-        } catch (error) {
-          console.error('❌ Ошибка при проверке/создании таблиц:', error);
-        }
-      } else {
-        window.__cloudflareRetryCount = (window.__cloudflareRetryCount || 0) + 1;
+    async function checkConnection() {
+      try {
+        // Счетчик для отслеживания ошибок Cloudflare
+        let retryCount = window.__cloudflareRetryCount || 0;
         
-        if (window.__cloudflareRetryCount > 3) {
-          setCloudflareError(true);
-          console.error('❌ Возможно проблема с Cloudflare или сервер недоступен');
+        setLoadingMessage('Проверка соединения...');
+        
+        // Проверяем соединение с Supabase
+        const connected = await checkSupabaseConnection();
+        
+        if (connected) {
+          setHasConnection(true);
+          setCloudflareError(false);
+          window.__cloudflareRetryCount = 0;
+          setLoadingMessage('Соединение установлено');
+        } else {
+          // Увеличиваем счетчик ошибок
+          retryCount++;
+          window.__cloudflareRetryCount = retryCount;
+          
+          // Если много ошибок подряд, считаем что проблема с Cloudflare
+          if (retryCount >= 3) {
+            setCloudflareError(true);
+            setLoadingMessage('Ошибка соединения с сервером');
+          } else {
+            setHasConnection(false);
+            setLoadingMessage('Нет соединения с сервером. Попытка подключения...');
+            
+            // Повторяем попытку через 2 секунды
+            setTimeout(checkConnection, 2000);
+            return;
+          }
         }
         
-        console.error('❌ Нет соединения с Supabase, попытка:', window.__cloudflareRetryCount);
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Ошибка при проверке соединения:', error);
+        setHasConnection(false);
+        setIsInitialized(true);
+        setLoadingMessage('Ошибка при проверке соединения');
       }
-      
-      setIsInitialized(true);
-    };
+    }
     
     checkConnection();
-    
-    const intervalId = setInterval(async () => {
-      const isConnected = await checkSupabaseConnection();
-      
-      if (isConnected !== hasConnection) {
-        setHasConnection(isConnected);
-      }
-    }, 30000); // Проверка соединения каждые 30 секунд
-    
-    return () => clearInterval(intervalId);
-  }, [hasConnection]);
-
+  }, []);
+  
   return {
     hasConnection,
     isInitialized,
@@ -58,4 +66,4 @@ export const useConnectionStatus = () => {
     loadingMessage,
     setLoadingMessage
   };
-};
+}

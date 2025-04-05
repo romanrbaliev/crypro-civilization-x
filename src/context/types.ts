@@ -12,6 +12,7 @@ export interface Resource {
   baseProduction: number;
   production: number;
   perSecond: number;
+  consumption?: number; // Добавляем для исправления ошибок в ResourceProductionService
 }
 
 export interface Building {
@@ -26,6 +27,7 @@ export interface Building {
   production?: { [key: string]: number };
   consumption?: { [key: string]: number };
   productionBoost?: number;
+  effects?: { [key: string]: number }; // Добавляем effects для здания
 }
 
 export interface Upgrade {
@@ -37,6 +39,9 @@ export interface Upgrade {
   unlocked: boolean;
   cost: { [key: string]: number };
   effects?: { [key: string]: number };
+  category?: string; // Добавляем для TechTree
+  tier?: number; // Добавляем для TechTree
+  specialization?: string; // Для системы специализаций
 }
 
 export interface Counter {
@@ -49,6 +54,8 @@ export interface ReferralInfo {
   id: string;
   username?: string;
   activated: boolean;
+  hired?: boolean; // Добавляем для referralReducer
+  assignedBuildingId?: string; // Добавляем для referralReducer
 }
 
 export interface ReferralHelper {
@@ -57,7 +64,17 @@ export interface ReferralHelper {
   employerId: string;
   buildingId: string;
   status: string;
-  created?: number;
+  created?: number; // Это уже существует, не createdAt
+}
+
+// Специализации
+export interface SpecializationSynergy {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+  effects: { [key: string]: number };
+  requirement?: { [key: string]: number };
 }
 
 // Параметры майнинга
@@ -70,6 +87,12 @@ export interface MiningParams {
   volatility: number;
   exchangePeriod: number;
   baseConsumption: number;
+}
+
+// Обновляем интерфейс для обновления статуса реферала
+export interface ReferralStatusUpdate {
+  referralId: string;
+  activated: boolean;
 }
 
 // Основное состояние игры
@@ -90,6 +113,7 @@ export interface GameState {
   featureFlags: { [key: string]: boolean };
   buildingUnlocked: { [key: string]: boolean };
   specializationSynergies: { [key: string]: any };
+  specialization?: string; // Добавляем поле для специализации
   referralCode: string | null;
   referredBy: string | null;
   referrals: ReferralInfo[];
@@ -137,4 +161,6 @@ export type GameAction =
   | { type: 'UPDATE_RESOURCES'; payload?: any }
   | { type: 'FORCE_RESOURCE_UPDATE'; }
   | { type: 'FORCE_CHECK_UNLOCKS'; }
-  | { type: 'UPDATE_HELPERS'; payload: { updatedHelpers: ReferralHelper[] } };
+  | { type: 'UPDATE_HELPERS'; payload: { updatedHelpers: ReferralHelper[] } }
+  | { type: 'CHOOSE_SPECIALIZATION'; payload: { roleId: string } }
+  | { type: 'CHECK_EQUIPMENT_STATUS'; };

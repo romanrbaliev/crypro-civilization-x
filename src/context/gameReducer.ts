@@ -93,7 +93,9 @@ function shouldCheckUnlocks(actionType: string): boolean {
     'LOAD_GAME',
     'START_GAME',
     'MINING_POWER',
-    'EXCHANGE_BTC'
+    'EXCHANGE_BTC',
+    'CHOOSE_SPECIALIZATION',
+    'CHECK_EQUIPMENT_STATUS'
   ];
   
   return unlockAffectingActions.includes(actionType);
@@ -171,6 +173,14 @@ function handleAction(state: GameState, action: GameAction): GameState {
     case 'SYNERGY_ACTION':
       return synergyReducer(state);
       
+    // Добавляем обработку CHOOSE_SPECIALIZATION
+    case 'CHOOSE_SPECIALIZATION':
+      return processChooseSpecialization(state, action.payload);
+    
+    // Добавляем обработку CHECK_EQUIPMENT_STATUS
+    case 'CHECK_EQUIPMENT_STATUS':
+      return processCheckEquipmentStatus(state);
+    
     // Обработка реферальной системы
     case 'SET_REFERRAL_CODE':
       return processSetReferralCode(state, action.payload);
@@ -183,11 +193,29 @@ function handleAction(state: GameState, action: GameAction): GameState {
     case 'RESPOND_TO_HELPER_REQUEST':
       return processRespondToHelperRequest(state, action.payload);
     case 'UPDATE_REFERRAL_STATUS':
-      return processUpdateReferralStatus(state, action.payload);
+      return processUpdateReferralStatus(state, { 
+        referralId: action.payload.referralId, 
+        activated: action.payload.status 
+      });
     case 'INITIALIZE_REFERRAL_SYSTEM':
       return initializeReferralSystem(state);
       
     default:
       return state;
   }
+}
+
+// Вспомогательные функции для обработки специализаций
+function processChooseSpecialization(state: GameState, payload: { roleId: string }): GameState {
+  return {
+    ...state,
+    specialization: payload.roleId
+  };
+}
+
+// Вспомогательная функция для проверки состояния оборудования
+function processCheckEquipmentStatus(state: GameState): GameState {
+  // Здесь будет логика проверки состояния оборудования
+  // Например, проверка электричества для компьютеров
+  return state;
 }

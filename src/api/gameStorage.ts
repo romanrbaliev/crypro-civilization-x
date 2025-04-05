@@ -2,6 +2,7 @@
 import { GameState } from '@/context/types';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserIdentifier } from './userIdentification';
+import { Json } from '@/integrations/supabase/types';
 
 /**
  * Сохраняет состояние игры на сервере
@@ -17,12 +18,15 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       return false;
     }
     
+    // Конвертируем GameState в JSON-объект для Supabase
+    const gameDataAsJson = JSON.parse(JSON.stringify(gameState)) as Json;
+    
     // Сохраняем состояние игры в таблицу game_saves
     const { error } = await supabase
       .from('game_saves')
       .upsert({
         user_id: userId,
-        game_data: gameState,
+        game_data: gameDataAsJson,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id'
@@ -70,9 +74,76 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
       return null;
     }
     
-    return data.game_data as GameState;
+    // Преобразуем данные из JSON в GameState
+    const gameState = data.game_data as unknown as GameState;
+    return gameState;
   } catch (error) {
     console.error('❌ Ошибка при загрузке игры:', error);
     return null;
   }
 };
+
+// Функция загрузки состояния игры (необходимая для useGameLoader)
+export const loadGameState = loadGameFromServer;
+
+// Функции очистки сохраненных данных
+export const clearAllSavedData = async (): Promise<boolean> => {
+  try {
+    const userId = await getUserIdentifier();
+    
+    if (!userId) {
+      console.error('❌ Не удалось получить ID пользователя для очистки данных');
+      return false;
+    }
+    
+    const { error } = await supabase
+      .from('game_saves')
+      .delete()
+      .eq('user_id', userId);
+      
+    if (error) {
+      console.error('❌ Ошибка при очистке сохранения:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Ошибка при очистке сохранения:', error);
+    return false;
+  }
+};
+
+// Функция полной очистки для администраторов
+export const clearAllSavedDataForAllUsers = async (): Promise<boolean> => {
+  try {
+    // Это опасная операция, поэтому добавим дополнительные проверки
+    const isAdmin = await checkAdminPermission();
+    
+    if (!isAdmin) {
+      console.error('❌ Отказано в доступе: Требуются права администратора');
+      return false;
+    }
+    
+    const { error } = await supabase
+      .from('game_saves')
+      .delete()
+      .neq('user_id', 'system'); // Исключаем системные данные
+      
+    if (error) {
+      console.error('❌ Ошибка при очистке всех сохранений:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Ошибка при очистке всех сохранений:', error);
+    return false;
+  }
+};
+
+// Вспомогательная функция для проверки прав администратора
+async function checkAdminPermission(): Promise<boolean> {
+  // В реальном приложении здесь будет проверка прав администратора
+  // Для примера всегда возвращаем false, чтобы предотвратить случайную очистку
+  return false;
+}

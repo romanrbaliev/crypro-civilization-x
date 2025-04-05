@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { GameState } from '@/context/types';
 import { Json } from '@/integrations/supabase/types';
@@ -174,22 +173,21 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
       if (error.code === 'PGRST116') {
         // Импортируем динамически для избежания циклических зависимостей
         const { createSavesTableIfNotExists } = await import('../tableManagement');
-        const tableCreated = await createSavesTableIfNotExists();
-        
-        if (tableCreated) {
-          // Повторяем попытку сохранения
-          const { error: retryError } = await supabase
-            .from(SAVES_TABLE)
-            .upsert(saveData, { onConflict: 'user_id' });
-            
-          if (retryError) {
-            console.warn('⚠️ Ошибка при повторном сохранении в Supabase:', retryError);
-            return false;
-          }
+        await createSavesTableIfNotExists();
+        console.log('Таблица создана, повторяем попытку сохранения');
           
-          console.log('✅ Игра успешно сохранена после создания таблицы');
-          return true;
+        // Повторяем попытку сохранения
+        const { error: retryError } = await supabase
+          .from(SAVES_TABLE)
+          .upsert(saveData, { onConflict: 'user_id' });
+            
+        if (retryError) {
+          console.warn('⚠️ Ошибка при повторном сохранении в Supabase:', retryError);
+          return false;
         }
+          
+        console.log('✅ Игра успешно сохранена после создания таблицы');
+        return true;
       }
       
       // Даже при ошибке продолжаем игру

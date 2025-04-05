@@ -7,5 +7,14 @@ export { createSavesTableIfNotExists } from './tableManagement';
 export { getUserIdentifier } from './userIdentification';
 export { 
   saveGameToServer, 
-  loadGameFromServer 
+  loadGameFromServer,
+  clearAllSavedData,
+  clearAllSavedDataForAllUsers
 } from './gameStorage';
+
+// Реферальная система
+export { 
+  saveReferralInfo, 
+  checkReferralInfo,
+  activateReferral
+} from './referral';
