@@ -353,7 +353,6 @@ export const initialState: GameState = {
     }
   },
   
-  // Системные флаги для разблокировки элементов игры
   unlocks: {
     usdt: false,
     research: false,
@@ -367,7 +366,6 @@ export const initialState: GameState = {
     autoSell: false
   },
   
-  // Настройки майнинга
   miningParams: {
     difficulty: 1,
     hashrate: 0,
@@ -381,7 +379,6 @@ export const initialState: GameState = {
     volatility: 0.05
   },
   
-  // Система специализаций
   specializations: {
     miner: {
       id: 'miner',
@@ -418,7 +415,6 @@ export const initialState: GameState = {
     }
   },
   
-  // Система синергий между специализациями
   synergies: {
     minerTrader: {
       id: 'minerTrader',
@@ -458,7 +454,6 @@ export const initialState: GameState = {
     }
   },
   
-  // Реферальная система
   referralCode: null,
   referrals: [],
   referralHelpers: []

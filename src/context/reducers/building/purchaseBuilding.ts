@@ -12,7 +12,7 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
   }
   
   // Проверяем, что у здания есть стоимость
-  if (!building.cost) {
+  if (!building.cost || Object.keys(building.cost).length === 0) {
     console.error(`Building ${buildingId} does not have a cost defined`);
     return state;
   }
@@ -50,7 +50,7 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     cost: newCost
   };
   
-  // Обновляем счетчики
+  // Обновляем счетчики и разблокируем соответствующие ресурсы/функции
   if (buildingId === 'practice' && building.count === 0) {
     const practiceBuilt = newState.counters.practiceBuilt?.value || 0;
     

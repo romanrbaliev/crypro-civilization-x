@@ -1,4 +1,3 @@
-
 import { GameState, Resource, ResourceType } from '../types';
 
 // Функция для обработки покупки здания
@@ -59,6 +58,17 @@ export const processBuildingPurchase = (state: GameState, buildingId: string): G
   return newState;
 };
 
+// Вспомогательная функция для расчета следующей стоимости здания
+const calculateNextCost = (building: any): Record<string, number> => {
+  const nextCost: Record<string, number> = {};
+  
+  for (const [resourceId, cost] of Object.entries(building.cost)) {
+    nextCost[resourceId] = Math.floor(Number(cost) * building.costMultiplier);
+  }
+  
+  return nextCost;
+};
+
 // Функция для продажи здания
 export const processBuildingSell = (state: GameState, buildingId: string): GameState => {
   const building = state.buildings[buildingId];
@@ -99,17 +109,6 @@ export const processBuildingSell = (state: GameState, buildingId: string): GameS
   newState.buildings = buildings;
   
   return newState;
-};
-
-// Вспомогательная функция для расчета следующей стоимости здания
-const calculateNextCost = (building: any): Record<string, number> => {
-  const nextCost: Record<string, number> = {};
-  
-  for (const [resourceId, cost] of Object.entries(building.cost)) {
-    nextCost[resourceId] = Math.floor(Number(cost) * building.costMultiplier);
-  }
-  
-  return nextCost;
 };
 
 // Вспомогательная функция для расчета предыдущей стоимости здания

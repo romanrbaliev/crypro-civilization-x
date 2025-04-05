@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -45,8 +46,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return false;
     }
     
-    const nextCost = building.cost;
-    for (const [resourceId, amount] of Object.entries(nextCost)) {
+    for (const [resourceId, amount] of Object.entries(building.cost)) {
       const resource = state.resources[resourceId];
       if (!resource || resource.value < Number(amount)) {
         return false;
