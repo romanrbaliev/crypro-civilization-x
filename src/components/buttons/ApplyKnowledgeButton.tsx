@@ -1,50 +1,62 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { useGame } from '@/context/GameContext';
-import { DollarSign } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-const ApplyKnowledgeButton: React.FC = () => {
-  const { dispatch, state } = useGame();
+interface ApplyKnowledgeButtonProps {
+  onClick: () => void;
+  disabled: boolean;
+  knowledgeEfficiencyBonus?: number;
+  className?: string;
+  knowledgeValue?: number;
+  applyAll?: boolean;
+}
+
+export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({ 
+  onClick, 
+  disabled,
+  knowledgeEfficiencyBonus = 0,
+  className = "",
+  knowledgeValue = 0,
+  applyAll = false
+}) => {
+  const buttonText = "Применить знания";
   
-  const handleApplyKnowledge = () => {
-    if (state.resources.knowledge?.value < 10) {
-      toast({
-        title: "Недостаточно знаний",
-        description: "Для обмена нужно минимум 10 знаний",
-        variant: "warning",
-      });
-      return;
-    }
-    
-    dispatch({ type: 'APPLY_KNOWLEDGE' });
-  };
-  
-  // Проверяем, есть ли достаточно знаний для обмена (минимум 10)
-  const hasEnoughKnowledge = state.resources.knowledge?.value >= 10;
-  
-  // Рассчитываем, сколько USDT можно получить
-  const knowledgeAmount = state.resources.knowledge?.value || 0;
-  const exchangeableAmount = Math.floor(knowledgeAmount / 10) * 10;
-  const usdtToGet = exchangeableAmount / 10;
+  const bonusText = knowledgeEfficiencyBonus > 0 
+    ? `+${knowledgeEfficiencyBonus * 100}% к эффективности`
+    : '';
   
   return (
-    <Button 
-      onClick={handleApplyKnowledge} 
-      className="w-full flex justify-between items-center"
-      disabled={!hasEnoughKnowledge}
-      variant={hasEnoughKnowledge ? "default" : "outline"}
-    >
-      <span className="flex items-center">
-        <DollarSign className="mr-2 h-5 w-5" /> Применить знания
-      </span>
-      {hasEnoughKnowledge && (
-        <span className="text-xs bg-primary-foreground text-primary px-2 py-1 rounded-full">
-          {exchangeableAmount} → {usdtToGet} USDT
-        </span>
-      )}
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            onClick={onClick}
+            className={`w-full ${className}`}
+            variant={disabled ? "outline" : "default"}
+            size="sm"
+            disabled={disabled}
+          >
+            {buttonText}
+          </Button>
+        </TooltipTrigger>
+        {disabled && (
+          <TooltipContent>
+            <p>Требуется 10 знаний</p>
+          </TooltipContent>
+        )}
+        {!disabled && bonusText && (
+          <TooltipContent>
+            <p>{bonusText}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useGame } from "@/context/hooks/useGame";
-import UpgradeItem from "./UpgradeItem";
+import UpgradeItem from "./components/UpgradeItem";
 import { Beaker } from "lucide-react";
 
 interface ResearchTabProps {

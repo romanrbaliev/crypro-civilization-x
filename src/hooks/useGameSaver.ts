@@ -1,49 +1,24 @@
 
-import { useEffect, useRef } from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { saveGameToServer } from '@/api/gameStorage/saveGame';
-import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { convertGameState } from '@/utils/typeConverters';
+import { useEffect } from 'react';
+import { useGameState } from '../context/GameStateContext';
+import { saveGame } from '@/utils/gameSaver';
 
-export const useGameSaver = (autosaveInterval = 30000) => {
-  const { state } = useGame();
-  const lastSavedRef = useRef<number>(Date.now());
+/**
+ * Хук для автоматического сохранения игры
+ */
+export function useGameSaver() {
+  const { state } = useGameState();
   
-  // Функция ручного сохранения
-  const saveGame = async () => {
-    try {
-      // Используем функцию-помощник для преобразования типов
-      const typedState = convertGameState(state);
-      const success = await saveGameToServer(typedState);
-      
-      if (success) {
-        lastSavedRef.current = Date.now();
-        safeDispatchGameEvent('Игра успешно сохранена', 'success');
-        return true;
-      } else {
-        safeDispatchGameEvent('Не удалось сохранить игру', 'warning');
-        return false;
-      }
-    } catch (error) {
-      console.error('Ошибка при сохранении:', error);
-      safeDispatchGameEvent('Ошибка при сохранении игры', 'error');
-      return false;
-    }
-  };
-  
-  // Автосохранение с заданным интервалом
+  // Автосохранение каждые 30 секунд
   useEffect(() => {
     if (!state.gameStarted) return;
     
     const intervalId = setInterval(() => {
-      // Если прошло достаточно времени и игра запущена
-      if (Date.now() - lastSavedRef.current >= autosaveInterval && state.gameStarted) {
-        saveGame();
-      }
-    }, 5000); // Проверяем каждые 5 секунд
+      saveGame(state, true);
+    }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [state.gameStarted, autosaveInterval]);
+  }, [state]);
   
-  return { saveGame, lastSaved: lastSavedRef.current };
-};
+  return null;
+}

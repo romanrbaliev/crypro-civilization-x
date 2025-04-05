@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -42,8 +41,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   
   const canAfford = (): boolean => {
     const nextCost = getNextCost();
-    if (!nextCost) return false;
-    
     for (const [resourceId, amount] of Object.entries(nextCost)) {
       const resource = state.resources[resourceId];
       if (!resource || resource.value < Number(amount)) {
@@ -54,12 +51,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const getNextCost = () => {
-    // Проверяем, существует ли объект building.cost
-    if (!building || !building.cost) {
-      console.warn(`Здание ${building?.id || 'unknown'} не имеет свойства cost`);
-      return {};
-    }
-    
     const nextCost = {};
     for (const [resourceId, baseAmount] of Object.entries(building.cost)) {
       const multiplier = building.costMultiplier || 1.15;
@@ -84,10 +75,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   
   const renderCost = () => {
     const costs = building.count === 0 ? building.cost : getNextCost();
-    
-    // Проверяем, существует ли объект costs
-    if (!costs) return null;
-    
     return Object.entries(costs).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
       if (!resource) return null;

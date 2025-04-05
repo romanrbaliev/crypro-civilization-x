@@ -1,37 +1,29 @@
 
 import { useEffect } from 'react';
-import { useLocalReducer } from './useLocalReducer';
-import { useGame } from '@/context/hooks/useGame';
+import { GameState, GameAction } from '@/context/types';
 
-/**
- * Хук для обработки событий рефералов
- */
-export const useReferralEvents = () => {
-  const { dispatch } = useGame();
-
+export const useReferralEvents = (
+  state: GameState,
+  dispatch: React.Dispatch<GameAction>,
+  isLoading: boolean
+) => {
   useEffect(() => {
-    // Обработчик события обновления статуса реферала
-    const handleReferralStatusUpdate = (event: CustomEvent) => {
-      const { referralId, status } = event.detail;
+    if (!state.gameStarted || isLoading) return;
+    
+    const handleUpdateReferralStatus = (event: CustomEvent) => {
+      const { referralId, activated } = event.detail;
+      console.log(`Получено событие обновления статуса реферала: ${referralId}, активирован=${activated}`);
       
-      // Диспатчим действие обновления статуса реферала
       dispatch({
-        type: 'UPDATE_REFERRAL_STATUS',
-        payload: {
-          referralId,
-          activated: status === true,
-          hired: false,
-          buildingId: null
-        }
+        type: "UPDATE_REFERRAL_STATUS",
+        payload: { referralId, activated }
       });
     };
-
-    // Подписываемся на событие
-    window.addEventListener('referral-status-updated', handleReferralStatusUpdate as EventListener);
-
-    // Отписываемся при размонтировании
+    
+    window.addEventListener('update-referral-status', handleUpdateReferralStatus as EventListener);
+    
     return () => {
-      window.removeEventListener('referral-status-updated', handleReferralStatusUpdate as EventListener);
+      window.removeEventListener('update-referral-status', handleUpdateReferralStatus as EventListener);
     };
-  }, [dispatch]);
+  }, [state, isLoading, dispatch]);
 };

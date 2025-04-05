@@ -16,7 +16,6 @@ import {
   getUnlockedBuildingsByGroup, 
   getUnlockedUpgradesByGroup 
 } from '@/utils/researchUtils';
-import { convertGameState } from '@/utils/typeConverters';
 
 const UnlocksDebugger: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -30,22 +29,18 @@ const UnlocksDebugger: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   
   const checkUnlocks = () => {
-    // Используем функцию-помощник для преобразования типов
-    const typedState = convertGameState(state);
-    const result = debugUnlockStatus(typedState);
-    setDebugInfo({
-      unlocked: result.unlocked || [],
-      locked: result.locked || [],
-      steps: result.steps || []
-    });
+    const result = debugUnlockStatus(state);
+    setDebugInfo(result);
   };
   
+  // Автоматически обновляем данные при открытии окна
   React.useEffect(() => {
     if (isOpen) {
       checkUnlocks();
     }
   }, [isOpen, state]);
   
+  // Принудительно проверяем все разблокировки
   const forceCheckAll = () => {
     dispatch({ type: "FORCE_RESOURCE_UPDATE" });
     setTimeout(() => {
@@ -53,15 +48,15 @@ const UnlocksDebugger: React.FC = () => {
     }, 100);
   };
   
+  // Получаем информацию о разблокированных элементах
   const advancedBuildings = React.useMemo(() => {
     if (!isOpen) return null;
     
-    // Используем функцию-помощник для преобразования типов
-    const typedState = convertGameState(state);
-    
+    // Список продвинутых зданий
     const advancedBuildingsList = ['miner', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet'];
-    const unlockedBuildings = getUnlockedBuildingsByGroup(typedState, advancedBuildingsList);
+    const unlockedBuildings = getUnlockedBuildingsByGroup(state, advancedBuildingsList);
     
+    // Список продвинутых исследований
     const advancedUpgradesList = [
       'cryptoCurrencyBasics', 
       'algorithmOptimization', 
@@ -70,7 +65,7 @@ const UnlocksDebugger: React.FC = () => {
       'cryptoTrading', 
       'tradingBot'
     ];
-    const unlockedUpgrades = getUnlockedUpgradesByGroup(typedState, advancedUpgradesList);
+    const unlockedUpgrades = getUnlockedUpgradesByGroup(state, advancedUpgradesList);
     
     return {
       unlockedBuildings,
@@ -112,6 +107,7 @@ const UnlocksDebugger: React.FC = () => {
           </div>
         </div>
         
+        {/* Информация о продвинутых зданиях и исследованиях */}
         {advancedBuildings && (
           <div className="border-t pt-3 mt-2">
             <h4 className="font-medium mb-2">Продвинутый контент</h4>

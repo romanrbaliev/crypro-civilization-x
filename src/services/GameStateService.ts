@@ -1,203 +1,443 @@
-
 import { GameState } from '@/context/types';
+import { ResourceProductionService } from './ResourceProductionService';
+import { BonusCalculationService } from './BonusCalculationService';
+import { UnlockService } from './UnlockService';
+import { updateResourceMaxValues } from '@/context/utils/resourceUtils';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 /**
- * Сервис для управления состоянием игры
+ * Централизованный сервис для обработки изменений состояния игры
  */
 export class GameStateService {
+  private resourceProductionService: ResourceProductionService;
+  private bonusCalculationService: BonusCalculationService;
+  private unlockService: UnlockService;
   
-  /**
-   * Выполняет полную синхронизацию состояния игры
-   * @param state Текущее состояние игры
-   * @returns Обновленное состояние игры
-   */
-  performFullStateSync(state: GameState): GameState {
-    console.log('Выполняем полную синхронизацию состояния игры');
-    
-    const newState = { ...state };
-    
-    // Обновляем время последнего обновления
-    newState.lastUpdate = Date.now();
-    
-    // Проверяем разблокировки, если игра запущена
-    if (newState.gameStarted) {
-      newState.unlocks = this.checkAndUpdateUnlocks(newState);
-    }
-    
-    // Обновляем ресурсы
-    this.updateResourceProduction(newState);
-    
-    // Проверяем специальные события
-    this.checkSpecialEvents(newState);
-    
-    return newState;
+  constructor() {
+    this.resourceProductionService = new ResourceProductionService();
+    this.bonusCalculationService = new BonusCalculationService();
+    this.unlockService = new UnlockService();
   }
   
   /**
    * Обрабатывает обновление состояния игры
-   * @param state Текущее состояние игры
-   * @returns Обновленное состояние игры
    */
   processGameStateUpdate(state: GameState): GameState {
-    const newState = { ...state };
-    
-    // Обновляем ресурсы на основе зданий
-    this.updateResourcesBasedOnBuildings(newState);
-    
-    // Обновляем ограничения ресурсов
-    this.updateResourceLimits(newState);
-    
-    return newState;
+    try {
+      // Обновляем ресурсы на основе их производства
+      let newState = this.updateResourceProduction(state);
+      
+      // Проверяем необходимость разблокировки майнера после покупки Основ криптовалют
+      newState = this.checkCryptoUpgradeUnlocks(newState);
+      
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      
+      // Проверяем все разблокировки
+      newState = this.unlockService.checkAllUnlocks(newState);
+      
+      // Обновляем lastUpdate для отслеживания времени
+      newState = {
+        ...newState,
+        lastUpdate: Date.now()
+      };
+      
+      console.log("GameStateService: Обработка обновления состояния завершена успешно");
+      return newState;
+    } catch (error) {
+      console.error("GameStateService: Ошибка при обработке обновления состояния", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
+    }
   }
   
   /**
-   * Обновляет ресурсы на основе зданий
-   * @param state Состояние игры для обновления
+   * Проверяет необходимость разблокировки майнера и Bitcoin после покупки улучшения Основы криптовалют
    */
-  private updateResourcesBasedOnBuildings(state: GameState): void {
-    // Проходим по всем зданиям и применяем их эффекты на ресурсы
-    Object.values(state.buildings).forEach(building => {
-      if (building.count > 0) {
-        // Применяем производство
-        if (building.production) {
-          Object.entries(building.production).forEach(([resourceId, amount]) => {
-            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
-              state.resources[resourceId].perSecond = (state.resources[resourceId].perSecond || 0) + (amount * building.count);
-            }
-          });
+  private checkCryptoUpgradeUnlocks(state: GameState): GameState {
+    // Проверяем, куплено ли улучшение "Основы криптовалют"
+    const hasCryptoBasics = 
+      (state.upgrades.cryptoCurrencyBasics?.purchased === true) || 
+      (state.upgrades.cryptoBasics?.purchased === true);
+    
+    if (hasCryptoBasics) {
+      console.log("GameStateService: Обнаружено исследование 'Основы криптовалют', проверяем разблокировку майнера");
+      
+      let newState = {...state};
+      
+      // Принудительно разблокируем майнер по всем возможным ID
+      // Первый вариант - 'miner'
+      if (newState.buildings.miner) {
+        newState.buildings.miner = {
+          ...newState.buildings.miner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          miner: true
+        };
+        
+        console.log("GameStateService: Майнер (ID: miner) принудительно разблокирован");
+      }
+      
+      // Второй вариант - 'autoMiner'
+      if (newState.buildings.autoMiner) {
+        newState.buildings.autoMiner = {
+          ...newState.buildings.autoMiner,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          autoMiner: true
+        };
+        
+        console.log("GameStateService: Автомайнер (ID: autoMiner) принудительно разблокирован");
+      }
+      
+      // Принудительно разблокируем Bitcoin
+      if (!newState.resources.bitcoin) {
+        // Создаем ресурс если не существует
+        newState.resources.bitcoin = {
+          id: 'bitcoin',
+          name: 'Bitcoin',
+          description: 'Bitcoin - первая и основная криптовалюта',
+          type: 'currency',
+          icon: 'bitcoin',
+          value: 0,
+          baseProduction: 0,
+          production: 0,
+          perSecond: 0,
+          max: 0.01,
+          unlocked: true
+        };
+        
+        console.log("GameStateService: Ресурс Bitcoin создан");
+      } else {
+        // Разблокируем существующий ресурс
+        newState.resources.bitcoin = {
+          ...newState.resources.bitcoin,
+          unlocked: true
+        };
+        
+        console.log("GameStateService: Существующий Bitcoin разблокирован");
+      }
+      
+      // Устанавливаем флаг разблокировки Bitcoin
+      newState.unlocks = {
+        ...newState.unlocks,
+        bitcoin: true
+      };
+      
+      // Теперь проверим, есть ли сам майнер в зданиях
+      // Если его нет в списке зданий - добавим базовую версию
+      if (!newState.buildings.miner && !newState.buildings.autoMiner) {
+        console.log("GameStateService: Майнер отсутствует в списке зданий, создаем его");
+        
+        // Создаем майнер с базовыми параметрами - без свойств, которых нет в интерфейсе Building
+        newState.buildings.miner = {
+          id: 'miner',
+          name: 'Майнер',
+          description: 'Автоматически добывает Bitcoin',
+          cost: { usdt: 150 },
+          costMultiplier: 1.15,
+          count: 0,
+          unlocked: true,
+          type: 'production',
+          production: {
+            bitcoin: 0.00005
+          },
+          consumption: {
+            electricity: 1,
+            computingPower: 5
+          },
+          productionBoost: 0
+        };
+      }
+      
+      return newState;
+    }
+    
+    return state;
+  }
+  
+  /**
+   * Выполняет полную синхронизацию состояния
+   */
+  performFullStateSync(state: GameState): GameState {
+    try {
+      console.log("GameStateService: Выполняется полная синхронизация состояния");
+      
+      // Обновляем производство и потребление ресурсов
+      let newState = {
+        ...state,
+        resources: this.resourceProductionService.calculateResourceProduction(state)
+      };
+      
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      
+      // Полная перепроверка всех разблокировок
+      newState = this.unlockService.rebuildAllUnlocks(newState);
+      
+      // Принудительная проверка всех зданий, требующих ресурсы для работы
+      newState = this.checkEquipmentStatus(newState);
+      
+      // Дополнительная проверка разблокировки майнера после покупки Основ криптовалют
+      newState = this.checkCryptoUpgradeUnlocks(newState);
+      
+      // Обновляем lastUpdate для отслеживания времени
+      newState = {
+        ...newState,
+        lastUpdate: Date.now()
+      };
+      
+      console.log("GameStateService: Полная синхронизация состояния завершена успешно");
+      return newState;
+    } catch (error) {
+      console.error("GameStateService: Ошибка при полной синхронизации состояния", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
+    }
+  }
+  
+  /**
+   * Обрабатывает покупку здания
+   */
+  processBuildingPurchase(state: GameState, buildingId: string): GameState {
+    try {
+      // Обновляем все ресурсы по��ле покупки здания
+      let newState = this.updateResourceProduction(state);
+      
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      
+      // Проверяем все разблокировки
+      newState = this.unlockService.checkAllUnlocks(newState);
+      
+      // Обновляем lastUpdate для отслеживания времени
+      newState = {
+        ...newState,
+        lastUpdate: Date.now()
+      };
+      
+      return newState;
+    } catch (error) {
+      console.error("GameStateService: Ошибка при обработке покупки здания", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
+    }
+  }
+  
+  /**
+   * Обрабатывает покупку улучшения
+   */
+  processUpgradePurchase(state: GameState, upgradeId: string): GameState {
+    try {
+      console.log(`GameStateService: Обработка покупки улучшения ${upgradeId}`);
+      
+      // Обновляем производство ресурсов
+      let newState = this.updateResourceProduction(state);
+      
+      // Проверяем необходимость разблокировки майнера после покупки Основ криптовалют
+      if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
+        console.log("GameStateService: Особая обработка для улучшения 'Основы криптовалют'");
+        
+        // Принудительно разблокируем майнер по всем возможным ID
+        if (newState.buildings.miner) {
+          newState.buildings.miner = {
+            ...newState.buildings.miner,
+            unlocked: true
+          };
+          
+          newState.unlocks = {
+            ...newState.unlocks,
+            miner: true
+          };
+          
+          console.log("GameStateService: Майнер (ID: miner) принудительно разблокирован");
         }
         
-        // Применяем потребление
-        if (building.consumption) {
-          Object.entries(building.consumption).forEach(([resourceId, amount]) => {
-            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
-              state.resources[resourceId].perSecond = (state.resources[resourceId].perSecond || 0) - (amount * building.count);
-            }
-          });
+        if (newState.buildings.autoMiner) {
+          newState.buildings.autoMiner = {
+            ...newState.buildings.autoMiner,
+            unlocked: true
+          };
+          
+          newState.unlocks = {
+            ...newState.unlocks,
+            autoMiner: true
+          };
+          
+          console.log("GameStateService: Автомайнер (ID: autoMiner) принудительно разблокирован");
         }
-      }
-    });
-  }
-  
-  /**
-   * Обновляет лимиты ресурсов на основе зданий и исследований
-   * @param state Состояние игры для обновления
-   */
-  private updateResourceLimits(state: GameState): void {
-    // Сбрасываем лимиты к базовым значениям
-    Object.keys(state.resources).forEach(resourceId => {
-      const resource = state.resources[resourceId];
-      if (resource.unlocked) {
-        // Базовые лимиты для разных ресурсов
-        switch (resourceId) {
-          case 'knowledge':
-            resource.max = 100; // Базовый лимит для знаний
-            break;
-          case 'usdt':
-            resource.max = 500; // Базовый лимит для USDT
-            break;
-          case 'electricity':
-            resource.max = 1000; // Базовый лимит для электричества
-            break;
-          case 'computingPower':
-            resource.max = 1000; // Базовый лимит для вычислительной мощности
-            break;
-          case 'bitcoin':
-            resource.max = 1; // Базовый лимит для биткоина
-            break;
-          default:
-            resource.max = 100; // Стандартный лимит
+        
+        // Принудительно разблокируем Bitcoin
+        if (!newState.resources.bitcoin) {
+          // Создаем ресурс если не существует
+          newState.resources.bitcoin = {
+            id: 'bitcoin',
+            name: 'Bitcoin',
+            description: 'Bitcoin - первая и основная криптовалюта',
+            type: 'currency',
+            icon: 'bitcoin',
+            value: 0,
+            baseProduction: 0,
+            production: 0,
+            perSecond: 0,
+            max: 0.01,
+            unlocked: true
+          };
+          
+          console.log("GameStateService: Ресурс Bitcoin создан");
+        } else {
+          // Разблокируем существующий ресурс
+          newState.resources.bitcoin = {
+            ...newState.resources.bitcoin,
+            unlocked: true
+          };
+          
+          console.log("GameStateService: Существующий ресурс Bitcoin разблокирован");
         }
+        
+        // Устанавливаем флаг разблокировки Bitcoin
+        newState.unlocks = {
+          ...newState.unlocks,
+          bitcoin: true
+        };
+        
+        // Отправляем уведомление пользователю
+        safeDispatchGameEvent("Майнер и Bitcoin разблокированы!", "info");
       }
-    });
-    
-    // Применяем модификаторы от зданий
-    Object.values(state.buildings).forEach(building => {
-      if (building.count > 0 && building.effects) {
-        Object.entries(building.effects).forEach(([effectId, value]) => {
-          // Проверяем эффекты увеличения максимума ресурсов
-          if (effectId.startsWith('max') && effectId.length > 3) {
-            const resourceId = effectId.substring(3).toLowerCase();
-            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
-              state.resources[resourceId].max += value * building.count;
-            }
-          }
-        });
-      }
-    });
-    
-    // Применяем модификаторы от исследований
-    Object.values(state.upgrades).forEach(upgrade => {
-      if (upgrade.purchased && upgrade.effects) {
-        Object.entries(upgrade.effects).forEach(([effectId, value]) => {
-          // Проверяем эффекты увеличения максимума ресурсов
-          if (effectId.startsWith('max') && effectId.length > 3) {
-            const resourceId = effectId.substring(3).toLowerCase();
-            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
-              state.resources[resourceId].max += value;
-            }
-          }
-        });
-      }
-    });
-  }
-  
-  /**
-   * Проверяет и обновляет разблокировки
-   * @param state Текущее состояние игры
-   * @returns Обновленные разблокировки
-   */
-  private checkAndUpdateUnlocks(state: GameState): { [key: string]: boolean } {
-    const unlocks = { ...state.unlocks };
-    
-    // Здесь логика проверки разблокировок
-    // Например, базовые разблокировки в начале игры
-    
-    if (!unlocks.applyKnowledge && (state.counters.learnButtonClicks?.value || 0) >= 3) {
-      unlocks.applyKnowledge = true;
-      safeDispatchGameEvent('Разблокировано: "Применить знания"', 'success');
+      
+      // Обновляем все максимальные значения ресурсов
+      newState = updateResourceMaxValues(newState);
+      
+      // Обновляем lastUpdate для отслеживания времени
+      newState = {
+        ...newState,
+        lastUpdate: Date.now()
+      };
+      
+      return newState;
+    } catch (error) {
+      console.error("GameStateService: Ошибка при обработке покупки улучшения", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
     }
-    
-    if (!unlocks.practice && (state.counters.applyKnowledgeButtonClicks?.value || 0) >= 2) {
-      unlocks.practice = true;
-      safeDispatchGameEvent('Разблокировано: "Практика"', 'success');
-    }
-    
-    // Добавьте другие проверки разблокировок по мере необходимости
-    
-    return unlocks;
   }
   
   /**
    * Обновляет производство ресурсов
-   * @param state Текущее состояние игры
    */
-  private updateResourceProduction(state: GameState): void {
-    // Здесь логика расчета производства ресурсов
-    // Обновляем perSecond для всех ресурсов
-    
-    // Пример: обновление производства знаний на основе зданий
-    let knowledgePerSecond = state.resources.knowledge?.baseProduction || 0;
-    
-    // Добавляем производство от "Практики"
-    if (state.buildings.practice && state.buildings.practice.unlocked) {
-      const practiceCount = state.buildings.practice.count || 0;
-      knowledgePerSecond += practiceCount * 1; // 1 знание за каждую практику
-    }
-    
-    // Устанавливаем новое значение производства
-    if (state.resources.knowledge) {
-      state.resources.knowledge.perSecond = knowledgePerSecond;
+  private updateResourceProduction(state: GameState): GameState {
+    try {
+      // Обновляем все ресурсы на основе их производства
+      return {
+        ...state,
+        resources: this.resourceProductionService.calculateResourceProduction(state)
+      };
+    } catch (error) {
+      console.error("GameStateService: Ошибка при обновлении производства ресурсов", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
     }
   }
   
   /**
-   * Проверяет специальные события
-   * @param state Текущее состояние игры
+   * Проверяет статус оборудования, зависящего от ресурсов
    */
-  private checkSpecialEvents(state: GameState): void {
-    // Здесь логика проверки и обработки специальных событий
-    // Например, достижение определенных порогов, случайные события и т.д.
+  private checkEquipmentStatus(state: GameState): GameState {
+    try {
+      // TODO: Проверка статуса оборудования, зависящего от ресурсов
+      // Например, отключение майнеров при нехватке электричества
+      return state;
+    } catch (error) {
+      console.error("GameStateService: Ошибка при проверке статуса оборудования", error);
+      // В случае ошибки возвращаем исходное состояние
+      return state;
+    }
+  }
+  
+  /**
+   * Рассчитывает максимальное значение для указанного ресурса
+   */
+  calculateMaxValueForResource(state: GameState, resourceId: string): number {
+    let baseMax = 0;
+    let additionalMax = 0;
+    
+    // Определяем базовое значение максимума для разных ресурсов
+    switch (resourceId) {
+      case 'knowledge':
+        baseMax = 100;
+        break;
+      case 'usdt':
+        baseMax = 50;
+        break;
+      case 'electricity':
+        baseMax = 100;
+        break;
+      case 'computingPower':
+        baseMax = 1000;
+        break;
+      case 'bitcoin':
+        baseMax = 0.01;
+        break;
+      default:
+        baseMax = 100;
+    }
+    
+    // Добавляем константные значения от зданий для отдельных ресурсов
+    if (resourceId === 'usdt') {
+      // Криптокошелек добавляет +50 к макс. USDT
+      if (state.buildings.cryptoWallet) {
+        const walletCount = state.buildings.cryptoWallet.count || 0;
+        additionalMax += 50 * walletCount;
+      }
+      
+      // Улучшенный кошелек добавляет +150 к макс. USDT
+      if (state.buildings.improvedWallet) {
+        const improvedWalletCount = state.buildings.improvedWallet.count || 0;
+        additionalMax += 150 * improvedWalletCount;
+      }
+    } else if (resourceId === 'bitcoin') {
+      // Улучшенный кошелек добавляет +1 к макс. BTC
+      if (state.buildings.improvedWallet) {
+        const improvedWalletCount = state.buildings.improvedWallet.count || 0;
+        additionalMax += 1 * improvedWalletCount;
+      }
+    } else if (resourceId === 'knowledge') {
+      // Библиотека добавляет +100 к макс. знаниям
+      if (state.buildings.cryptoLibrary) {
+        const libraryCount = state.buildings.cryptoLibrary.count || 0;
+        additionalMax += 100 * libraryCount;
+      }
+    }
+    
+    // Получаем множитель максимального значения от улучшений и зданий
+    const multiplier = this.bonusCalculationService.calculateMaxValueMultiplier(state, resourceId);
+    
+    // Считаем итоговый максимум ресурса
+    let totalMax = baseMax * multiplier + additionalMax;
+    
+    // Если это знания и есть исследование "Основы блокчейна"
+    if (resourceId === 'knowledge') {
+      let totalMultiplier = 1.0;
+      
+      // Проверяем наличие исследования "Основы блокчейна"
+      if (state.upgrades.blockchainBasics?.purchased || 
+          state.upgrades.basicBlockchain?.purchased || 
+          state.upgrades.blockchain_basics?.purchased) {
+        // Увеличиваем общий множитель на 50%
+        totalMultiplier += 0.5;
+        console.log(`GameStateService: Множитель максимума знаний от Основ блокчейна: +50%`);
+      }
+      
+      console.log(`GameStateService: Итоговый множитель максимума знаний: ${totalMultiplier.toFixed(2)}`);
+      console.log(`GameStateService: Максимум knowledge: ${totalMax.toFixed(2)} (множитель: ${multiplier.toFixed(2)})`);
+    }
+    
+    return totalMax;
   }
 }

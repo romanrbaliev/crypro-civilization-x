@@ -1,7 +1,6 @@
 
 import { GameState } from '@/context/types';
 import { initialState } from '@/context/initialState';
-import { UnlockManager } from '@/systems/unlock/UnlockManager';
 
 // Валидация структуры данных игры
 export function validateGameState(state: any): boolean {
@@ -88,7 +87,7 @@ export function mergeWithInitialState(loadedState: any): GameState {
   
   if (!loadedState.referralHelpers) {
     loadedState.referralHelpers = [];
-    console.log('✅ Инициализирован пустой массив помощников');
+    console.log('✅ Инициализирован пустой масс��в помощников');
   }
   
   // Проверка наличия счетчиков
@@ -103,10 +102,48 @@ export function mergeWithInitialState(loadedState: any): GameState {
     console.log('✅ Добавлены отсутствующие сообщения о событиях');
   }
   
-  // Используем новую систему разблокировок для проверки всех разблокировок при загрузке
-  console.log('🔧 Проверка разблокировок с помощью новой системы');
-  const unlockManager = new UnlockManager(loadedState);
-  loadedState = unlockManager.forceCheckAllUnlocks();
+  // Убеждаемся что структура ресурсов и зданий соответствует initialState
+  for (const resourceKey of Object.keys(baseState.resources)) {
+    if (!loadedState.resources[resourceKey]) {
+      loadedState.resources[resourceKey] = { ...baseState.resources[resourceKey] };
+      console.log(`✅ Восстановлен отсутствующий ресурс: ${resourceKey}`);
+    } else {
+      // Важное исправление: убедимся, что ресурсы имеют правильный статус разблокировки
+      // USDT должен быть заблокирован, если не выполнены условия
+      if (resourceKey === 'usdt') {
+        loadedState.resources.usdt.unlocked = false;
+        if (loadedState.counters && loadedState.counters.applyKnowledge && loadedState.counters.applyKnowledge.value >= 2) {
+          loadedState.resources.usdt.unlocked = true;
+        }
+        console.log(`🔒 Статус разблокировки USDT установлен: ${loadedState.resources.usdt.unlocked}`);
+      }
+    }
+  }
+  
+  for (const buildingKey of Object.keys(baseState.buildings)) {
+    if (!loadedState.buildings[buildingKey]) {
+      loadedState.buildings[buildingKey] = { ...baseState.buildings[buildingKey] };
+      console.log(`✅ Восстановлено отсутствующее здание: ${buildingKey}`);
+    }
+  }
+  
+  // Убедимся, что здания имеют правильное состояние разблокировки при загрузке
+  if (loadedState.buildings && loadedState.buildings.coolingSystem) {
+    // Проверяем условие для разблокировки системы охлаждения
+    if (loadedState.buildings.homeComputer && loadedState.buildings.homeComputer.count < 2) {
+      loadedState.buildings.coolingSystem.unlocked = false;
+      console.log('🔒 Система охлаждения заблокирована при загрузке: недостаточно компьютеров');
+    }
+  }
+  
+  // Убедимся, что USDT заблокирован при загрузке, если не выполнены условия
+  if (loadedState.resources && loadedState.resources.usdt) {
+    if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 2) {
+      loadedState.resources.usdt.unlocked = false;
+      loadedState.unlocks.usdt = false; // Также сбрасываем флаг разблокировки в основной системе
+      console.log('🔒 USDT заблокирован при загрузке: не применены знания дважды');
+    }
+  }
   
   return loadedState as GameState;
 }

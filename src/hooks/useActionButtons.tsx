@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+
+import { useCallback, useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 
 interface UseActionButtonsProps {
@@ -27,14 +28,7 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
   
   // Обработчик клика по кнопке "Изучить крипту"
   const handleLearnClick = useCallback(() => {
-    // Строго фиксированная прибавка в 1, вне зависимости от источника нажатия
-    dispatch({ 
-      type: "INCREMENT_RESOURCE", 
-      payload: { 
-        resourceId: "knowledge", 
-        amount: 1 // Фиксируем ВСЕГДА +1 знание
-      }
-    });
+    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", value: 1 }});
     
     // Увеличиваем счетчик кликов по кнопке "Изучить крипту"
     dispatch({
@@ -77,9 +71,6 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
   const handleExchangeBitcoin = useCallback(() => {
     if (bitcoinExchangeTimer) return; // Предотвращаем мультиклик
     
-    // Получаем текущий курс обмена Bitcoin
-    const currentExchangeRate = state.miningParams?.exchangeRate || 20000;
-    
     // Обмениваем Bitcoin на USDT
     try {
       dispatch({ type: "EXCHANGE_BTC" });
@@ -93,7 +84,10 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
       console.error("Ошибка при обмене Bitcoin:", error);
       onAddEvent("Ошибка при обмене Bitcoin", "error");
     }
-  }, [dispatch, onAddEvent, state.miningParams?.exchangeRate, bitcoinExchangeTimer]);
+  }, [dispatch, onAddEvent, currentExchangeRate, bitcoinExchangeTimer]);
+  
+  // Текущий курс обмена Bitcoin к USDT
+  const currentExchangeRate = state.miningParams?.exchangeRate || 20000;
   
   // Флаг скрытия кнопки "Изучить крипту"
   const shouldHideLearnButton = false; // Всегда показываем кнопку
@@ -106,7 +100,7 @@ export const useActionButtons = ({ onAddEvent }: UseActionButtonsProps) => {
     handleApplyKnowledge,
     handleApplyAllKnowledge,
     handleExchangeBitcoin,
-    currentExchangeRate: state.miningParams?.exchangeRate || 20000,
+    currentExchangeRate,
     shouldHideLearnButton,
     applyKnowledgeUnlocked,
   };

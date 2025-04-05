@@ -1,60 +1,207 @@
 
-import { ReferralHelper } from '@/context/types';
+import { ReferralHelper } from "@/context/types";
+import { supabase } from "@/integrations/supabase/client";
+import { REFERRAL_HELPERS_TABLE } from "@/api/apiTypes";
 
 /**
- * Проверяет, является ли реферал помощником для указанного здания
- * @param helperId ID помощника
- * @param buildingId ID здания
- * @param helpers список всех помощников
- * @returns true, если реферал является помощником для здания
+ * Проверяет, нанят ли реферал на любое здание
+ * @param userId ID пользователя (user_id)
+ * @param referralHelpers Список помощников
+ * @returns true, если реферал нанят хотя бы на одно здание
  */
-export const isReferralHelperForBuilding = (
-  helperId: string,
-  buildingId: string,
-  helpers: ReferralHelper[]
+export const isReferralHired = (
+  userId: string,
+  referralHelpers: ReferralHelper[]
 ): boolean => {
-  return helpers.some(
-    (helper) => 
-      helper.helperId === helperId && 
-      helper.buildingId === buildingId && 
-      helper.status === 'accepted'
+  const result = referralHelpers.some(
+    helper => helper.helperId === userId && helper.status === 'accepted'
+  );
+  
+  console.log(`Проверка найма реферала ${userId} в локальном состоянии:`, result);
+  
+  if (!result) {
+    // Если в локальном состоянии нет информации о найме,
+    // запускаем асинхронную проверку в БД
+    import('./helperQueries').then(({ checkHelperStatusInDBAsync }) => {
+      checkHelperStatusInDBAsync(userId).then(hasHelperRoleInDB => {
+        if (hasHelperRoleInDB) {
+          console.log(`Обнаружено расхождение: пользователь ${userId} является помощником в БД, но не в локальном состоянии`);
+          
+          // Отправляем событие для обновления
+          setTimeout(() => {
+            const refreshEvent = new CustomEvent('refresh-referrals');
+            window.dispatchEvent(refreshEvent);
+          }, 500);
+        }
+      });
+    });
+  }
+  
+  return result;
+};
+
+/**
+ * Получает список принятых помощников для конкретного пользователя
+ * @param referralHelpers Список всех помощников
+ * @param userId ID пользователя (user_id)
+ * @returns Список принятых запросов помощи
+ */
+export const getAcceptedHelperRequests = (
+  referralHelpers: ReferralHelper[],
+  userId: string
+): ReferralHelper[] => {
+  return referralHelpers.filter(
+    helper => helper.helperId === userId && helper.status === 'accepted'
   );
 };
 
 /**
- * Получает ID запроса на помощь для указанного реферала и здания
- * @param helperId ID помощника
- * @param buildingId ID здания
- * @param helpers список всех помощников
- * @returns ID запроса или undefined, если запрос не найден
+ * Проверяет, есть ли у пользователя активные помощники
+ * @param referralHelpers Список всех помощников
+ * @returns true, если есть хотя бы один принятый запрос
  */
-export const getHelperRequestId = (
-  helperId: string,
-  buildingId: string,
-  helpers: ReferralHelper[]
-): string | undefined => {
-  const helper = helpers.find(
-    (h) => h.helperId === helperId && h.buildingId === buildingId
-  );
-  return helper?.id;
+export const hasActiveHelpers = (
+  referralHelpers: ReferralHelper[]
+): boolean => {
+  const activeCount = referralHelpers.filter(helper => helper.status === 'accepted').length;
+  console.log(`Проверка наличия активных помощников: ${activeCount} из ${referralHelpers.length}`);
+  
+  // Добавляем детальное логирование для отладки
+  if (referralHelpers.length > 0) {
+    console.log(`Обзор всех помощников в системе:`);
+    referralHelpers.forEach((helper, index) => {
+      console.log(`Помощник #${index + 1}: ID=${helper.helperId}, здание=${helper.buildingId}, статус=${helper.status}`);
+    });
+  }
+  
+  return activeCount > 0;
 };
 
 /**
- * Рассчитывает время, необходимое для достижения целевого значения ресурса
- * @param currentValue текущее значение ресурса
- * @param targetValue целевое значение ресурса
- * @param perSecond скорость производства ресурса в секунду
- * @returns время в секундах или Infinity, если невозможно достичь
+ * Получает подробную информацию о состоянии помощников
+ * @param referralHelpers Список всех помощников
+ * @returns Объект с подробной информацией по статусам
  */
-export const calculateTimeToReach = (
-  currentValue: number,
-  targetValue: number,
-  perSecond: number
-): number => {
-  if (perSecond <= 0) return Infinity;
+export const getHelperStatusSummary = (
+  referralHelpers: ReferralHelper[]
+): { accepted: number, pending: number, rejected: number, total: number, buildings: {[key: string]: number} } => {
+  const accepted = referralHelpers.filter(h => h.status === 'accepted').length;
+  const pending = referralHelpers.filter(h => h.status === 'pending').length;
+  const rejected = referralHelpers.filter(h => h.status === 'rejected').length;
   
-  const remainingValue = targetValue - currentValue;
-  if (remainingValue <= 0) return 0;
+  // Подсчитываем количество помощников по зданиям
+  const buildings: {[key: string]: number} = {};
+  referralHelpers
+    .filter(h => h.status === 'accepted')
+    .forEach(h => {
+      buildings[h.buildingId] = (buildings[h.buildingId] || 0) + 1;
+    });
   
-  return remainingValue / perSecond;
+  return {
+    accepted,
+    pending,
+    rejected,
+    total: referralHelpers.length,
+    buildings
+  };
+};
+
+/**
+ * Синхронизирует статусы помощников с базой данных Supabase
+ * @param referralHelpers Текущий список помощников в локальном состоянии
+ * @returns Промис с обновленным списком помощников или null в случае ошибки
+ */
+export const syncHelperStatusWithDB = async (
+  referralHelpers: ReferralHelper[]
+): Promise<ReferralHelper[] | null> => {
+  try {
+    // Получаем ID текущего пользователя
+    const { getUserIdentifier } = await import('@/api/userIdentification');
+    const userId = await getUserIdentifier();
+    if (!userId) {
+      console.error('Не удалось получить ID пользователя для синхронизации помощников');
+      return null;
+    }
+    
+    console.log('Синхронизация помощников с базой данных для пользователя:', userId);
+    window.__game_user_id = userId; // Кэшируем ID пользователя
+    
+    // Сначала проверяем, является ли пользователь помощником в БД
+    const { data: helperData, error: helperError } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('*')
+      .eq('helper_id', userId)
+      .eq('status', 'accepted');
+    
+    if (helperError) {
+      console.error('Ошибка при проверке статуса помощника в БД:', helperError);
+    } else if (helperData && helperData.length > 0) {
+      console.log(`Пользователь ${userId} является помощником в ${helperData.length} зданиях по данным БД:`, helperData);
+      
+      // Проверяем, отражено ли это в локальном состоянии
+      const localHelpers = referralHelpers.filter(h => h.helperId === userId && h.status === 'accepted');
+      
+      if (localHelpers.length !== helperData.length) {
+        console.log(`Обнаружено расхождение: в БД ${helperData.length} зданий, в локальном состоянии ${localHelpers.length}`);
+        
+        // Отправляем событие для обновления
+        setTimeout(() => {
+          const refreshEvent = new CustomEvent('refresh-referrals');
+          window.dispatchEvent(refreshEvent);
+        }, 500);
+      }
+    }
+    
+    // Затем получаем данные о всех помощниках для работодателя
+    const { data, error } = await supabase
+      .from(REFERRAL_HELPERS_TABLE)
+      .select('id, helper_id, building_id, status')
+      .eq('employer_id', userId);
+    
+    if (error) {
+      console.error('Ошибка при получении данных о помощниках из базы данных:', error);
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('В базе данных нет информации о помощниках для работодателя', userId);
+      return null;
+    }
+    
+    console.log('Получены данные о помощниках из БД:', data);
+    
+    // Создаем карту соответствия ID помощников и зданий для быстрого поиска
+    const dbHelpersMap = new Map();
+    data.forEach(helper => {
+      const key = `${helper.helper_id}_${helper.building_id}`;
+      dbHelpersMap.set(key, {
+        id: helper.id.toString(),
+        helperId: helper.helper_id,
+        buildingId: helper.building_id,
+        status: helper.status,
+        createdAt: Date.now()
+      });
+    });
+    
+    // Обновляем локальные данные на основе данных из БД
+    const updatedHelpers = referralHelpers.map(helper => {
+      const key = `${helper.helperId}_${helper.buildingId}`;
+      const dbHelper = dbHelpersMap.get(key);
+      
+      if (dbHelper && dbHelper.status !== helper.status) {
+        console.log(`Обновление статуса помощника ${helper.helperId} для здания ${helper.buildingId}: ${helper.status} -> ${dbHelper.status}`);
+        return { ...helper, status: dbHelper.status as 'pending' | 'accepted' | 'rejected' };
+      }
+      
+      return helper;
+    });
+    
+    // Логируем обновленные данные для отладки
+    console.log('Результат синхронизации помощников:', updatedHelpers);
+    
+    return updatedHelpers;
+  } catch (error) {
+    console.error('Ошибка при синхронизации помощников с базой данных:', error);
+    return null;
+  }
 };

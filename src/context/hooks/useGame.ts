@@ -33,6 +33,7 @@ export const useGame = () => {
     ...context,
     forceUpdate,
     updateHelpers,
-    isPageVisible
+    isPageVisible,
+    resourceUpdateActive: false // Всегда возвращаем false, так как useFrequentUpdate больше не используется
   };
 };

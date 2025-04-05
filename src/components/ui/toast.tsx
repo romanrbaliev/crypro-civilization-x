@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -22,8 +23,6 @@ const ToastViewport = React.forwardRef<
 ))
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
-export type ToastType = "default" | "destructive" | "success" | "warning" | "info" | "error";
-
 const toastVariants = cva(
   "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
   {
@@ -33,13 +32,11 @@ const toastVariants = cva(
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
         success:
-          "success group border-green-500 bg-green-100 text-green-900",
+          "border-green-500 bg-green-500 text-white dark:border-green-600 dark:bg-green-600",
         warning:
-          "warning group border-yellow-500 bg-yellow-100 text-yellow-900",
+          "border-yellow-500 bg-yellow-500 text-white dark:border-yellow-600 dark:bg-yellow-600",
         info:
-          "info group border-blue-500 bg-blue-100 text-blue-900",
-        error:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
+          "border-blue-500 bg-blue-500 text-white dark:border-blue-600 dark:bg-blue-600",
       },
     },
     defaultVariants: {
@@ -122,10 +119,11 @@ ToastDescription.displayName = ToastPrimitives.Description.displayName
 
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
-export type ToastActionElement = React.ReactElement<typeof ToastAction>
+type ToastActionElement = React.ReactElement<typeof ToastAction>
 
 export {
   type ToastProps,
+  type ToastActionElement,
   ToastProvider,
   ToastViewport,
   Toast,

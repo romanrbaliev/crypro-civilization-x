@@ -1,3 +1,4 @@
+
 import { GameState } from './types';
 import { initialState } from './initialState';
 import { safeDispatchGameEvent } from './utils/eventBusUtils';
@@ -5,52 +6,44 @@ import { checkAllUnlocks, checkSpecialUnlocks } from '@/utils/unlockSystem';
 
 // Обработка запуска игры
 export const processStartGame = (state: GameState): GameState => {
-  // Клонируем initialState для чистого старта
-  const baseState = JSON.parse(JSON.stringify(initialState));
+  // Обеспечиваем, что USDT заблокирован при старте новой игры
+  const usdtResource = state.resources.usdt || initialState.resources.usdt;
   
-  // Создаем новое состояние на основе initialState
+  // Используем явное приведение типа, чтобы TypeScript знал,
+  // что usdt определенно присутствует в resources
   const newState: GameState = {
-    ...baseState,
+    ...state,
     gameStarted: true,
-    lastUpdate: Date.now()
-  };
-  
-  // Ресурсы - начальная разблокировка только знаний
-  newState.resources = {
-    ...baseState.resources,
-    knowledge: {
-      ...baseState.resources.knowledge,
-      unlocked: true
+    lastUpdate: Date.now(),
+    resources: {
+      ...state.resources,
+      // Явно создаем usdt ресурс для удовлетворения требований типизации
+      usdt: {
+        ...usdtResource,
+        unlocked: false // Принудительно блокируем USDT при старте новой игры
+      }
+    },
+    unlocks: {
+      ...state.unlocks,
+      usdt: false // Также сбрасываем флаг разблокировки в основной системе
     }
   };
-
-  // Явно блокируем все остальные ресурсы
-  if (newState.resources.usdt) {
-    newState.resources.usdt.unlocked = false;
+  
+  // Проверяем и применяем все разблокировки при старте игры
+  let updatedState = checkSpecialUnlocks(newState);
+  updatedState = checkAllUnlocks(updatedState);
+  
+  // Дополнительная проверка, что USDT остался заблокированным
+  if (updatedState.resources.usdt) {
+    // Проверяем условие разблокировки USDT
+    if (!updatedState.counters.applyKnowledge || updatedState.counters.applyKnowledge.value < 2) {
+      // Если условие не выполнено, принудительно блокируем USDT
+      updatedState.resources.usdt.unlocked = false;
+      updatedState.unlocks.usdt = false;
+    }
   }
   
-  if (newState.resources.electricity) {
-    newState.resources.electricity.unlocked = false;
-  }
-  
-  if (newState.resources.computingPower) {
-    newState.resources.computingPower.unlocked = false;
-  }
-  
-  if (newState.resources.bitcoin) {
-    newState.resources.bitcoin.unlocked = false;
-  }
-  
-  // Применяем все разблокировки для начального состояния
-  const finalState = checkAllUnlocks(newState);
-  
-  console.log('processStartGame: Начальное состояние ресурсов:', {
-    knowledgeUnlocked: finalState.resources.knowledge.unlocked,
-    usdtExists: !!finalState.resources.usdt,
-    usdtUnlocked: finalState.resources.usdt?.unlocked || false
-  });
-  
-  return finalState;
+  return updatedState;
 };
 
 // Обработка загрузки сохраненной игры
@@ -122,28 +115,21 @@ export const processLoadGame = (
   // Убеждаемся, что игра отмечена как запущенная
   loadedState.gameStarted = true;
   
-  // КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ РАЗБЛОКИРОВОК:
-  
-  // 1. Проверяем разблокировку электричества - должно быть разблокировано только если есть генератор
-  if (loadedState.resources.electricity) {
-    const hasGenerator = loadedState.buildings.generator?.count > 0;
-    loadedState.resources.electricity.unlocked = hasGenerator;
-    loadedState.unlocks.electricity = hasGenerator;
-    console.log(`Корректировка разблокировки электричества: ${hasGenerator ? 'разблокировано' : 'заблокировано'}`);
+  // КРИТИЧЕСКИЙ ФИХ: синхронизация разблокировки практики
+  if (loadedState.unlocks && loadedState.unlocks.practice) {
+    console.log('Обнаружена разблокированная функция practice, проверяем здание...');
+    
+    if (loadedState.buildings && loadedState.buildings.practice) {
+      // Обязательно разблокируем здание practice если функция разблокирована
+      loadedState.buildings.practice = {
+        ...loadedState.buildings.practice,
+        unlocked: true
+      };
+      console.log('✅ Синхронизировали разблокировку здания практики с функцией практики');
+    } else {
+      console.warn('⚠️ Здание practice не найдено в загруженном состоянии!');
+    }
   }
-  
-  // 2. Проверяем разблокировку практики - должна быть разблокирована только после 2 применений знаний
-  if (loadedState.buildings.practice) {
-    const applyKnowledgeCount = loadedState.counters.applyKnowledge?.value || 0;
-    loadedState.buildings.practice.unlocked = applyKnowledgeCount >= 2;
-    loadedState.unlocks.practice = applyKnowledgeCount >= 2;
-    console.log(`Корректировка разблокировки практики: ${applyKnowledgeCount >= 2 ? 'разблокировано' : 'заблокировано'} (применений знаний: ${applyKnowledgeCount})`);
-  }
-  
-  // 3. Проверяем разблокировку исследований - должны быть разблокированы только если есть генератор
-  const hasGenerator = loadedState.buildings.generator?.count > 0;
-  loadedState.unlocks.research = hasGenerator;
-  console.log(`Корректировка разблокировки исследований: ${hasGenerator ? 'разблокировано' : 'заблокировано'}`);
   
   // ВАЖНО: Проверяем наличие cryptoWallet в зданиях
   if (loadedState.buildings && !loadedState.buildings.cryptoWallet && initialState.buildings.cryptoWallet) {
@@ -182,7 +168,7 @@ export const processLoadGame = (
   // Проверка и добавление новых полей, которые могли отсутствовать в сохранении
   if (!loadedState.specializationSynergies) {
     loadedState.specializationSynergies = { ...initialState.specializationSynergies };
-    console.log('✅ Добавлены отсутствующие данные о синергиях специализаций в редь��сере');
+    console.log('✅ Добавлены отсутствующие данные о синергиях специализаций в редьюсере');
   }
   
   // Проверка и инициализация реферальных систем

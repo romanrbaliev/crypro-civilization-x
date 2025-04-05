@@ -13,20 +13,18 @@ interface EquipmentTabProps {
 const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
-  // Получаем все разблокированные здания
+  // Отображаем все разблокированные здания включая практику
   const unlockedBuildings = Object.values(state.buildings)
-    .filter(b => b.unlocked);
+    .filter(b => b.unlocked)
+    // Дополнительная проверка для системы охлаждения
+    .filter(b => {
+      if (b.id === "coolingSystem") {
+        return state.buildings.homeComputer && state.buildings.homeComputer.count >= 2;
+      }
+      return true;
+    });
 
-  // Выводим дополнительную информацию в консоль для отладки
-  console.log("EquipmentTab: Все здания:", Object.keys(state.buildings));
-  console.log("EquipmentTab: Разблокированные здания:", unlockedBuildings.map(b => `${b.id} (unlocked=${b.unlocked}, count=${b.count})`));
-  
-  // Специально смотрим статус здания "Практика"
-  const practiceBuilding = state.buildings.practice;
-  console.log("EquipmentTab: Статус здания Практика:", 
-    practiceBuilding ? 
-    `существует, unlocked=${practiceBuilding.unlocked}, count=${practiceBuilding.count}` : 
-    "отсутствует в state.buildings");
+  console.log("EquipmentTab: Разблокированные здания:", unlockedBuildings.map(b => b.id));
 
   return (
     <div className="building-container">

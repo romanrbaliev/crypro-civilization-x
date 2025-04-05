@@ -1,213 +1,335 @@
+import { GameState } from './types';
 
-import { GameState } from '@/types/game';
-
-// Начальное состояние игры
 export const initialState: GameState = {
+  knowledge: 0,
+  btcPrice: 20000,
+  miningPower: 0,
+  usdtBalance: 0,
+  btcBalance: 0,
+  
+  gameStarted: false,
+  gameTime: 0,
+  lastUpdate: Date.now(),
+  lastSaved: Date.now(),
+  version: '1.0.0',
+  phase: 1,
+  specialization: null,
+  prestigePoints: 0,
+  eventMessages: [],
+  referredBy: null,
+  featureFlags: {},
+  buildingUnlocked: {},
+  
+  unlocks: {
+    knowledge: true,
+  },
   resources: {
     knowledge: {
       id: 'knowledge',
       name: 'Знания',
-      description: 'Ваши знания о криптовалютах и блокчейне',
-      type: 'primary',
-      icon: 'brain',
-      value: 0,
-      max: 100,
-      unlocked: true,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0
-    },
-    usdt: {
-      id: 'usdt',
-      name: 'USDT',
-      description: 'Стабильная криптовалюта, привязанная к доллару США',
-      type: 'currency',
-      icon: 'dollar',
-      value: 0,
-      max: 100,
-      unlocked: false,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0
-    },
-    electricity: {
-      id: 'electricity',
-      name: 'Электричество',
-      description: 'Энергия для питания ваших устройств',
+      description: 'Знания о криптовалюте и блокчейне',
       type: 'resource',
-      icon: 'zap',
+      icon: 'book',
       value: 0,
+      baseProduction: 0,
+      production: 0,
+      perSecond: 0,
       max: 100,
-      unlocked: false,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0
-    },
-    computingPower: {
-      id: 'computingPower',
-      name: 'Вычислительная мощность',
-      description: 'Вычислительная мощность для майнинга и других операций',
-      type: 'resource',
-      icon: 'cpu',
-      value: 0,
-      max: 100,
-      unlocked: false,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0
-    },
-    bitcoin: {
-      id: 'bitcoin',
-      name: 'Bitcoin',
-      description: 'Самая популярная криптовалюта в мире',
-      type: 'currency',
-      icon: 'bitcoin',
-      value: 0,
-      max: 1,
-      unlocked: false,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0
+      unlocked: true
     }
   },
   buildings: {
     practice: {
       id: 'practice',
       name: 'Практика',
-      description: 'Автоматизирует получение знаний',
-      type: 'production',
+      description: 'Автоматически получает знания о криптовалюте',
+      cost: {
+        usdt: 10
+      },
+      costMultiplier: 1.12,
+      production: {
+        knowledge: 1
+      },
       count: 0,
       unlocked: false,
-      cost: { usdt: 10 },
-      costMultiplier: 1.12,
-      production: { knowledge: 1 }
+      productionBoost: 0
     },
     generator: {
       id: 'generator',
       name: 'Генератор',
-      description: 'Производит электричество для ваших устройств',
-      type: 'production',
+      description: 'Производит электроэнергию для ваших устройств',
+      cost: {
+        usdt: 20
+      },
+      costMultiplier: 1.12,
+      production: {
+        electricity: 0.5
+      },
       count: 0,
       unlocked: false,
-      cost: { usdt: 20 },
-      costMultiplier: 1.12,
-      production: { electricity: 0.5 }
+      productionBoost: 0
     },
     cryptoWallet: {
       id: 'cryptoWallet',
       name: 'Криптокошелек',
-      description: 'Увеличивает максимальный запас USDT и знаний',
-      type: 'storage',
+      description: 'Позволяет хранить больше USDT и увеличивает максимум знаний',
+      cost: {
+        usdt: 30,
+        knowledge: 50
+      },
+      costMultiplier: 1.15,
+      production: {},
+      effects: {
+        usdtMax: 50,
+        knowledgeMaxBoost: 0.25
+      },
       count: 0,
       unlocked: false,
-      cost: { usdt: 30, knowledge: 50 },
-      costMultiplier: 1.15,
-      effects: { 
-        maxUsdt: 50,
-        maxKnowledge: 25
-      }
+      productionBoost: 0
     },
     homeComputer: {
       id: 'homeComputer',
       name: 'Домашний компьютер',
-      description: 'Производит вычислительную мощность, потребляя электричество',
-      type: 'production',
+      description: 'Обеспечивает вычислительную мощность для майнинга',
+      cost: {
+        usdt: 55
+      },
+      costMultiplier: 1.15,
+      production: {
+        computingPower: 2
+      },
+      consumption: {
+        electricity: 1
+      },
       count: 0,
       unlocked: false,
-      cost: { usdt: 55 },
+      productionBoost: 0
+    },
+    internetChannel: {
+      id: 'internetChannel',
+      name: 'Интернет-канал',
+      description: 'Ускоряет получение знаний и повышает эффективность вычислений',
+      cost: {
+        usdt: 75
+      },
       costMultiplier: 1.15,
-      production: { computingPower: 2 },
-      consumption: { electricity: 1 }
+      effects: {
+        knowledgeBoost: 0.2,
+        computingPowerBoost: 0.05
+      },
+      production: {},
+      count: 0,
+      unlocked: false,
+      productionBoost: 0
     }
   },
   upgrades: {
     blockchainBasics: {
       id: 'blockchainBasics',
       name: 'Основы блокчейна',
-      description: 'Увеличивает максимальное хранение и производство знаний',
-      type: 'research',
-      purchased: false,
-      unlocked: false,
-      cost: { knowledge: 100 },
+      description: 'Фундаментальные знания о технологии блокчейна',
+      cost: {
+        knowledge: 100
+      },
       effects: {
-        maxKnowledgeMultiplier: 1.5,
-        knowledgeProductionMultiplier: 1.1
-      }
+        knowledgeMaxBoost: 0.5,
+        knowledgeBoost: 0.1
+      },
+      purchased: false,
+      unlocked: false
     },
     walletSecurity: {
       id: 'walletSecurity',
       name: 'Безопасность криптокошельков',
-      description: 'Увеличивает максимальное хранение USDT',
-      type: 'research',
+      description: 'Повышает безопасность и ёмкость ваших криптокошельков',
+      cost: {
+        knowledge: 175
+      },
+      effects: {
+        usdtMaxBoost: 0.25
+      },
       purchased: false,
       unlocked: false,
-      cost: { knowledge: 175 },
-      effects: {
-        maxUsdtMultiplier: 1.25
-      }
+      requiredUpgrades: ['cryptoWallet']
     },
-    internetConnection: {
-      id: 'internetConnection',
-      name: 'Интернет-канал',
-      description: 'Увеличивает скорость получения знаний и эффективность вычислений',
-      type: 'tech',
+    cryptoCurrencyBasics: {
+      id: 'cryptoCurrencyBasics',
+      name: 'Основы криптовалют',
+      description: 'Базовые знания о криптовалютах и их использовании',
+      cost: {
+        knowledge: 200
+      },
+      effects: {
+        knowledgeEfficiencyBoost: 0.1
+      },
+      purchased: false,
+      unlocked: false
+    },
+    algorithmOptimization: {
+      id: 'algorithmOptimization',
+      name: 'Оптимизация алгоритмов',
+      description: 'Повышает эффективность майнинга криптовалют',
+      cost: {
+        usdt: 150,
+        knowledge: 100
+      },
+      effects: {
+        miningEfficiency: 0.15
+      },
       purchased: false,
       unlocked: false,
-      cost: { usdt: 75 },
+      requiredUpgrades: ['miner']
+    },
+    proofOfWork: {
+      id: 'proofOfWork',
+      name: 'Proof of Work',
+      description: 'Исследование механизма консенсуса Proof of Work',
+      cost: {
+        usdt: 250,
+        knowledge: 200
+      },
       effects: {
-        knowledgeProductionMultiplier: 1.2,
-        computingPowerMultiplier: 1.05
-      }
+        miningEfficiency: 0.25
+      },
+      purchased: false,
+      unlocked: false,
+      requiredUpgrades: ['algorithmOptimization']
+    },
+    energyEfficientComponents: {
+      id: 'energyEfficientComponents',
+      name: 'Энергоэффективные компоненты',
+      description: 'Снижает энергопотребление ваших устройств',
+      cost: {
+        knowledge: 400
+      },
+      effects: {
+        energyEfficiency: 0.1
+      },
+      purchased: false,
+      unlocked: false,
+      requiredUpgrades: ['coolingSystem']
+    },
+    cryptoTrading: {
+      id: 'cryptoTrading',
+      name: 'Криптовалютный трейдинг',
+      description: 'Позволяет обменивать различные криптовалюты',
+      cost: {
+        usdt: 300,
+        knowledge: 250
+      },
+      effects: {
+        unlockTrading: true
+      },
+      purchased: false,
+      unlocked: false,
+      requiredUpgrades: ['enhancedWallet']
+    },
+    tradingBot: {
+      id: 'tradingBot',
+      name: 'Торговый бот',
+      description: 'Автоматический обмен BTC по заданным условиям',
+      cost: {
+        knowledge: 500
+      },
+      effects: {
+        autoBtcExchange: true
+      },
+      purchased: false,
+      unlocked: false,
+      requiredUpgrades: ['cryptoTrading']
     }
+  },
+  miningParams: {
+    miningEfficiency: 1,
+    networkDifficulty: 1,
+    energyEfficiency: 0,
+    exchangeRate: 20000,
+    exchangeCommission: 0.05,
+    volatility: 0.2,
+    exchangePeriod: 3600,
+    baseConsumption: 1
   },
   counters: {
-    applyKnowledge: {
-      id: 'applyKnowledge',
-      name: 'Применения знаний',
-      value: 0
-    },
-    buildingsPurchased: {
-      id: 'buildingsPurchased',
-      name: 'Приобретено зданий',
-      value: 0
-    },
-    upgradesPurchased: {
-      id: 'upgradesPurchased',
-      name: 'Приобретено улучшений',
-      value: 0
-    }
+    knowledgeClicks: { id: 'knowledgeClicks', name: 'Клики знаний', value: 0 },
   },
-  knowledge: 0,
-  btcPrice: 60000, // Курс BTC к USDT
-  miningPower: 0,
-  usdtBalance: 0,
-  btcBalance: 0,
-  gameStarted: false,
-  lastUpdate: Date.now(),
-  lastSaved: Date.now(),
-  version: '0.1.0',
-  featureFlags: {},
-  buildingUnlocked: {},
   specializationSynergies: {},
   referralCode: null,
-  referredBy: null,
   referrals: [],
-  referralHelpers: [],
-  unlocks: {
-    knowledge: true
+  referralHelpers: []
+};
+
+export const initialPhase2Buildings = {
+  miner: {
+    id: 'miner',
+    name: 'Майнер',
+    description: 'Автоматически добывает Bitcoin, используя электричество и вычислительную мощность',
+    cost: {
+      usdt: 150
+    },
+    costMultiplier: 1.15,
+    production: {
+      bitcoin: 0.00005
+    },
+    consumption: {
+      electricity: 1,
+      computingPower: 5
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
   },
-  prestigePoints: 0,
-  eventMessages: {},
-  gameTime: 0,
-  miningParams: {
-    miningEfficiency: 1.0,
-    networkDifficulty: 1.0,
-    energyEfficiency: 1.0,
-    exchangeRate: 1.0,
-    exchangeCommission: 0.01,
-    volatility: 0.05,
-    exchangePeriod: 60,
-    baseConsumption: 1.0
+  cryptoLibrary: {
+    id: 'cryptoLibrary',
+    name: 'Криптобиблиотека',
+    description: 'Увеличивает скорость получения знаний и их максимальное количество',
+    cost: {
+      usdt: 200,
+      knowledge: 200
+    },
+    costMultiplier: 1.15,
+    production: {},
+    effects: {
+      knowledgeBoost: 0.5,
+      knowledgeMax: 100
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
   },
-  phase: 1
+  coolingSystem: {
+    id: 'coolingSystem',
+    name: 'Система охлаждения',
+    description: 'Снижает потребление энергии компьютерами на 20%',
+    cost: { 
+      usdt: 200,
+      electricity: 50 
+    },
+    costMultiplier: 1.15,
+    production: {},
+    effects: {
+      computingPowerConsumptionReduction: 0.2
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
+  },
+  enhancedWallet: {
+    id: 'enhancedWallet',
+    name: 'Улучшенный кошелек',
+    description: 'Значительно увеличивает максимальное хранение USDT и Bitcoin',
+    cost: {
+      usdt: 300,
+      knowledge: 250
+    },
+    costMultiplier: 1.15,
+    production: {},
+    effects: {
+      usdtMax: 150,
+      bitcoinMax: 1,
+      btcExchangeBonus: 0.08
+    },
+    count: 0,
+    unlocked: false,
+    productionBoost: 0
+  }
 };

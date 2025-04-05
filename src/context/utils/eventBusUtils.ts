@@ -1,45 +1,38 @@
 
-// Функция для безопасной отправки игрового события
-export const safeDispatchGameEvent = (
+// Вспомогательная функция для безопасного доступа к шине событий
+export function safeDispatchGameEvent(
   message: string,
-  type: 'success' | 'error' | 'warning' | 'info' = 'info'
-) => {
-  try {
-    // Создаем событие для глобального слушателя
-    const event = new CustomEvent('game-event', {
-      detail: {
-        message,
-        type,
-        timestamp: Date.now()
+  type: "info" | "error" | "success" | "warning" = "info"
+): void {
+  if (typeof window !== 'undefined') {
+    try {
+      // Проверка и создание шины событий, если не существует
+      if (!window.gameEventBus) {
+        console.log('🔄 Создаем глобальную шину событий gameEventBus');
+        window.gameEventBus = new EventTarget();
       }
-    });
-    
-    // Отправляем событие
-    window.dispatchEvent(event);
-    
-    // Также выводим в консоль для отладки
-    console.log(`[${type.toUpperCase()}] ${message}`);
-    
-    return true;
-  } catch (error) {
-    console.error('Ошибка при отправке события:', error);
-    return false;
+      
+      // Создание и отправка события
+      const customEvent = new CustomEvent('game-event', { 
+        detail: { message, type } 
+      });
+      window.gameEventBus.dispatchEvent(customEvent);
+      console.log(`📢 Событие: ${type} - ${message}`);
+    } catch (error) {
+      console.error('❌ Ошибка при отправке события:', error, message);
+    }
   }
-};
+}
 
-// Функция для прослушивания игровых событий
-export const setupGameEventListener = (
-  callback: (message: string, type: string, timestamp: number) => void
-) => {
-  const listener = (event: any) => {
-    const { message, type, timestamp } = event.detail;
-    callback(message, type, timestamp);
-  };
-  
-  window.addEventListener('game-event', listener);
-  
-  // Возвращаем функцию для удаления слушателя
-  return () => {
-    window.removeEventListener('game-event', listener);
-  };
-};
+// Проверка наличия шины событий
+export function isGameEventBusAvailable(): boolean {
+  return typeof window !== 'undefined' && !!window.gameEventBus;
+}
+
+// Создание шины событий, если она еще не существует
+export function ensureGameEventBus(): void {
+  if (typeof window !== 'undefined' && !window.gameEventBus) {
+    window.gameEventBus = new EventTarget();
+    console.log('✅ Глобальная шина событий создана');
+  }
+}

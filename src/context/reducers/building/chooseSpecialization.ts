@@ -1,29 +1,35 @@
 
-import { GameState } from '@/types/game';
+import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
+import { roles } from '@/utils/gameConfig';
 
-/**
- * Обрабатывает выбор специализации игроком
- * @param state Текущее состояние игры
- * @param payload Параметры выбора специализации
- * @returns Обновленное состояние игры
- */
-export function processChooseSpecialization(
+// Обработка выбора специализации
+export const processChooseSpecialization = (
   state: GameState,
-  payload: { specializationType: string }
-): GameState {
-  const { specializationType } = payload;
+  payload: { specializationType: string } // Изменяем с roleId на specializationType для совместимости
+): GameState => {
+  const { specializationType: roleId } = payload; // Извлекаем roleId из specializationType
   
-  console.log(`Выбрана специализация: ${specializationType}`);
+  // Проверяем, существует ли роль и доступна ли она на текущей фазе
+  if (!roles[roleId] || roles[roleId].phase > state.phase) {
+    safeDispatchGameEvent(`Специализация недоступна на текущей фазе игры`, 'error');
+    return state;
+  }
   
-  // Отправляем уведомление о выборе специализации
-  safeDispatchGameEvent(
-    `Выбрана специализация: ${specializationType}`,
-    "success"
-  );
+  // Если специализация уже выбрана и это та же самая, ничего не делаем
+  if (state.specialization === roleId) {
+    safeDispatchGameEvent(`Специализация "${roles[roleId].name}" уже выбрана`, 'info');
+    return state;
+  }
   
-  return {
+  // Сохраняем выбранную специализацию
+  const newState = {
     ...state,
-    specialization: specializationType
+    specialization: roleId
   };
-}
+  
+  // Отправляем событие об успешном выборе специализации
+  safeDispatchGameEvent(`Выбрана специализация: ${roles[roleId].name}`, 'success');
+  
+  return newState;
+};

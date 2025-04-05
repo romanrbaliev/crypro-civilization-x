@@ -3,8 +3,6 @@ import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import SynergyCard from './SynergyCard';
 import { Puzzle } from 'lucide-react';
-import { SpecializationSynergy } from '@/context/types';
-import { convertGameState } from '@/utils/typeConverters';
 
 interface SynergyTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -46,7 +44,7 @@ const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
                 {activeSynergies.map(synergy => (
                   <SynergyCard 
                     key={synergy.id} 
-                    synergy={synergy as SpecializationSynergy}
+                    synergy={synergy}
                   />
                 ))}
               </div>
@@ -60,7 +58,7 @@ const SynergyTab: React.FC<SynergyTabProps> = ({ onAddEvent }) => {
                 {availableSynergies.map(synergy => (
                   <SynergyCard 
                     key={synergy.id} 
-                    synergy={synergy as SpecializationSynergy}
+                    synergy={synergy}
                     onActivate={handleActivateSynergy}
                   />
                 ))}

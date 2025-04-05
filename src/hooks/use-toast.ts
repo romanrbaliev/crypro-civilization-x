@@ -1,17 +1,23 @@
 import * as React from "react"
-import type { ToastProps, ToastType } from "@/components/ui/toast"
+import { type ToastActionElement, ToastProps } from "@/components/ui/toast"
 
-export type ToastActionElement = React.ReactElement<any, string | React.JSXElementConstructor<any>>;
+const TOAST_LIMIT = 3 // Уменьшаем лимит тостов
+const TOAST_REMOVE_DELAY = 3000
 
-const TOAST_LIMIT = 5
-const TOAST_REMOVE_DELAY = 1000000
+type ToastType = "default" | "destructive" | "success" | "warning" | "info"
 
-export type ToasterToast = ToastProps & {
+// Расширяем типы ToastProps с нашими вариантами
+export type ExtendedToastProps = Omit<ToastProps, "variant"> & {
+  variant?: ToastType
+}
+
+type ToasterToast = ExtendedToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  variant?: ToastType
+  isDuplicate?: boolean // Добавляем флаг для проверки дубликатов
+  createdAt?: number // Добавляем свойство createdAt для отслеживания времени создания
 }
 
 const actionTypes = {
@@ -24,7 +30,7 @@ const actionTypes = {
 let count = 0
 
 function genId() {
-  count = (count + 1) % Number.MAX_VALUE
+  count = (count + 1) % Number.MAX_SAFE_INTEGER
   return count.toString()
 }
 
@@ -70,13 +76,73 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
+// Функция для проверки дубликатов тостов
+const isDuplicateToast = (state: State, toast: ToasterToast): boolean => {
+  return state.toasts.some(
+    t => 
+      t.title === toast.title && 
+      t.description === toast.description && 
+      t.variant === toast.variant &&
+      Date.now() - (t.createdAt || 0) < 5000 // Проверяем, что тост был создан не более 5 секунд назад
+  )
+}
+
+// Список типов сообщений, которые следует игнорировать при запуске
+const startupIgnoreMessages = [
+  "Игра успешно загружена из облака",
+  "Новая игра создана",
+  "Игра загружена",
+  "Сохранения не найдены",
+  "Ваш прогресс успешно восстановлен"
+];
+
+// Флаг для отслеживания, находимся ли мы в процессе запуска приложения
+let isStartupPhase = true;
+
+// Через 10 секунд после запуска приложения, считаем что стартовая фаза окончена
+setTimeout(() => {
+  isStartupPhase = false;
+}, 10000);
+
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD_TOAST":
+    case "ADD_TOAST": {
+      // Проверка на дубликаты
+      if (isDuplicateToast(state, action.toast)) {
+        return state;
+      }
+      
+      // Проверка на стартовые сообщения, которые следует игнорировать
+      if (isStartupPhase && action.toast.title && 
+          (startupIgnoreMessages.includes(action.toast.title as string) || 
+           startupIgnoreMessages.some(msg => 
+             action.toast.description && 
+             (action.toast.description as string).includes(msg)
+           ))) {
+        return state;
+      }
+      
+      // Добавляем timestamp создания тоста
+      const newToast = {
+        ...action.toast,
+        createdAt: Date.now()
+      }
+      
+      // Автоматически удаляем toast через 5 секунд для типов success, info и warning
+      if (["success", "info", "warning"].includes(newToast.variant as string)) {
+        setTimeout(() => {
+          dispatch({
+            type: "DISMISS_TOAST",
+            toastId: newToast.id,
+          })
+        }, 3500)
+      }
+      
       return {
         ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+        toasts: [newToast, ...state.toasts].slice(0, TOAST_LIMIT),
       }
+    }
 
     case "UPDATE_TOAST":
       return {
@@ -89,20 +155,26 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
-      if (toastId) {
-        addToRemoveQueue(toastId)
-      } else {
+      // Если toast ID не указан, удаляем все
+      if (toastId === undefined) {
         state.toasts.forEach((toast) => {
           addToRemoveQueue(toast.id)
         })
+        return {
+          ...state,
+          toasts: state.toasts.map((t) => ({
+            ...t,
+            open: false,
+          })),
+        }
       }
 
+      // Удаляем конкретный toast
+      addToRemoveQueue(toastId)
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === undefined
+          t.id === toastId
             ? {
                 ...t,
                 open: false,
@@ -125,7 +197,7 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-const listeners: Array<(state: State) => void> = []
+const listeners: ((state: State) => void)[] = []
 
 let memoryState: State = { toasts: [] }
 
@@ -136,26 +208,10 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id"> & {
-  id?: string
-  onOpenChange?: (open: boolean) => void
-}
+type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
-  const id = props.id || genId()
-
-  // Преобразование типов тостов для совместимости
-  let normalizedVariant: ToastType = "default";
-  
-  if (props.variant === "destructive" || props.variant === "error") {
-    normalizedVariant = "destructive";
-  } else if (props.variant === "success") {
-    normalizedVariant = "success";
-  } else if (props.variant === "warning") {
-    normalizedVariant = "warning";
-  } else if (props.variant === "info" || props.variant === "default") {
-    normalizedVariant = "default";
-  } 
+  const id = genId()
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -169,11 +225,9 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
-      variant: normalizedVariant,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
-        if (props.onOpenChange) props.onOpenChange(open)
       },
     },
   })

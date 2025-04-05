@@ -1,107 +1,125 @@
 
 import { GameState } from '@/context/types';
+import { 
+  checkAllUnlocks, 
+  rebuildAllUnlocks
+} from '@/utils/unlockManager';
 
 /**
- * Сервис для управления разблокировками элементов в игре
+ * Сервис для управления разблокировками элементов игры
  */
 export class UnlockService {
-  
   /**
-   * Принудительно разблокирует элемент
-   * @param state Текущее состояние игры
-   * @param itemId Идентификатор элемента для разблокировки
-   * @returns Обновленное состояние игры
+   * Проверяет все разблокировки и обновляет состояние
    */
-  forceUnlock(state: GameState, itemId: string): GameState {
-    console.log(`Принудительная разблокировка элемента: ${itemId}`);
+  checkAllUnlocks(state: GameState): GameState {
+    console.log("UnlockService: Проверка всех разблокировок");
     
-    const newState = { ...state };
+    // Проверка разблокировки ресурсов
+    console.log("UnlockService: Проверка разблокировок ресурсов");
+    const shouldUnlockUsdt = this.shouldUnlockUsdt(state);
+    console.log("UnlockService - shouldUnlockUsdt:", {
+      knowledgeClicksValue: this.getKnowledgeClickCount(state),
+      applyKnowledgeCount: this.getApplyKnowledgeCount(state),
+      usdtResourceExists: !!state.resources.usdt,
+      usdtResourceUnlocked: state.resources.usdt?.unlocked || false,
+      usdtFlagUnlocked: state.unlocks.usdt || false
+    });
+    console.log("UnlockService - shouldUnlockUsdt result:", shouldUnlockUsdt);
     
-    // Обновляем флаг разблокировки
-    newState.unlocks = {
-      ...newState.unlocks,
-      [itemId]: true
-    };
+    // Проверка разблокировки зданий
+    console.log("UnlockService: Проверка разблокировок зданий");
+    const shouldUnlockPractice = this.shouldUnlockPractice(state);
+    const shouldUnlockGenerator = this.shouldUnlockGenerator(state);
+    console.log("UnlockService - shouldUnlockPractice:", {
+      applyKnowledge: this.getApplyKnowledgeCount(state),
+      practiceExists: !!state.buildings.practice,
+      practiceUnlocked: state.buildings.practice?.unlocked ? "Да" : "Нет",
+      practiceInUnlocks: state.unlocks.practice ? "Да" : "Нет",
+      result: shouldUnlockPractice
+    });
+    console.log("UnlockService - shouldUnlockGenerator:", {
+      usdtValue: state.resources.usdt?.value || 0,
+      usdtUnlocked: state.resources.usdt?.unlocked || false,
+      generatorUnlocked: state.buildings.generator?.unlocked ? "Да" : "Нет",
+      result: shouldUnlockGenerator
+    });
     
-    // Если элемент - здание
-    if (itemId in newState.buildings) {
-      newState.buildings = {
-        ...newState.buildings,
-        [itemId]: {
-          ...newState.buildings[itemId],
-          unlocked: true
-        }
-      };
-    }
+    // Проверка разблокировки улучшений и действий
+    console.log("UnlockService: Проверка разблокировок улучшений и действий");
     
-    // Если элемент - исследование
-    if (itemId in newState.upgrades) {
-      newState.upgrades = {
-        ...newState.upgrades,
-        [itemId]: {
-          ...newState.upgrades[itemId],
-          unlocked: true
-        }
-      };
-    }
-    
-    // Если элемент - ресурс
-    if (itemId in newState.resources) {
-      newState.resources = {
-        ...newState.resources,
-        [itemId]: {
-          ...newState.resources[itemId],
-          unlocked: true
-        }
-      };
-    }
-    
-    console.log(`Элемент ${itemId} успешно разблокирован`);
-    return newState;
+    // Используем утилиту unlockManager для проверки всех разблокировок
+    return checkAllUnlocks(state);
   }
   
   /**
-   * Получает отладочную информацию о разблокировках
-   * @param state Текущее состояние игры
-   * @returns Отчет о разблокировках
+   * Выполняет полную перепроверку всех разблокировок с нуля
    */
-  getDebugReport(state: GameState): { steps: string[], unlocked: string[], locked: string[] } {
-    const unlocked: string[] = [];
-    const locked: string[] = [];
-    const steps: string[] = [];
-    
-    steps.push("Проверка разблокировок...");
-    
-    // Проверяем здания
-    Object.entries(state.buildings || {}).forEach(([id, building]) => {
-      steps.push(`Проверка здания ${id}: ${building.unlocked ? "разблокировано" : "заблокировано"}`);
-      if (building.unlocked) {
-        unlocked.push(`Здание: ${building.name || id}`);
-      } else {
-        locked.push(`Здание: ${building.name || id}`);
-      }
-    });
-    
-    // Проверяем исследования
-    Object.entries(state.upgrades || {}).forEach(([id, upgrade]) => {
-      steps.push(`Проверка исследования ${id}: ${upgrade.unlocked ? "разблокировано" : "заблокировано"}`);
-      if (upgrade.unlocked) {
-        unlocked.push(`Исследование: ${upgrade.name || id}`);
-      } else {
-        locked.push(`Исследование: ${upgrade.name || id}`);
-      }
-    });
-    
-    // Проверяем ресурсы
-    Object.entries(state.resources || {}).forEach(([id, resource]) => {
-      steps.push(`Проверка ресурса ${id}: ${resource.unlocked ? "разблокирован" : "заблокирован"}`);
-      if (resource.unlocked) {
-        unlocked.push(`Ресурс: ${resource.name || id}`);
-      } else {
-        locked.push(`Ресурс: ${resource.name || id}`);
-      }
-    });
-    
-    return { steps, unlocked, locked };
+  rebuildAllUnlocks(state: GameState): GameState {
+    console.log("UnlockService: Полная перепроверка всех разблокировок");
+    return rebuildAllUnlocks(state);
+  }
+  
+  /**
+   * Проверяет условия для разблокировки USDT (1+ применений знаний)
+   * Обновлено согласно базе знаний
+   */
+  private shouldUnlockUsdt(state: GameState): boolean {
+    const applyKnowledgeCount = this.getApplyKnowledgeCount(state);
+    return applyKnowledgeCount >= 1; // Требуется 1+ применений знаний
+  }
+  
+  /**
+   * Проверяет условия для разблокировки Practice (2+ применений знаний)
+   * Обновлено согласно базе знаний
+   */
+  private shouldUnlockPractice(state: GameState): boolean {
+    const applyKnowledgeCount = this.getApplyKnowledgeCount(state);
+    return applyKnowledgeCount >= 2; // Требуется 2+ применения знаний
+  }
+  
+  /**
+   * Проверяет условия для разблокировки Generator (11+ USDT)
+   * Обновлено согласно базе знаний
+   */
+  private shouldUnlockGenerator(state: GameState): boolean {
+    return (state.resources.usdt?.value || 0) >= 11 && 
+           (state.resources.usdt?.unlocked === true); // Требуется накопление 11 USDT
+  }
+  
+  /**
+   * Проверяет условия для разблокировки домашнего компьютера (50+ электричества)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockHomeComputer(state: GameState): boolean {
+    return (state.resources.electricity?.value || 0) >= 50 && 
+           (state.resources.electricity?.unlocked === true); // Требуется 50 единиц электричества
+  }
+  
+  /**
+   * Проверяет условия для разблокировки основ блокчейна (куплен генератор)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockBlockchainBasics(state: GameState): boolean {
+    return (state.buildings.generator?.count > 0) && 
+           (state.buildings.generator?.unlocked === true); // Требуется покупка генератора
+  }
+  
+  /**
+   * Безопасно получает значение счетчика применения знаний
+   */
+  private getApplyKnowledgeCount(state: GameState): number {
+    const counter = state.counters.applyKnowledge;
+    if (!counter) return 0;
+    return typeof counter === 'object' ? counter.value : counter;
+  }
+  
+  /**
+   * Безопасно получает значение счетчика кликов знаний
+   */
+  private getKnowledgeClickCount(state: GameState): number {
+    const counter = state.counters.knowledgeClicks;
+    if (!counter) return 0;
+    return typeof counter === 'object' ? counter.value : counter;
   }
 }

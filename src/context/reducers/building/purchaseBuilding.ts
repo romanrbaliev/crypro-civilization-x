@@ -1,18 +1,7 @@
 import { GameState } from '../../types';
-import { updateResourceMaxValues } from '../../utils/resourceUtils';
+import { hasEnoughResources, updateResourceMaxValues } from '../../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
-import { UnlockManagerService } from '@/services/UnlockManagerService';
-
-// Функция для проверки, достаточно ли ресурсов для покупки
-function hasEnoughResources(state: GameState, cost: Record<string, number>): boolean {
-  for (const [resourceId, amount] of Object.entries(cost)) {
-    const resource = state.resources[resourceId];
-    if (!resource || resource.value < Number(amount)) {
-      return false;
-    }
-  }
-  return true;
-}
+import { checkAllUnlocks } from '@/utils/unlockManager';
 
 // Обработка покупки зданий
 export const processPurchaseBuilding = (
@@ -30,13 +19,6 @@ export const processPurchaseBuilding = (
   
   // Проверяем, достаточно ли ресурсов для покупки
   const calculatedCost: { [key: string]: number } = {};
-  
-  // Добавим проверку на наличие свойства cost
-  if (!building.cost) {
-    console.error(`Здание ${buildingId} не имеет свойства cost`);
-    return state;
-  }
-  
   for (const [resourceId, baseCost] of Object.entries(building.cost)) {
     // Рассчитываем текущую стоимость с учетом множителя и текущего количества
     const currentCost = Math.floor(Number(baseCost) * Math.pow(Number(building.costMultiplier || 1.15), building.count));
@@ -86,60 +68,57 @@ export const processPurchaseBuilding = (
       newState.resources.knowledge = {
         ...newState.resources.knowledge,
         baseProduction: 1,
-        production: 1,
-        perSecond: 1
-      };
-    } else {
-      // Добавляем 1 к существующему производству
-      newState.resources.knowledge = {
-        ...newState.resources.knowledge,
-        baseProduction: (newState.resources.knowledge?.baseProduction || 0) + 1,
-        production: (newState.resources.knowledge?.production || 0) + 1,
-        perSecond: (newState.resources.knowledge?.perSecond || 0) + 1
+        production: 1
       };
     }
-    console.log("Практика добавила +1/сек к производству знаний:", newState.resources.knowledge);
   }
   
   if (buildingId === 'generator' && newState.buildings.generator.count === 1) {
-    // Создаем ресурс электричества, если его нет
-    if (!newState.resources.electricity) {
-      newState.resources.electricity = {
-        id: 'electricity',
-        name: 'Электричество',
-        description: 'Электроэнергия для питания устройств',
-        type: 'resource',
-        icon: 'zap',
-        value: 0,
-        baseProduction: 0.5, // Производит 0.5 электричества/сек
-        production: 0.5,
-        perSecond: 0.5,
-        max: 100,
-        unlocked: true
+    // Разблокируем электричество, если ещё не разблокировано
+    if (!newState.unlocks.electricity) {
+      newState = {
+        ...newState,
+        unlocks: {
+          ...newState.unlocks,
+          electricity: true
+        }
       };
+      
+      // Создаем ресурс электричества, если его нет
+      if (!newState.resources.electricity) {
+        newState.resources.electricity = {
+          id: 'electricity',
+          name: 'Электричество',
+          description: 'Электроэнергия для питания устройств',
+          type: 'resource',
+          icon: 'zap',
+          value: 0,
+          baseProduction: 0.5, // Производит 0.5 электричества/сек
+          production: 0.5,
+          perSecond: 0.5,
+          max: 100,
+          unlocked: true
+        };
+        
+        safeDispatchGameEvent('Разблокировано электричество!', 'success');
+      } else {
+        newState.resources.electricity = {
+          ...newState.resources.electricity,
+          unlocked: true,
+          baseProduction: 0.5,
+          production: 0.5,
+          perSecond: 0.5
+        };
+      }
     } else {
+      // Если электричество уже разблокировано, увеличиваем производство
       newState.resources.electricity = {
         ...newState.resources.electricity,
-        unlocked: true,
-        baseProduction: 0.5,
-        production: 0.5,
-        perSecond: 0.5
+        baseProduction: (newState.resources.electricity.baseProduction || 0) + 0.5,
+        production: (newState.resources.electricity.production || 0) + 0.5,
+        perSecond: (newState.resources.electricity.perSecond || 0) + 0.5
       };
     }
-    
-    // Явно разблокируем электричество после покупки генератора
-    newState.unlocks = {
-      ...newState.unlocks,
-      electricity: true
-    };
-    
-    // Явно разблокируем вкладку исследований после покупки генератора
-    newState.unlocks = {
-      ...newState.unlocks,
-      research: true
-    };
-    
-    console.log("Генератор разблокировал электричество и исследования:", newState.unlocks);
   } else if (buildingId === 'generator' && newState.buildings.generator.count > 1) {
     // Увеличиваем производство электричества для каждого дополнительного генератора
     newState.resources.electricity = {
@@ -168,6 +147,12 @@ export const processPurchaseBuilding = (
         perSecond: 0,
         max: 50, // Базовый максимум для USDT
         unlocked: true
+      };
+      
+      // Отмечаем USDT как разблокированный
+      newState.unlocks = {
+        ...newState.unlocks,
+        usdt: true
       };
     }
     
@@ -200,97 +185,278 @@ export const processPurchaseBuilding = (
     if (newState.buildings.cryptoWallet.count === 1) {
       safeDispatchGameEvent('Криптокошелёк: +50 к макс. USDT, +25% к макс. знаниям', 'info');
     }
+    
+    // После покупки криптокошелька разблокируем исследование "Безопасность криптокошельков"
+    if (newState.buildings.cryptoWallet.count === 1) {
+      if (newState.upgrades.walletSecurity || newState.upgrades.cryptoWalletSecurity) {
+        const securityUpgradeId = newState.upgrades.walletSecurity ? 'walletSecurity' : 'cryptoWalletSecurity';
+        
+        newState.upgrades[securityUpgradeId] = {
+          ...newState.upgrades[securityUpgradeId],
+          unlocked: true
+        };
+        console.log("Исследование 'Безопасность криптокошельков' разблокировано после покупки Криптокошелька");
+        
+        safeDispatchGameEvent('Разблокировано исследование "Безопасность криптокошельков"', 'info');
+      }
+    }
   }
   
   if (buildingId === 'homeComputer' && newState.buildings.homeComputer.count > 0) {
-    // Создаем ресурс computingPower, если его нет
-    if (!newState.resources.computingPower) {
-      newState.resources.computingPower = {
-        id: 'computingPower',
-        name: 'Вычислительная мощность',
-        description: 'Вычислительная мощность для майнинга',
-        type: 'resource',
-        icon: 'cpu',
-        value: 0,
-        baseProduction: 2, // +2 вычисл. мощности/сек
-        production: 2,
-        perSecond: 2,
-        max: 1000,
-        unlocked: true
+    // Разблокируем вычислительную мощность, если ещё не разблокирована
+    if (!newState.unlocks.computingPower) {
+      newState = {
+        ...newState,
+        unlocks: {
+          ...newState.unlocks,
+          computingPower: true
+        }
       };
+      
+      // Создаем ресурс computingPower, если его нет
+      if (!newState.resources.computingPower) {
+        newState.resources.computingPower = {
+          id: 'computingPower',
+          name: 'Вычислительная мощность',
+          description: 'Вычислительная мощность для майнинга',
+          type: 'resource',
+          icon: 'cpu',
+          value: 0,
+          baseProduction: 2, // +2 вычисл. мощности/сек
+          production: 2,
+          perSecond: 2,
+          max: 1000,
+          unlocked: true
+        };
+        
+        safeDispatchGameEvent('Разблокирована вычислительная мощность!', 'success');
+      } else {
+        newState.resources.computingPower = {
+          ...newState.resources.computingPower,
+          unlocked: true,
+          baseProduction: 2,
+          production: 2,
+          perSecond: 2
+        };
+      }
+      
+      // Домашний компьютер потребляет 1 электр./сек
+      if (newState.resources.electricity) {
+        newState.resources.electricity = {
+          ...newState.resources.electricity,
+          perSecond: (newState.resources.electricity.perSecond || 0) - 1
+        };
+      }
     } else {
+      // Если вычислительная мощность уже разблокирована, увеличиваем производство
       newState.resources.computingPower = {
         ...newState.resources.computingPower,
-        unlocked: true,
         baseProduction: (newState.resources.computingPower.baseProduction || 0) + 2,
         production: (newState.resources.computingPower.production || 0) + 2,
         perSecond: (newState.resources.computingPower.perSecond || 0) + 2
       };
-    }
-    
-    // Каждый домашний компьютер потребляет 1 электр./сек
-    if (newState.resources.electricity) {
-      newState.resources.electricity = {
-        ...newState.resources.electricity,
-        perSecond: (newState.resources.electricity.perSecond || 0) - 1
-      };
+      
+      // Каждый домашний компьютер потребляет 1 электр./сек
+      if (newState.resources.electricity) {
+        newState.resources.electricity = {
+          ...newState.resources.electricity,
+          perSecond: (newState.resources.electricity.perSecond || 0) - 1
+        };
+      }
     }
   }
   
-  // При покупке майнера разблокируем Bitcoin
   if (buildingId === 'miner' && newState.buildings.miner.count === 1) {
     console.log("Применяем эффекты от первой покупки майнера");
     
-    // Инициализируем или обновляем Bitcoin
-    if (!newState.resources.bitcoin) {
-      newState.resources.bitcoin = {
-        id: 'bitcoin',
-        name: 'Bitcoin',
-        description: 'Bitcoin - первая и основная криптовалюта',
-        type: 'currency',
-        icon: 'bitcoin',
-        value: 0,
-        baseProduction: 0.00005, // Базовая добыча за секунду
-        production: 0.00005,
-        perSecond: 0.00005,
-        max: 100,
-        unlocked: true
+    // Разблокируем Bitcoin при покупке майнера
+    if (!newState.resources.bitcoin || !newState.resources.bitcoin.unlocked) {
+      // Инициализируем или обновляем Bitcoin
+      if (!newState.resources.bitcoin) {
+        newState.resources.bitcoin = {
+          id: 'bitcoin',
+          name: 'Bitcoin',
+          description: 'Bitcoin - первая и основная криптовалюта',
+          type: 'currency',
+          icon: 'bitcoin',
+          value: 0,
+          baseProduction: 0,
+          production: 0,
+          perSecond: 0,
+          max: 0.01,
+          unlocked: true
+        };
+      } else {
+        newState.resources.bitcoin = {
+          ...newState.resources.bitcoin,
+          unlocked: true
+        };
+      }
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        bitcoin: true
       };
-    } else {
-      newState.resources.bitcoin = {
-        ...newState.resources.bitcoin,
-        unlocked: true,
-        baseProduction: 0.00005,
-        production: 0.00005,
-        perSecond: 0.00005
+      
+      console.log("Bitcoin разблокирован после покупки майнера");
+      safeDispatchGameEvent('Разблокирован Bitcoin!', 'success');
+    }
+  }
+  
+  // Специальный случай для интернет-канала
+  if (buildingId === 'internetChannel' && newState.buildings.internetChannel.count > 0) {
+    console.log('Применение эффектов интернет-канала');
+    
+    // Добавляем эффекты, если их нет
+    newState.buildings.internetChannel = {
+      ...newState.buildings.internetChannel,
+      effects: {
+        ...(newState.buildings.internetChannel.effects || {}),
+        knowledgeBoost: 0.2,
+        computingPowerBoost: 0.05
+      }
+    };
+    
+    if (newState.buildings.internetChannel.count === 1) {
+      safeDispatchGameEvent('Интернет-канал: +20% к скорости получения знаний, +5% к эффективности производства вычислительной мощности', 'info');
+    }
+  }
+  
+  // Специальный случай для криптобиблиотеки
+  if (buildingId === 'cryptoLibrary' && newState.buildings.cryptoLibrary.count > 0) {
+    console.log('Применение эффектов криптобиблиотеки');
+    
+    // +50% к скорости получения знаний, +100 к макс. Знаниям
+    const libraryCount = newState.buildings.cryptoLibrary.count;
+    const knowledgeMaxBonus = 100 * libraryCount;
+    
+    // Добавляем эффекты, если их нет
+    newState.buildings.cryptoLibrary = {
+      ...newState.buildings.cryptoLibrary,
+      effects: {
+        ...(newState.buildings.cryptoLibrary.effects || {}),
+        knowledgeBoost: 0.5
+      }
+    };
+    
+    // Обновляем максимум знаний
+    if (newState.resources.knowledge) {
+      newState.resources.knowledge = {
+        ...newState.resources.knowledge,
+        max: (newState.resources.knowledge.max || 100) + knowledgeMaxBonus
       };
     }
     
-    // Майнинг потребляет ресурсы
-    if (newState.resources.electricity) {
-      newState.resources.electricity = {
-        ...newState.resources.electricity,
-        perSecond: (newState.resources.electricity.perSecond || 0) - 1 // -1 электричество/сек
+    if (newState.buildings.cryptoLibrary.count === 1) {
+      safeDispatchGameEvent('Криптобиблиотека: +50% к скорости получения знаний, +100 к макс. знаниям', 'info');
+    }
+  }
+  
+  // Специальный случай для системы охлаждения
+  if (buildingId === 'coolingSystem' && newState.buildings.coolingSystem.count > 0) {
+    console.log('Применение эффектов системы охлаждения');
+    
+    // Добавляем эффекты, если их нет
+    newState.buildings.coolingSystem = {
+      ...newState.buildings.coolingSystem,
+      effects: {
+        ...(newState.buildings.coolingSystem.effects || {}),
+        computingPowerConsumptionReduction: 0.2
+      }
+    };
+    
+    if (newState.buildings.coolingSystem.count === 1) {
+      safeDispatchGameEvent('Система охлаждения: -20% к потреблению вычислительной мощности всеми устройствами', 'info');
+    }
+  }
+  
+  // Специальный случай для улучшенного кошелька
+  if (buildingId === 'enhancedWallet' && newState.buildings.enhancedWallet.count > 0) {
+    console.log('Применение эффектов улучшенного кошелька');
+    
+    // Добавляем эффекты, если их нет
+    newState.buildings.enhancedWallet = {
+      ...newState.buildings.enhancedWallet,
+      effects: {
+        ...(newState.buildings.enhancedWallet.effects || {}),
+        btcExchangeBonus: 0.08
+      }
+    };
+    
+    // +150 к макс. хранению USDT, +1 к макс. BTC
+    const walletCount = newState.buildings.enhancedWallet.count;
+    const usdtMaxBonus = 150 * walletCount;
+    const btcMaxBonus = 1 * walletCount;
+    
+    // Обновляем максимум USDT
+    if (newState.resources.usdt) {
+      newState.resources.usdt = {
+        ...newState.resources.usdt,
+        max: (newState.resources.usdt.max || 50) + usdtMaxBonus
       };
     }
     
-    if (newState.resources.computingPower) {
-      newState.resources.computingPower = {
-        ...newState.resources.computingPower,
-        perSecond: (newState.resources.computingPower.perSecond || 0) - 5 // -5 вычисл.мощность/сек
-      };
-    }
-  } else if (buildingId === 'miner' && newState.buildings.miner.count > 1) {
-    // Для каждого дополнительного майнера увеличиваем добычу и потребление ресурсов
+    // Обновляем максимум BTC
     if (newState.resources.bitcoin) {
       newState.resources.bitcoin = {
         ...newState.resources.bitcoin,
-        baseProduction: (newState.resources.bitcoin.baseProduction || 0) + 0.00005,
-        production: (newState.resources.bitcoin.production || 0) + 0.00005,
-        perSecond: (newState.resources.bitcoin.perSecond || 0) + 0.00005
+        max: (newState.resources.bitcoin.max || 0.01) + btcMaxBonus
       };
     }
     
+    if (newState.buildings.enhancedWallet.count === 1) {
+      safeDispatchGameEvent('Улучшенный кошелёк: +150 к макс. USDT, +1 к макс. BTC, +8% к эффективности конвертации BTC', 'info');
+    }
+  }
+  
+  // Специальный случай для автомайнера - сразу инициализируем ресурс Bitcoin
+  if ((buildingId === 'autoMiner' || buildingId === 'miner') && 
+      (newState.buildings.autoMiner?.count === 1 || newState.buildings.miner?.count === 1)) {
+    // Проверяем, есть ли Bitcoin и разблокирован ли он
+    if (!newState.resources.bitcoin?.unlocked) {
+      console.log("Инициализация Bitcoin после покупки первого автомайнера/майнера");
+      newState = {
+        ...newState,
+        resources: {
+          ...newState.resources,
+          bitcoin: {
+            id: 'bitcoin',
+            name: 'Bitcoin',
+            description: 'Bitcoin - первая и основная криптовалюта',
+            type: 'currency',
+            icon: 'bitcoin',
+            value: 0,
+            baseProduction: 0,
+            production: 0,
+            perSecond: 0.00005, // Базовая скорость от одного майнера
+            max: 0.01,
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...newState.unlocks,
+          bitcoin: true
+        }
+      };
+      
+      // Убедимся, что параметры майнинга инициализированы
+      if (!newState.miningParams) {
+        newState.miningParams = {
+          miningEfficiency: 1,
+          networkDifficulty: 1.0,
+          energyEfficiency: 0,
+          exchangeRate: 20000,
+          exchangeCommission: 0.05,
+          volatility: 0.2,
+          exchangePeriod: 3600,
+          baseConsumption: 1
+        };
+      }
+      
+      safeDispatchGameEvent('Разблокирован Bitcoin!', 'success');
+    }
+    
+    // Майнер потребляет 1 электр. и 5 вычисл. мощности
     if (newState.resources.electricity) {
       newState.resources.electricity = {
         ...newState.resources.electricity,
@@ -305,12 +471,14 @@ export const processPurchaseBuilding = (
       };
     }
   }
-
-  // Обновляем максимальные значения ресурсов после всех изменений
+  
+  // После покупки здания проверяем все возможные разблокировки 
+  // через централизованную систему разблокировок
+  newState = checkAllUnlocks(newState);
+  
+  // Обновляем максимальные значения ресурсов
   newState = updateResourceMaxValues(newState);
   
-  // Проверяем все разблокировки через централизованный сервис
-  newState = UnlockManagerService.checkAllUnlocks(newState);
-  
-  return newState;
+  // Обязательно обновляем максимальные значения ресурсов после всех изменений
+  return updateResourceMaxValues(newState);
 };

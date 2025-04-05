@@ -1,29 +1,38 @@
 
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ErrorScreenProps {
   title: string;
   description: string;
   onRetry?: () => void;
+  onReload?: () => void;
 }
 
-const ErrorScreen: React.FC<ErrorScreenProps> = ({ title, description, onRetry }) => {
+const ErrorScreen: React.FC<ErrorScreenProps> = ({ 
+  title, 
+  description, 
+  onRetry, 
+  onReload = () => window.location.reload() 
+}) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100">
-      <div className="flex flex-col items-center space-y-4 max-w-md mx-auto p-6 bg-white rounded-lg shadow-md text-center">
-        <AlertTriangle className="w-16 h-16 text-amber-500" />
-        <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg text-center">
+        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
         <p className="text-gray-600">{description}</p>
-        
-        {onRetry && (
-          <button 
-            onClick={onRetry}
-            className="px-4 py-2 mt-4 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Повторить
-          </button>
-        )}
+        <div className="flex flex-col space-y-2">
+          {onRetry && (
+            <Button 
+              variant="outline" 
+              onClick={onRetry}
+            >
+              Повторить попытку подключения
+            </Button>
+          )}
+          <Button onClick={onReload}>
+            Обновить страницу
+          </Button>
+        </div>
       </div>
     </div>
   );

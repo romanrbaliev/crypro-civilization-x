@@ -1,16 +1,10 @@
 
 import { GameState } from '@/context/types';
-import { saveGameToServer } from '@/api/gameStorage';
+import { saveGameState } from '@/context/utils/gameStorage';
 
 let lastSaveTime = 0;
 let isSavingInProgress = false;
 
-/**
- * Сохраняет состояние игры
- * @param gameState Состояние игры
- * @param hasConnection Есть ли соединение с сервером
- * @returns true если сохранение успешно
- */
 export const saveGame = async (gameState: GameState, hasConnection: boolean): Promise<boolean> => {
   if (!hasConnection) {
     console.log('⚠️ Нет соединения с сервером, сохранение пропущено');
@@ -34,7 +28,7 @@ export const saveGame = async (gameState: GameState, hasConnection: boolean): Pr
   try {
     console.log(`🔄 Запуск сохранения игры (размер: ~${JSON.stringify(gameState).length}b)`);
     
-    const success = await saveGameToServer(gameState);
+    const success = await saveGameState(gameState);
     
     if (success) {
       console.log('✅ Игра успешно сохранена');

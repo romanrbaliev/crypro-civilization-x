@@ -1,7 +1,8 @@
 
 import { GameState } from '../types';
-import { checkSpecialUnlocks } from '@/utils/unlockSystem';
+import { checkUnlocks } from '../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { checkSpecialUnlocks } from '@/utils/unlockSystem';
 
 // Обработка инкремента ресурсов
 export const processIncrementResource = (
@@ -15,18 +16,11 @@ export const processIncrementResource = (
     return state;
   }
   
-  // ИСПРАВЛЕНИЕ ДЛЯ ВСЕХ СРЕД: Фиксированное значение для ресурса "знания" без зависимости от передаваемого amount
-  // Переопределяем значение для ресурса "знания" всегда на 1
-  let incrementAmount = resourceId === "knowledge" ? 1 : amount;
-  
-  // Дополнительный лог для отслеживания
-  console.log(`processIncrementResource: ${resourceId}, исходный amount=${amount}, установленный incrementAmount=${incrementAmount}`);
-  
   const currentValue = state.resources[resourceId].value;
   const maxValue = state.resources[resourceId].max;
   
   // Вычисляем новое значение, но не выше максимального
-  let newValue = currentValue + incrementAmount;
+  let newValue = currentValue + amount;
   if (maxValue !== Infinity && newValue > maxValue) {
     newValue = maxValue;
   }
@@ -40,10 +34,10 @@ export const processIncrementResource = (
   console.log(`Изменение ресурса ${resourceId}: ${currentValue} -> ${newValue}`);
   
   // Отправляем событие для возможного отображения в интерфейсе
-  if (incrementAmount > 0) {
-    safeDispatchGameEvent(`Получено ${incrementAmount} ${state.resources[resourceId].name}`, "info");
-  } else if (incrementAmount < 0) {
-    safeDispatchGameEvent(`Потрачено ${Math.abs(incrementAmount)} ${state.resources[resourceId].name}`, "info");
+  if (amount > 0) {
+    safeDispatchGameEvent(`Получено ${amount} ${state.resources[resourceId].name}`, "info");
+  } else if (amount < 0) {
+    safeDispatchGameEvent(`Потрачено ${Math.abs(amount)} ${state.resources[resourceId].name}`, "info");
   }
   
   const newState = {

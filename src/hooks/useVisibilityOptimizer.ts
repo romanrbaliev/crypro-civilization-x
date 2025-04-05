@@ -1,46 +1,31 @@
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
- * Хук для определения видимости страницы и оптимизации производительности
- * @returns Булево значение, указывающее видима ли страница
+ * Хук для оптимизации обновлений в зависимости от видимости вкладки
  */
-const useVisibilityOptimizer = (): boolean => {
-  const [isPageVisible, setIsPageVisible] = useState(true);
+export const useVisibilityOptimizer = (initialValue: boolean = true) => {
+  const [isVisible, setIsVisible] = useState(initialValue);
   
   useEffect(() => {
-    // Обработчик изменения видимости страницы
+    // Функция для определения видимости страницы
     const handleVisibilityChange = () => {
-      setIsPageVisible(!document.hidden);
-      console.log(`Видимость страницы изменена: ${!document.hidden}`);
+      setIsVisible(!document.hidden);
     };
     
-    // Обработчик фокуса окна
-    const handleFocus = () => {
-      setIsPageVisible(true);
-      console.log('Окно в фокусе');
-    };
+    // Регистрируем обработчик события видимости страницы
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     
-    // Обработчик потери фокуса окна
-    const handleBlur = () => {
-      setIsPageVisible(false);
-      console.log('Окно потеряло фокус');
-    };
-    
-    // Регистрируем события
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
+    // Установка начального состояния
+    setIsVisible(!document.hidden);
     
     // Очистка при размонтировании
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
   
-  return isPageVisible;
+  return isVisible;
 };
 
 export default useVisibilityOptimizer;

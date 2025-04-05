@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -79,9 +80,7 @@ const ReferralItem: React.FC<ReferralItemProps> = ({
     ? directDbStatus 
     : (typeof referral.activated === 'boolean' 
         ? referral.activated 
-        : (typeof referral.activated === 'string' 
-            ? referral.activated.toLowerCase() === 'true'
-            : false));
+        : String(referral.activated).toLowerCase() === 'true');
   
   useEffect(() => {
     const checkStatusInDb = async () => {
@@ -888,7 +887,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       toast({
         title: accepted ? "Вы приняли предложение" : "Вы отклонили предложение",
         description: accepted 
-          ? `Теперь вы помогаете здан��ю "${buildingName}" и получаете бонус +10% к производительности` 
+          ? `Теперь вы помогаете зданию "${buildingName}" и получаете бонус +10% к производительности` 
           : "Предложение отклонено",
       });
       
@@ -943,39 +942,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
     }
   };
 
-  const updateReferralStatus = (dispatch, state, referralId, isActivated, isHired, buildingId) => {
-    dispatch({
-      type: "UPDATE_REFERRAL_STATUS",
-      payload: {
-        referralId,
-        activated: isActivated,
-        hired: isHired,
-        buildingId
-      }
-    });
-  };
-
   const totalReferrals = state.referrals?.length || 0;
-  const activeReferrals = state.referrals?.filter(ref => {
-    if (typeof ref.activated === 'boolean') {
-      return ref.activated;
-    }
-    if (typeof ref.activated === 'string') {
-      return ref.activated.toLowerCase() === 'true';
-    }
-    return false;
-  })?.length || 0;
+  const activeReferrals = state.referrals?.filter(ref => 
+    typeof ref.activated === 'boolean' 
+      ? ref.activated 
+      : String(ref.activated).toLowerCase() === 'true'
+  )?.length || 0;
 
   const filteredReferrals = currentTab === 'active' 
-    ? (state.referrals || []).filter(ref => {
-        if (typeof ref.activated === 'boolean') {
-          return ref.activated;
-        }
-        if (typeof ref.activated === 'string') {
-          return ref.activated.toLowerCase() === 'true';
-        }
-        return false;
-      })
+    ? (state.referrals || []).filter(ref => 
+        (typeof ref.activated === 'boolean' && ref.activated === true) ||
+        (typeof ref.activated === 'string' && ref.activated.toLowerCase() === 'true')
+      )
     : (state.referrals || []);
 
   const getUserBuildings = () => Object.values(state.buildings || {})
@@ -1069,7 +1047,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             <div className="mb-2">
               <div className="text-[10px] font-medium mb-1 flex items-center">
                 <MessageSquare className="h-3 w-3 mr-1 text-blue-500" />
-                Запр��сы на сотрудничество:
+                Запросы на сотрудничество:
               </div>
               <div className="space-y-1">
                 {helperRequests.map(request => (

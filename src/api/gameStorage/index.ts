@@ -1,11 +1,29 @@
 
-// Импортируем функции из соответствующих файлов
-import { saveGameToServer } from './saveGame';
-import { loadGameFromServer } from './loadGame';
+// Экспорт функций для хранения и загрузки состояния игры
+export { saveGameToServer } from './saveGame';
+export { loadGameFromServer } from './loadGame';
+export { validateGameState, mergeWithInitialState } from './stateUtils';
 
-// Реэкспорт функций
-export { saveGameToServer };
-export { loadGameFromServer };
+// Функция для сброса всех данных игры
+export const resetAllGameData = async (): Promise<boolean> => {
+  try {
+    localStorage.removeItem('gameState');
+    
+    // Обновленный код: используем правильную структуру из initialState
+    const initialState = await import('../../context/initialState');
+    
+    // Проверяем здания напрямую в структуре initialState
+    if (initialState && 
+        initialState.initialState && 
+        initialState.initialState.buildings && 
+        initialState.initialState.buildings.coolingSystem) {
+      initialState.initialState.buildings.coolingSystem.unlocked = false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Ошибка при сбросе данных игры:", error);
+    return false;
+  }
+};
 
-// Экспорт loadGameState для обратной совместимости
-export const loadGameState = loadGameFromServer;

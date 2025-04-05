@@ -1,80 +1,123 @@
+import React, { useCallback, useRef } from "react";
+import { useActionButtons } from "@/hooks/useActionButtons";
+import { Button } from "@/components/ui/button";
+import { useGame } from "@/context/hooks/useGame";
 
-import React from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { Button } from './ui/button';
-import { useUnlockStatus } from '@/systems/unlock/hooks/useUnlockManager';
+interface ActionButtonsProps {
+  onAddEvent: (message: string, type: string) => void;
+}
 
-const ActionButtons: React.FC = () => {
-  const { state, dispatch } = useGame();
+const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
+  const { state } = useGame();
+  const {
+    handleLearnClick, 
+    handleApplyAllKnowledge,
+    handleExchangeBitcoin,
+    currentExchangeRate,
+    shouldHideLearnButton,
+    applyKnowledgeUnlocked,
+  } = useActionButtons({ onAddEvent });
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Функция для обработки изучения крипты
-  const handleLearnCrypto = () => {
-    dispatch({ 
-      type: 'INCREMENT_RESOURCE', 
-      payload: { resourceId: 'knowledge', amount: 1 } 
-    });
+  // Визуальная проверка доступности кнопок
+  const canApplyKnowledge = (state.resources.knowledge?.value || 0) >= 10;
+  const canExchangeBitcoin = (state.resources.bitcoin?.value || 0) > 0;
+  const bitcoinUnlocked = state.resources.bitcoin && state.resources.bitcoin.unlocked;
+  
+  // Обработчик быстрых кликов для кнопки изучения
+  const handleLearnMouseDown = useCallback(() => {
+    handleLearnClick();
+    
+    // Запускаем таймер для периодических кликов при удержании
+    clickTimerRef.current = setInterval(() => {
+      handleLearnClick();
+    }, 150); // Интервал между автокликами (150мс)
+  }, [handleLearnClick]);
+  
+  const handleLearnMouseUp = useCallback(() => {
+    // Останавливаем автоклики при отпускании кнопки
+    if (clickTimerRef.current) {
+      clearInterval(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+  }, []);
+
+  // Останавливаем автоклики при выходе курсора за пределы кнопки
+  const handleLearnMouseLeave = useCallback(() => {
+    if (clickTimerRef.current) {
+      clearInterval(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+  }, []);
+  
+  // Очистка таймера при размонтировании компонента
+  React.useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) {
+        clearInterval(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+    };
+  }, []);
+  
+  // Создаем массив кнопок в нужном порядке (снизу вверх)
+  const renderButtons = () => {
+    const buttons = [];
+    
+    // Кнопка обмена Bitcoin появляется только если разблокирован Bitcoin (Вверху)
+    if (bitcoinUnlocked) {
+      buttons.push(
+        <Button 
+          key="exchange-bitcoin"
+          variant={canExchangeBitcoin ? "default" : "outline"}
+          className={`py-3 px-4 text-sm h-8 ${!canExchangeBitcoin ? "opacity-50" : ""}`}
+          onClick={handleExchangeBitcoin}
+          disabled={!canExchangeBitcoin}
+        >
+          <span className="text-xs">Обменять Bitcoin</span>
+        </Button>
+      );
+    }
+    
+    // Кнопка применения знаний появляется после разблокировки (В середине)
+    if (applyKnowledgeUnlocked) {
+      buttons.push(
+        <Button 
+          key="apply-knowledge"
+          variant={canApplyKnowledge ? "default" : "outline"}
+          className="py-2 px-4 h-8 text-xs"
+          onClick={handleApplyAllKnowledge}
+          disabled={!canApplyKnowledge}
+        >
+          <span className="text-xs">Применить знания</span>
+        </Button>
+      );
+    }
+    
+    // Кнопка "Изучить крипту" всегда внизу, если её показываем
+    if (!shouldHideLearnButton) {
+      buttons.push(
+        <Button 
+          key="learn-crypto"
+          variant="secondary"
+          className="py-2 px-4 h-8 text-xs"
+          onMouseDown={handleLearnMouseDown}
+          onMouseUp={handleLearnMouseUp}
+          onMouseLeave={handleLearnMouseLeave}
+          onTouchStart={handleLearnClick}
+          onTouchEnd={() => {}}
+        >
+          <span className="text-xs">Изучить крипту</span>
+        </Button>
+      );
+    }
+    
+    return buttons;
   };
-  
-  // Функция для обработки применения знаний
-  const handleApplyKnowledge = () => {
-    dispatch({ type: 'APPLY_KNOWLEDGE' });
-  };
-  
-  // Функция для обработки майнинга
-  const handleMining = () => {
-    dispatch({ type: 'MINING_POWER' });
-  };
-  
-  // Функция для обработки обмена Bitcoin
-  const handleExchangeBtc = () => {
-    dispatch({ type: 'EXCHANGE_BTC' });
-  };
-  
-  // Проверяем разблокировку различных кнопок
-  const isApplyKnowledgeUnlocked = state.knowledge >= 3;
-  const isMiningUnlocked = useUnlockStatus('bitcoin');
-  const isExchangeBtcUnlocked = isMiningUnlocked && state.resources.bitcoin?.value > 0;
   
   return (
-    <div className="space-y-3">
-      <Button 
-        onClick={handleLearnCrypto}
-        className="w-full h-12"
-        variant="default"
-      >
-        Изучить крипту
-      </Button>
-      
-      {isApplyKnowledgeUnlocked && (
-        <Button 
-          onClick={handleApplyKnowledge}
-          className="w-full h-12"
-          variant="secondary"
-          disabled={state.knowledge < 10}
-        >
-          Применить знания
-        </Button>
-      )}
-      
-      {isMiningUnlocked && (
-        <Button 
-          onClick={handleMining}
-          className="w-full h-12"
-          variant="outline"
-        >
-          Майнинг
-        </Button>
-      )}
-      
-      {isExchangeBtcUnlocked && (
-        <Button 
-          onClick={handleExchangeBtc}
-          className="w-full h-12"
-          variant="outline"
-        >
-          Обменять Bitcoin
-        </Button>
-      )}
+    <div className="p-2 grid grid-cols-1 gap-2 mt-4">
+      {renderButtons()}
     </div>
   );
 };

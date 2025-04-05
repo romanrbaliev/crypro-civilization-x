@@ -1,81 +1,83 @@
 
-import React, { useEffect, useState } from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { setupGameEventListener } from '@/context/utils/eventBusUtils';
+import React, { useEffect, useRef, useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const EventLog: React.FC = () => {
-  const { state } = useGame();
-  const [events, setEvents] = useState<Array<{
-    id: string;
-    message: string;
-    type: string;
-    timestamp: number;
-  }>>([]);
+export interface GameEvent {
+  id: string;
+  timestamp: number;
+  message: string;
+  type: "info" | "success" | "warning" | "error";
+}
+
+interface EventLogProps {
+  events: GameEvent[];
+  maxEvents?: number;
+}
+
+const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  // Инициализация событий из состояния
+  // Автоматическая прокрутка вверх при новых событиях
   useEffect(() => {
-    if (state.eventMessages) {
-      const initialEvents = Object.entries(state.eventMessages).map(([id, data]: [string, any]) => ({
-        id,
-        message: data.text || data.message || '',
-        type: data.type || 'info',
-        timestamp: data.timestamp || Date.now()
-      }));
-      
-      setEvents(initialEvents.sort((a, b) => b.timestamp - a.timestamp).slice(0, 15));
+    if (scrollAreaRef.current) {
+      const scrollArea = scrollAreaRef.current;
+      scrollArea.scrollTop = 0;
     }
-  }, [state.eventMessages]);
+  }, [events]);
   
-  // Настраиваем слушатель для новых событий
-  useEffect(() => {
-    const removeListener = setupGameEventListener((message, type, timestamp) => {
-      // Добавляем новое событие в начало списка
-      setEvents(prevEvents => [{
-        id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        message,
-        type,
-        timestamp
-      }, ...prevEvents].slice(0, 15)); // Оставляем только последние 15 событий
-    });
-    
-    return removeListener;
-  }, []);
+  // Отображаем только последние N событий
+  const displayEvents = events.slice(-maxEvents);
   
-  // Функция для форматирования времени
-  const formatTime = (timestamp: number) => {
+  // Форматирование времени события
+  const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp);
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
   };
   
-  // Определяем цвет текста в зависимости от типа сообщения
-  const getMessageColor = (type: string) => {
+  // Стили для разных типов событий
+  const getEventStyle = (type: GameEvent["type"]): string => {
     switch (type) {
-      case 'success':
-        return 'text-green-600 dark:text-green-400';
-      case 'error':
-        return 'text-red-600 dark:text-red-400';
-      case 'warning':
-        return 'text-yellow-600 dark:text-yellow-400';
-      case 'info':
+      case "success":
+        return "text-green-600 border-green-200";
+      case "warning":
+        return "text-amber-600 border-amber-200";
+      case "error":
+        return "text-red-600 border-red-200";
+      case "info":
       default:
-        return 'text-blue-600 dark:text-blue-400';
+        return "text-blue-600 border-blue-200";
     }
   };
   
   return (
-    <div className="space-y-1 event-log">
-      {events.length === 0 ? (
-        <div className="text-gray-500 text-xs text-center py-2">
-          Нет событий
+    <div className="h-full p-2">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-bold text-xs">Журнал событий</h2>
+        <div className="text-xs text-gray-500">
+          {displayEvents.length} {displayEvents.length === 1 ? 'событие' : 
+            (displayEvents.length >= 2 && displayEvents.length <= 4) ? 'события' : 'событий'}
         </div>
-      ) : (
-        events.map((event) => (
-          <div key={event.id} className="flex text-xs event-item">
-            <span className="text-gray-500 mr-2 event-time">{formatTime(event.timestamp)}</span>
-            <span className={getMessageColor(event.type)}>{event.message}</span>
-          </div>
-        ))
-      )}
+      </div>
+      
+      <ScrollArea className="h-[calc(100%-28px)]" ref={scrollAreaRef}>
+        <div className="space-y-1 pr-2">
+          {displayEvents.length > 0 ? (
+            displayEvents.map(event => (
+              <div 
+                key={event.id} 
+                className={`text-xs p-1.5 border-l-2 ${getEventStyle(event.type)} bg-gray-50 animate-fade-in`}
+              >
+                <span className="text-xs text-gray-500 mr-2">{formatTime(event.timestamp)}</span>
+                {event.message}
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-4 text-xs">
+              Пока нет событий
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,117 +97,44 @@
   margin-bottom: 5px !important;
 }
 
-/* Глобальное уменьшение размера текста */
-body {
-  font-size: 14px;
+.actions-container {
+  display: flex !important;
+  flex-direction: column !important; /* Меняем на вертикальное расположение */
+  gap: 8px !important;
+  width: 100% !important;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-size: 1rem !important;
+.building-container {
+  padding-top: 5px !important;
 }
 
-p, span, div, button {
-  font-size: 0.75rem !important;
+.building-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 5px !important;
 }
 
-/* Стили кнопок */
-button.action-button {
-  font-size: 0.75rem !important;
+.building-details {
+  width: 100% !important;
 }
 
-/* Стили для карточек зданий */
-.building-card {
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
+.building-button {
+  margin-left: 0 !important;
 }
 
-.building-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+@keyframes resource-highlight {
+  0% {
+    color: inherit;
+  }
+  50% {
+    color: #3182ce;
+  }
+  100% {
+    color: inherit;
+  }
 }
 
-.building-card-content {
-  padding: 0.75rem;
-  font-size: 0.75rem;
-}
-
-/* Стили для вкладок в левой панели */
-.sidebar-tab {
-  padding: 0.5rem 0.75rem;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.sidebar-tab-active {
-  background-color: #e5e7eb;
-}
-
-.sidebar-tab-icon {
-  margin-right: 0.5rem;
-  font-size: 1rem;
-}
-
-.sidebar-tab-text {
-  font-size: 0.75rem;
-}
-
-/* Стили для кнопок действий */
-.action-button-container {
-  border-top: 1px solid #e5e7eb;
-  padding: 0.75rem;
-}
-
-/* Стили для журнала событий */
-.event-log {
-  border-top: 1px solid #e5e7eb;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-}
-
-.event-log-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.event-log-content {
-  max-height: 6rem;
-  overflow-y: auto;
-}
-
-.event-log-item {
-  margin-bottom: 0.25rem;
-  line-height: 1.2;
-  font-size: 0.7rem;
-}
-
-/* Стили для ресурсов */
-.resource-container {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.resource-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.25rem;
-}
-
-.resource-name,
-.resource-value {
-  font-size: 0.75rem !important;
-}
-
-.resource-production {
-  font-size: 0.7rem !important;
-  color: #16a34a;
-  text-align: right;
+.resource-changed {
+  animation: resource-highlight 0.5s ease-in-out;
 }
