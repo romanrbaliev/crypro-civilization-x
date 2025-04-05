@@ -45,12 +45,12 @@ export interface Upgrade {
   unlocked: boolean;
   type: string;
   effects: any;
+  effect?: any; // Альтернативное название для effects
   category?: string; // Добавляем для TechTree
   tier?: number; // Добавляем для TechTree
   specialization?: string; // Добавляем для специализации
   unlockCondition?: Record<string, any>; // Условия разблокировки
   requiredUpgrades?: string[]; // Требуемые исследования
-  effect?: any; // Альтернативное название для effects
 }
 
 // Интерфейс для майнинга параметров
@@ -63,6 +63,7 @@ export interface MiningParams {
   exchangeCommission?: number;
   miningEfficiency?: number;
   energyEfficiency?: number;
+  networkDifficulty?: number; // Добавлено для совместимости
 }
 
 export interface GameState {
@@ -144,7 +145,7 @@ export type GameAction =
   | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
-  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; status: any; activated?: boolean; hired?: boolean } }
+  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; status: any; activated?: boolean; hired?: boolean; buildingId?: string } }
   | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: any[] } }
   | { type: "UNLOCK_BUILDING"; payload: { buildingId: string } }
   | { type: "RESEARCH_UPGRADE"; payload: { upgradeId: string } }
@@ -163,6 +164,7 @@ export interface SpecializationSynergy {
   requiredCount: number;
   bonus: Record<string, number>;
   unlocked?: boolean;
+  active?: boolean;
 }
 
 // Тип для объекта диспетчера действий

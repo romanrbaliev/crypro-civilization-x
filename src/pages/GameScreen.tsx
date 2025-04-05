@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +15,25 @@ import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { useTranslation } from "@/i18n";
+import { toast } from "@/components/ui/use-toast";
+import { 
+  Dialog, DialogTrigger, DialogContent, DialogHeader, 
+  DialogTitle, DialogDescription, DialogFooter 
+} from "@/components/ui/dialog";
+import {
+  Sheet, SheetTrigger, SheetContent, SheetHeader,
+  SheetTitle, SheetDescription
+} from "@/components/ui/sheet";
+import {
+  Tabs, TabsList, TabsTrigger, TabsContent
+} from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { clearAllSavedDataForAllUsers } from "@/api/adminService";
+
+// Функция для сброса данных игры
+const resetAllGameData = async () => {
+  await clearAllSavedDataForAllUsers();
+};
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();

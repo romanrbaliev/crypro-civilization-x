@@ -44,7 +44,7 @@ export function Game() {
         
         <ActionButtons onAddEvent={() => {}} />
         
-        <ResourceContainer />
+        <ResourceContainer resource={state.resources.knowledge} />
         
         {state.unlocks.research && <ResearchContainer />}
         

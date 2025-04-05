@@ -84,9 +84,11 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 10 },
+    cost: { usdt: 10 },
     costMultiplier: 1.12,
     production: { knowledge: 1 },
-    consumption: {}
+    consumption: {},
+    effects: {}
   },
   generator: {
     id: 'generator',
@@ -95,9 +97,11 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 20 },
+    cost: { usdt: 20 },
     costMultiplier: 1.12,
     production: { electricity: 0.5 },
-    consumption: {}
+    consumption: {},
+    effects: {}
   },
   homeComputer: {
     id: 'homeComputer',
@@ -106,9 +110,11 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 55 },
+    cost: { usdt: 55 },
     costMultiplier: 1.15,
     production: { computingPower: 2 },
-    consumption: { electricity: 1 }
+    consumption: { electricity: 1 },
+    effects: {}
   },
   cryptoWallet: {
     id: 'cryptoWallet',
@@ -117,9 +123,14 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 30, knowledge: 50 },
+    cost: { usdt: 30, knowledge: 50 },
     costMultiplier: 1.15,
     production: {},
-    consumption: {}
+    consumption: {},
+    effects: {
+      usdtMaxBoost: 50,
+      knowledgeMaxBoost: 0.25
+    }
   },
   internetChannel: {
     id: 'internetChannel',
@@ -128,9 +139,14 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 75 },
+    cost: { usdt: 75 },
     costMultiplier: 1.15,
     production: {},
-    consumption: {}
+    consumption: {},
+    effects: {
+      knowledgeProductionBoost: 0.2,
+      computingEfficiencyBoost: 0.05
+    }
   },
   miner: {
     id: 'miner',
@@ -139,9 +155,11 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 150 },
+    cost: { usdt: 150 },
     costMultiplier: 1.15,
     production: { bitcoin: 0.00005 },
-    consumption: { electricity: 1, computingPower: 5 }
+    consumption: { electricity: 1, computingPower: 5 },
+    effects: {}
   },
   autoMiner: {
     id: 'autoMiner',
@@ -150,9 +168,11 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 300 },
+    cost: { usdt: 300 },
     costMultiplier: 1.15,
     production: { bitcoin: 0.0001 },
-    consumption: { electricity: 1.5, computingPower: 8 }
+    consumption: { electricity: 1.5, computingPower: 8 },
+    effects: {}
   },
   coolingSystem: {
     id: 'coolingSystem',
@@ -161,9 +181,13 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 200, electricity: 50 },
+    cost: { usdt: 200, electricity: 50 },
     costMultiplier: 1.15,
     production: {},
-    consumption: {}
+    consumption: {},
+    effects: {
+      computingPowerConsumptionReduction: 0.2
+    }
   },
   improvedWallet: {
     id: 'improvedWallet',
@@ -172,9 +196,15 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 300, knowledge: 250 },
+    cost: { usdt: 300, knowledge: 250 },
     costMultiplier: 1.15,
     production: {},
-    consumption: {}
+    consumption: {},
+    effects: {
+      usdtMaxBoost: 150,
+      bitcoinMaxBoost: 1,
+      bitcoinExchangeEfficiencyBoost: 0.08
+    }
   },
   cryptoLibrary: {
     id: 'cryptoLibrary',
@@ -183,9 +213,14 @@ const initialBuildings: Record<string, Building> = {
     count: 0,
     unlocked: false,
     baseCost: { usdt: 200, knowledge: 200 },
+    cost: { usdt: 200, knowledge: 200 },
     costMultiplier: 1.15,
     production: {},
-    consumption: {}
+    consumption: {},
+    effects: {
+      knowledgeProductionBoost: 0.5,
+      knowledgeMaxBoost: 100
+    }
   }
 };
 
@@ -323,5 +358,16 @@ export const initialState: GameState = {
   lastSaved: Date.now(),
   phase: 0,
   prestigePoints: 0,
-  language: 'ru' // Устанавливаем русский язык по умолчанию
+  language: 'ru', // Устанавливаем русский язык по умолчанию
+  miningParams: {
+    difficulty: 1,
+    hashrate: 0,
+    blockReward: 6.25,
+    lastBlockTime: Date.now(),
+    exchangeRate: 25000,
+    exchangeCommission: 0.005,
+    miningEfficiency: 1,
+    energyEfficiency: 1,
+    networkDifficulty: 1
+  }
 };

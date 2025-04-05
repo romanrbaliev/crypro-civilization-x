@@ -1,12 +1,9 @@
 
-import { ru } from './ru';
 import { en } from './en';
-import { TranslationsType, SupportedLanguage } from '../types';
+import { ru } from './ru';
+import { Translations, Language } from '../types';
 
-// Объект со всеми доступными переводами
-export const translations: Record<SupportedLanguage, TranslationsType> = {
-  ru,
-  en
+export const translations: Translations = {
+  en,
+  ru
 };
-
-export { ru, en };
