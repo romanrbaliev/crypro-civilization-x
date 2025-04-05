@@ -35,6 +35,115 @@ export class GameStateService {
   }
   
   /**
+   * Обрабатывает обновление состояния игры
+   * @param state Текущее состояние игры
+   * @returns Обновленное состояние игры
+   */
+  processGameStateUpdate(state: GameState): GameState {
+    const newState = { ...state };
+    
+    // Обновляем ресурсы на основе зданий
+    this.updateResourcesBasedOnBuildings(newState);
+    
+    // Обновляем ограничения ресурсов
+    this.updateResourceLimits(newState);
+    
+    return newState;
+  }
+  
+  /**
+   * Обновляет ресурсы на основе зданий
+   * @param state Состояние игры для обновления
+   */
+  private updateResourcesBasedOnBuildings(state: GameState): void {
+    // Проходим по всем зданиям и применяем их эффекты на ресурсы
+    Object.values(state.buildings).forEach(building => {
+      if (building.count > 0) {
+        // Применяем производство
+        if (building.production) {
+          Object.entries(building.production).forEach(([resourceId, amount]) => {
+            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
+              state.resources[resourceId].perSecond = (state.resources[resourceId].perSecond || 0) + (amount * building.count);
+            }
+          });
+        }
+        
+        // Применяем потребление
+        if (building.consumption) {
+          Object.entries(building.consumption).forEach(([resourceId, amount]) => {
+            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
+              state.resources[resourceId].perSecond = (state.resources[resourceId].perSecond || 0) - (amount * building.count);
+            }
+          });
+        }
+      }
+    });
+  }
+  
+  /**
+   * Обновляет лимиты ресурсов на основе зданий и исследований
+   * @param state Состояние игры для обновления
+   */
+  private updateResourceLimits(state: GameState): void {
+    // Сбрасываем лимиты к базовым значениям
+    Object.keys(state.resources).forEach(resourceId => {
+      const resource = state.resources[resourceId];
+      if (resource.unlocked) {
+        // Базовые лимиты для разных ресурсов
+        switch (resourceId) {
+          case 'knowledge':
+            resource.max = 100; // Базовый лимит для знаний
+            break;
+          case 'usdt':
+            resource.max = 500; // Базовый лимит для USDT
+            break;
+          case 'electricity':
+            resource.max = 1000; // Базовый лимит для электричества
+            break;
+          case 'computingPower':
+            resource.max = 1000; // Базовый лимит для вычислительной мощности
+            break;
+          case 'bitcoin':
+            resource.max = 1; // Базовый лимит для биткоина
+            break;
+          default:
+            resource.max = 100; // Стандартный лимит
+        }
+      }
+    });
+    
+    // Применяем модификаторы от зданий
+    Object.values(state.buildings).forEach(building => {
+      if (building.count > 0 && building.effects) {
+        Object.entries(building.effects).forEach(([effectId, value]) => {
+          // Проверяем эффекты увеличения максимума ресурсов
+          if (effectId.startsWith('max') && effectId.length > 3) {
+            const resourceId = effectId.substring(3).toLowerCase();
+            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
+              state.resources[resourceId].max += value * building.count;
+            }
+          }
+        });
+      }
+    });
+    
+    // Применяем модификаторы от исследований
+    Object.values(state.upgrades).forEach(upgrade => {
+      if (upgrade.purchased && upgrade.effects) {
+        Object.entries(upgrade.effects).forEach(([effectId, value]) => {
+          // Проверяем эффекты увеличения максимума ресурсов
+          if (effectId.startsWith('max') && effectId.length > 3) {
+            const resourceId = effectId.substring(3).toLowerCase();
+            if (state.resources[resourceId] && state.resources[resourceId].unlocked) {
+              state.resources[resourceId].max += value;
+            }
+          }
+        });
+      }
+    });
+  }
+  
+  /**
    * Проверяет и обновляет разблокировки
    * @param state Текущее состояние игры
    * @returns Обновленные разблокировки
