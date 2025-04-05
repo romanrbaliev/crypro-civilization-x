@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
+import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
@@ -13,6 +13,8 @@ import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
+import LanguageSwitch from "@/components/LanguageSwitch"; // Импортируем компонент переключения языка
+import { useTranslation } from "@/i18n"; // Импортируем хук для переводов
 import {
   Dialog,
   DialogContent,
@@ -42,6 +44,7 @@ import { toast } from "@/hooks/use-toast";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
+  const { t } = useTranslation(); // Используем хук для переводов
   const navigate = useNavigate();
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
@@ -181,53 +184,50 @@ const GameScreen = () => {
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  Как играть
+                  {t('tutorial.title')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Как играть в Crypto Civilization</DialogTitle>
+                  <DialogTitle>{t('tutorial.title')}</DialogTitle>
                   <DialogDescription>
-                    Руководство по основным механикам игры
+                    {t('tutorial.basics.intro')}
                   </DialogDescription>
                 </DialogHeader>
                 
                 <Tabs defaultValue="basics">
                   <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="basics">Основы</TabsTrigger>
-                    <TabsTrigger value="resources">Ресурсы</TabsTrigger>
-                    <TabsTrigger value="buildings">Оборудование</TabsTrigger>
+                    <TabsTrigger value="basics">{t('tutorial.basics')}</TabsTrigger>
+                    <TabsTrigger value="resources">{t('tutorial.resources')}</TabsTrigger>
+                    <TabsTrigger value="buildings">{t('tutorial.buildings')}</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="basics" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Начало игры</h4>
+                    <h4 className="font-semibold">{t('tutorial.basics.title')}</h4>
                     <p className="text-sm">
-                      1. Начните с изучения основ криптовалют, нажимая на кнопку "Изучить крипту".<br />
-                      2. Накопив достаточно знаний, вы сможете применить их для получения USDT.<br />
-                      3. Используйте USDT для приобретения оборудования, которое будет автоматически генерировать ресурсы.<br />
-                      4. Постепенно открывайте новые механики и возможности по мере развития.
+                      {t('tutorial.basics.intro')}
                     </p>
                   </TabsContent>
                   
                   <TabsContent value="resources" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Основные ресурсы</h4>
+                    <h4 className="font-semibold">{t('tutorial.resources.title')}</h4>
                     <ul className="space-y-2 text-sm">
-                      <li><strong>Знания о крипте</strong> - базовый ресурс для исследований и обмена на USDT.</li>
-                      <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
-                      <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
-                      <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
-                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
+                      <li><strong>{t('resources.knowledge')}</strong> - {t('tutorial.resources.knowledge')}</li>
+                      <li><strong>{t('resources.usdt')}</strong> - {t('tutorial.resources.usdt')}</li>
+                      <li><strong>{t('resources.electricity')}</strong> - {t('tutorial.resources.electricity')}</li>
+                      <li><strong>{t('resources.computingPower')}</strong> - {t('tutorial.resources.computingPower')}</li>
+                      <li><strong>Репутация</strong> - {t('tutorial.resources.reputation')}</li>
                     </ul>
                   </TabsContent>
                   
                   <TabsContent value="buildings" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Типы оборудования</h4>
+                    <h4 className="font-semibold">{t('tutorial.buildings.title')}</h4>
                     <ul className="space-y-2 text-sm">
-                      <li><strong>Практика</strong> - автоматически генерирует знания о криптовалютах.</li>
-                      <li><strong>Генератор</strong> - производит электричество для ваших устройств.</li>
-                      <li><strong>Домашний компьютер</strong> - обеспечивает вычислительную мощность.</li>
-                      <li><strong>Криптокошелек</strong> - увеличивает максимальное хранение USDT.</li>
-                      <li><strong>Интернет-канал</strong> - ускоряет получение знаний.</li>
+                      <li><strong>{t('buildings.practice')}</strong> - {t('tutorial.buildings.practice')}</li>
+                      <li><strong>{t('buildings.generator')}</strong> - {t('tutorial.buildings.generator')}</li>
+                      <li><strong>{t('buildings.homeComputer')}</strong> - {t('tutorial.buildings.homeComputer')}</li>
+                      <li><strong>{t('buildings.cryptoWallet')}</strong> - {t('tutorial.buildings.cryptoWallet')}</li>
+                      <li><strong>{t('buildings.internetChannel')}</strong> - {t('tutorial.buildings.internetChannel')}</li>
                     </ul>
                   </TabsContent>
                 </Tabs>
@@ -237,22 +237,22 @@ const GameScreen = () => {
             <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  Сбросить прогресс
+                  {t('settings.resetProgress')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Сбросить прогресс?</DialogTitle>
+                  <DialogTitle>{t('settings.resetConfirm.title')}</DialogTitle>
                   <DialogDescription>
-                    Это действие удалит все ваши достижения и начнет игру заново. Это действие нельзя отменить.
+                    {t('settings.resetConfirm.description')}
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setResetConfirmOpen(false)}>
-                    Отмена
+                    {t('settings.resetConfirm.cancel')}
                   </Button>
                   <Button variant="destructive" onClick={handleResetGame}>
-                    Сбросить игру
+                    {t('settings.resetConfirm.confirm')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -262,18 +262,26 @@ const GameScreen = () => {
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
                   <Settings className="h-3.5 w-3.5 mr-1" />
-                  Настройки
+                  {t('settings.title')}
                 </Button>
               </SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Настройки</SheetTitle>
+                  <SheetTitle>{t('settings.title')}</SheetTitle>
                   <SheetDescription>
-                    Управление игрой и дополнительные опции
+                    {t('settings.gameOptions')}
                   </SheetDescription>
                 </SheetHeader>
                 <div className="py-4">
-                  <h3 className="font-medium mb-2">Настройки игры</h3>
+                  {/* Добавляем переключатель языка */}
+                  <h3 className="font-medium mb-2">{t('settings.language')}</h3>
+                  <div className="mb-4">
+                    <LanguageSwitch />
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <h3 className="font-medium mb-2">{t('settings.gameOptions')}</h3>
                   <div className="space-y-2">
                     <Button
                       variant="outline"
@@ -281,15 +289,15 @@ const GameScreen = () => {
                       onClick={() => setResetConfirmOpen(true)}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Сбросить прогресс
+                      {t('settings.resetProgress')}
                     </Button>
                   </div>
                   
                   <Separator className="my-4" />
                   
-                  <h3 className="font-medium mb-2">О игре</h3>
+                  <h3 className="font-medium mb-2">{t('settings.about')}</h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    Версия: 0.1.0 (Альфа)<br />
+                    {t('settings.version')}<br />
                     © 2023 Crypto Civilization
                   </p>
                 </div>
@@ -308,13 +316,13 @@ const GameScreen = () => {
           
           <div className="border-t mt-auto">
             <div className="flex flex-col">
-              {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
+              {hasUnlockedBuildings && renderTabButton("equipment", t('tabs.equipment'), <Building className="h-3 w-3 mr-2" />)}
               
-              {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
+              {hasUnlockedResearch && renderTabButton("research", t('tabs.research'), <Lightbulb className="h-3 w-3 mr-2" />)}
               
-              {hasUnlockedSpecialization && renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />)}
+              {hasUnlockedSpecialization && renderTabButton("specialization", t('tabs.specialization'), <User className="h-3 w-3 mr-2" />)}
               
-              {hasUnlockedReferrals && renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
+              {hasUnlockedReferrals && renderTabButton("referrals", t('tabs.referrals'), <Users className="h-3 w-3 mr-2" />)}
             </div>
           </div>
         </div>

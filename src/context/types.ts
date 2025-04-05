@@ -1,5 +1,7 @@
 import { ReferralStatusUpdate } from '../api/referral/referralTypes';
 
+export type ResourceType = 'primary' | 'currency' | 'resource';
+
 export interface GameState {
   resources: { [key: string]: Resource };
   buildings: { [key: string]: Building };
@@ -33,35 +35,33 @@ export interface GameState {
 export interface Resource {
   id: string;
   name: string;
-  description?: string;
-  value: number;
-  baseProduction?: number;
-  production?: number;
-  perSecond?: number;
-  consumption?: number;
-  max?: number;
-  unlocked: boolean;
-  type?: string;
+  description: string;
   icon?: string;
+  type: ResourceType;
+  value: number;
+  unlocked: boolean;
+  max: number;
+  baseProduction: number;
+  production: number;
+  perSecond: number;
+  consumption?: number;
 }
 
 export interface Building {
   id: string;
   name: string;
   description: string;
-  cost: { [key: string]: number };
-  costMultiplier?: number;
-  production: { [key: string]: number };
-  consumption?: { [key: string]: number };
   count: number;
   unlocked: boolean;
-  requirements?: { [key: string]: number };
-  maxCount?: number;
-  productionBoost: { [key: string]: number } | number;
-  unlockedBy?: string;
-  resourceProduction?: { [key: string]: number };
-  type?: string;
+  cost: { [key: string]: number };
+  costMultiplier?: number;
+  production?: { [key: string]: number };
+  consumption?: { [key: string]: number };
   effects?: { [key: string]: number };
+  unlockedAt?: number;
+  disabled?: boolean;
+  capacity?: number;
+  specialization?: string;
 }
 
 export interface Upgrade {
@@ -143,35 +143,24 @@ export type Counters = { [key: string]: Counter };
 export type GameDispatch = React.Dispatch<GameAction>;
 
 export type GameAction =
-  | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount: number } }
-  | { type: "UPDATE_RESOURCES"; payload?: { deltaTime: number; resourceId?: string } }
-  | { type: "PURCHASE_BUILDING"; payload: { buildingId: string } }
-  | { type: "SELL_BUILDING"; payload: { buildingId: string } }
-  | { type: "PRACTICE_PURCHASE" }
-  | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
-  | { type: "UNLOCK_FEATURE"; payload: { featureId: string } }
-  | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }
-  | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
-  | { type: "SET_UPGRADE_UNLOCKED"; payload: { upgradeId: string; unlocked: boolean } }
-  | { type: "INCREMENT_COUNTER"; payload: { counterId: string; value: number } }
-  | { type: "CHECK_SYNERGIES" }
-  | { type: "ACTIVATE_SYNERGY"; payload: { synergyId: string } }
-  | { type: "LOAD_GAME"; payload: GameState }
-  | { type: "START_GAME" }
-  | { type: "PRESTIGE" }
-  | { type: "RESET_GAME" }
-  | { type: "RESTART_COMPUTERS" }
-  | { type: "MINE_COMPUTING_POWER" }
-  | { type: "APPLY_KNOWLEDGE" }
-  | { type: "APPLY_ALL_KNOWLEDGE" }
-  | { type: "EXCHANGE_BTC" }
-  | { type: "SET_REFERRAL_CODE"; payload: { code: string } }
-  | { type: "ADD_REFERRAL"; payload: { referral: any } }
-  | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
-  | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
-  | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
-  | { type: "UPDATE_REFERRAL_STATUS"; payload: ReferralStatusUpdate }
-  | { type: "FORCE_RESOURCE_UPDATE" }
-  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: ReferralHelper[] } }
-  | { type: "CHOOSE_SPECIALIZATION"; payload: { roleId: string } }
-  | { type: "CHECK_EQUIPMENT_STATUS" };
+  | { type: 'START_GAME' }
+  | { type: 'RESET_GAME' }
+  | { type: 'SET_GAME_DATA'; payload: GameState }
+  | { type: 'LEARN_CRYPTO' }
+  | { type: 'APPLY_KNOWLEDGE' }
+  | { type: 'APPLY_ALL_KNOWLEDGE' }
+  | { type: 'UPDATE_RESOURCES' }
+  | { type: 'FORCE_RESOURCE_UPDATE' }
+  | { type: 'SET_TAB'; payload: { tab: string } }
+  | { type: 'PURCHASE_BUILDING'; payload: { buildingId: string } }
+  | { type: 'SELL_BUILDING'; payload: { buildingId: string } }
+  | { type: 'UNLOCK_BUILDING'; payload: { buildingId: string } }
+  | { type: 'RESEARCH_UPGRADE'; payload: { upgradeId: string } }
+  | { type: 'UNLOCK_RESEARCH' }
+  | { type: 'UNLOCK_BITCOIN_EXCHANGE' }
+  | { type: 'EXCHANGE_BITCOIN' }
+  | { type: 'DEBUG_ADD_RESOURCES'; payload: { resourceId: string; amount: number } }
+  | { type: 'UNLOCK_BUILDING_PRACTICE' }
+  | { type: 'UNLOCK_BUILDING_GENERATOR' }
+  | { type: 'CHOOSE_SPECIALIZATION'; payload: { specializationId: string } }
+  | { type: 'SET_LANGUAGE'; payload: { language: string } };

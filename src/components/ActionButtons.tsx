@@ -1,7 +1,9 @@
+
 import React, { useCallback, useRef } from "react";
 import { useActionButtons } from "@/hooks/useActionButtons";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/hooks/useGame";
+import { useTranslation } from "@/i18n"; // Импортируем хук для переводов
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
@@ -9,6 +11,7 @@ interface ActionButtonsProps {
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const { state } = useGame();
+  const { t } = useTranslation(); // Используем хук для переводов
   const {
     handleLearnClick, 
     handleApplyAllKnowledge,
@@ -74,7 +77,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           onClick={handleExchangeBitcoin}
           disabled={!canExchangeBitcoin}
         >
-          <span className="text-xs">Обменять Bitcoin</span>
+          <span className="text-xs">{t('actions.exchangeBitcoin')}</span>
         </Button>
       );
     }
@@ -89,7 +92,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           onClick={handleApplyAllKnowledge}
           disabled={!canApplyKnowledge}
         >
-          <span className="text-xs">Применить знания</span>
+          <span className="text-xs">{t('actions.applyKnowledge')}</span>
         </Button>
       );
     }
@@ -107,7 +110,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           onTouchStart={handleLearnClick}
           onTouchEnd={() => {}}
         >
-          <span className="text-xs">Изучить крипту</span>
+          <span className="text-xs">{t('actions.learnCrypto')}</span>
         </Button>
       );
     }

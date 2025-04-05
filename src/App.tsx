@@ -8,6 +8,7 @@ import GameScreen from "./pages/GameScreen";
 import StartScreen from "./pages/StartScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
+import { LanguageProvider } from "./i18n"; // Импортируем языковой провайдер
 import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { checkSupabaseConnection, createSavesTableIfNotExists, getUserIdentifier } from "./api/gameDataService";
@@ -235,18 +236,20 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GameProvider>
-        <TooltipProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<StartScreen />} />
-              <Route path="/game" element={<GameScreen />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-          <Toaster />
-        </TooltipProvider>
-      </GameProvider>
+      <LanguageProvider>
+        <GameProvider>
+          <TooltipProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<StartScreen />} />
+                <Route path="/game" element={<GameScreen />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+            <Toaster />
+          </TooltipProvider>
+        </GameProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 };
