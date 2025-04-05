@@ -2,9 +2,9 @@
 import { GameState } from '@/context/types';
 
 // Типы условий разблокировки
-export type UnlockConditionOperator = 'gte' | 'eq' | 'lte';
+export type UnlockConditionOperator = 'gte' | 'eq' | 'lte' | 'neq' | 'gt' | 'lt';
 export type UnlockConditionType = 'resource' | 'building' | 'upgrade' | 'counter';
-export type UnlockItemType = 'resource' | 'building' | 'upgrade' | 'feature';
+export type UnlockItemType = 'resource' | 'building' | 'upgrade' | 'feature' | 'action';
 
 export interface UnlockCondition {
   // Уникальный идентификатор условия

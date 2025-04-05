@@ -3,7 +3,6 @@ import React, { useState, useMemo } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Info, Lock, Unlock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { UnlockService } from "@/services/UnlockService";
@@ -16,7 +15,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import { UnlockableItem, UnlockCondition } from "@/systems/unlock/types";
 import { unlockableItemsRegistry } from "@/systems/unlock/registry";
 
@@ -70,12 +68,15 @@ const UnlockStatusPopup = () => {
       const counterValue = typeof counter === 'object' ? counter?.value : counter;
       
       if (typeof counterValue === 'number') {
-        if (condition.operator === 'eq') return counterValue === Number(condition.targetValue);
-        if (condition.operator === 'neq') return counterValue !== Number(condition.targetValue);
-        if (condition.operator === 'gte') return counterValue >= Number(condition.targetValue);
-        if (condition.operator === 'lte') return counterValue <= Number(condition.targetValue);
-        if (condition.operator === 'gt') return counterValue > Number(condition.targetValue);
-        if (condition.operator === 'lt') return counterValue < Number(condition.targetValue);
+        switch (condition.operator) {
+          case 'eq': return counterValue === Number(condition.targetValue);
+          case 'neq': return counterValue !== Number(condition.targetValue);
+          case 'gte': return counterValue >= Number(condition.targetValue);
+          case 'lte': return counterValue <= Number(condition.targetValue);
+          case 'gt': return counterValue > Number(condition.targetValue);
+          case 'lt': return counterValue < Number(condition.targetValue);
+          default: return false;
+        }
       }
     }
     
@@ -84,12 +85,15 @@ const UnlockStatusPopup = () => {
       const resourceValue = resource?.value || 0;
       
       if (typeof resourceValue === 'number') {
-        if (condition.operator === 'eq') return resourceValue === Number(condition.targetValue);
-        if (condition.operator === 'neq') return resourceValue !== Number(condition.targetValue);
-        if (condition.operator === 'gte') return resourceValue >= Number(condition.targetValue);
-        if (condition.operator === 'lte') return resourceValue <= Number(condition.targetValue);
-        if (condition.operator === 'gt') return resourceValue > Number(condition.targetValue);
-        if (condition.operator === 'lt') return resourceValue < Number(condition.targetValue);
+        switch (condition.operator) {
+          case 'eq': return resourceValue === Number(condition.targetValue);
+          case 'neq': return resourceValue !== Number(condition.targetValue);
+          case 'gte': return resourceValue >= Number(condition.targetValue);
+          case 'lte': return resourceValue <= Number(condition.targetValue);
+          case 'gt': return resourceValue > Number(condition.targetValue);
+          case 'lt': return resourceValue < Number(condition.targetValue);
+          default: return false;
+        }
       }
     }
     
@@ -98,12 +102,15 @@ const UnlockStatusPopup = () => {
       const buildingCount = building?.count || 0;
       
       if (typeof buildingCount === 'number') {
-        if (condition.operator === 'eq') return buildingCount === Number(condition.targetValue);
-        if (condition.operator === 'neq') return buildingCount !== Number(condition.targetValue);
-        if (condition.operator === 'gte') return buildingCount >= Number(condition.targetValue);
-        if (condition.operator === 'lte') return buildingCount <= Number(condition.targetValue);
-        if (condition.operator === 'gt') return buildingCount > Number(condition.targetValue);
-        if (condition.operator === 'lt') return buildingCount < Number(condition.targetValue);
+        switch (condition.operator) {
+          case 'eq': return buildingCount === Number(condition.targetValue);
+          case 'neq': return buildingCount !== Number(condition.targetValue);
+          case 'gte': return buildingCount >= Number(condition.targetValue);
+          case 'lte': return buildingCount <= Number(condition.targetValue);
+          case 'gt': return buildingCount > Number(condition.targetValue);
+          case 'lt': return buildingCount < Number(condition.targetValue);
+          default: return false;
+        }
       }
     }
     
