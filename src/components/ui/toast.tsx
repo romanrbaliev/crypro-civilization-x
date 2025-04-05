@@ -23,6 +23,8 @@ const ToastViewport = React.forwardRef<
 ))
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
+export type ToastType = "default" | "destructive" | "success" | "warning"
+
 const toastVariants = cva(
   "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
   {
@@ -32,9 +34,9 @@ const toastVariants = cva(
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
         success:
-          "success group border-green-500 bg-green-500 text-white",
+          "success group border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200",
         warning:
-          "warning group border-yellow-500 bg-yellow-500 text-white",
+          "warning group border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200",
       },
     },
     defaultVariants: {
@@ -43,25 +45,18 @@ const toastVariants = cva(
   }
 )
 
-export type ToastType = 'default' | 'destructive' | 'success' | 'warning' | 'error';
-
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants> & {
-      variant?: ToastType;
-    }
->(({ className, variant = "default", ...props }, ref) => {
-  // Преобразуем variant 'error' в 'destructive' для обратной совместимости
-  let normalizedVariant = variant;
-  if (variant === "error") {
-    normalizedVariant = "destructive";
-  }
+    VariantProps<typeof toastVariants>
+>(({ className, variant, ...props }, ref) => {
+  // Если variant - это 'error', преобразуем его в 'destructive'
+  const normalizedVariant = variant === "error" ? "destructive" : variant;
   
   return (
     <ToastPrimitives.Root
       ref={ref}
-      className={cn(toastVariants({ variant: normalizedVariant as any }), className)}
+      className={cn(toastVariants({ variant: normalizedVariant }), className)}
       {...props}
     />
   );

@@ -1,122 +1,105 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatNumber, canAfford, calculateCost } from '@/utils/helpers';
 import { useGame } from '@/context/GameContext';
 import { Building } from '@/types/game';
+import { formatNumber, canAfford, calculateCost } from '@/utils/helpers';
+import { Home, X } from 'lucide-react';
 
 interface BuildingCardProps {
   building: Building;
-  id: string;
 }
 
-const BuildingCard: React.FC<BuildingCardProps> = ({ building, id }) => {
+const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
   const { state, dispatch } = useGame();
   
-  // Расчет текущей стоимости здания
-  const calculateCurrentCost = () => {
-    const costs = Object.entries(building.cost).map(([resourceId, baseCost]) => {
-      const scaledCost = calculateCost(baseCost, building.costMultiplier, building.count);
-      return {
-        resourceId,
-        amount: scaledCost
-      };
-    });
-    
-    return costs;
-  };
-  
-  // Проверка, можно ли купить здание
-  const canPurchase = () => {
-    return canAfford(
-      Object.fromEntries(
-        calculateCurrentCost().map(({ resourceId, amount }) => [resourceId, amount])
-      ),
-      state.resources
-    );
-  };
-  
-  // Информация о производстве и потреблении
-  const renderProductionInfo = () => {
-    if (!building.production && !building.consumption) {
-      return null;
-    }
-    
-    return (
-      <div className="mt-2 space-y-1 text-sm">
-        {building.production && Object.entries(building.production).map(([resourceId, amount]) => (
-          <div key={`prod-${resourceId}`} className="text-green-600">
-            +{formatNumber(amount, 2)} {state.resources[resourceId]?.name || resourceId}/сек
-          </div>
-        ))}
-        
-        {building.consumption && Object.entries(building.consumption).map(([resourceId, amount]) => (
-          <div key={`cons-${resourceId}`} className="text-red-600">
-            -{formatNumber(amount, 2)} {state.resources[resourceId]?.name || resourceId}/сек
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
-  // Обработчик покупки здания
   const handlePurchase = () => {
-    dispatch({ type: 'PURCHASE_BUILDING', payload: { buildingId: id } });
+    dispatch({
+      type: 'PURCHASE_BUILDING',
+      payload: { buildingId: building.id }
+    });
   };
   
-  // Обработчик продажи здания
   const handleSell = () => {
-    dispatch({ type: 'SELL_BUILDING', payload: { buildingId: id } });
+    dispatch({
+      type: 'SELL_BUILDING',
+      payload: { buildingId: building.id }
+    });
   };
+  
+  const cost = calculateCost(building);
+  const canPurchase = canAfford(state, cost);
+  
+  // Преобразуем объект cost в читабельную строку
+  const costString = Object.entries(cost)
+    .map(([resourceId, amount]) => {
+      const resourceName = state.resources[resourceId]?.name || resourceId;
+      return `${formatNumber(amount)} ${resourceName}`;
+    })
+    .join(', ');
+  
+  // Преобразуем объект production в читабельную строку
+  const productionString = building.production ? 
+    Object.entries(building.production)
+      .map(([resourceId, amount]) => {
+        const resourceName = state.resources[resourceId]?.name || resourceId;
+        return `+${formatNumber(amount)}/сек ${resourceName}`;
+      })
+      .join(', ') : '';
+  
+  // Преобразуем объект consumption в читабельную строку  
+  const consumptionString = building.consumption ? 
+    Object.entries(building.consumption)
+      .map(([resourceId, amount]) => {
+        const resourceName = state.resources[resourceId]?.name || resourceId;
+        return `-${formatNumber(amount)}/сек ${resourceName}`;
+      })
+      .join(', ') : '';
   
   return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex justify-between">
-          <span>{building.name}</span>
-          <span>{building.count}</span>
-        </CardTitle>
-        <CardDescription>{building.description}</CardDescription>
-      </CardHeader>
+    <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold">{building.name}</h3>
+        <span className="text-sm font-medium bg-blue-100 text-blue-800 py-1 px-2 rounded dark:bg-blue-900 dark:text-blue-200">
+          {building.count}
+        </span>
+      </div>
       
-      <CardContent>
-        {renderProductionInfo()}
-        
-        <div className="mt-3 space-y-1 text-sm">
-          <div className="font-semibold">Стоимость:</div>
-          {calculateCurrentCost().map(({ resourceId, amount }) => (
-            <div key={`cost-${resourceId}`} className={
-              (state.resources[resourceId]?.value || 0) >= amount 
-                ? "text-green-600" 
-                : "text-red-600"
-            }>
-              {formatNumber(amount, 2)} {state.resources[resourceId]?.name || resourceId}
-            </div>
-          ))}
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{building.description}</p>
+      
+      <div className="space-y-1 mb-3 text-sm">
+        {productionString && (
+          <div className="text-green-600 dark:text-green-400">{productionString}</div>
+        )}
+        {consumptionString && (
+          <div className="text-red-600 dark:text-red-400">{consumptionString}</div>
+        )}
+        <div className="text-gray-500 dark:text-gray-400">
+          Стоимость: {costString}
         </div>
-      </CardContent>
+      </div>
       
-      <CardFooter className="flex justify-between">
-        <Button 
+      <div className="flex gap-2">
+        <Button
           onClick={handlePurchase}
-          disabled={!canPurchase()}
-          variant="default"
+          disabled={!canPurchase}
+          variant={canPurchase ? "default" : "outline"}
+          className="flex-1"
         >
-          Купить
+          <Home className="mr-2 h-4 w-4" /> Купить
         </Button>
         
         {building.count > 0 && (
-          <Button 
+          <Button
             onClick={handleSell}
-            variant="outline"
-            className="ml-2"
+            variant="destructive"
+            size="icon"
           >
-            Продать
+            <X className="h-4 w-4" />
           </Button>
         )}
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 };
 

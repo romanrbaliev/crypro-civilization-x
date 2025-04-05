@@ -62,6 +62,7 @@ export interface ReferralInfo {
   activated: boolean;
   hired?: boolean;
   buildingId?: string;
+  joinedAt?: string;
 }
 
 export interface ReferralHelper {
@@ -79,6 +80,8 @@ export interface SpecializationSynergy {
   name: string;
   description: string;
   active: boolean;
+  unlocked?: boolean;
+  requirement?: string;
   requiredCategories?: string[];
   bonus?: { [key: string]: number };
   effects?: { [key: string]: number };
@@ -125,6 +128,7 @@ export interface GameState {
   gameTime: number;
   miningParams: MiningParams;
   phase: number;
+  features?: { [key: string]: boolean };
 }
 
 // Типы действий для редьюсера
@@ -163,4 +167,5 @@ export type GameAction =
   | { type: 'FORCE_RESOURCE_UPDATE' }
   | { type: 'FORCE_CHECK_UNLOCKS' }
   | { type: 'UPDATE_HELPERS'; payload: { updatedHelpers: ReferralHelper[] } }
-  | { type: 'CHOOSE_SPECIALIZATION'; payload: { specializationType: string } };
+  | { type: 'CHOOSE_SPECIALIZATION'; payload: { specializationType: string } }
+  | { type: 'CHECK_EQUIPMENT_STATUS' };

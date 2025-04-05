@@ -104,7 +104,9 @@ export const reducer = (state: State, action: Action): State => {
           t.id === toastId || toastId === undefined
             ? {
                 ...t,
-                open: false,
+                onOpenChange: (open: boolean) => {
+                  if (!open) dispatch({ type: "DISMISS_TOAST", toastId: t.id })
+                },
               }
             : t
         ),
@@ -152,8 +154,7 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
-      open: true,
-      onOpenChange: (open) => {
+      onOpenChange: (open: boolean) => {
         if (!open) dismiss()
       },
     },

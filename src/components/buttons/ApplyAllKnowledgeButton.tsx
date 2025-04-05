@@ -2,13 +2,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/context/GameContext';
-import { DollarSign } from 'lucide-react';
+import { DollarSign, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-const ApplyKnowledgeButton: React.FC = () => {
+const ApplyAllKnowledgeButton: React.FC = () => {
   const { dispatch, state } = useGame();
   
-  const handleApplyKnowledge = () => {
+  const handleApplyAllKnowledge = () => {
     if (state.resources.knowledge?.value < 10) {
       toast({
         title: "Недостаточно знаний",
@@ -18,7 +18,7 @@ const ApplyKnowledgeButton: React.FC = () => {
       return;
     }
     
-    dispatch({ type: 'APPLY_KNOWLEDGE' });
+    dispatch({ type: 'APPLY_ALL_KNOWLEDGE' });
   };
   
   // Проверяем, есть ли достаточно знаний для обмена (минимум 10)
@@ -29,18 +29,26 @@ const ApplyKnowledgeButton: React.FC = () => {
   const exchangeableAmount = Math.floor(knowledgeAmount / 10) * 10;
   const usdtToGet = exchangeableAmount / 10;
   
+  // Проверяем, разблокирована ли возможность применения всех знаний
+  const isUnlocked = state.counters.applyKnowledge?.value >= 3 || 
+                    state.unlocks.applyAllKnowledge;
+  
+  if (!isUnlocked) {
+    return null;
+  }
+  
   return (
     <Button 
-      onClick={handleApplyKnowledge} 
+      onClick={handleApplyAllKnowledge} 
       className="w-full flex justify-between items-center"
       disabled={!hasEnoughKnowledge}
-      variant={hasEnoughKnowledge ? "default" : "outline"}
+      variant={hasEnoughKnowledge ? "secondary" : "outline"}
     >
       <span className="flex items-center">
-        <DollarSign className="mr-2 h-5 w-5" /> Применить знания
+        <Zap className="mr-2 h-5 w-5" /> Применить все знания
       </span>
       {hasEnoughKnowledge && (
-        <span className="text-xs bg-primary-foreground text-primary px-2 py-1 rounded-full">
+        <span className="text-xs bg-secondary-foreground text-secondary px-2 py-1 rounded-full">
           {exchangeableAmount} → {usdtToGet} USDT
         </span>
       )}
@@ -48,4 +56,4 @@ const ApplyKnowledgeButton: React.FC = () => {
   );
 };
 
-export default ApplyKnowledgeButton;
+export default ApplyAllKnowledgeButton;
