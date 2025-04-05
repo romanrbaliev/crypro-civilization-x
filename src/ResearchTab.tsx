@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./components/UpgradeItem";
 import { Beaker } from "lucide-react";
@@ -15,13 +15,47 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Используем новую систему разблокировок
   const researchUnlocked = useUnlockStatus('research');
   
-  // Фильтруем доступные исследования
-  const unlockedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
+  // Диагностические логи для отслеживания проблемы
+  useEffect(() => {
+    console.log("Root ResearchTab: research unlocked =", researchUnlocked);
+    console.log("Root ResearchTab: total upgrades =", Object.keys(state.upgrades).length);
+    console.log("Root ResearchTab: upgrades keys =", Object.keys(state.upgrades));
+    
+    // Проверяем наличие базовых исследований
+    const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
+    for (const id of blockchainBasicsIds) {
+      if (state.upgrades[id]) {
+        console.log(`Root ResearchTab: ${id} exists = true, unlocked =`, state.upgrades[id].unlocked);
+      } else {
+        console.log(`Root ResearchTab: ${id} exists = false`);
+      }
+    }
+  }, [state.upgrades, researchUnlocked]);
   
-  // Купленные исследования
-  const purchasedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.purchased);
+  // ИСПРАВЛЕНИЕ: фильтруем исследования с явной проверкой на null/undefined
+  const unlockedUpgrades = Object.entries(state.upgrades || {})
+    .filter(([_, upgrade]) => upgrade && upgrade.unlocked && !upgrade.purchased)
+    .map(([_, upgrade]) => upgrade);
+  
+  const purchasedUpgrades = Object.entries(state.upgrades || {})
+    .filter(([_, upgrade]) => upgrade && upgrade.purchased)
+    .map(([_, upgrade]) => upgrade);
+  
+  // Явная проверка наличия разблокированных исследований
+  useEffect(() => {
+    if (researchUnlocked && unlockedUpgrades.length === 0) {
+      console.log("Root ResearchTab: Warning! Research tab is unlocked but no upgrades are available.");
+      console.log("Root ResearchTab: Unlocks state:", state.unlocks);
+      
+      // Проверка, есть ли в state.upgrades исследования, но они не разблокированы
+      const potentialUpgrades = Object.values(state.upgrades || {}).filter(u => u && !u.unlocked);
+      console.log("Root ResearchTab: Potential upgrades (not unlocked):", potentialUpgrades.map(u => u.id));
+      
+      // Если вкладка исследований разблокирована, но нет видимых исследований,
+      // заставляем систему проверить все разблокировки
+      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
+    }
+  }, [researchUnlocked, unlockedUpgrades.length, state.unlocks, dispatch, state.upgrades]);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {
