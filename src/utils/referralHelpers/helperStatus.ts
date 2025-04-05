@@ -2,52 +2,59 @@
 import { ReferralHelper } from '@/context/types';
 
 /**
- * Проверяет, является ли реферал помощником для конкретного здания
- * @param referralId ID реферала
+ * Проверяет, является ли реферал помощником для указанного здания
+ * @param helperId ID помощника
  * @param buildingId ID здания
- * @param helpers Массив помощников
- * @returns true если реферал является помощником для здания
+ * @param helpers список всех помощников
+ * @returns true, если реферал является помощником для здания
  */
-export function isReferralHelperForBuilding(
-  referralId: string, 
-  buildingId: string, 
-  helpers: ReferralHelper[]
-): boolean {
-  return helpers.some(h => 
-    h.helperId === referralId && 
-    h.buildingId === buildingId && 
-    h.status === 'active'
-  );
-}
-
-/**
- * Получение ID запроса помощника
- * @param referralId ID реферала
- * @param buildingId ID здания
- * @param helpers Массив помощников
- * @returns ID запроса помощника или null
- */
-export function getHelperRequestId(
-  referralId: string,
+export const isReferralHelperForBuilding = (
+  helperId: string,
   buildingId: string,
   helpers: ReferralHelper[]
-): string | null {
-  const helper = helpers.find(h => 
-    h.helperId === referralId && 
-    h.buildingId === buildingId
+): boolean => {
+  return helpers.some(
+    (helper) => 
+      helper.helperId === helperId && 
+      helper.buildingId === buildingId && 
+      helper.status === 'accepted'
   );
-  return helper ? helper.id : null;
-}
+};
 
 /**
- * Расчет времени для достижения цели
- * @param current Текущее значение
- * @param target Целевое значение
- * @param perSecond Скорость достижения
- * @returns Время для достижения цели
+ * Получает ID запроса на помощь для указанного реферала и здания
+ * @param helperId ID помощника
+ * @param buildingId ID здания
+ * @param helpers список всех помощников
+ * @returns ID запроса или undefined, если запрос не найден
  */
-export function calculateTimeToReach(current: number, target: number, perSecond: number): number {
+export const getHelperRequestId = (
+  helperId: string,
+  buildingId: string,
+  helpers: ReferralHelper[]
+): string | undefined => {
+  const helper = helpers.find(
+    (h) => h.helperId === helperId && h.buildingId === buildingId
+  );
+  return helper?.id;
+};
+
+/**
+ * Рассчитывает время, необходимое для достижения целевого значения ресурса
+ * @param currentValue текущее значение ресурса
+ * @param targetValue целевое значение ресурса
+ * @param perSecond скорость производства ресурса в секунду
+ * @returns время в секундах или Infinity, если невозможно достичь
+ */
+export const calculateTimeToReach = (
+  currentValue: number,
+  targetValue: number,
+  perSecond: number
+): number => {
   if (perSecond <= 0) return Infinity;
-  if (current >= target) return 0;
-  return Math.ceil((target - current) / perSecond);
-}
+  
+  const remainingValue = targetValue - currentValue;
+  if (remainingValue <= 0) return 0;
+  
+  return remainingValue / perSecond;
+};

@@ -1,68 +1,54 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { 
   SupportedLocale, 
   TranslationValue, 
-  getTranslation, 
-  localeNames
+  useTranslation, 
+  localeNames 
 } from '@/i18n';
 
-// Сохранение выбранного языка
-const saveLocale = (locale: SupportedLocale): void => {
-  try {
-    localStorage.setItem('user-locale', locale);
-  } catch (e) {
-    console.error('Failed to save locale to localStorage', e);
-  }
-};
-
-// Загрузка сохраненного языка
-const loadSavedLocale = (): SupportedLocale => {
-  try {
-    const savedLocale = localStorage.getItem('user-locale');
-    return (savedLocale as SupportedLocale) || getDefaultLocale();
-  } catch (e) {
-    console.error('Failed to load locale from localStorage', e);
-    return getDefaultLocale();
-  }
-};
-
-// Определение языка по умолчанию из настроек браузера
-const getDefaultLocale = (): SupportedLocale => {
-  const browserLang = navigator.language.split('-')[0];
-  return browserLang === 'ru' ? 'ru' : 'en';
-};
-
-// Главный хук для интернационализации
+/**
+ * Хук для работы с локализацией
+ */
 export const useI18n = () => {
-  // Инициализируем состояние текущей локали
-  const [locale, setLocaleState] = useState<SupportedLocale>('ru'); // По умолчанию русский
-  
-  // Загружаем сохраненную локаль при монтировании
-  useEffect(() => {
-    const savedLocale = loadSavedLocale();
-    setLocaleState(savedLocale);
+  // Функция перевода строки
+  const translate = useCallback((key: string): string => {
+    return useTranslation(key);
   }, []);
-  
-  // Функция для изменения локали
-  const setLocale = useCallback((newLocale: SupportedLocale) => {
-    setLocaleState(newLocale);
-    saveLocale(newLocale);
-  }, []);
-  
-  // Функция для получения перевода по ключу
-  const t = useCallback((key: string, params?: Record<string, string>): TranslationValue => {
-    return getTranslation(locale, key, params);
-  }, [locale]);
-  
-  // Возвращаем все необходимые значения и функции
-  return useMemo(() => ({
-    locale,         // Текущая локаль
-    setLocale,      // Функция для изменения локали
-    t,              // Функция для получения перевода
-    localeNames     // Имена локалей для отображения в UI
-  }), [locale, setLocale, t]);
-};
 
-// Экспорт хука для использования в компонентах
-export default useI18n;
+  // Функция форматирования значения с учетом локали
+  const formatValue = useCallback(
+    (value: TranslationValue, format: string = 'default'): string => {
+      if (typeof value === 'number') {
+        switch (format) {
+          case 'currency':
+            return value.toFixed(2);
+          case 'percentage':
+            return `${(value * 100).toFixed(1)}%`;
+          case 'decimal':
+            return value.toFixed(1);
+          case 'integer':
+            return Math.floor(value).toString();
+          default:
+            return value.toString();
+        }
+      }
+      
+      return value;
+    },
+    []
+  );
+
+  // Получение списка доступных локалей
+  const getAvailableLocales = useCallback((): SupportedLocale[] => {
+    return Object.keys(localeNames) as SupportedLocale[];
+  }, []);
+
+  // Возвращаем функции для использования в компонентах
+  return {
+    t: translate,
+    formatValue,
+    getAvailableLocales,
+    localeNames
+  };
+};

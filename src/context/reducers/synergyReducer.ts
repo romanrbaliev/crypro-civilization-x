@@ -1,148 +1,167 @@
 
-import { GameState, SpecializationSynergy } from '../types';
-import { safeDispatchGameEvent } from '../utils/eventBusUtils';
+import { GameState } from '../types';
+import { SpecializationSynergy } from '../types';
 
-// Проверка условий активации синергий
-export const checkSynergies = (state: GameState): GameState => {
-  // Получаем все существующие синергии
-  const synergies = { ...state.specializationSynergies };
-  
-  // Проверяем каждую синергию
-  for (const synergy of Object.values(synergies)) {
-    if (synergy.active) continue; // Пропускаем уже активные синергии
-    
-    // Проверяем требования категорий для этой синергии
-    const requiredCategoriesCount: {[key: string]: number} = {};
-    
-    // Инициализируем счетчики для всех требуемых категорий
-    synergy.requiredCategories.forEach(category => {
-      requiredCategoriesCount[category] = 0;
-    });
-    
-    // Подсчитываем исследования в каждой категории
-    Object.values(state.upgrades).forEach(upgrade => {
-      // Если улучшение приобретено и его категория есть в требуемых, увеличиваем счетчик
-      if (upgrade.purchased && upgrade.category && synergy.requiredCategories.includes(upgrade.category)) {
-        requiredCategoriesCount[upgrade.category] = (requiredCategoriesCount[upgrade.category] || 0) + 1;
-      }
-    });
-    
-    // Проверяем, выполнены ли все требования
-    const allRequirementsMet = Object.entries(requiredCategoriesCount).every(
-      ([_, count]) => count >= synergy.requiredCount
-    );
-    
-    // Обновляем статус разблокировки
-    if (allRequirementsMet && !synergy.unlocked) {
-      console.log(`Разблокирована синергия: ${synergy.name}`);
-      synergy.unlocked = true;
-      safeDispatchGameEvent(`Разблокирована новая синергия: ${synergy.name}`, "info");
-    }
+// Инициализация синергий
+export const initializeSynergies = (state: GameState): GameState => {
+  // Если синергии уже инициализированы, ничего не делаем
+  if (state.specializationSynergies && Object.keys(state.specializationSynergies).length > 0) {
+    return state;
   }
-  
+
+  // Определяем базовые синергии для специализаций
+  const synergies: { [key: string]: SpecializationSynergy } = {
+    miningEfficiency: {
+      id: 'miningEfficiency',
+      name: 'Эффективность майнинга',
+      description: 'Повышает эффективность майнинга и снижает потребление энергии',
+      active: false,
+      effects: {
+        miningEfficiencyBoost: 1.15,
+        energyConsumption: 0.9
+      },
+      requirement: {
+        homeComputer: 2,
+        miner: 1
+      }
+    },
+    knowledgeBoost: {
+      id: 'knowledgeBoost',
+      name: 'Ускоренное обучение',
+      description: 'Увеличивает скорость получения знаний',
+      active: false,
+      effects: {
+        knowledgeProduction: 1.2
+      },
+      requirement: {
+        practice: 3
+      }
+    },
+    efficientTrading: {
+      id: 'efficientTrading',
+      name: 'Эффективный трейдинг',
+      description: 'Улучшает обмен знаний на USDT и снижает комиссии',
+      active: false,
+      effects: {
+        exchangeRate: 1.1,
+        tradingFee: 0.9
+      },
+      requirement: {
+        cryptoWallet: 2
+      }
+    }
+  };
+
   return {
     ...state,
     specializationSynergies: synergies
   };
 };
 
-// Активация синергии
+// Проверка активации синергий
+export const checkSynergies = (state: GameState): GameState => {
+  if (!state.specializationSynergies) {
+    return initializeSynergies(state);
+  }
+
+  const { buildings, upgrades } = state;
+  const updatedSynergies = { ...state.specializationSynergies };
+  let synergyActivated = false;
+
+  // Проверяем каждую синергию на соответствие требованиям
+  Object.values(updatedSynergies).forEach(synergy => {
+    const canActivate = checkSynergyRequirements(synergy, buildings, upgrades);
+    
+    if (canActivate && !synergy.active) {
+      updatedSynergies[synergy.id].active = true;
+      synergyActivated = true;
+      console.log(`Синергия активирована: ${synergy.name}`);
+    }
+  });
+
+  // Если активировали новые синергии, обновляем состояние
+  if (synergyActivated) {
+    return {
+      ...state,
+      specializationSynergies: updatedSynergies
+    };
+  }
+
+  return state;
+};
+
+// Проверка требований для активации синергии
+function checkSynergyRequirements(
+  synergy: SpecializationSynergy,
+  buildings: { [key: string]: any },
+  upgrades: { [key: string]: any }
+): boolean {
+  // Проверяем требования к зданиям
+  if (synergy.requirement) {
+    for (const [buildingId, requiredCount] of Object.entries(synergy.requirement)) {
+      const building = buildings[buildingId];
+      if (!building || building.count < requiredCount) {
+        return false;
+      }
+    }
+  }
+
+  // Проверяем требования к категориям улучшений
+  if (synergy.requiredCategories) {
+    for (const category of synergy.requiredCategories) {
+      const hasCategory = Object.values(upgrades).some(
+        upgrade => upgrade.purchased && upgrade.category === category
+      );
+      if (!hasCategory) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+// Активация синергии вручную
 export const activateSynergy = (state: GameState, payload: { synergyId: string }): GameState => {
   const { synergyId } = payload;
-  const synergy = state.specializationSynergies[synergyId];
   
-  if (!synergy || !synergy.unlocked || synergy.active) {
+  if (!state.specializationSynergies || !state.specializationSynergies[synergyId]) {
     return state;
   }
-  
-  // Активируем синергию
+
+  // Если синергия уже активирована, ничего не делаем
+  if (state.specializationSynergies[synergyId].active) {
+    return state;
+  }
+
+  // Проверяем, можно ли активировать синергию
+  const canActivate = checkSynergyRequirements(
+    state.specializationSynergies[synergyId],
+    state.buildings,
+    state.upgrades
+  );
+
+  if (!canActivate) {
+    console.log(`Не удалось активировать синергию: ${synergyId}`);
+    return state;
+  }
+
   const updatedSynergies = {
     ...state.specializationSynergies,
     [synergyId]: {
-      ...synergy,
+      ...state.specializationSynergies[synergyId],
       active: true
     }
   };
-  
-  return synergyReducer({
-    ...state,
-    specializationSynergies: updatedSynergies
-  });
-};
 
-// Начальные синергии
-export const initialSynergies: {[key: string]: SpecializationSynergy} = {
-  blockchain_mining: {
-    id: "blockchain_mining",
-    name: "Эффективный майнинг",
-    description: "Сочетание знаний блокчейна и оптимизации майнинга",
-    requiredCategories: ["blockchain", "mining"],
-    requiredCount: 2,
-    bonus: {
-      miningEfficiency: 0.15,
-      energyEfficiency: 0.10
-    },
-    unlocked: false,
-    active: false
-  },
-  trading_investment: {
-    id: "trading_investment",
-    name: "Финансовая стратегия",
-    description: "Комбинация трейдинга и долгосрочных инвестиций",
-    requiredCategories: ["trading", "investment"],
-    requiredCount: 2,
-    bonus: {
-      tradingEfficiency: 0.15,
-      investmentReturn: 0.10
-    },
-    unlocked: false,
-    active: false
-  },
-  blockchain_defi: {
-    id: "blockchain_defi",
-    name: "Децентрализованные финансы",
-    description: "Применение блокчейна в финансовых инструментах",
-    requiredCategories: ["blockchain", "defi"],
-    requiredCount: 2,
-    bonus: {
-      defiYield: 0.20,
-      networkFee: -0.05
-    },
-    unlocked: false,
-    active: false
-  }
-};
-
-// Инициализация синергий
-export const initializeSynergies = (state: GameState): GameState => {
-  // Если синергии уже есть, ничего не делаем
-  if (state.specializationSynergies && Object.keys(state.specializationSynergies).length > 0) {
-    return state;
-  }
-  
-  console.log('Инициализация начальных синергий');
-  
   return {
     ...state,
-    specializationSynergies: initialSynergies
+    specializationSynergies: updatedSynergies
   };
 };
 
-// Применение эффектов активных синергий
+// Редьюсер для синергий
 export const synergyReducer = (state: GameState): GameState => {
-  // Получаем все активные синергии
-  const activeSynergies = Object.values(state.specializationSynergies).filter(s => s.active);
-  
-  // Если нет активных синергий, возвращаем состояние без изменений
-  if (activeSynergies.length === 0) {
-    return state;
-  }
-  
-  // Применяем бонусы от активных синергий
-  const newState = { ...state };
-  
-  // Здесь реализуем логику применения бонусов синергий
-  // Например, увеличение эффективности майнинга, снижение затрат энергии и т.д.
-  
-  return newState;
+  // Проверяем и обновляем все синергии
+  return checkSynergies(state);
 };

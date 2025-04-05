@@ -12,7 +12,7 @@ export interface Resource {
   baseProduction: number;
   production: number;
   perSecond: number;
-  consumption?: number; // Добавляем для исправления ошибок в ResourceProductionService
+  consumption?: number;
 }
 
 export interface Building {
@@ -27,7 +27,7 @@ export interface Building {
   production?: { [key: string]: number };
   consumption?: { [key: string]: number };
   productionBoost?: number;
-  effects?: { [key: string]: number }; // Добавляем effects для здания
+  effects?: { [key: string]: number };
 }
 
 export interface Upgrade {
@@ -39,9 +39,9 @@ export interface Upgrade {
   unlocked: boolean;
   cost: { [key: string]: number };
   effects?: { [key: string]: number };
-  category?: string; // Добавляем для TechTree
-  tier?: number; // Добавляем для TechTree
-  specialization?: string; // Для системы специализаций
+  category?: string;
+  tier?: number;
+  specialization?: string;
 }
 
 export interface Counter {
@@ -54,8 +54,8 @@ export interface ReferralInfo {
   id: string;
   username?: string;
   activated: boolean;
-  hired?: boolean; // Добавляем для referralReducer
-  assignedBuildingId?: string; // Добавляем для referralReducer
+  hired?: boolean;
+  assignedBuildingId?: string;
 }
 
 export interface ReferralHelper {
@@ -64,7 +64,7 @@ export interface ReferralHelper {
   employerId: string;
   buildingId: string;
   status: string;
-  created?: number; // Используем created вместо createdAt
+  created?: number;
 }
 
 // Специализации
@@ -75,8 +75,8 @@ export interface SpecializationSynergy {
   active: boolean;
   effects: { [key: string]: number };
   requirement?: { [key: string]: number };
-  requiredCategories?: string[]; // Добавляем для synergyReducer
-  bonus?: number; // Добавляем для SynergyCard
+  requiredCategories?: string[];
+  bonus?: number;
 }
 
 // Параметры майнинга
@@ -115,7 +115,7 @@ export interface GameState {
   featureFlags: { [key: string]: boolean };
   buildingUnlocked: { [key: string]: boolean };
   specializationSynergies: { [key: string]: any };
-  specialization?: string; // Поле для специализации
+  specialization?: string;
   referralCode: string | null;
   referredBy: string | null;
   referrals: ReferralInfo[];

@@ -1,24 +1,25 @@
 
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useLocalReducer } from './useLocalReducer';
+import { useGame } from '@/context/hooks/useGame';
 
 /**
  * Хук для обработки событий рефералов
  */
 export const useReferralEvents = () => {
-  const dispatch = useDispatch();
+  const { dispatch } = useGame();
 
   useEffect(() => {
     // Обработчик события обновления статуса реферала
     const handleReferralStatusUpdate = (event: CustomEvent) => {
-      const { referralId, hired, buildingId } = event.detail;
+      const { referralId, activated } = event.detail;
       
       // Диспатчим действие обновления статуса реферала
       dispatch({
         type: 'UPDATE_REFERRAL_STATUS',
         payload: {
           referralId,
-          activated: true
+          activated
         }
       });
     };

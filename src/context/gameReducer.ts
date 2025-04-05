@@ -8,7 +8,8 @@ import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
 import { 
   processPurchaseBuilding, 
-  processSellBuilding
+  processSellBuilding,
+  processChooseSpecialization as processChooseSpecializationFromBuilding
 } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { 
@@ -188,10 +189,7 @@ function handleAction(state: GameState, action: GameAction): GameState {
     case 'RESPOND_TO_HELPER_REQUEST':
       return processRespondToHelperRequest(state, action.payload);
     case 'UPDATE_REFERRAL_STATUS':
-      return processUpdateReferralStatus(state, { 
-        referralId: action.payload.referralId, 
-        activated: action.payload.activated 
-      });
+      return processUpdateReferralStatus(state, action.payload);
     case 'INITIALIZE_REFERRAL_SYSTEM':
       return initializeReferralSystem(state);
       

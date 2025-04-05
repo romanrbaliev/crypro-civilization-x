@@ -11,11 +11,9 @@ import { useUnlockStatus } from '@/systems/unlock/hooks/useUnlockManager';
 import { getSafeGameId } from '@/utils/gameIdsUtils';
 import MainMenu from '@/components/MainMenu';
 import EventLog from '@/components/EventLog';
-
-// Определяем типы для пропсов
-interface GameScreenProps {
-  dispatch: React.Dispatch<any>;
-}
+import GameProgressBar from '@/components/GameProgressBar';
+import GameTip from '@/components/GameTip';
+import GameStats from '@/components/GameStats';
 
 const GameScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -49,6 +47,7 @@ const GameScreen: React.FC = () => {
           {/* Ресурсы (сверху) */}
           <div className="p-4 border-b">
             <ResourceDisplay resources={state.resources} />
+            <GameProgressBar className="mt-4" />
           </div>
 
           {/* Вкладки (снизу) */}
@@ -109,21 +108,39 @@ const GameScreen: React.FC = () => {
         <div className="w-3/5 flex flex-col bg-gray-50 overflow-hidden">
           {/* Основной контент вкладки */}
           <div className="flex-1 p-4 overflow-auto">
-            {/* Контент будет генерироваться в зависимости от активной вкладки */}
-            <div className="h-full">
-              {activeTab === 'buildings' && (
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h2 className="text-xl font-bold mb-4">Информация о зданиях</h2>
-                  <p>Здесь будет подробная информация о выбранных зданиях</p>
-                </div>
-              )}
+            {/* Подсказки для игрока */}
+            <GameTip className="mb-4" />
+            
+            <div className="grid grid-cols-1 gap-4">
+              {/* Статистика игры */}
+              <GameStats />
               
-              {activeTab === 'research' && (
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h2 className="text-xl font-bold mb-4">Информация об исследованиях</h2>
-                  <p>Здесь будет подробная информация о выбранных исследованиях</p>
-                </div>
-              )}
+              {/* Информационный блок */}
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h2 className="text-xl font-bold mb-4">
+                  {activeTab === 'buildings' && 'Информация о зданиях'}
+                  {activeTab === 'research' && 'Информация об исследованиях'}
+                  {activeTab === 'specialization' && 'Информация о специализациях'}
+                  {activeTab === 'referrals' && 'Информация о рефералах'}
+                  {activeTab === 'trading' && 'Информация о трейдинге'}
+                </h2>
+                
+                {activeTab === 'buildings' && (
+                  <div>
+                    <p>Здания автоматически производят ресурсы. Чем больше зданий, тем больше ресурсов вы получаете.</p>
+                    <p className="mt-2">Каждое здание имеет свою стоимость, которая растет с каждой покупкой.</p>
+                    <p className="mt-2">Некоторые здания потребляют ресурсы для своей работы.</p>
+                  </div>
+                )}
+                
+                {activeTab === 'research' && (
+                  <div>
+                    <p>Исследования дают постоянные бонусы к производству ресурсов, максимальному количеству ресурсов и другим параметрам.</p>
+                    <p className="mt-2">Каждое исследование стоит ресурсов, но дает долгосрочные преимущества.</p>
+                    <p className="mt-2">Некоторые исследования открывают доступ к новым зданиям и улучшениям.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
