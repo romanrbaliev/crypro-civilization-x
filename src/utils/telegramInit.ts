@@ -1,6 +1,9 @@
 
 import { isTelegramWebAppAvailable } from "./helpers";
 
+/**
+ * Инициализирует Telegram WebApp
+ */
 export const initializeTelegram = (): void => {
   console.log('🔍 Проверка Telegram WebApp...');
   

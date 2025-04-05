@@ -1,16 +1,15 @@
 
 import { useState, useEffect } from 'react';
 import { checkSupabaseConnection, createSavesTableIfNotExists } from '@/api/gameDataService';
-import { ERROR_NOTIFICATION_THROTTLE } from '@/api/apiTypes';
-import { toast } from '@/hooks/use-toast';
 
+/**
+ * Хук для отслеживания статуса соединения
+ */
 export const useConnectionStatus = () => {
   const [hasConnection, setHasConnection] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const [cloudflareError, setCloudflareError] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Загрузка игры...");
-  
-  let connectionErrorShown = false;
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -46,31 +45,8 @@ export const useConnectionStatus = () => {
       
       if (isConnected !== hasConnection) {
         setHasConnection(isConnected);
-        
-        if (isConnected) {
-          toast({
-            title: "Соединение восстановлено",
-            description: "Подключение к серверу восстановлено.",
-            variant: "success",
-          });
-          
-          await createSavesTableIfNotExists();
-        } else {
-          const now = Date.now();
-          const lastErrorTime = window.__lastLoadErrorTime || 0;
-          
-          if (now - lastErrorTime > ERROR_NOTIFICATION_THROTTLE && !connectionErrorShown) {
-            window.__lastLoadErrorTime = now;
-            connectionErrorShown = true;
-            toast({
-              title: "Возможны проблемы с соединением",
-              description: "Игра продолжит работу, но могут быть проблемы с сохранением прогресса.",
-              variant: "warning",
-            });
-          }
-        }
       }
-    }, 30000); // Check connection every 30 seconds
+    }, 30000); // Проверка соединения каждые 30 секунд
     
     return () => clearInterval(intervalId);
   }, [hasConnection]);

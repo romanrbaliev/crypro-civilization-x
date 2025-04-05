@@ -4,7 +4,10 @@
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
 import { supabase } from '@/integrations/supabase/client';
 
-// Получение идентификатора пользователя с приоритетом Telegram
+/**
+ * Получение идентификатора пользователя с приоритетом Telegram
+ * @returns Идентификатор пользователя
+ */
 export const getUserIdentifier = async (): Promise<string> => {
   // Проверяем есть ли сохраненный ID в памяти
   const cachedId = window.__game_user_id;
@@ -70,7 +73,10 @@ export const getUserIdentifier = async (): Promise<string> => {
   return localUserId;
 };
 
-// Функция проверки и создания записи в таблице referral_data
+/**
+ * Функция проверки и создания записи в таблице referral_data
+ * @param userId ID пользователя
+ */
 const checkAndCreateReferralRecord = async (userId: string): Promise<void> => {
   try {
     console.log('Проверка наличия пользователя в таблице referral_data:', userId);

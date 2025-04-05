@@ -1,45 +1,25 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from '@/components/ui/toaster';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import NotFound from '@/pages/NotFound';
-import GameScreen from '@/pages/GameScreen';
-import { I18nProvider } from '@/context/I18nContext';
-import { GameProvider } from '@/context/GameContext';
-import { UnlockManagerProvider } from '@/systems/unlock/hooks/useUnlockManager';
-import './App.css';
+import { ThemeProvider } from './components/theme-provider';
+import { GameProvider } from './context/GameContext';
+import GameScreen from './pages/GameScreen';
+import WelcomeScreen from './pages/WelcomeScreen';
 
-// Создаем клиент для React Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 минут
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-function App() {
+const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <GameProvider>
-          <UnlockManagerProvider>
-            <Router>
-              <Routes>
-                <Route path="/" element={<Navigate to="/game" replace />} />
-                <Route path="/game" element={<GameScreen />} />
-                <Route path="/404" element={<NotFound />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Routes>
-            </Router>
-            <Toaster />
-          </UnlockManagerProvider>
-        </GameProvider>
-      </I18nProvider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="system" storageKey="crypto-civ-theme">
+      <GameProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<WelcomeScreen />} />
+            <Route path="/game" element={<GameScreen />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </GameProvider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;

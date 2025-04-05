@@ -1,27 +1,29 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
- * Хук для оптимизации обновлений в зависимости от видимости вкладки
+ * Хук для оптимизации обновлений игры в зависимости от видимости страницы
+ * @returns Видима ли страница
  */
-export const useVisibilityOptimizer = (initialValue: boolean = true) => {
-  const [isVisible, setIsVisible] = useState(initialValue);
+const useVisibilityOptimizer = (): boolean => {
+  const [isVisible, setIsVisible] = useState(true);
   
   useEffect(() => {
-    // Функция для определения видимости страницы
+    // Установка первоначального значения
+    setIsVisible(document.visibilityState === 'visible');
+    
+    // Обработчик изменения видимости
     const handleVisibilityChange = () => {
-      setIsVisible(!document.hidden);
+      setIsVisible(document.visibilityState === 'visible');
+      console.log(`Видимость страницы изменилась: ${document.visibilityState === 'visible' ? 'видима' : 'скрыта'}`);
     };
     
-    // Регистрируем обработчик события видимости страницы
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Регистрация обработчика
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Установка начального состояния
-    setIsVisible(!document.hidden);
-    
-    // Очистка при размонтировании
+    // Очистка обработчика при размонтировании
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
   

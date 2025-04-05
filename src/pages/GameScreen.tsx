@@ -1,193 +1,143 @@
-import React, { useState } from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { GameDispatch } from '@/context/types';
-import { useI18nContext } from '@/context/I18nContext';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import {
-  Home,
-  Settings,
-  BookOpen,
-  Lightbulb,
-  Users,
-  TrendingUp,
-  ShoppingCart,
-  Coins,
-  Gamepad2,
-  Aperture
-} from 'lucide-react';
-import ResearchTab from '@/components/ResearchTab';
-import EquipmentTab from '@/components/EquipmentTab';
-import SpecializationTab from '@/components/SpecializationTab';
-import ReferralTab from '@/components/ReferralTab';
-import TradingTab from '@/components/TradingTab';
-import { useUnlockStatus } from '@/systems/unlock/hooks/useUnlockManager';
-import { forceCheckAllUnlocks } from '@/utils/unlockActions';
-import { GameStateService } from '@/services/GameStateService';
-import { getSafeGameId } from '@/utils/gameIdsUtils';
 
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useGame } from '@/context/hooks/useGame';
+import ResourceDisplay from '@/components/ResourceDisplay';
+import BuildingsTab from '@/components/BuildingsTab';
+import ResearchTab from '@/components/ResearchTab';
+import ActionButtons from '@/components/ActionButtons';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUnlockStatus } from '@/systems/unlock/hooks/useUnlockManager';
+import { getSafeGameId } from '@/utils/gameIdsUtils';
+import MainMenu from '@/components/MainMenu';
+import EventLog from '@/components/EventLog';
+
+// Определяем типы для пропсов
 interface GameScreenProps {
-  dispatch: GameDispatch;
+  dispatch: React.Dispatch<any>;
 }
 
-const GameScreen: React.FC<GameScreenProps> = () => {
-  const { state, dispatch, isPageVisible } = useGame();
-  const { t } = useI18nContext();
-  const [eventMessages, setEventMessages] = useState<string[]>([]);
-  
-  const handleAddEvent = (message: string, type: string) => {
-    setEventMessages(prevMessages => [...prevMessages, message]);
-  };
-  
-  const handleClearEvents = () => {
-    setEventMessages([]);
-  };
-  
-  // Безопасное получение идентификаторов функций
-  const equipmentFeatureId = getSafeGameId('features', 'equipment', 'equipment');
-  const researchFeatureId = getSafeGameId('features', 'research', 'research');
-  const specializationFeatureId = getSafeGameId('features', 'specialization', 'specialization');
-  
-  // Безопасная проверка разблокировки функций
-  const isEquipmentUnlocked = useUnlockStatus(equipmentFeatureId);
-  const isResearchUnlocked = useUnlockStatus(researchFeatureId);
-  const isSpecializationUnlocked = useUnlockStatus(specializationFeatureId);
-  
-  const handleForceCheckUnlocks = () => {
-    const updatedState = forceCheckAllUnlocks(state);
-    dispatch({ type: 'LOAD_GAME', payload: updatedState });
-  };
-  
-  const handleSaveGame = () => {
-    GameStateService.saveGame(state);
-  };
-  
+const GameScreen: React.FC = () => {
+  const navigate = useNavigate();
+  const { state, dispatch } = useGame();
+  const [activeTab, setActiveTab] = useState('buildings');
+
+  // Проверяем разблокированы ли различные вкладки
+  const isResearchUnlocked = useUnlockStatus(getSafeGameId('features', 'research'));
+  const isTradingUnlocked = useUnlockStatus(getSafeGameId('features', 'trading'));
+  const isSpecializationUnlocked = useUnlockStatus(getSafeGameId('features', 'specialization'));
+  const isReferralsUnlocked = useUnlockStatus(getSafeGameId('features', 'referrals'));
+
+  // Перенаправляем на главный экран если игра не запущена
+  useEffect(() => {
+    if (!state.gameStarted) {
+      navigate('/');
+    }
+  }, [state.gameStarted, navigate]);
+
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Left Column */}
-      <div className="w-2/5 p-4 flex flex-col">
-        {/* Resources Display */}
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold mb-2">{t('ui.resources')}</h2>
-          <div className="space-y-2">
-            {Object.entries(state.resources).map(([key, resource]) => (
-              resource.unlocked && (
-                <div key={key} className="bg-white p-3 rounded shadow">
-                  <div className="flex items-center justify-between">
-                    <span>{t(`resources.${resource.id}`)}:</span>
-                    <span>{resource.value.toFixed(2)}</span>
-                  </div>
+    <div className="flex flex-col h-screen bg-gray-100">
+      {/* Верхняя панель */}
+      <header className="bg-white shadow-sm p-2">
+        <MainMenu />
+      </header>
+
+      {/* Основной контент */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Левая колонка (2/5 ширины) */}
+        <div className="w-2/5 flex flex-col bg-white shadow-sm overflow-auto">
+          {/* Ресурсы (сверху) */}
+          <div className="p-4 border-b">
+            <ResourceDisplay resources={state.resources} />
+          </div>
+
+          {/* Вкладки (снизу) */}
+          <div className="flex-1 p-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+              <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-4">
+                <TabsTrigger value="buildings">Здания</TabsTrigger>
+                {isResearchUnlocked && <TabsTrigger value="research">Исследования</TabsTrigger>}
+                {isSpecializationUnlocked && <TabsTrigger value="specialization">Специализации</TabsTrigger>}
+                {isReferralsUnlocked && <TabsTrigger value="referrals">Рефералы</TabsTrigger>}
+                {isTradingUnlocked && <TabsTrigger value="trading">Трейдинг</TabsTrigger>}
+              </TabsList>
+
+              <div className="flex-1 overflow-auto">
+                <TabsContent value="buildings" className="h-full">
+                  <BuildingsTab />
+                </TabsContent>
+                
+                {isResearchUnlocked && (
+                  <TabsContent value="research" className="h-full">
+                    <ResearchTab />
+                  </TabsContent>
+                )}
+                
+                {/* Заглушки для остальных вкладок */}
+                {isSpecializationUnlocked && (
+                  <TabsContent value="specialization" className="h-full">
+                    <div className="p-4 border rounded">
+                      <h2 className="text-xl font-bold">Специализации</h2>
+                      <p>Здесь будет контент для специализаций</p>
+                    </div>
+                  </TabsContent>
+                )}
+                
+                {isReferralsUnlocked && (
+                  <TabsContent value="referrals" className="h-full">
+                    <div className="p-4 border rounded">
+                      <h2 className="text-xl font-bold">Рефералы</h2>
+                      <p>Здесь будет контент для рефералов</p>
+                    </div>
+                  </TabsContent>
+                )}
+                
+                {isTradingUnlocked && (
+                  <TabsContent value="trading" className="h-full">
+                    <div className="p-4 border rounded">
+                      <h2 className="text-xl font-bold">Трейдинг</h2>
+                      <p>Здесь будет контент для трейдинга</p>
+                    </div>
+                  </TabsContent>
+                )}
+              </div>
+            </Tabs>
+          </div>
+        </div>
+
+        {/* Правая колонка (3/5 ширины) */}
+        <div className="w-3/5 flex flex-col bg-gray-50 overflow-hidden">
+          {/* Основной контент вкладки */}
+          <div className="flex-1 p-4 overflow-auto">
+            {/* Контент будет генерироваться в зависимости от активной вкладки */}
+            <div className="h-full">
+              {activeTab === 'buildings' && (
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <h2 className="text-xl font-bold mb-4">Информация о зданиях</h2>
+                  <p>Здесь будет подробная информация о выбранных зданиях</p>
                 </div>
-              )
-            ))}
+              )}
+              
+              {activeTab === 'research' && (
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <h2 className="text-xl font-bold mb-4">Информация об исследованиях</h2>
+                  <p>Здесь будет подробная информация о выбранных исследованиях</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-        
-        {/* Tabs */}
-        <div className="mt-auto">
-          <Tabs defaultValue="home" className="w-full">
-            <TabsList className="bg-gray-200 justify-center">
-              <TabsTrigger value="home">
-                <Home className="h-5 w-5" />
-                <span className="sr-only">{t('tabs.home')}</span>
-              </TabsTrigger>
-              
-              {isEquipmentUnlocked && (
-                <TabsTrigger value="equipment">
-                  <Aperture className="h-5 w-5" />
-                  <span className="sr-only">{t('tabs.equipment')}</span>
-                </TabsTrigger>
-              )}
-              
-              {isResearchUnlocked && (
-                <TabsTrigger value="research">
-                  <Lightbulb className="h-5 w-5" />
-                  <span className="sr-only">{t('tabs.research')}</span>
-                </TabsTrigger>
-              )}
-              
-              {isSpecializationUnlocked && (
-                <TabsTrigger value="specialization">
-                  <TrendingUp className="h-5 w-5" />
-                  <span className="sr-only">{t('tabs.specialization')}</span>
-                </TabsTrigger>
-              )}
-              
-              {state.unlocks.referrals && (
-                <TabsTrigger value="referrals">
-                  <Users className="h-5 w-5" />
-                  <span className="sr-only">{t('tabs.referrals')}</span>
-                </TabsTrigger>
-              )}
-              
-              {state.unlocks.trading && (
-                <TabsTrigger value="trading">
-                  <Coins className="h-5 w-5" />
-                  <span className="sr-only">{t('tabs.trading')}</span>
-                </TabsTrigger>
-              )}
-            </TabsList>
-            
-            <TabsContent value="home" className="pt-4">
-              <p>{t('content.home')}</p>
-            </TabsContent>
-            
-            <TabsContent value="equipment" className="pt-4">
-              <EquipmentTab onAddEvent={handleAddEvent} />
-            </TabsContent>
-            
-            <TabsContent value="research" className="pt-4">
-              <ResearchTab onAddEvent={handleAddEvent} />
-            </TabsContent>
-            
-            <TabsContent value="specialization" className="pt-4">
-              <SpecializationTab onAddEvent={handleAddEvent} />
-            </TabsContent>
-            
-            <TabsContent value="referrals" className="pt-4">
-              <ReferralTab onAddEvent={handleAddEvent} />
-            </TabsContent>
-            
-            <TabsContent value="trading" className="pt-4">
-              <TradingTab onAddEvent={handleAddEvent} />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-      
-      {/* Right Column */}
-      <div className="w-3/5 p-4 flex flex-col">
-        {/* Content based on tab selection */}
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold mb-2">{t('ui.content')}</h2>
-          <div className="bg-white p-3 rounded shadow">
-            {/* Content will be dynamically loaded here */}
-            {/* Example: <p>Some content here...</p> */}
-          </div>
-        </div>
-        
-        {/* Actions */}
-        <div className="mt-auto">
-          <h2 className="text-lg font-semibold mb-2">{t('ui.actions')}</h2>
-          <div className="space-y-2">
-            <Button onClick={() => dispatch({ type: 'APPLY_KNOWLEDGE' })}>{t('actions.applyKnowledge')}</Button>
-            {state.unlocks.exchangeBtc && (
-              <Button onClick={() => dispatch({ type: 'EXCHANGE_BTC' })}>{t('actions.exchangeBtc')}</Button>
-            )}
-            <Button onClick={handleForceCheckUnlocks}>Force Check Unlocks</Button>
-            <Button onClick={handleSaveGame}>Save Game</Button>
+
+          {/* Кнопки действий внизу */}
+          <div className="p-4 bg-white shadow-inner border-t">
+            <ActionButtons />
           </div>
         </div>
       </div>
-      
-      {/* Event Log */}
-      <div className="w-full p-4 bg-gray-200 text-sm">
-        <h2 className="text-lg font-semibold mb-2">{t('ui.eventLog')}</h2>
-        {eventMessages.map((message, index) => (
-          <p key={index}>{message}</p>
-        ))}
-        <Button onClick={handleClearEvents}>Clear Events</Button>
-      </div>
+
+      {/* Журнал событий внизу */}
+      <footer className="bg-white shadow-sm p-2 border-t">
+        <EventLog />
+      </footer>
     </div>
   );
 };

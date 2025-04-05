@@ -1,158 +1,151 @@
 
-import React, { useEffect } from "react";
-import { useGame } from "@/context/hooks/useGame";
-import UpgradeItem from "./UpgradeItem";
-import { Beaker } from "lucide-react";
-import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
-import { useI18nContext } from "@/context/I18nContext";
-import { gameIds } from "@/i18n";
+import React from 'react';
+import { useGame } from '@/context/hooks/useGame';
+import { Upgrade } from '@/context/types';
+import { canAfford, formatNumber } from '@/utils/helpers';
+import { Button } from './ui/button';
+import { getSafeGameId } from '@/utils/gameIdsUtils';
 
-interface ResearchTabProps {
-  onAddEvent: (message: string, type: string) => void;
-}
-
-const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
+const ResearchTab: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { t } = useI18nContext();
   
-  // Используем безопасный подход к получению ID
-  const DEFAULT_RESEARCH_ID = 'research';
+  // Получаем разблокированные, но не купленные улучшения
+  const availableUpgrades = Object.values(state.upgrades).filter(
+    upgrade => upgrade.unlocked && !upgrade.purchased
+  );
   
-  // Безопасно получаем ID из gameIds
-  const researchId = gameIds && 
-                     typeof gameIds === 'object' && 
-                     gameIds.features && 
-                     typeof gameIds.features === 'object' && 
-                     'research' in gameIds.features ? 
-                     gameIds.features.research : 
-                     DEFAULT_RESEARCH_ID;
+  // Получаем уже купленные улучшения
+  const purchasedUpgrades = Object.values(state.upgrades).filter(
+    upgrade => upgrade.purchased
+  );
   
-  // Отладочная информация
-  useEffect(() => {
-    console.log("ResearchTab: Используется ID для проверки разблокировки исследований:", researchId);
-  }, [researchId]);
-  
-  // Проверяем разблокировку вкладки исследований
-  const researchUnlocked = useUnlockStatus(researchId);
-  
-  // Отладочная информация об улучшениях
-  useEffect(() => {
-    console.log("ResearchTab: Состояние разблокировки исследований =", researchUnlocked);
-    console.log("ResearchTab: Общее количество улучшений =", Object.keys(state.upgrades || {}).length);
-    
-    if (researchUnlocked && Object.keys(state.upgrades || {}).length === 0) {
-      console.log("ResearchTab: Предупреждение! Вкладка исследований разблокирована, но улучшения отсутствуют.");
-      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-    }
-  }, [researchUnlocked, state.upgrades, dispatch]);
-  
-  // Безопасно получаем нормализованные исследования
-  const getNormalizedUpgrades = () => {
-    if (!state.upgrades) return {};
-    
-    // Создаем нормализованную копию исследований
-    const normalizedUpgrades = { ...state.upgrades };
-    
-    // Безопасно получаем ID исследования основ блокчейна
-    const blockchainBasicsId = gameIds && 
-                              typeof gameIds === 'object' && 
-                              gameIds.upgrades && 
-                              typeof gameIds.upgrades === 'object' && 
-                              'blockchainBasics' in gameIds.upgrades ? 
-                              gameIds.upgrades.blockchainBasics : 
-                              'blockchainBasics';
-    
-    // Проверяем все возможные устаревшие ID для совместимости
-    const possibleBlockchainBasicsIds = [
-      blockchainBasicsId, 
-      'blockchain_basics', 
-      'basicBlockchain'
-    ];
-    
-    for (const id of possibleBlockchainBasicsIds) {
-      if (normalizedUpgrades[id] && normalizedUpgrades[id].unlocked) {
-        console.log(`ResearchTab: Найдено исследование Основы блокчейна с ID ${id}`);
-        
-        // Нормализуем ID в стандартный формат
-        if (id !== blockchainBasicsId) {
-          normalizedUpgrades[blockchainBasicsId] = {
-            ...normalizedUpgrades[id],
-            id: blockchainBasicsId
-          };
-        }
-      }
-    }
-    
-    return normalizedUpgrades;
+  // Обработчик покупки улучшения
+  const handlePurchase = (upgradeId: string) => {
+    const normalizedId = getSafeGameId('upgrades', upgradeId, upgradeId);
+    dispatch({ type: 'PURCHASE_UPGRADE', payload: { upgradeId: normalizedId } });
   };
   
-  // Получаем нормализованные исследования
-  const normalizedUpgrades = getNormalizedUpgrades();
+  // Функция для отображения стоимости улучшения
+  const renderCost = (upgrade: Upgrade) => {
+    return Object.entries(upgrade.cost).map(([resourceId, cost]) => {
+      const resourceValue = state.resources[resourceId]?.value || 0;
+      const canBuy = resourceValue >= cost;
+      
+      return (
+        <span 
+          key={resourceId}
+          className={`text-sm ${canBuy ? 'text-gray-600' : 'text-red-500'}`}
+        >
+          {state.resources[resourceId]?.name}: {formatNumber(cost)}
+        </span>
+      );
+    });
+  };
   
-  // Фильтруем разблокированные и приобретенные исследования с проверкой на undefined
-  const unlockedUpgrades = Object.entries(normalizedUpgrades)
-    .filter(([_, upgrade]) => upgrade && upgrade.unlocked && !upgrade.purchased)
-    .map(([_, upgrade]) => upgrade);
+  // Функция для проверки, может ли игрок позволить улучшение
+  const canPurchase = (upgrade: Upgrade) => {
+    const currentResources: { [key: string]: number } = {};
+    Object.entries(state.resources).forEach(([resourceId, resource]) => {
+      currentResources[resourceId] = resource.value;
+    });
+    
+    return canAfford(currentResources, upgrade.cost);
+  };
   
-  const purchasedUpgrades = Object.entries(normalizedUpgrades)
-    .filter(([_, upgrade]) => upgrade && upgrade.purchased)
-    .map(([_, upgrade]) => upgrade);
-  
-  // Если исследования не разблокированы, показываем пустой экран
-  if (!researchUnlocked) {
-    return (
-      <div className="text-center py-6 text-gray-500">
-        <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
-        <p className="text-xs">
-          {t('research.researchUnavailable')}<br />
-          {t('research.researchUnavailableDetail')}
-        </p>
-      </div>
-    );
-  }
+  // Функция для отображения эффектов улучшения
+  const renderEffects = (upgrade: Upgrade) => {
+    if (!upgrade.effects) return null;
+    
+    return Object.entries(upgrade.effects).map(([effectId, value]) => {
+      let effectName = '';
+      let effectValue = '';
+      
+      if (effectId.includes('Max')) {
+        effectName = `Максимум ${effectId.replace('Max', '')}`;
+        effectValue = value > 1 ? `+${(value - 1) * 100}%` : `-${(1 - value) * 100}%`;
+      } else if (effectId.includes('Production')) {
+        effectName = `Производство ${effectId.replace('Production', '')}`;
+        effectValue = value > 1 ? `+${(value - 1) * 100}%` : `-${(1 - value) * 100}%`;
+      } else if (effectId.includes('Efficiency')) {
+        effectName = `Эффективность ${effectId.replace('Efficiency', '')}`;
+        effectValue = value > 1 ? `+${(value - 1) * 100}%` : `-${(1 - value) * 100}%`;
+      } else if (effectId.includes('Consumption')) {
+        effectName = `Потребление ${effectId.replace('Consumption', '')}`;
+        effectValue = value < 1 ? `-${(1 - value) * 100}%` : `+${(value - 1) * 100}%`;
+      } else {
+        effectName = effectId;
+        effectValue = `${value > 0 ? '+' : ''}${value}`;
+      }
+      
+      return (
+        <div key={effectId} className="text-sm text-blue-600">
+          {effectName}: {effectValue}
+        </div>
+      );
+    });
+  };
   
   return (
-    <div className="space-y-2">
-      {unlockedUpgrades.length === 0 && purchasedUpgrades.length === 0 ? (
-        <div className="text-center py-6 text-gray-500">
-          <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
-          <p className="text-xs">
-            {t('research.noAvailableResearch')}<br />
-            {t('research.noAvailableResearchDetail')}
-          </p>
-        </div>
-      ) : (
-        <>
-          {unlockedUpgrades.length > 0 && (
-            <div className="mb-4">
-              <h2 className="text-sm font-medium mb-2">{t('research.availableResearch')}</h2>
-              <div className="space-y-1">
-                {unlockedUpgrades.map(upgrade => (
-                  <UpgradeItem 
-                    key={upgrade.id} 
-                    upgrade={upgrade} 
-                    onAddEvent={onAddEvent}
-                  />
-                ))}
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">Доступные исследования</h2>
+        
+        {availableUpgrades.length === 0 ? (
+          <p className="text-gray-500">Нет доступных исследований.</p>
+        ) : (
+          <div className="space-y-3">
+            {availableUpgrades.map(upgrade => (
+              <div
+                key={upgrade.id}
+                className="p-3 border rounded-lg bg-white shadow-sm hover:shadow transition-shadow"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <div className="font-semibold">{upgrade.name}</div>
+                    <div className="text-sm text-gray-600">{upgrade.description}</div>
+                    <div className="space-y-1 mt-2">
+                      {renderEffects(upgrade)}
+                    </div>
+                    <div className="space-y-1 mt-2">
+                      {renderCost(upgrade)}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    size="sm"
+                    disabled={!canPurchase(upgrade)}
+                    onClick={() => handlePurchase(upgrade.id)}
+                  >
+                    Исследовать
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {purchasedUpgrades.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold">Завершенные исследования</h2>
           
-          {purchasedUpgrades.length > 0 && (
-            <div>
-              <h2 className="text-sm font-medium mb-2">{t('research.completedResearch')}</h2>
-              <div className="space-y-1">
-                {purchasedUpgrades.map(upgrade => (
-                  <UpgradeItem 
-                    key={upgrade.id} 
-                    upgrade={upgrade}
-                    onAddEvent={onAddEvent}
-                  />
-                ))}
+          <div className="space-y-3">
+            {purchasedUpgrades.map(upgrade => (
+              <div
+                key={upgrade.id}
+                className="p-3 border rounded-lg bg-gray-50"
+              >
+                <div className="space-y-1">
+                  <div className="font-semibold">{upgrade.name}</div>
+                  <div className="text-sm text-gray-600">{upgrade.description}</div>
+                  <div className="space-y-1 mt-2">
+                    {renderEffects(upgrade)}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-        </>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

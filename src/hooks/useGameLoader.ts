@@ -1,144 +1,55 @@
 
 import { useState, useEffect } from 'react';
 import { GameState } from '@/context/types';
-import { loadGameState } from '@/context/utils/gameStorage';
-import { toast } from '@/hooks/use-toast';
-import { isTelegramWebAppAvailable } from '@/utils/helpers';
+import { loadGameState } from '@/api/gameStorage';
 
-const LOAD_TIMEOUT = 10000;
-
+/**
+ * Хук для загрузки состояния игры
+ * @param hasConnection Есть ли соединение с сервером
+ * @param setLoadingMessage Функция для установки сообщения загрузки
+ */
 export const useGameLoader = (
-  hasConnection: boolean, 
+  hasConnection: boolean,
   setLoadingMessage: (message: string) => void
 ) => {
   const [loadedState, setLoadedState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [gameInitialized, setGameInitialized] = useState(false);
-  
-  let loadMessageShown = false;
 
+  // Загрузка состояния игры при монтировании компонента
   useEffect(() => {
-    const loadSavedGame = async () => {
+    const loadGame = async () => {
+      if (!hasConnection) {
+        setIsLoading(false);
+        return;
+      }
+      
+      setLoadingMessage("Загрузка сохраненной игры...");
+      
       try {
-        if (gameInitialized) return;
-        
-        setLoadingMessage("Инициализация игры...");
-        
-        setLoadingMessage("Проверка соединения с сервером...");
-        
-        if (!hasConnection) {
-          setLoadingMessage("Нет соединения с сервером");
-          setIsLoading(false);
-          return;
-        }
-        
-        setLoadingMessage("Проверка наличия сохранения...");
-        console.log('🔄 Начинаем загрузку сохраненной игры...');
-        
-        if (isTelegramWebAppAvailable()) {
-          console.log('✅ Обнаружен Telegram WebApp, режим Telegram активен');
-          setLoadingMessage("Подключение к Telegram...");
-          
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          try {
-            if (window.Telegram?.WebApp?.CloudStorage) {
-              setLoadingMessage("Проверка сохранений в Telegram...");
-              console.log('✅ CloudStorage API доступен, проверяем наличие сохранений...');
-            } else {
-              console.warn('⚠️ CloudStorage API недоступен');
-            }
-          } catch (telegramError) {
-            console.error('❌ Ошибка при подготовке Telegram:', telegramError);
-          }
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        setLoadingMessage("Загрузка данных игры...");
-        
-        const loadTimeoutId = setTimeout(() => {
-          console.warn('⚠️ Превышено время ожидания загрузки, начинаем новую игру');
-          setLoadedState(null);
-          setIsLoading(false);
-          setGameInitialized(true);
-          
-          if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
-            loadMessageShown = true;
-            toast({
-              title: "Ошибка загрузки",
-              description: "Превышено время ожидания загрузки. Начинаем новую игру.",
-              variant: "destructive",
-            });
-          }
-        }, LOAD_TIMEOUT);
-        
         const savedState = await loadGameState();
         
-        clearTimeout(loadTimeoutId);
-        
-        console.log('✅ Загрузка завершена, состояние:', savedState ? 'найдено' : 'не найдено');
-        
         if (savedState) {
-          console.log('👉 Загруженное состояние:', JSON.stringify(savedState).substring(0, 100) + '...');
-          
-          // Проверяем разблокировку USDT
-          if (savedState.resources && savedState.resources.usdt) {
-            if (!savedState.counters || 
-                !savedState.counters.applyKnowledge || 
-                savedState.counters.applyKnowledge.value < 2) {
-              savedState.resources.usdt.unlocked = false;
-              
-              if (savedState.unlocks) {
-                savedState.unlocks.usdt = false;
-              }
-              
-              console.log('🔒 USDT заблокирован при загрузке (проверка в useGameLoader)');
-            } else {
-              console.log('✅ USDT разблокирован: счетчик applyKnowledge >= 2 (проверка в useGameLoader)');
-            }
-          }
+          setLoadedState(savedState);
+          setLoadingMessage("Игра успешно загружена!");
+        } else {
+          setLoadingMessage("Создание новой игры...");
         }
-        
-        setLoadedState(savedState);
-        setGameInitialized(true);
-        
-        if (savedState && !loadMessageShown && process.env.NODE_ENV !== 'development') {
-          loadMessageShown = true;
-          setTimeout(() => {
-            toast({
-              title: "Игра загружена",
-              description: "Ваш прогресс успешно восстановлен",
-              variant: "default",
-            });
-          }, 1000);
-        } else if (!savedState && !loadMessageShown && process.env.NODE_ENV !== 'development') {
-          loadMessageShown = true;
-          toast({
-            title: "Новая игра",
-            description: "Сохранения не найдены. Начинаем новую игру.",
-            variant: "default",
-          });
-        }
-      } catch (err) {
-        console.error('❌ Ошибка при загрузке состояния:', err);
-        setGameInitialized(true);
-        
-        if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
-          loadMessageShown = true;
-          toast({
-            title: "Ошибка загрузки",
-            description: "Не удалось загрузить сохраненную игру. Начинаем новую игру.",
-            variant: "destructive",
-          });
-        }
+      } catch (error) {
+        console.error('Ошибка при загрузке игры:', error);
+        setLoadingMessage("Ошибка при загрузке, создание новой игры...");
       } finally {
         setIsLoading(false);
+        setGameInitialized(true);
       }
     };
     
-    loadSavedGame();
-  }, [gameInitialized, hasConnection, setLoadingMessage]);
+    if (hasConnection) {
+      loadGame();
+    } else {
+      setIsLoading(false);
+    }
+  }, [hasConnection, setLoadingMessage]);
 
   return {
     loadedState,

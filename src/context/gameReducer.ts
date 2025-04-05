@@ -1,8 +1,7 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
-import { UnlockManager } from '@/systems/unlock/UnlockManager';
+import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';

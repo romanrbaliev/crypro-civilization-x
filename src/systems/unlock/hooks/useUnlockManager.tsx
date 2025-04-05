@@ -4,7 +4,6 @@ import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { normalizeId } from '@/i18n';
 import { GameState } from '@/context/types';
-import { GameContext } from '@/context/GameContext';
 
 const createEmptyGameState = (): GameState => ({
   resources: {},
@@ -47,8 +46,7 @@ const createEmptyGameState = (): GameState => ({
 const UnlockManagerContext = createContext<UnlockManager | null>(null);
 
 export const UnlockManagerProvider = ({ children }: { children: React.ReactNode }) => {
-  const gameContext = useContext(GameContext);
-  const state = gameContext?.state || createEmptyGameState();
+  const { state } = useGame();
   const [unlockManager, setUnlockManager] = useState<UnlockManager | null>(null);
   
   useEffect(() => {
@@ -119,14 +117,10 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     }
   }, [safeItemId]);
   
+  // Функция проверки статуса разблокировки
   const checkUnlockStatus = useCallback(() => {
     try {
-      if (!normalizedItemId) {
-        setIsUnlocked(false);
-        return;
-      }
-      
-      if (!unlockManager) {
+      if (!normalizedItemId || !unlockManager) {
         setIsUnlocked(false);
         return;
       }
@@ -139,6 +133,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     }
   }, [unlockManager, normalizedItemId]);
   
+  // Функция обработки события разблокировки
   const handleUnlockEvent = useCallback((event: Event) => {
     if (!normalizedItemId) {
       return;
@@ -170,14 +165,18 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     }
   }, [checkUnlockStatus, normalizedItemId]);
   
+  // Проверяем статус разблокировки при изменении зависимостей
+  useEffect(() => {
+    checkUnlockStatus();
+  }, [checkUnlockStatus, state, normalizedItemId]);
+  
+  // Добавляем обработчик событий разблокировки
   useEffect(() => {
     if (normalizedItemId === '') {
       return;
     }
     
     try {
-      checkUnlockStatus();
-      
       window.addEventListener('unlock-event', handleUnlockEvent);
       
       return () => {
@@ -187,7 +186,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
       console.error("Ошибка в эффекте useUnlockStatus:", error);
       return () => {};
     }
-  }, [checkUnlockStatus, handleUnlockEvent, normalizedItemId]);
+  }, [handleUnlockEvent, normalizedItemId]);
   
   return isUnlocked;
 };

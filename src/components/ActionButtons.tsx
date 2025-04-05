@@ -1,124 +1,80 @@
 
-import React from "react";
-import { useGame } from "@/context/hooks/useGame";
-import { formatNumberWithAbbreviation, numberWithCommas } from "@/utils/numberUtils";
-import { calculateResourceMaxValue } from "@/utils/resourceCalculator";
-import { Button } from "@/components/ui/button";
-import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
-import { useI18nContext } from "@/context/I18nContext";
-import { gameIds } from "@/i18n";
+import React from 'react';
+import { useGame } from '@/context/hooks/useGame';
+import { Button } from './ui/button';
+import { useUnlockStatus } from '@/systems/unlock/hooks/useUnlockManager';
 
-interface ActionButtonsProps {
-  onAddEvent: (message: string, type: string) => void;
-}
-
-const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
+const ActionButtons: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { t } = useI18nContext();
   
-  // Используем новую систему разблокировок с унифицированными ID
-  const isApplyAllKnowledgeUnlocked = true; // Доступно с самого начала
-  const isExchangeBtcUnlocked = useUnlockStatus(gameIds.features.exchangeBtc);
-  
-  const knowledge = state.resources.knowledge?.value || 0;
-  const knowledgeMax = calculateResourceMaxValue(state, gameIds.resources.knowledge);
-  const bitcoin = state.resources.bitcoin?.value || 0;
-  const usdt = state.resources.usdt?.value || 0;
-  const usdtMax = calculateResourceMaxValue(state, gameIds.resources.usdt);
-  const canApplyKnowledge = knowledge >= 10;
-  
-  const handleStudyClick = () => {
-    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: gameIds.resources.knowledge, amount: 1 } });
-    
-    // Увеличиваем счетчик кликов
+  // Функция для обработки изучения крипты
+  const handleLearnCrypto = () => {
     dispatch({ 
-      type: "INCREMENT_COUNTER", 
-      payload: { counterId: "knowledgeClicks", value: 1 } 
+      type: 'INCREMENT_RESOURCE', 
+      payload: { resourceId: 'knowledge', amount: 1 } 
     });
-    
-    // Проверяем разблокировки после клика
-    dispatch({ type: "FORCE_CHECK_UNLOCKS" });
   };
   
-  const handleApplyAllKnowledge = () => {
-    if (canApplyKnowledge) {
-      // Увеличиваем счетчик применений знаний ровно на 1
-      dispatch({ 
-        type: "INCREMENT_COUNTER", 
-        payload: { counterId: gameIds.actions.applyKnowledge, value: 1 } 
-      });
-      
-      // Применяем знания
-      dispatch({ type: "APPLY_ALL_KNOWLEDGE" });
-      
-      console.log("handleApplyAllKnowledge: Увеличение счетчика applyKnowledge на 1");
-      
-      onAddEvent(t('events.knowledgeApplied'), "success");
-      
-      // Проверяем разблокировки после применения знаний
-      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-    }
+  // Функция для обработки применения знаний
+  const handleApplyKnowledge = () => {
+    dispatch({ type: 'APPLY_KNOWLEDGE' });
   };
   
-  const handleExchangeBTC = () => {
-    if (bitcoin > 0) {
-      dispatch({ type: "EXCHANGE_BTC" });
-      onAddEvent(t('events.btcExchanged'), "success");
-      
-      // Проверяем разблокировки после обмена
-      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-    }
+  // Функция для обработки майнинга
+  const handleMining = () => {
+    dispatch({ type: 'MINING_POWER' });
   };
+  
+  // Функция для обработки обмена Bitcoin
+  const handleExchangeBtc = () => {
+    dispatch({ type: 'EXCHANGE_BTC' });
+  };
+  
+  // Проверяем разблокировку различных кнопок
+  const isApplyKnowledgeUnlocked = state.knowledge >= 3;
+  const isMiningUnlocked = useUnlockStatus('bitcoin');
+  const isExchangeBtcUnlocked = isMiningUnlocked && state.resources.bitcoin?.value > 0;
   
   return (
-    <div className="mt-4 border-t pt-3">
-      <div className="flex flex-col gap-2">
-        {/* Кнопки отображаются снизу вверх в порядке разблокировки */}
-        {isExchangeBtcUnlocked && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={`border-gray-200 ${bitcoin <= 0 ? 'text-gray-400' : 'text-gray-900'} text-base`}
-            onClick={handleExchangeBTC}
-            disabled={bitcoin <= 0}
-          >
-            {t('actions.exchangeBTC')}
-          </Button>
-        )}
-        
-        {isApplyAllKnowledgeUnlocked && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={`border-gray-200 ${!canApplyKnowledge ? 'text-gray-400' : 'text-gray-900'} text-base`}
-            onClick={handleApplyAllKnowledge}
-            disabled={!canApplyKnowledge}
-          >
-            {t('actions.applyKnowledge')}
-          </Button>
-        )}
-        
-        {/* Кнопка изучения криптовалюты всегда внизу */}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="border-gray-200 text-gray-900 text-base"
-          onClick={handleStudyClick}
-        >
-          {t('actions.learnCrypto')}
-        </Button>
-      </div>
+    <div className="space-y-3">
+      <Button 
+        onClick={handleLearnCrypto}
+        className="w-full h-12"
+        variant="default"
+      >
+        Изучить крипту
+      </Button>
       
-      <div className="mt-1 text-xs text-gray-500 flex justify-between">
-        <span>
-          USDT: {numberWithCommas(usdt.toFixed(2))}/{numberWithCommas(usdtMax.toFixed(2))}
-        </span>
-        {bitcoin > 0 && (
-          <span>
-            BTC: {bitcoin.toFixed(8)} | Курс: ${state.btcPrice.toFixed(2)}
-          </span>
-        )}
-      </div>
+      {isApplyKnowledgeUnlocked && (
+        <Button 
+          onClick={handleApplyKnowledge}
+          className="w-full h-12"
+          variant="secondary"
+          disabled={state.knowledge < 10}
+        >
+          Применить знания
+        </Button>
+      )}
+      
+      {isMiningUnlocked && (
+        <Button 
+          onClick={handleMining}
+          className="w-full h-12"
+          variant="outline"
+        >
+          Майнинг
+        </Button>
+      )}
+      
+      {isExchangeBtcUnlocked && (
+        <Button 
+          onClick={handleExchangeBtc}
+          className="w-full h-12"
+          variant="outline"
+        >
+          Обменять Bitcoin
+        </Button>
+      )}
     </div>
   );
 };

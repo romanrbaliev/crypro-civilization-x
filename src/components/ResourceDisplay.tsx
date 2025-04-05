@@ -1,103 +1,46 @@
 
-import React, { useEffect, useRef } from "react";
-import { Resource } from "@/context/types";
-import { formatResourceValue } from "@/utils/resourceFormatConfig";
-import { useResourceAnimation } from "@/hooks/useResourceAnimation";
+import React from 'react';
+import { Resource } from '@/context/types';
+import { Progress } from './ui/progress';
+import { formatNumber } from '@/utils/helpers';
 
 interface ResourceDisplayProps {
-  resource: Resource;
-  formattedValue?: string;
-  formattedPerSecond?: string;
+  resources: { [key: string]: Resource };
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedValue: propFormattedValue, formattedPerSecond: propFormattedPerSecond }) => {
-  const { id, name, value = 0, max = Infinity, perSecond = 0 } = resource;
-  const prevValueRef = useRef(value);
-  const resourceRef = useRef<HTMLDivElement>(null);
-  
-  // Используем хук анимации для плавного обновления отображаемого значения
-  // Проверяем, что значение определено перед передачей его в хук
-  const safeValue = value !== null && value !== undefined ? value : 0;
-  const animatedValue = useResourceAnimation(safeValue, id);
-  
-  // Определяем отрицательную скорость производства
-  const isNegativeRate = perSecond < 0;
-  
-  // Форматирование значений с учетом типа ресурса
-  const formattedValue = propFormattedValue || formatResourceValue(animatedValue, id);
-  
-  // Форматируем максимальное значение всегда без десятичных знаков
-  const formattedMax = max === Infinity 
-    ? "∞" 
-    : max >= 1000000 
-      ? Math.floor(max / 1000000) + "M"
-      : max >= 1000 
-        ? Math.floor(max / 1000) + "K" 
-        : Math.floor(max).toString();
-  
-  // Форматирование скорости производства с учетом K и M для тысяч и миллионов
-  const safePerSecond = perSecond !== null && perSecond !== undefined ? perSecond : 0;
-  const formattedPerSecond = propFormattedPerSecond || (
-    Math.abs(safePerSecond) >= 1000000 
-      ? (safePerSecond / 1000000).toFixed(1).replace('.0', '') + "M" 
-      : Math.abs(safePerSecond) >= 1000 
-        ? (safePerSecond / 1000).toFixed(1).replace('.0', '') + "K"
-        : formatResourceValue(safePerSecond, id)
-  );
-  
-  // Эффект для выделения изменений
-  useEffect(() => {
-    // Если значение изменилось существенно, выделяем это изменение
-    if (safeValue !== null && prevValueRef.current !== null && Math.abs(safeValue - prevValueRef.current) > 0.1) {
-      const element = resourceRef.current?.querySelector(`#resource-value-${id}`);
-      if (element) {
-        // Добавляем класс для анимации, затем удаляем его
-        element.classList.add('resource-changed');
-        setTimeout(() => {
-          element.classList.remove('resource-changed');
-        }, 500);
-      }
-      prevValueRef.current = safeValue;
-    }
-  }, [safeValue, id]);
-
-  // Добавляем отладочную информацию при наведении
-  const debugValue = safeValue !== null ? safeValue.toFixed(2) : "0.00";
-  const debugPerSecond = safePerSecond !== null ? safePerSecond.toFixed(3) : "0.000";
-  const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
-
-  // Преобразуем название ресурса
-  let displayName = name;
-  if (id === 'usdt') {
-    displayName = 'USDT';
-  } else if (id === 'bitcoin') {
-    displayName = 'Bitcoin';
-  } else if (id === 'knowledge') {
-    displayName = 'Знания';
-  } else if (id === 'electricity') {
-    displayName = 'Электричество';
-  } else if (id === 'computingPower') {
-    displayName = 'Вычисл. мощность';
-  }
+const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resources }) => {
+  // Отфильтровываем только разблокированные ресурсы
+  const unlockedResources = Object.values(resources).filter(resource => resource.unlocked);
 
   return (
-    <div className="w-full" ref={resourceRef} title={debugInfo}>
-      <div className="flex justify-between items-center mb-0.5">
-        <div className="font-medium truncate mr-1 max-w-[70%] text-base">{displayName}</div>
-        <div id={`resource-value-${id}`} className="text-gray-600 whitespace-nowrap transition-colors text-base">
-          {formattedValue}
-          {max !== Infinity && ` / ${formattedMax}`}
-        </div>
-      </div>
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-gray-900">Ресурсы</h2>
       
-      {/* Отображаем скорость только если она не равна нулю */}
-      {safePerSecond !== 0 && (
-        <div className="flex items-center justify-end">
-          <div className={`text-sm ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
-            {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
+      <div className="space-y-3">
+        {unlockedResources.map(resource => (
+          <div key={resource.id} className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">
+                {resource.name}
+              </span>
+              <span className="text-sm text-gray-600">
+                {formatNumber(resource.value)} / {formatNumber(resource.max)}
+              </span>
+            </div>
+            
+            <Progress 
+              value={(resource.value / resource.max) * 100} 
+              className="h-2"
+            />
+            
+            {resource.perSecond > 0 && (
+              <div className="text-xs text-gray-500 text-right">
+                +{formatNumber(resource.perSecond)} / сек
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 };

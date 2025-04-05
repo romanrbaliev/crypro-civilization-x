@@ -1,48 +1,50 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { useI18nContext } from '@/context/I18nContext';
 
-export interface GameEvent {
-  id: string;
-  timestamp: number;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-}
-
-interface EventLogProps {
-  events?: GameEvent[];
-  maxEvents?: number;
-}
-
-const EventLog: React.FC<EventLogProps> = ({ events = [], maxEvents = 50 }) => {
+const EventLog: React.FC = () => {
   const { state } = useGame();
-  const { t } = useI18nContext();
-
-  // Если передали события через props, используем их
-  const displayEvents = events && events.length > 0 
-    ? events.slice(0, maxEvents)
-    : (state.eventMessages?.messages || []);
-
-  if (!displayEvents || displayEvents.length === 0) {
-    return (
-      <div className="event-log">
-        <h3 className="event-log-title text-base font-bold mb-2">{t('ui.eventLog')}</h3>
-        <p className="text-gray-500 text-left text-base">{t('ui.noEvents')}</p>
-      </div>
-    );
-  }
-
+  const [messages, setMessages] = useState<string[]>([
+    "Добро пожаловать в Crypto Civilization!",
+    "Нажмите 'Изучить крипту' чтобы начать свой путь."
+  ]);
+  
+  // Добавление новых сообщений при появлении разблокировок
+  useEffect(() => {
+    const handleUnlockEvent = (event: CustomEvent) => {
+      const { itemId } = event.detail;
+      
+      if (itemId === 'usdt') {
+        addMessage("Вы разблокировали USDT! Теперь вы можете применять знания для получения криптовалюты.");
+      } else if (itemId === 'practice') {
+        addMessage("Разблокировано здание: Практика. Оно автоматически генерирует знания.");
+      } else if (itemId === 'generator') {
+        addMessage("Разблокировано здание: Генератор. Производит электричество для ваших устройств.");
+      } else if (itemId === 'research') {
+        addMessage("Разблокированы исследования! Теперь вы можете развивать технологии.");
+      } else if (itemId === 'bitcoin') {
+        addMessage("Вы открыли Bitcoin! Майнинг теперь доступен.");
+      }
+    };
+    
+    window.addEventListener('unlock-event', handleUnlockEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('unlock-event', handleUnlockEvent as EventListener);
+    };
+  }, []);
+  
+  // Функция добавления нового сообщения
+  const addMessage = (message: string) => {
+    setMessages(prev => [message, ...prev.slice(0, 9)]);
+  };
+  
   return (
-    <div className="event-log">
-      <h3 className="event-log-title text-base font-bold mb-2">{t('ui.eventLog')}</h3>
-      <div className="event-messages">
-        {displayEvents.map((message, index) => (
-          <div
-            key={message.id || index}
-            className={`event-message ${message.type || 'info'} text-left text-base`}
-          >
-            {message.message || message.text}
+    <div className="h-16 overflow-y-auto">
+      <div className="space-y-1 p-1">
+        {messages.map((message, index) => (
+          <div key={index} className="text-sm text-gray-600">
+            {message}
           </div>
         ))}
       </div>
