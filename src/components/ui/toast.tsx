@@ -32,9 +32,9 @@ const toastVariants = cva(
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
         success:
-          "border-green-500 bg-green-500 text-white",
+          "success group border-green-500 bg-green-500 text-white",
         warning:
-          "border-yellow-500 bg-yellow-500 text-white",
+          "warning group border-yellow-500 bg-yellow-500 text-white",
       },
     },
     defaultVariants: {
@@ -43,35 +43,28 @@ const toastVariants = cva(
   }
 )
 
-// Создаем тип, который будет использоваться в компоненте toaster.tsx
-export type ToastType = "default" | "destructive" | "success" | "warning" | "error"
-
-export interface Toast {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  variant?: ToastType
-  duration?: number
-}
+export type ToastType = 'default' | 'destructive' | 'success' | 'warning' | 'error';
 
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
-  // Преобразуем error в destructive для обратной совместимости
-  let adjustedVariant = variant;
+    VariantProps<typeof toastVariants> & {
+      variant?: ToastType;
+    }
+>(({ className, variant = "default", ...props }, ref) => {
+  // Преобразуем variant 'error' в 'destructive' для обратной совместимости
+  let normalizedVariant = variant;
   if (variant === "error") {
-    adjustedVariant = "destructive";
+    normalizedVariant = "destructive";
   }
   
   return (
     <ToastPrimitives.Root
       ref={ref}
-      className={cn(toastVariants({ variant: adjustedVariant as any }), className)}
+      className={cn(toastVariants({ variant: normalizedVariant as any }), className)}
       {...props}
     />
-  )
+  );
 })
 Toast.displayName = ToastPrimitives.Root.displayName
 
@@ -132,7 +125,13 @@ const ToastDescription = React.forwardRef<
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
+type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
+
+type ToastActionElement = React.ReactElement<typeof ToastAction>
+
 export {
+  type ToastProps,
+  type ToastActionElement,
   ToastProvider,
   ToastViewport,
   Toast,

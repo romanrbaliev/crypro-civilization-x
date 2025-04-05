@@ -5,7 +5,7 @@ export interface Resource {
   name: string;
   description: string;
   type: ResourceType;
-  icon: string;
+  icon?: string;
   value: number;
   max: number;
   unlocked: boolean;
@@ -60,7 +60,7 @@ export interface ReferralInfo {
   id: string;
   username?: string;
   activated: boolean;
-  hired: boolean;
+  hired?: boolean;
   buildingId?: string;
 }
 
@@ -157,7 +157,7 @@ export type GameAction =
   | { type: 'ACTIVATE_REFERRAL'; payload: { referralId: string } }
   | { type: 'HIRE_REFERRAL_HELPER'; payload: { referralId: string; buildingId: string } }
   | { type: 'RESPOND_TO_HELPER_REQUEST'; payload: { helperId: string; accepted: boolean } }
-  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; activated: boolean; hired: boolean; buildingId?: string } }
+  | { type: 'UPDATE_REFERRAL_STATUS'; payload: { referralId: string; activated: boolean; hired?: boolean; buildingId?: string } }
   | { type: 'INITIALIZE_REFERRAL_SYSTEM' }
   | { type: 'UPDATE_RESOURCES'; payload?: any }
   | { type: 'FORCE_RESOURCE_UPDATE' }
