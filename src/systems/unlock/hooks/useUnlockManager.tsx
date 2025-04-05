@@ -1,4 +1,3 @@
-
 import { useContext, createContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
@@ -6,7 +5,6 @@ import { normalizeId } from '@/i18n';
 import { GameState } from '@/context/types';
 import { GameContext } from '@/context/GameContext';
 
-// Создаем заглушку состояния для случаев, когда контекст недоступен
 const createEmptyGameState = (): GameState => ({
   resources: {},
   buildings: {},
@@ -45,17 +43,13 @@ const createEmptyGameState = (): GameState => ({
   phase: 1
 });
 
-// Создаем контекст для предоставления доступа к менеджеру разблокировок
 const UnlockManagerContext = createContext<UnlockManager | null>(null);
 
-// Провайдер контекста
 export const UnlockManagerProvider = ({ children }: { children: React.ReactNode }) => {
-  // Получаем контекст игры обычным способом
   const gameContext = useContext(GameContext);
   const state = gameContext?.state || createEmptyGameState();
   const [unlockManager, setUnlockManager] = useState<UnlockManager | null>(null);
   
-  // Инициализируем менеджер разблокировок при изменении состояния игры
   useEffect(() => {
     if (state) {
       try {
@@ -66,9 +60,8 @@ export const UnlockManagerProvider = ({ children }: { children: React.ReactNode 
         console.error("Ошибка при создании UnlockManager:", error);
       }
     }
-  }, [state?.version]); // Пересоздаем только при изменении версии состояния
+  }, [state?.version]);
   
-  // Обновляем состояние при изменении игры
   useEffect(() => {
     if (unlockManager && state) {
       try {
@@ -86,78 +79,61 @@ export const UnlockManagerProvider = ({ children }: { children: React.ReactNode 
   );
 };
 
-// Хук для использования менеджера разблокировок
 export const useUnlockManager = (): UnlockManager => {
   const context = useContext(UnlockManagerContext);
   
   if (!context) {
-    // Если контекст недоступен, создаем временный менеджер
     if (process.env.NODE_ENV !== 'production') {
       console.error('useUnlockManager должен быть использован внутри UnlockManagerProvider');
     }
     
-    // Получаем состояние игры (запасной вариант)
     const { state } = useGame();
     
-    // Возвращаем новый экземпляр менеджера
     return new UnlockManager(state || createEmptyGameState());
   }
   
   return context;
 };
 
-// Хук для проверки разблокировки элемента
 export const useUnlockStatus = (itemId: string | undefined): boolean => {
   const unlockManager = useUnlockManager();
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Создаем пустой массив для использования как 
-  // значение по умолчанию для зависимостей useMemo
   const emptyDeps: string[] = [];
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасно преобразуем itemId в строку
-  // и гарантируем, что это никогда не будет undefined
   const safeItemId = itemId || '';
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное использование useMemo с explicit
-  // проверкой зависимостей и значениями по умолчанию
   const normalizedItemId = useMemo(() => {
     try {
-      // Проверяем наличие safeItemId
       if (!safeItemId) {
         console.log("useUnlockStatus: Обнаружен пустой ID, пропуск нормализации");
         return '';
       }
       
-      // Безопасно нормализуем ID
       const normalized = normalizeId(safeItemId);
       console.log(`useUnlockStatus: Нормализация ID ${safeItemId} -> ${normalized}`);
-      return normalized || ''; // Добавляем fallback к пустой строке
+      return normalized || '';
     } catch (error) {
       console.error("Ошибка нормализации ID:", error, "для itemId:", safeItemId);
       return '';
     }
-  }, [safeItemId] || emptyDeps); // Явно добавляем пустой массив как fallback
+  }, [safeItemId]);
   
-  // ИСПРАВЛЕНИЕ: Оптимизированный checkUnlockStatus с защитой от ошибок
   const checkUnlockStatus = useCallback(() => {
     try {
-      // Пропускаем проверку для пустых ID
       if (!normalizedItemId) {
         console.log(`useUnlockStatus: Пропуск проверки для пустого ID`);
         setIsUnlocked(false);
         return;
       }
       
-      // Проверяем наличие менеджера разблокировок
       if (!unlockManager) {
         console.log(`useUnlockStatus: Менеджер разблокировок недоступен для ${normalizedItemId}`);
         setIsUnlocked(false);
         return;
       }
       
-      // Проверяем разблокировку
       const status = unlockManager.isUnlocked(normalizedItemId);
       setIsUnlocked(!!status);
       console.log(`useUnlockStatus: Статус для ${normalizedItemId}: ${status ? 'разблокирован' : 'заблокирован'}`);
@@ -167,35 +143,29 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     }
   }, [unlockManager, normalizedItemId]);
   
-  // ИСПРАВЛЕНИЕ: Безопасный обработчик событий с явными проверками
   const handleUnlockEvent = useCallback((event: Event) => {
-    // Проверка на существование normalizedItemId
     if (!normalizedItemId) {
       return;
     }
     
     try {
-      // Проверяем тип события
       if (!(event instanceof CustomEvent) || !event.detail) {
         return;
       }
       
-      // Получаем ID элемента из события
       const eventId = event.detail?.itemId || '';
       if (!eventId) {
         return;
       }
       
-      // Нормализуем ID из события
       let normalizedEventId;
       try {
-        normalizedEventId = normalizeId(eventId) || ''; // Добавлен fallback к пустой строке
+        normalizedEventId = normalizeId(eventId) || '';
       } catch (error) {
         console.error("Ошибка нормализации eventId:", error);
         return;
       }
       
-      // Обрабатываем событие только если ID совпадают
       if (normalizedEventId === normalizedItemId) {
         console.log(`useUnlockStatus: Обработка события разблокировки для ${normalizedItemId}`);
         checkUnlockStatus();
@@ -205,23 +175,18 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     }
   }, [checkUnlockStatus, normalizedItemId]);
   
-  // ИСПРАВЛЕНИЕ: Безопасный эффект с дополнительными защитными проверками
   useEffect(() => {
-    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасная проверка на существование normalizedItemId
-    if (!normalizedItemId && normalizedItemId !== '') {
+    if (normalizedItemId === undefined) {
       console.log("useUnlockStatus: Пропуск эффекта из-за невалидного ID");
       return;
     }
     
     try {
-      // Выполняем начальную проверку
       console.log(`useUnlockStatus: Начальная проверка для ${normalizedItemId}`);
       checkUnlockStatus();
       
-      // Подписываемся на события разблокировки
       window.addEventListener('unlock-event', handleUnlockEvent);
       
-      // Отписываемся при размонтировании
       return () => {
         window.removeEventListener('unlock-event', handleUnlockEvent);
       };
@@ -234,7 +199,6 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   return isUnlocked;
 };
 
-// Компонент высшего порядка для условного рендеринга на основе разблокировки
 export const UnlockedContent = ({ 
   itemId, 
   children,
@@ -244,7 +208,6 @@ export const UnlockedContent = ({
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) => {
-  // ИСПРАВЛЕНИЕ: Безопасное использование itemId
   const safeItemId = itemId || '';
   const isUnlocked = useUnlockStatus(safeItemId);
   

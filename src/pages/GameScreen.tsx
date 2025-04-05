@@ -52,7 +52,10 @@ const GameScreen = () => {
   const { t } = useI18nContext();
   
   const safeGameIds = gameIds || {};
-  const safeFeatures = safeGameIds.features || {};
+  const safeFeatures: Record<string, string> = 
+    typeof safeGameIds.features === 'object' && safeGameIds.features 
+      ? safeGameIds.features as Record<string, string>
+      : {};
   
   const featureIds = useMemo(() => ({
     equipment: safeFeatures.equipment || 'equipment',
@@ -64,12 +67,12 @@ const GameScreen = () => {
   useEffect(() => {
     console.log("GameScreen: Инициализированные ID функций:", featureIds);
     
-    if (safeGameIds.features) {
+    if (typeof safeGameIds.features === 'object' && safeGameIds.features) {
       console.log("GameScreen: ID функций из gameIds:", safeGameIds.features);
     } else {
       console.log("GameScreen: gameIds.features не определены, используем дефолтные значения");
     }
-  }, [featureIds, safeGameIds.features]);
+  }, [featureIds, safeGameIds]);
   
   const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment);
   const hasUnlockedResearch = useUnlockStatus(featureIds.research);

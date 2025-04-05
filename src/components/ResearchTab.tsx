@@ -18,9 +18,14 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем и инициализируем глобальные константы для безопасности
   const DEFAULT_RESEARCH_ID = 'research';
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID исследований
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID исследований с проверкой типов
   const safeGameIds = gameIds || {};
-  const safeFeatures = safeGameIds.features || {};
+  // Создаем пустой объект, если features не определено
+  const safeFeatures: Record<string, string> = 
+    typeof safeGameIds.features === 'object' && safeGameIds.features 
+      ? safeGameIds.features as Record<string, string>
+      : {};
+  
   const researchId = safeFeatures.research || DEFAULT_RESEARCH_ID;
   
   // ИСПРАВЛЕНИЕ: Усиленное логгирование для отладки
@@ -28,10 +33,10 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     console.log("ResearchTab: Используется ID для проверки разблокировки исследований:", researchId);
     
     // Проверяем наличие gameIds для отладки
-    if (!safeGameIds || !safeFeatures) {
+    if (!safeGameIds || Object.keys(safeFeatures).length === 0) {
       console.warn("ResearchTab: gameIds или gameIds.features не определены, используем дефолтные значения");
     }
-  }, [researchId, safeGameIds, safeFeatures]);
+  }, [researchId, safeGameIds]);
   
   // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Гарантируем, что researchId будет строкой
   const researchUnlocked = useUnlockStatus(researchId);
@@ -55,7 +60,11 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     const normalizedUpgrades = { ...state.upgrades };
     
     // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID блокчейн-исследования
-    const safeUpgrades = safeGameIds.upgrades || {};
+    const safeUpgrades: Record<string, string> = 
+      typeof safeGameIds.upgrades === 'object' && safeGameIds.upgrades 
+        ? safeGameIds.upgrades as Record<string, string>
+        : {};
+    
     const blockchainBasicsId = safeUpgrades.blockchainBasics || 'blockchainBasics';
     
     // Проверяем все возможные устаревшие ID для совместимости
