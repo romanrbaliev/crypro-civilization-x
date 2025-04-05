@@ -1,4 +1,3 @@
-
 /**
  * ЕДИНАЯ СИСТЕМА УПРАВЛЕНИЯ РАЗБЛОКИРОВКАМИ
  * 
@@ -372,26 +371,78 @@ export class UnlockManager {
    * Убеждается, что базовое исследование существует и разблокировано
    */
   private ensureBaseResearchExists(): void {
-    const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
+    if (this.debugMode) {
+      console.log("UnlockManager: Проверка базовых исследований");
+    }
     
-    let baseResearchExists = false;
+    // Проверяем наличие "Основы блокчейна" и при необходимости создаем
+    const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
+    let blockchainBasicsExists = false;
+    let existingId = '';
+    
+    // Проверяем все возможные ID
     for (const id of blockchainBasicsIds) {
-      if (this.state.upgrades[id]) {
-        baseResearchExists = true;
-        
-        // Если исследование существует, но не разблокировано, разблокируем его
-        if (!this.isUnlocked(id)) {
-          this.unlockUpgrade(id);
-          if (this.debugMode) {
-            console.log(`UnlockManager: Принудительно разблокировано базовое исследование ${id}`);
-          }
-        }
+      if (this.state.upgrades && this.state.upgrades[id]) {
+        blockchainBasicsExists = true;
+        existingId = id;
+        break;
       }
     }
     
-    if (!baseResearchExists && this.debugMode) {
-      console.log("UnlockManager: ПРЕДУПРЕЖДЕНИЕ! Не найдено базовое исследование 'Основы блокчейна'");
+    if (!blockchainBasicsExists) {
+      console.log("UnlockManager: Создаем отсутствующее исследование 'Основы блокчейна'");
+      
+      // Создаем исследование с каноническим ID
+      this.state.upgrades.blockchainBasics = {
+        id: 'blockchainBasics',
+        name: 'Основы блокчейна',
+        description: 'Фундаментальные знания о технологии блокчейн, криптографии и децентрализованных системах.',
+        cost: { knowledge: 100 },
+        unlocked: false,
+        purchased: false,
+        effects: {
+          knowledgeMaxBoost: 0.5,
+          knowledgeBoost: 0.1
+        },
+        category: 'blockchain',
+        tier: 1
+      };
+    } else if (existingId !== 'blockchainBasics') {
+      // Если исследование существует под другим ID, создаем ссылку на каноничный ID
+      console.log(`UnlockManager: Найдено исследование 'Основы блокчейна' под ID ${existingId}, создаем канонический ID`);
+      
+      this.state.upgrades.blockchainBasics = {
+        ...this.state.upgrades[existingId],
+        id: 'blockchainBasics'
+      };
     }
+    
+    // Проверка разблокировки "Основы блокчейна"
+    const generatorExists = this.state.buildings.generator && this.state.buildings.generator.count > 0;
+    
+    if (generatorExists && !this.state.upgrades.blockchainBasics.unlocked) {
+      console.log("UnlockManager: Принудительная разблокировка 'Основы блокчейна'");
+      
+      this.state.upgrades.blockchainBasics.unlocked = true;
+      
+      // Отправляем событие о разблокировке
+      this.dispatchUnlockEvent('blockchainBasics', 'upgrade');
+    }
+  }
+
+  /**
+   * Полная проверка всех разблокировок с нуля
+   */
+  public forceCheckAllUnlocks(): GameState {
+    // Выполняем все проверки
+    const result = this.updateGameState(this.state);
+    
+    // Дополнительно проверяем, что у нас есть основное исследование
+    if (this.isUnlocked('research')) {
+      this.ensureBaseResearchExists();
+    }
+    
+    return result;
   }
 
   /**
@@ -406,7 +457,7 @@ export class UnlockManager {
     const buildingsUnlockedCounter = this.getCounterValue('buildingsUnlocked');
     
     if (unlockedBuildingsCount > 0 && buildingsUnlockedCounter === 0) {
-      // Исправляем счетчик buildingsUnlocked
+      // Исп��авляем счетчик buildingsUnlocked
       this.state = {
         ...this.state,
         counters: {
@@ -599,6 +650,19 @@ export class UnlockManager {
     const counter = this.state.counters[counterId];
     if (!counter) return 0;
     return typeof counter === 'object' ? counter.value : counter;
+  }
+
+  /**
+   * Отправка события о разблокировке для реактивности интерфейса
+   */
+  private dispatchUnlockEvent(itemId: string, itemType: string): void {
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      const event = new CustomEvent('unlock-event', { 
+        detail: { itemId, itemType } 
+      });
+      
+      window.dispatchEvent(event);
+    }
   }
 }
 

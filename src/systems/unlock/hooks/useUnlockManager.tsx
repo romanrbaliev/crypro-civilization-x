@@ -37,7 +37,6 @@ export const useUnlockManager = (): UnlockManager => {
   
   if (!context) {
     // Если контекст недоступен, создаем временный менеджер
-    // или выбрасываем ошибку в разработке
     if (process.env.NODE_ENV !== 'production') {
       console.error('useUnlockManager должен быть использован внутри UnlockManagerProvider');
     }
@@ -61,8 +60,20 @@ export const useUnlockStatus = (itemId: string): boolean => {
   useEffect(() => {
     // Проверяем текущий статус разблокировки
     const checkUnlockStatus = () => {
-      const status = unlockManager.isUnlocked(itemId);
-      setIsUnlocked(status);
+      // ИСПРАВЛЕНИЕ: Особая обработка для "Основы блокчейна"
+      if (itemId === 'blockchainBasics' || itemId === 'blockchain_basics' || itemId === 'basicBlockchain') {
+        // Проверяем все возможные ID
+        const blockchainBasicsExists = 
+          state.upgrades['blockchainBasics']?.unlocked || 
+          state.upgrades['blockchain_basics']?.unlocked || 
+          state.upgrades['basicBlockchain']?.unlocked;
+          
+        setIsUnlocked(blockchainBasicsExists);
+      } else {
+        // Для всех остальных элементов используем стандартную проверку
+        const status = unlockManager.isUnlocked(itemId);
+        setIsUnlocked(status);
+      }
     };
     
     // Проверяем при монтировании и при изменении зависимостей
@@ -70,8 +81,17 @@ export const useUnlockStatus = (itemId: string): boolean => {
     
     // Подписываемся на события разблокировки
     const handleUnlockEvent = (event: Event) => {
-      if (event instanceof CustomEvent && event.detail?.itemId === itemId) {
-        checkUnlockStatus();
+      if (event instanceof CustomEvent) {
+        // Особая обработка для "Основы блокчейна"
+        if (itemId === 'blockchainBasics' || itemId === 'blockchain_basics' || itemId === 'basicBlockchain') {
+          if (['blockchainBasics', 'blockchain_basics', 'basicBlockchain'].includes(event.detail?.itemId)) {
+            checkUnlockStatus();
+          }
+        }
+        // Для остальных элементов - только точное совпадение ID
+        else if (event.detail?.itemId === itemId) {
+          checkUnlockStatus();
+        }
       }
     };
     

@@ -7,7 +7,12 @@ interface ResearchContainerProps {
 }
 
 const ResearchContainer: React.FC<ResearchContainerProps> = ({ onAddEvent }) => {
-  return <ResearchTab onAddEvent={onAddEvent} />;
+  // Передаем события в ResearchTab
+  return (
+    <div>
+      <ResearchTab onAddEvent={onAddEvent} />
+    </div>
+  );
 };
 
 export default ResearchContainer;

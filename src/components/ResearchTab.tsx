@@ -15,29 +15,65 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Используем новую систему разблокировок
   const researchUnlocked = useUnlockStatus('research');
   
-  // Диагностические логи для отслеживания проблемы
+  // Расширенные диагностические логи для отслеживания проблемы
   useEffect(() => {
     console.log("ResearchTab: research unlocked =", researchUnlocked);
     console.log("ResearchTab: total upgrades =", Object.keys(state.upgrades || {}).length);
     console.log("ResearchTab: upgrades keys =", Object.keys(state.upgrades || {}));
     
-    // Проверяем наличие базовых исследований
-    const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
-    for (const id of blockchainBasicsIds) {
+    // Проверяем наличие ВСЕХ возможных вариантов ID для "Основы блокчейна"
+    const possibleBlockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
+    console.log("ResearchTab: Проверка всех возможных ID для 'Основы блокчейна'");
+    
+    for (const id of possibleBlockchainBasicsIds) {
       if (state.upgrades && state.upgrades[id]) {
-        console.log(`ResearchTab: ${id} exists = true, unlocked =`, state.upgrades[id].unlocked);
+        console.log(`ResearchTab: ${id} exists = true, unlocked = ${state.upgrades[id].unlocked}, purchased = ${state.upgrades[id].purchased}`);
       } else {
-        console.log(`ResearchTab: ${id} exists = false`);
+        console.log(`ResearchTab: ${id} does not exist in state.upgrades`);
       }
     }
-  }, [state.upgrades, researchUnlocked]);
+    
+    // Проверяем общее состояние системы разблокировок
+    console.log("ResearchTab: Разблокировки (unlocks):", state.unlocks);
+  }, [state.upgrades, researchUnlocked, state.unlocks]);
   
   // Безопасно фильтруем исследования с явной проверкой на null/undefined
-  const unlockedUpgrades = Object.entries(state.upgrades || {})
+  // ВАЖНОЕ ИСПРАВЛЕНИЕ: Проверяем все возможные ID для "Основы блокчейна"
+  const getUpgradesByAllPossibleIds = () => {
+    // Создаем нормализованную мапу исследований, учитывая все варианты ID
+    const normalizedUpgrades = { ...state.upgrades };
+    
+    // Проверяем наличие базовых исследований с разными ID, но выбираем единый ID
+    const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
+    let foundBlockchainBasics = false;
+    
+    for (const id of blockchainBasicsIds) {
+      if (normalizedUpgrades[id] && normalizedUpgrades[id].unlocked) {
+        foundBlockchainBasics = true;
+        console.log(`ResearchTab: Найдено исследование Основы блокчейна с ID ${id}`);
+        
+        // Принудительно добавляем в основной ID, если его нет
+        if (!normalizedUpgrades['blockchainBasics']) {
+          normalizedUpgrades['blockchainBasics'] = {
+            ...normalizedUpgrades[id],
+            id: 'blockchainBasics'
+          };
+        }
+      }
+    }
+    
+    return normalizedUpgrades;
+  };
+  
+  // Получаем нормализованные исследования
+  const normalizedUpgrades = getUpgradesByAllPossibleIds();
+  
+  // Фильтруем разблокированные и приобретенные исследования
+  const unlockedUpgrades = Object.entries(normalizedUpgrades)
     .filter(([_, upgrade]) => upgrade && upgrade.unlocked && !upgrade.purchased)
     .map(([_, upgrade]) => upgrade);
   
-  const purchasedUpgrades = Object.entries(state.upgrades || {})
+  const purchasedUpgrades = Object.entries(normalizedUpgrades)
     .filter(([_, upgrade]) => upgrade && upgrade.purchased)
     .map(([_, upgrade]) => upgrade);
   
