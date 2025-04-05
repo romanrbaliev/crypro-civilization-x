@@ -199,9 +199,14 @@ export class UnlockManager {
       this.unlockResource('usdt');
     }
     
-    // Электричество разблокируется после покупки генератора
-    if (this.state.buildings.generator?.count > 0 && !this.isUnlocked('electricity')) {
+    // ИСПРАВЛЕНИЕ: Электричество разблокируется после покупки генератора
+    // Проверяем счетчик генератора, а не его наличие
+    const generatorCount = this.state.buildings.generator?.count || 0;
+    if (generatorCount > 0 && !this.isUnlocked('electricity')) {
       this.unlockResource('electricity');
+      if (this.debugMode) {
+        console.log(`UnlockManager: Разблокировка электричества (количество генераторов: ${generatorCount})`);
+      }
     }
     
     // Вычислительная мощность разблокируется после покупки домашнего компьютера

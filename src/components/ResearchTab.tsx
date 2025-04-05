@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
@@ -15,6 +15,23 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Используем новую систему разблокировок
   const researchUnlocked = useUnlockStatus('research');
   
+  useEffect(() => {
+    // Дополнительная диагностика для отладки
+    console.log("ResearchTab: research unlocked =", researchUnlocked);
+    console.log("ResearchTab: total upgrades =", Object.keys(state.upgrades).length);
+    console.log("ResearchTab: upgrades keys =", Object.keys(state.upgrades));
+    
+    // Проверка наличия базовых исследований
+    const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
+    for (const id of blockchainBasicsIds) {
+      if (state.upgrades[id]) {
+        console.log(`ResearchTab: ${id} exists = true, unlocked =`, state.upgrades[id].unlocked);
+      } else {
+        console.log(`ResearchTab: ${id} exists = false`);
+      }
+    }
+  }, [state.upgrades, researchUnlocked]);
+  
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)
     .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
@@ -22,6 +39,22 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Купленные исследования
   const purchasedUpgrades = Object.values(state.upgrades)
     .filter(upgrade => upgrade.purchased);
+  
+  // Явная проверка, у нас сейчас нет разблокированных апгрейдов,
+  // но они должны быть если разблокирована вкладка research
+  useEffect(() => {
+    if (researchUnlocked && unlockedUpgrades.length === 0) {
+      console.log("ResearchTab: Warning! Research tab is unlocked but no upgrades are available.");
+      console.log("ResearchTab: Unlocks state:", state.unlocks);
+      
+      // Проверка, есть ли в state.upgrades исследования, но они не разблокированы
+      const potentialUpgrades = Object.values(state.upgrades).filter(u => !u.unlocked);
+      console.log("ResearchTab: Potential upgrades (not unlocked):", potentialUpgrades.map(u => u.id));
+      
+      // Принудительно проверяем разблокировки, если вкладка исследований разблокирована
+      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
+    }
+  }, [researchUnlocked, unlockedUpgrades.length, state.unlocks, dispatch]);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {
