@@ -2,25 +2,7 @@
 import { GameState, Upgrade } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
-// Интерфейс для параметров майнинга
-interface MiningParams {
-  difficulty: number;
-  hashrate: number;
-  blockReward: number;
-  lastBlockTime: number;
-  exchangeRate: number;
-  exchangeCommission: number;
-  miningEfficiency: number;
-  energyEfficiency: number;
-  networkDifficulty: number;
-  volatility: number;
-}
-
-interface PurchaseUpgradePayload {
-  upgradeId: string;
-}
-
-export const processPurchaseUpgrade = (state: GameState, payload: PurchaseUpgradePayload): GameState => {
+export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: string }): GameState => {
   const { upgradeId } = payload;
   const upgrade = state.upgrades[upgradeId];
   

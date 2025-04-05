@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -9,7 +8,7 @@ import {
   processPurchaseBuilding, 
   processSellBuilding,
   processChooseSpecialization 
-} from './reducers/building';
+} from './reducers/building/index';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processSetLanguage } from './reducers';
 import {

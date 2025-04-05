@@ -1,38 +1,22 @@
 
-// Вспомогательная функция для безопасного доступа к шине событий
-export function safeDispatchGameEvent(
-  message: string,
-  type: "info" | "error" | "success" | "warning" = "info"
-): void {
-  if (typeof window !== 'undefined') {
-    try {
-      // Проверка и создание шины событий, если не существует
+// Безопасная отправка игровых событий
+export const safeDispatchGameEvent = (message: string, type: "success" | "warning" | "info" | "error" = "info") => {
+  try {
+    if (typeof window !== 'undefined') {
+      const gameEventBus = window.gameEventBus || new EventTarget();
+      
       if (!window.gameEventBus) {
-        console.log('🔄 Создаем глобальную шину событий gameEventBus');
-        window.gameEventBus = new EventTarget();
+        window.gameEventBus = gameEventBus;
       }
       
-      // Создание и отправка события
-      const customEvent = new CustomEvent('game-event', { 
-        detail: { message, type } 
+      const event = new CustomEvent('game-event', {
+        detail: { message, type }
       });
-      window.gameEventBus.dispatchEvent(customEvent);
-      console.log(`📢 Событие: ${type} - ${message}`);
-    } catch (error) {
-      console.error('❌ Ошибка при отправке события:', error, message);
+      
+      gameEventBus.dispatchEvent(event);
+      console.log(`[Event dispatched] ${type}: ${message}`);
     }
+  } catch (error) {
+    console.error('Error dispatching game event:', error);
   }
-}
-
-// Проверка наличия шины событий
-export function isGameEventBusAvailable(): boolean {
-  return typeof window !== 'undefined' && !!window.gameEventBus;
-}
-
-// Создание шины событий, если она еще не существует
-export function ensureGameEventBus(): void {
-  if (typeof window !== 'undefined' && !window.gameEventBus) {
-    window.gameEventBus = new EventTarget();
-    console.log('✅ Глобальная шина событий создана');
-  }
-}
+};

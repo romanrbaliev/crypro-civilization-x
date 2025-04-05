@@ -2,26 +2,7 @@
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
 
-// Интерфейс для параметров майнинга
-interface MiningParams {
-  difficulty: number;
-  hashrate: number;
-  blockReward: number;
-  lastBlockTime: number;
-  exchangeRate: number;
-  exchangeCommission: number;
-  miningEfficiency: number;
-  energyEfficiency: number;
-  networkDifficulty: number;
-  volatility: number;
-}
-
-// Интерфейс для параметров покупки здания
-interface PurchaseBuildingPayload {
-  buildingId: string;
-}
-
-export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuildingPayload): GameState => {
+export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
   const { buildingId } = payload;
   const building = state.buildings[buildingId];
   
@@ -65,9 +46,7 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
   
   // Обновляем счетчики
   if (buildingId === 'practice' && building.count === 0) {
-    const practiceBuilt = (typeof newState.counters.practiceBuilt === 'object' ? 
-                           newState.counters.practiceBuilt.value : 
-                           newState.counters.practiceBuilt) || 0;
+    const practiceBuilt = newState.counters.practiceBuilt?.value || 0;
     
     newState.counters = {
       ...newState.counters,
@@ -77,9 +56,7 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
       }
     };
   } else if (buildingId === 'generator' && building.count === 0) {
-    const generatorBuilt = (typeof newState.counters.generatorBuilt === 'object' ? 
-                            newState.counters.generatorBuilt.value : 
-                            newState.counters.generatorBuilt) || 0;
+    const generatorBuilt = newState.counters.generatorBuilt?.value || 0;
     
     newState.counters = {
       ...newState.counters,
@@ -105,9 +82,7 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
       safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'info');
     }
   } else if (buildingId === 'homeComputer' && building.count === 0) {
-    const computerBuilt = (typeof newState.counters.computerBuilt === 'object' ? 
-                          newState.counters.computerBuilt.value : 
-                          newState.counters.computerBuilt) || 0;
+    const computerBuilt = newState.counters.computerBuilt?.value || 0;
     
     newState.counters = {
       ...newState.counters,
@@ -133,9 +108,7 @@ export const processPurchaseBuilding = (state: GameState, payload: PurchaseBuild
       safeDispatchGameEvent('Разблокирован ресурс: Вычислительная мощность', 'info');
     }
   } else if (buildingId === 'cryptoWallet' && building.count === 0) {
-    const walletBuilt = (typeof newState.counters.walletBuilt === 'object' ? 
-                         newState.counters.walletBuilt.value : 
-                         newState.counters.walletBuilt) || 0;
+    const walletBuilt = newState.counters.walletBuilt?.value || 0;
     
     newState.counters = {
       ...newState.counters,

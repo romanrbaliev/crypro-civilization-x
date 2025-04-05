@@ -2,7 +2,7 @@
 import { GameState } from '../types';
 
 export const processUnlockFeature = (
-  state: GameState,
+  state: GameState, 
   payload: { featureId: string }
 ): GameState => {
   return {
@@ -15,50 +15,45 @@ export const processUnlockFeature = (
 };
 
 export const processSetBuildingUnlocked = (
-  state: GameState,
+  state: GameState, 
   payload: { buildingId: string; unlocked: boolean }
 ): GameState => {
-  const { buildingId, unlocked } = payload;
-  
   return {
     ...state,
     buildings: {
       ...state.buildings,
-      [buildingId]: {
-        ...state.buildings[buildingId],
-        unlocked
+      [payload.buildingId]: {
+        ...state.buildings[payload.buildingId],
+        unlocked: payload.unlocked
       }
     }
   };
 };
 
 export const processSetUpgradeUnlocked = (
-  state: GameState,
+  state: GameState, 
   payload: { upgradeId: string; unlocked: boolean }
 ): GameState => {
-  const { upgradeId, unlocked } = payload;
-  
   return {
     ...state,
     upgrades: {
       ...state.upgrades,
-      [upgradeId]: {
-        ...state.upgrades[upgradeId],
-        unlocked
+      [payload.upgradeId]: {
+        ...state.upgrades[payload.upgradeId],
+        unlocked: payload.unlocked
       }
     }
   };
 };
 
 export const processIncrementCounter = (
-  state: GameState,
+  state: GameState, 
   payload: { counterId: string; value?: number }
 ): GameState => {
   const { counterId, value = 1 } = payload;
+  const counter = state.counters[counterId];
   
-  // Проверяем существование счетчика
-  if (!state.counters[counterId]) {
-    // Создаем новый счетчик, если его не существует
+  if (!counter) {
     return {
       ...state,
       counters: {
@@ -68,14 +63,13 @@ export const processIncrementCounter = (
     };
   }
   
-  // Инкрементируем существующий счетчик
   return {
     ...state,
     counters: {
       ...state.counters,
       [counterId]: {
-        ...state.counters[counterId],
-        value: state.counters[counterId].value + value
+        ...counter,
+        value: counter.value + value
       }
     }
   };

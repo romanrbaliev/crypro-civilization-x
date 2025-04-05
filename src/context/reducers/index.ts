@@ -1,9 +1,8 @@
 
-import { GameState, GameAction } from '../types';
+import { GameState } from '../types';
 
-// Обработчик для установки языка
 export const processSetLanguage = (
-  state: GameState,
+  state: GameState, 
   payload: { language: string }
 ): GameState => {
   return {

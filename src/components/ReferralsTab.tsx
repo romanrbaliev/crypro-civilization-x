@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   
   const handleSetReferralCode = () => {
     if (newReferralCode && newReferralCode !== state.referralCode) {
-      dispatch({ type: "SET_REFERRAL_CODE", payload: { referralCode: newReferralCode } });
+      dispatch({ type: "SET_REFERRAL_CODE", payload: { code: newReferralCode } });
       setReferralCode(newReferralCode);
       onAddEvent(`Реферальный код установлен: ${newReferralCode}`, "success");
     }
@@ -59,7 +60,12 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   
   const handleAddReferral = (code: string) => {
     if (code && code !== state.referralCode) {
-      dispatch({ type: "ADD_REFERRAL", payload: { referralCode: code } });
+      dispatch({ 
+        type: "ADD_REFERRAL", 
+        payload: { 
+          referral: { id: code, activated: false } 
+        } 
+      });
       onAddEvent(`Реферал добавлен с кодом: ${code}`, "success");
     }
   };
@@ -70,21 +76,28 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   };
   
   const handleHireReferralHelper = (referralId: string) => {
-    dispatch({
-      type: "HIRE_REFERRAL_HELPER",
-      payload: { referralId }
-    });
-    onAddEvent(`Помощник нанят от реферала: ${referralId}`, "success");
+    if (selectedBuilding) {
+      dispatch({
+        type: "HIRE_REFERRAL_HELPER",
+        payload: { referralId, buildingId: selectedBuilding }
+      });
+      onAddEvent(`Помощник нанят от реферала: ${referralId}`, "success");
+    } else {
+      toast({
+        title: "Ошибка",
+        description: "Необходимо выбрать здание для помощника",
+        variant: "destructive",
+      });
+    }
   };
   
-  const handleRespondToHelperRequest = (referralId: string, accepted: boolean) => {
-    if (helperRequest && helperRequest.referralId === referralId) {
+  const handleRespondToHelperRequest = (helperId: string, accepted: boolean) => {
+    if (helperRequest) {
       dispatch({
         type: "RESPOND_TO_HELPER_REQUEST",
         payload: {
-          referralId,
-          accepted,
-          buildingId: accepted ? helperRequest.buildingId : null
+          helperId,
+          accepted
         }
       });
       onAddEvent(`Ответ на запрос помощника: ${accepted ? 'Принят' : 'Отклонен'}`, accepted ? "success" : "warning");
@@ -110,7 +123,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   };
   
   const renderReferralList = () => {
-    if (!state.referrals || Object.keys(state.referrals).length === 0) {
+    if (!state.referrals || state.referrals.length === 0) {
       return <p>У вас пока нет рефералов.</p>;
     }
     
@@ -125,22 +138,22 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {Object.entries(state.referrals).map(([referralId, referral]) => (
-            <TableRow key={referralId}>
-              <TableCell>{referralId}</TableCell>
-              <TableCell>{referral.status}</TableCell>
+          {state.referrals.map((referral: any) => (
+            <TableRow key={referral.id}>
+              <TableCell>{referral.id}</TableCell>
+              <TableCell>{referral.status || (referral.activated ? 'Активирован' : 'Не активирован')}</TableCell>
               <TableCell>
                 {!referral.activated && (
-                  <Button onClick={() => handleActivateReferral(referralId)} variant="outline" size="sm">
+                  <Button onClick={() => handleActivateReferral(referral.id)} variant="outline" size="sm">
                     Активировать
                   </Button>
                 )}
                 {!referral.hired && (
-                  <Button onClick={() => handleHireReferralHelper(referralId)} variant="outline" size="sm">
+                  <Button onClick={() => handleHireReferralHelper(referral.id)} variant="outline" size="sm">
                     Нанять помощника
                   </Button>
                 )}
-                <Button onClick={() => handleUpdateReferralStatus(referralId)} variant="outline" size="sm">
+                <Button onClick={() => handleUpdateReferralStatus(referral.id)} variant="outline" size="sm">
                   Обновить статус
                 </Button>
               </TableCell>
@@ -152,7 +165,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   };
   
   const renderReferralHelpers = () => {
-    if (!state.referralHelpers || Object.keys(state.referralHelpers).length === 0) {
+    if (!state.referralHelpers || state.referralHelpers.length === 0) {
       return <p>У вас пока нет помощников.</p>;
     }
     
@@ -167,13 +180,13 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {Object.entries(state.referralHelpers).map(([referralId, helper]) => (
-            <TableRow key={referralId}>
-              <TableCell>{referralId}</TableCell>
+          {state.referralHelpers.map((helper) => (
+            <TableRow key={helper.id}>
+              <TableCell>{helper.id}</TableCell>
               <TableCell>
-                {helper.request && (
+                {helper.status === "pending" && (
                   <>
-                    Запрос на помощь в строительстве: {helper.request.buildingId}
+                    Запрос на помощь в строительстве: {helper.buildingId}
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
@@ -190,7 +203,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                         <div className="grid gap-4 py-4">
                           <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="building">Здание</Label>
-                            <Select onValueChange={handleBuildingSelect} defaultValue={selectedBuilding}>
+                            <Select onValueChange={handleBuildingSelect} defaultValue={selectedBuilding || undefined}>
                               <SelectTrigger className="col-span-3">
                                 <SelectValue placeholder="Выберите здание" />
                               </SelectTrigger>
@@ -202,10 +215,10 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                             </Select>
                           </div>
                         </div>
-                        <Button onClick={() => handleRespondToHelperRequest(referralId, true)} variant="outline" size="sm">
+                        <Button onClick={() => handleRespondToHelperRequest(helper.id, true)} variant="outline" size="sm">
                           Принять
                         </Button>
-                        <Button onClick={() => handleRespondToHelperRequest(referralId, false)} variant="outline" size="sm">
+                        <Button onClick={() => handleRespondToHelperRequest(helper.id, false)} variant="outline" size="sm">
                           Отклонить
                         </Button>
                       </DialogContent>
@@ -214,7 +227,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
                 )}
               </TableCell>
               <TableCell>
-                {helper.buildingId && <p>Помогает строить: {helper.buildingId}</p>}
+                {helper.status === "accepted" && <p>Помогает строить: {helper.buildingId}</p>}
               </TableCell>
             </TableRow>
           ))}
@@ -257,7 +270,8 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
             placeholder="Введите реферальный код"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                handleAddReferral(e.target.value);
+                const input = e.target as HTMLInputElement;
+                handleAddReferral(input.value);
               }
             }}
             className="w-auto"

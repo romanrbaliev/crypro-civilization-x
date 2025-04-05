@@ -106,6 +106,10 @@ export interface GameState {
   miningParams?: MiningParams;
   eventMessages?: string[];
   gameTime?: number;
+  totalPlayTime?: number;
+  rebirths?: number;
+  specializations?: Record<string, any>;
+  synergies?: Record<string, any>;
 }
 
 // Типы действий
@@ -177,6 +181,9 @@ export interface ReferralHelper {
   buildingId: string;
   helperId: string;
   status: string;
+  request?: {
+    buildingId: string;
+  };
 }
 
 // Интерфейс для GameContext
@@ -185,4 +192,12 @@ export interface GameContextProps {
   dispatch: GameDispatch;
   forceUpdate?: () => void;
   isPageVisible?: boolean;
+}
+
+// Добавляем интерфейс GameEvent для использования в ReferralsTab
+export interface GameEvent {
+  id: string;
+  timestamp: number;
+  message: string;
+  type: "success" | "warning" | "info" | "error";
 }

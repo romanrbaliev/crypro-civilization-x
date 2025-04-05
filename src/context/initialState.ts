@@ -24,12 +24,12 @@ export const initialState: GameState = {
   prestigePoints: 0,
   language: 'ru',
   counters: {
-    learn: 0,
-    apply: 0,
-    practiceBuilt: 0,
-    generatorBuilt: 0,
-    computerBuilt: 0,
-    walletBuilt: 0
+    learn: { id: 'learn', value: 0 },
+    apply: { id: 'apply', value: 0 },
+    practiceBuilt: { id: 'practiceBuilt', value: 0 },
+    generatorBuilt: { id: 'generatorBuilt', value: 0 },
+    computerBuilt: { id: 'computerBuilt', value: 0 },
+    walletBuilt: { id: 'walletBuilt', value: 0 }
   },
   
   resources: {
@@ -460,6 +460,6 @@ export const initialState: GameState = {
   
   // Реферальная система
   referralCode: null,
-  referrals: {},
-  referralHelpers: {}
+  referrals: [],
+  referralHelpers: []
 };
