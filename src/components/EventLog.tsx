@@ -27,20 +27,20 @@ const EventLog: React.FC<EventLogProps> = ({ events = [], maxEvents = 50 }) => {
   if (!displayEvents || displayEvents.length === 0) {
     return (
       <div className="event-log">
-        <h3 className="event-log-title">Журнал событий</h3>
-        <p className="text-gray-500 text-left">Нет событий</p>
+        <h3 className="event-log-title text-base font-bold mb-2">{t('ui.eventLog')}</h3>
+        <p className="text-gray-500 text-left text-base">{t('ui.noEvents')}</p>
       </div>
     );
   }
 
   return (
     <div className="event-log">
-      <h3 className="event-log-title">Журнал событий</h3>
+      <h3 className="event-log-title text-base font-bold mb-2">{t('ui.eventLog')}</h3>
       <div className="event-messages">
         {displayEvents.map((message, index) => (
           <div
             key={message.id || index}
-            className={`event-message ${message.type || 'info'} text-left`}
+            className={`event-message ${message.type || 'info'} text-left text-base`}
           >
             {message.message || message.text}
           </div>

@@ -1,27 +1,27 @@
 
 /**
- * Форматирует числовое значение для отображения
- * @param value Значение для форматирования
- * @returns Отформатированная строка
+ * Форматирует число с разделителями тысяч
  */
 export function formatNumber(value: number): string {
-  if (value === undefined || value === null) return '0';
-  
-  // Для больших чисел используем сокращения
-  if (value >= 1000000000) {
-    return (value / 1000000000).toFixed(2) + 'B';
+  return new Intl.NumberFormat().format(value);
+}
+
+/**
+ * Форматирует число с сокращением (k для тысяч, M для миллионов)
+ */
+export function formatNumberWithAbbreviation(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   }
-  if (value >= 1000000) {
-    return (value / 1000000).toFixed(2) + 'M';
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
   }
-  if (value >= 1000) {
-    return (value / 1000).toFixed(2) + 'K';
-  }
-  
-  // Форматируем дробные числа до 2 знаков после запятой
-  if (Math.floor(value) !== value) {
-    return parseFloat(value.toFixed(2)).toString();
-  }
-  
-  return value.toString();
+  return num.toString();
+}
+
+/**
+ * Добавляет разделители тысяч к числу
+ */
+export function numberWithCommas(x: string | number): string {
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }

@@ -34,11 +34,11 @@
 }
 
 .resource-name {
-  @apply font-medium text-gray-700 text-base;
+  @apply font-medium text-gray-700;
 }
 
 .resource-value {
-  @apply font-bold text-gray-900 text-base;
+  @apply font-bold text-gray-900;
 }
 
 /* Стили для зданий */
@@ -51,19 +51,19 @@
 }
 
 .building-name {
-  @apply text-base font-bold text-gray-800;
+  @apply font-bold text-gray-800;
 }
 
 .building-count {
-  @apply text-sm font-medium text-gray-600;
+  @apply font-medium text-gray-600;
 }
 
 .building-description {
-  @apply text-sm text-gray-600 mb-2;
+  @apply text-gray-600 mb-2;
 }
 
 .building-cost {
-  @apply text-sm text-gray-700 mt-2;
+  @apply text-gray-700 mt-2;
 }
 
 .building-disabled {
@@ -84,11 +84,11 @@
 }
 
 .action-name {
-  @apply text-base font-medium text-gray-800 mb-1;
+  @apply font-medium text-gray-800 mb-1;
 }
 
 .action-description {
-  @apply text-sm text-gray-600;
+  @apply text-gray-600;
 }
 
 /* Стили для исследований */
@@ -105,7 +105,7 @@
 }
 
 .upgrade-name {
-  @apply text-base font-bold text-gray-800;
+  @apply font-bold text-gray-800;
 }
 
 .upgrade-status {
@@ -121,11 +121,11 @@
 }
 
 .upgrade-description {
-  @apply text-sm text-gray-600 mb-2;
+  @apply text-gray-600 mb-2;
 }
 
 .upgrade-cost {
-  @apply text-sm text-gray-700;
+  @apply text-gray-700;
 }
 
 .upgrade-buy-btn {
@@ -142,7 +142,7 @@
 }
 
 .event-log-title {
-  @apply text-base font-bold text-gray-800 mb-2;
+  @apply font-bold text-gray-800 mb-2;
 }
 
 .event-message {
@@ -166,10 +166,7 @@
 }
 
 /* Восстанавливаем правильные размеры шрифтов */
-.tab-button {
-  @apply text-base;
-}
-
+.tab-button, 
 .building-name, 
 .action-name, 
 .upgrade-name, 
@@ -178,14 +175,14 @@
 .resource-value,
 .section-title,
 h3, h4 {
-  @apply text-base;
+  font-size: 1rem !important;
 }
 
 p, div, span, button {
-  @apply text-base;
+  font-size: 1rem !important;
 }
 
 /* Глобальное выравнивание для журнала событий */
 .event-message {
-  @apply text-left !important;
+  text-align: left !important;
 }

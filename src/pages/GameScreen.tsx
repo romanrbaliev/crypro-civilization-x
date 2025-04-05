@@ -1,15 +1,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
-import { useNavigate } from "react-router-dom";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
-import Header from "@/components/Header";
-import EquipmentTab from "@/components/EquipmentTab";
-import ResearchContainer from "@/components/ResearchContainer";
-import ReferralsTab from "@/components/ReferralsTab";
-import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
@@ -20,6 +14,10 @@ import UnlockStatusPopup from "@/components/UnlockStatusPopup";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useI18nContext } from "@/context/I18nContext";
 import { gameIds } from "@/i18n";
+import ResearchContainer from "@/components/ResearchContainer";
+import ReferralsTab from "@/components/ReferralsTab";
+import SpecializationTab from "@/components/SpecializationTab";
+import EquipmentTab from "@/components/EquipmentTab";
 import {
   Dialog,
   DialogContent,
@@ -48,7 +46,6 @@ import { Separator } from "@/components/ui/separator";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
-  const navigate = useNavigate();
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
@@ -59,13 +56,6 @@ const GameScreen = () => {
   const hasUnlockedResearch = useUnlockStatus(gameIds.features.research);
   const hasUnlockedSpecialization = useUnlockStatus(gameIds.features.specialization);
   const hasUnlockedReferrals = useUnlockStatus(gameIds.features.referrals);
-  
-  console.log("GameScreen: Состояние вкладок:", {
-    equipment: hasUnlockedEquipment,
-    research: hasUnlockedResearch,
-    specialization: hasUnlockedSpecialization,
-    referrals: hasUnlockedReferrals
-  });
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
@@ -169,8 +159,6 @@ const GameScreen = () => {
       }
     }
   }, []);
-  
-  const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
   
   const handleResetGame = () => {
     dispatch({ type: "RESET_GAME" });

@@ -18,24 +18,10 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
     .filter(([_, resource]) => resource.unlocked)
     .map(([id, resource]) => ({ id, ...resource }));
   
-  console.log('ResourceList: Состояние ресурсов:', 
-    unlockedResources.map(r => `${r.id} (unlocked=${r.unlocked}, value=${r.value})`)
-  );
-  
-  // Проверяем состояние USDT отдельно
-  if (state.resources.usdt) {
-    console.log('USDT status:', {
-      exists: true,
-      unlocked: state.resources.usdt.unlocked,
-      value: state.resources.usdt.value,
-      flagInUnlocks: state.unlocks.usdt
-    });
-  }
-  
   if (unlockedResources.length === 0) {
     return (
       <div className="resources-list">
-        <p className="text-gray-500">Нет разблокированных ресурсов</p>
+        <p className="text-gray-500 text-base">{t('ui.noUnlockedResources')}</p>
       </div>
     );
   }

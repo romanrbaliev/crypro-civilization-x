@@ -23,8 +23,8 @@ const ResourceItem: React.FC<ResourceItemProps> = ({ resource, name }) => {
     <div className="resource-item">
       <div className="flex flex-col w-full">
         <div className="flex justify-between items-center">
-          <span className="resource-name font-medium">{name}</span>
-          <span className="resource-value font-bold">
+          <span className="resource-name font-medium text-base">{name}</span>
+          <span className="resource-value font-bold text-base">
             {formatNumber(resource.value)}
             {resource.max ? ` / ${formatNumber(resource.max)}` : ''}
           </span>

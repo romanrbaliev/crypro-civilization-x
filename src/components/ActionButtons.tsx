@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useGame } from "@/context/hooks/useGame";
-import { formatNumberWithAbbreviation, numberWithCommas } from "@/utils/formatters";
+import { formatNumberWithAbbreviation, numberWithCommas } from "@/utils/numberUtils";
 import { calculateResourceMaxValue } from "@/utils/resourceCalculator";
 import { Button } from "@/components/ui/button";
 import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
@@ -78,7 +78,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           <Button 
             variant="outline" 
             size="sm" 
-            className={`border-gray-200 ${bitcoin <= 0 ? 'text-gray-400' : 'text-gray-900'}`}
+            className={`border-gray-200 ${bitcoin <= 0 ? 'text-gray-400' : 'text-gray-900'} text-base`}
             onClick={handleExchangeBTC}
             disabled={bitcoin <= 0}
           >
@@ -90,7 +90,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           <Button 
             variant="outline" 
             size="sm" 
-            className={`border-gray-200 ${!canApplyKnowledge ? 'text-gray-400' : 'text-gray-900'}`}
+            className={`border-gray-200 ${!canApplyKnowledge ? 'text-gray-400' : 'text-gray-900'} text-base`}
             onClick={handleApplyAllKnowledge}
             disabled={!canApplyKnowledge}
           >
@@ -102,7 +102,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
         <Button 
           variant="outline" 
           size="sm" 
-          className="border-gray-200 text-gray-900"
+          className="border-gray-200 text-gray-900 text-base"
           onClick={handleStudyClick}
         >
           {t('actions.learnCrypto')}
