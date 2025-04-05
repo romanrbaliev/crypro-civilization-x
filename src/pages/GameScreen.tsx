@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -356,7 +357,7 @@ const GameScreen = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={Object.values(state.resources).filter(r => r.unlocked)} />
+            <ResourceList />
           </div>
           
           <div className="border-t mt-auto">

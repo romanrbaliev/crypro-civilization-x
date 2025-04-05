@@ -3,12 +3,28 @@ import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { useI18nContext } from '@/context/I18nContext';
 
-const EventLog: React.FC = () => {
+export interface GameEvent {
+  id: string;
+  timestamp: number;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+}
+
+interface EventLogProps {
+  events?: GameEvent[];
+  maxEvents?: number;
+}
+
+const EventLog: React.FC<EventLogProps> = ({ events = [], maxEvents = 50 }) => {
   const { state } = useGame();
   const { t } = useI18nContext();
-  const { eventMessages } = state;
 
-  if (!eventMessages || !eventMessages.messages || eventMessages.messages.length === 0) {
+  // Если передали события через props, используем их
+  const displayEvents = events && events.length > 0 
+    ? events.slice(0, maxEvents)
+    : (state.eventMessages?.messages || []);
+
+  if (!displayEvents || displayEvents.length === 0) {
     return (
       <div className="event-log">
         <h3 className="event-log-title">{t('ui.eventLog')}</h3>
@@ -21,12 +37,12 @@ const EventLog: React.FC = () => {
     <div className="event-log">
       <h3 className="event-log-title">{t('ui.eventLog')}</h3>
       <div className="event-messages">
-        {eventMessages.messages.map((message, index) => (
+        {displayEvents.map((message, index) => (
           <div
-            key={index}
-            className={`event-message ${message.type || 'info'}`}
+            key={message.id || index}
+            className={`event-message ${message.type || 'info'} text-left`}
           >
-            {message.text}
+            {message.message || message.text}
           </div>
         ))}
       </div>

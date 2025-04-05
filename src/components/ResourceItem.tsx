@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { formatNumber } from '@/utils/numberUtils';
-import { ResourceState } from '@/context/types';
+import { Resource } from '@/context/types';
 
 interface ResourceItemProps {
-  resource: ResourceState;
+  resource: Resource;
   name: string;
 }
 

@@ -58,7 +58,7 @@ export function Game() {
       </div>
       
       <div className="w-full md:w-1/3 mt-4 md:mt-0">
-        <EventLog events={[]} maxEvents={50} />
+        <EventLog />
       </div>
     </div>
   );

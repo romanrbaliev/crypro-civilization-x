@@ -205,3 +205,31 @@
 .resource-value {
   @apply text-base font-bold;
 }
+
+/* Глобальное увеличение размера шрифта для интерфейса игры */
+.action-name,
+.building-name,
+.upgrade-name,
+.event-log-title,
+.resource-name,
+.section-title,
+.dialog-title,
+.dialog-description,
+h3, h4, button {
+  @apply text-base !important;
+}
+
+/* Применяем выравнивание по левому краю для событий */
+.event-message {
+  @apply text-left !important;
+}
+
+/* Размер для основного текста */
+p, div, span {
+  @apply text-sm;
+}
+
+/* Кнопки в интерфейсе должны иметь корректный размер */
+button {
+  @apply text-sm;
+}

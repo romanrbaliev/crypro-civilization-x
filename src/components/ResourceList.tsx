@@ -3,13 +3,18 @@ import React from 'react';
 import ResourceItem from './ResourceItem';
 import { useGame } from '@/context/hooks/useGame';
 import { useI18nContext } from '@/context/I18nContext';
+import { Resource } from '@/context/types';
 
-const ResourceList: React.FC = () => {
+interface ResourceListProps {
+  resources?: Resource[];
+}
+
+const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
   const { state } = useGame();
   const { t } = useI18nContext();
   
   // Получаем все разблокированные ресурсы
-  const unlockedResources = Object.entries(state.resources)
+  const unlockedResources = resources || Object.entries(state.resources)
     .filter(([_, resource]) => resource.unlocked)
     .map(([id, resource]) => ({ id, ...resource }));
   
