@@ -166,7 +166,7 @@ export function debugApplyKnowledgeCounter(state: GameState) {
     );
     
     if (applyKnowledgeCondition) {
-      practiceUnlockThreshold = applyKnowledgeCondition.targetValue;
+      practiceUnlockThreshold = applyKnowledgeCondition.targetValue as number;
     }
   }
   
@@ -188,7 +188,7 @@ export function debugApplyKnowledgeCounter(state: GameState) {
   }
   
   // Формируем рекомендации
-  const recommendations = [];
+  const recommendations: string[] = [];
   
   if (!counterExists) {
     recommendations.push('Создайте счетчик applyKnowledge');

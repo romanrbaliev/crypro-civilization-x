@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useGame } from '@/context/hooks/useGame';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isBlockchainBasicsUnlocked } from '@/utils/researchUtils';
+import { UnlockService } from '@/services/UnlockService';
 
 const DebugCalculator = () => {
   const { state, dispatch } = useGame();
@@ -13,87 +14,67 @@ const DebugCalculator = () => {
     dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
   };
   
+  // Функция для полной перепроверки разблокировок
+  const forceCheckAllUnlocks = () => {
+    dispatch({ type: 'FORCE_CHECK_UNLOCKS' });
+  };
+  
   // Функция для принудительной разблокировки криптокошелька
   const unlockCryptoWallet = () => {
     if (state.buildings.cryptoWallet) {
-      dispatch({ 
-        type: 'SET_BUILDING_UNLOCKED', 
-        payload: { 
-          buildingId: 'cryptoWallet', 
-          unlocked: true 
-        } 
-      });
+      const unlockService = new UnlockService();
+      unlockService.forceUnlock(state, 'cryptoWallet');
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }
   };
   
   // Функция для принудительной разблокировки основ криптовалют
   const unlockCryptoCurrencyBasics = () => {
     if (state.upgrades.cryptoCurrencyBasics) {
-      dispatch({ 
-        type: 'SET_UPGRADE_UNLOCKED', 
-        payload: { 
-          upgradeId: 'cryptoCurrencyBasics', 
-          unlocked: true 
-        } 
-      });
+      const unlockService = new UnlockService();
+      unlockService.forceUnlock(state, 'cryptoBasics');
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }
   };
-  
-  const researchStatus = () => {
-    return {
-      researchUnlocked: state.unlocks.research === true,
-      blockchainBasicsPurchased: isBlockchainBasicsUnlocked(state),
-      cryptoCurrencyBasicsUnlocked: state.upgrades.cryptoCurrencyBasics?.unlocked,
-      cryptoCurrencyBasicsPurchased: state.upgrades.cryptoCurrencyBasics?.purchased,
-      cryptoWalletUnlocked: state.buildings.cryptoWallet?.unlocked,
-      cryptoWalletCount: state.buildings.cryptoWallet?.count || 0
-    };
-  };
-  
-  const status = researchStatus();
   
   return (
     <Card className="w-full max-h-[300px] overflow-auto">
       <CardHeader className="p-3">
-        <CardTitle className="text-sm">Отладка разблокировок</CardTitle>
+        <CardTitle className="text-sm">Быстрые действия</CardTitle>
       </CardHeader>
-      <CardContent className="p-3 text-xs">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <p>Вкладка исследований: {status.researchUnlocked ? '✅' : '❌'}</p>
-            <p>Основы блокчейна: {status.blockchainBasicsPurchased ? '✅' : '❌'}</p>
-            <p>Криптокошелек разблокирован: {status.cryptoWalletUnlocked ? '✅' : '❌'}</p>
-            <p>Криптокошелеков куплено: {status.cryptoWalletCount}</p>
-            <p>Основы криптовалют разблокированы: {status.cryptoCurrencyBasicsUnlocked ? '✅' : '❌'}</p>
-            <p>Основы криптовалют изучены: {status.cryptoCurrencyBasicsPurchased ? '✅' : '❌'}</p>
-          </div>
-          <div className="space-y-1">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full text-xs h-7"
-              onClick={checkUnlocks}
-            >
-              Проверить разблокировки
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full text-xs h-7"
-              onClick={unlockCryptoWallet}
-            >
-              Разблокировать кошелек
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full text-xs h-7"
-              onClick={unlockCryptoCurrencyBasics}
-            >
-              Разблокировать криптовалюты
-            </Button>
-          </div>
-        </div>
+      <CardContent className="p-3 space-y-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full text-xs h-7"
+          onClick={checkUnlocks}
+        >
+          Проверить разблокировки
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full text-xs h-7"
+          onClick={forceCheckAllUnlocks}
+        >
+          Перепроверить все разблокировки
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full text-xs h-7"
+          onClick={unlockCryptoWallet}
+        >
+          Разблокировать кошелек
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full text-xs h-7"
+          onClick={unlockCryptoCurrencyBasics}
+        >
+          Разблокировать криптовалюты
+        </Button>
       </CardContent>
     </Card>
   );
