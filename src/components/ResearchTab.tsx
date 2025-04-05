@@ -15,36 +15,27 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем и инициализируем глобальные константы для безопасности
+  // Используем безопасный подход к получению ID
   const DEFAULT_RESEARCH_ID = 'research';
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID исследований с проверкой типов
-  const safeGameIds = gameIds || {};
-  // Явно определяем тип и инициализируем объект
-  const safeFeatures: Record<string, string> = typeof safeGameIds === 'object' && 
-    safeGameIds && 
-    'features' in safeGameIds && 
-    typeof safeGameIds.features === 'object' && 
-    safeGameIds.features !== null ? 
-    safeGameIds.features as Record<string, string> : 
-    {};
+  // Безопасно получаем ID из gameIds
+  const researchId = gameIds && 
+                     typeof gameIds === 'object' && 
+                     gameIds.features && 
+                     typeof gameIds.features === 'object' && 
+                     'research' in gameIds.features ? 
+                     gameIds.features.research : 
+                     DEFAULT_RESEARCH_ID;
   
-  const researchId = safeFeatures.research || DEFAULT_RESEARCH_ID;
-  
-  // ИСПРАВЛЕНИЕ: Усиленное логгирование для отладки
+  // Отладочная информация
   useEffect(() => {
     console.log("ResearchTab: Используется ID для проверки разблокировки исследований:", researchId);
-    
-    // Проверяем наличие gameIds для отладки
-    if (!safeGameIds || Object.keys(safeFeatures).length === 0) {
-      console.warn("ResearchTab: gameIds или gameIds.features не определены, используем дефолтные значения");
-    }
-  }, [researchId, safeGameIds]);
+  }, [researchId]);
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Гарантируем, что researchId будет строкой
+  // Проверяем разблокировку вкладки исследований
   const researchUnlocked = useUnlockStatus(researchId);
   
-  // ИСПРАВЛЕНИЕ: Усиленное логгирование для отладки
+  // Отладочная информация об улучшениях
   useEffect(() => {
     console.log("ResearchTab: Состояние разблокировки исследований =", researchUnlocked);
     console.log("ResearchTab: Общее количество улучшений =", Object.keys(state.upgrades || {}).length);
@@ -62,16 +53,14 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     // Создаем нормализованную копию исследований
     const normalizedUpgrades = { ...state.upgrades };
     
-    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID блокчейн-исследования
-    const safeUpgrades: Record<string, string> = typeof safeGameIds === 'object' && 
-      safeGameIds && 
-      'upgrades' in safeGameIds && 
-      typeof safeGameIds.upgrades === 'object' && 
-      safeGameIds.upgrades !== null ? 
-      safeGameIds.upgrades as Record<string, string> : 
-      {};
-    
-    const blockchainBasicsId = safeUpgrades.blockchainBasics || 'blockchainBasics';
+    // Безопасно получаем ID исследования основ блокчейна
+    const blockchainBasicsId = gameIds && 
+                              typeof gameIds === 'object' && 
+                              gameIds.upgrades && 
+                              typeof gameIds.upgrades === 'object' && 
+                              'blockchainBasics' in gameIds.upgrades ? 
+                              gameIds.upgrades.blockchainBasics : 
+                              'blockchainBasics';
     
     // Проверяем все возможные устаревшие ID для совместимости
     const possibleBlockchainBasicsIds = [
