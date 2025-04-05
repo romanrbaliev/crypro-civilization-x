@@ -219,9 +219,10 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       // Форматируем название эффекта
       const effectName = formatEffectName(effectId);
       // Форматируем значение (добавляем знак + для положительных значений и % для процентов)
+      const numValue = Number(value);
       const formattedValue = effectId.includes('Boost') || effectId.includes('Reduction') ? 
-        `${value > 0 ? '+' : ''}${(Number(value) * 100).toFixed(0)}%` : 
-        `${value > 0 ? '+' : ''}${formatNumber(Number(value))}`;
+        `${numValue > 0 ? '+' : ''}${(numValue * 100).toFixed(0)}%` : 
+        `${numValue > 0 ? '+' : ''}${formatNumber(numValue)}`;
       
       return (
         <div key={effectId} className="text-blue-600 text-[11px] flex justify-between w-full">

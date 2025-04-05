@@ -1,3 +1,4 @@
+
 import { GameState, Resource, ResourceType } from '@/context/types';
 
 // Функция для проверки, достаточно ли ресурсов для совершения действия
@@ -24,7 +25,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
   for (const buildingId in newState.buildings) {
     const building = newState.buildings[buildingId];
     if (building.unlocked && building.count > 0 && building.effects && building.effects.usdtMaxBoost) {
-      usdtMaxBoost += building.count * building.effects.usdtMaxBoost;
+      usdtMaxBoost += Number(building.count) * Number(building.effects.usdtMaxBoost);
     }
   }
   
@@ -32,7 +33,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
   for (const upgradeId in newState.upgrades) {
     const upgrade = newState.upgrades[upgradeId];
     if (upgrade.purchased && upgrade.effects && upgrade.effects.usdtMaxBoost) {
-      usdtMaxBoost += upgrade.effects.usdtMaxBoost;
+      usdtMaxBoost += Number(upgrade.effects.usdtMaxBoost);
     }
   }
   
@@ -51,7 +52,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
   for (const buildingId in newState.buildings) {
     const building = newState.buildings[buildingId];
     if (building.unlocked && building.count > 0 && building.effects && building.effects.bitcoinMaxBoost) {
-      bitcoinMaxBoost += building.count * building.effects.bitcoinMaxBoost;
+      bitcoinMaxBoost += Number(building.count) * Number(building.effects.bitcoinMaxBoost);
     }
   }
   
@@ -59,7 +60,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
   for (const upgradeId in newState.upgrades) {
     const upgrade = newState.upgrades[upgradeId];
     if (upgrade.purchased && upgrade.effects && upgrade.effects.bitcoinMaxBoost) {
-      bitcoinMaxBoost += upgrade.effects.bitcoinMaxBoost;
+      bitcoinMaxBoost += Number(upgrade.effects.bitcoinMaxBoost);
     }
   }
   
@@ -78,7 +79,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
   for (const buildingId in newState.buildings) {
     const building = newState.buildings[buildingId];
     if (building.unlocked && building.count > 0 && building.effects && building.effects.knowledgeMaxBoost) {
-      knowledgeMaxBoost += building.count * building.effects.knowledgeMaxBoost;
+      knowledgeMaxBoost += Number(building.count) * Number(building.effects.knowledgeMaxBoost);
     }
   }
   
@@ -86,7 +87,7 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
   for (const upgradeId in newState.upgrades) {
     const upgrade = newState.upgrades[upgradeId];
     if (upgrade.purchased && upgrade.effects && upgrade.effects.knowledgeMaxBoost) {
-      knowledgeMaxBoost += upgrade.effects.knowledgeMaxBoost;
+      knowledgeMaxBoost += Number(upgrade.effects.knowledgeMaxBoost);
     }
   }
   

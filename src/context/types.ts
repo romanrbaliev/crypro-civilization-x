@@ -31,6 +31,9 @@ export interface Building {
   requirements?: { [resourceId: string]: number };
   maxLevel?: number;
   specialization?: string;
+  resourceProduction?: { [resourceId: string]: number }; // Добавляем свойство resourceProduction
+  type?: string;
+  productionBoost?: { [resourceId: string]: number };
 }
 
 export interface Upgrade {

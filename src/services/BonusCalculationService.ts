@@ -21,15 +21,15 @@ export class BonusCalculationService {
           // Проверяем наличие бонуса производства для указанного ресурса
           const boostKey = `${resourceId}Boost`;
           if (upgrade.effects[boostKey]) {
-            const boost = upgrade.effects[boostKey];
+            const boost = Number(upgrade.effects[boostKey]);
             multiplier += boost;
             console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к производству ${resourceId}`);
           }
           
           // Проверка общего бонуса производства
           if (upgrade.effects.productionBoost) {
-            multiplier += upgrade.effects.productionBoost;
-            console.log(`BonusCalculation: ${upgrade.name} добавляет +${upgrade.effects.productionBoost * 100}% ко всему производству`);
+            multiplier += Number(upgrade.effects.productionBoost);
+            console.log(`BonusCalculation: ${upgrade.name} добавляет +${Number(upgrade.effects.productionBoost) * 100}% ко всему производству`);
           }
         }
       }
@@ -43,7 +43,7 @@ export class BonusCalculationService {
           // Проверяем наличие бонуса производства для указанного ресурса
           const boostKey = `${resourceId}Boost`;
           if (building.effects[boostKey]) {
-            const boost = building.effects[boostKey] * building.count;
+            const boost = Number(building.effects[boostKey]) * building.count;
             multiplier += boost;
             console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству ${resourceId}`);
           }
@@ -52,19 +52,19 @@ export class BonusCalculationService {
           switch (buildingId) {
             case 'internetChannel':
               if (resourceId === 'knowledge' && building.effects?.knowledgeBoost) {
-                const boost = building.effects.knowledgeBoost * building.count; // 20% за каждое интернет-соединение
+                const boost = Number(building.effects.knowledgeBoost) * building.count; // 20% за каждое интернет-соединение
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству знаний`);
               }
               if (resourceId === 'computingPower' && building.effects?.computingPowerBoost) {
-                const boost = building.effects.computingPowerBoost * building.count; // 5% за каждое интернет-соединение
+                const boost = Number(building.effects.computingPowerBoost) * building.count; // 5% за каждое интернет-соединение
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству выч. мощности`);
               }
               break;
             case 'cryptoLibrary':
               if (resourceId === 'knowledge' && building.effects?.knowledgeBoost) {
-                const boost = building.effects.knowledgeBoost * building.count; // 50% за каждую библиотеку
+                const boost = Number(building.effects.knowledgeBoost) * building.count; // 50% за каждую библиотеку
                 multiplier += boost;
                 console.log(`BonusCalculation: ${building.name} (x${building.count}) добавляет +${boost * 100}% к производству знаний`);
               }
@@ -168,7 +168,7 @@ export class BonusCalculationService {
           // Проверяем наличие бонуса максимального значения для указанного ресурса
           const maxBoostKey = `${resourceId}MaxBoost`;
           if (upgrade.effects[maxBoostKey]) {
-            const boost = upgrade.effects[maxBoostKey];
+            const boost = Number(upgrade.effects[maxBoostKey]);
             multiplier += boost;
             console.log(`BonusCalculation: ${upgrade.name} добавляет +${boost * 100}% к максимуму ${resourceId}`);
           }
@@ -252,7 +252,7 @@ export class BonusCalculationService {
           // Проверяем наличие бонуса снижения потребления для указанного ресурса
           const reductionKey = `${resourceId}ConsumptionReduction`;
           if (upgrade.effects[reductionKey]) {
-            const reductionValue = upgrade.effects[reductionKey];
+            const reductionValue = Number(upgrade.effects[reductionKey]);
             reduction += reductionValue;
             console.log(`BonusCalculation: ${upgrade.name} снижает потребление ${resourceId} на ${reductionValue * 100}%`);
           }

@@ -1,4 +1,3 @@
-
 import { GameState, Resource, Building, Upgrade } from '../types';
 
 // Проверяет, достаточно ли ресурсов для покупки
@@ -282,16 +281,6 @@ export const updateResourceProduction = (state: GameState): GameState => {
     const building = state.buildings[buildingId];
     if (building.count > 0) {
       // Расчет производства
-      if (building.resourceProduction) {
-        for (const resourceId in building.resourceProduction) {
-          if (updatedResources[resourceId]) {
-            const productionRate = Number(building.resourceProduction[resourceId]) * building.count;
-            updatedResources[resourceId].production += productionRate;
-          }
-        }
-      }
-      
-      // Расчет производства (альтернативный формат)
       if (building.production) {
         for (const resourceId in building.production) {
           if (updatedResources[resourceId]) {

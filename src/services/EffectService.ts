@@ -30,8 +30,8 @@ export class EffectService {
     for (const buildingId in newState.buildings) {
       const building = newState.buildings[buildingId];
       
-      if (building.count > 0 && building.resourceProduction) {
-        for (const [resourceId, production] of Object.entries(building.resourceProduction)) {
+      if (building.count > 0 && building.production) {
+        for (const [resourceId, production] of Object.entries(building.production)) {
           if (resources[resourceId]) {
             const resourceProduction = resources[resourceId].production || 0;
             const newProduction = resourceProduction + (production as number) * building.count;
