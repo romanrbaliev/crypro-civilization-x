@@ -7,6 +7,10 @@ import { formatNumber } from './helpers';
  * @returns Отформатированная строка стоимости
  */
 export const formatCost = (cost: Record<string, number>) => {
+  if (!cost || Object.keys(cost).length === 0) {
+    return 'Стоимость не определена';
+  }
+  
   const costParts: string[] = [];
   
   // Обрабатываем каждый ресурс в стоимости

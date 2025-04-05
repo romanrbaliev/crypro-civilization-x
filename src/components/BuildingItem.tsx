@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -19,6 +18,7 @@ import {
 import {
   ChevronRight
 } from "lucide-react";
+import { formatCost } from "@/utils/costFormatter";
 
 interface BuildingItemProps {
   building: Building;
@@ -45,7 +45,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return false;
     }
     
-    const nextCost = getNextCost();
+    const nextCost = building.cost;
     for (const [resourceId, amount] of Object.entries(nextCost)) {
       const resource = state.resources[resourceId];
       if (!resource || resource.value < Number(amount)) {
@@ -53,22 +53,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       }
     }
     return true;
-  };
-  
-  const getNextCost = () => {
-    const nextCost = {};
-    // Проверяем, существует ли building.cost
-    if (!building.cost || Object.keys(building.cost).length === 0) {
-      console.warn(`Building ${building.id} has no cost defined`);
-      return nextCost;
-    }
-    
-    for (const [resourceId, baseAmount] of Object.entries(building.cost)) {
-      const multiplier = building.costMultiplier || 1.15;
-      const calculatedCost = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
-      nextCost[resourceId] = calculatedCost;
-    }
-    return nextCost;
   };
   
   const getResourceName = (resourceId: string): string => {
@@ -90,8 +74,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return <div className="text-red-500 text-[11px]">Стоимость не определена</div>;
     }
     
-    const costs = building.count === 0 ? building.cost : getNextCost();
-    return Object.entries(costs).map(([resourceId, amount]) => {
+    return Object.entries(building.cost).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
       if (!resource) return null;
       

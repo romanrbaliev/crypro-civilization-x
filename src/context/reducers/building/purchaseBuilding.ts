@@ -38,7 +38,7 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
   }
   
   // Рассчитываем новую стоимость здания
-  const newCost = {};
+  const newCost = {...building.cost};
   for (const [resourceId, amount] of Object.entries(building.cost)) {
     newCost[resourceId] = Math.floor(Number(amount) * building.costMultiplier);
   }
