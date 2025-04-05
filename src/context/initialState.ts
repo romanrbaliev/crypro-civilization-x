@@ -1,5 +1,5 @@
 
-import { GameState } from './types';
+import { GameState } from '../types/game';
 
 // Базовое начальное состояние игры
 export const initialState: GameState = {
@@ -136,36 +136,6 @@ export const initialState: GameState = {
       unlocked: false,
       production: { bitcoin: 0.00005 },
       consumption: { electricity: 1, computingPower: 5 }
-    },
-    cryptoLibrary: {
-      id: 'cryptoLibrary',
-      name: 'Криптобиблиотека',
-      description: 'Увеличивает скорость получения знаний и их максимальный запас',
-      type: 'boost',
-      cost: { usdt: 200, knowledge: 200 },
-      costMultiplier: 1.15,
-      count: 0,
-      unlocked: false
-    },
-    coolingSystem: {
-      id: 'coolingSystem',
-      name: 'Система охлаждения',
-      description: 'Снижает потребление вычислительной мощности',
-      type: 'efficiency',
-      cost: { usdt: 200, electricity: 50 },
-      costMultiplier: 1.15,
-      count: 0,
-      unlocked: false
-    },
-    improvedWallet: {
-      id: 'improvedWallet',
-      name: 'Улучшенный кошелек',
-      description: 'Значительно увеличивает хранение USDT и Bitcoin',
-      type: 'storage',
-      cost: { usdt: 300, knowledge: 250 },
-      costMultiplier: 1.15,
-      count: 0,
-      unlocked: false
     }
   },
   upgrades: {
@@ -198,54 +168,6 @@ export const initialState: GameState = {
       purchased: false,
       unlocked: false,
       effects: { knowledgeEfficiency: 1.1 }
-    },
-    algorithmOptimization: {
-      id: 'algorithmOptimization',
-      name: 'Оптимизация алгоритмов',
-      description: 'Увеличивает эффективность майнинга',
-      type: 'research',
-      cost: { usdt: 150, knowledge: 100 },
-      purchased: false,
-      unlocked: false,
-      effects: { miningEfficiency: 1.15 }
-    },
-    proofOfWork: {
-      id: 'proofOfWork',
-      name: 'Proof of Work',
-      description: 'Значительно увеличивает эффективность майнинга',
-      type: 'research',
-      cost: { usdt: 250, knowledge: 200 },
-      purchased: false,
-      unlocked: false,
-      effects: { miningEfficiency: 1.25 }
-    },
-    energyEfficientComponents: {
-      id: 'energyEfficientComponents',
-      name: 'Энергоэффективные компоненты',
-      description: 'Снижает потребление электричества всеми устройствами',
-      type: 'research',
-      cost: { knowledge: 400 },
-      purchased: false,
-      unlocked: false,
-      effects: { electricityConsumption: 0.9 }
-    },
-    cryptoTrading: {
-      id: 'cryptoTrading',
-      name: 'Криптовалютный трейдинг',
-      description: 'Открывает возможность обмена между криптовалютами',
-      type: 'research',
-      cost: { usdt: 300, knowledge: 250 },
-      purchased: false,
-      unlocked: false
-    },
-    tradingBot: {
-      id: 'tradingBot',
-      name: 'Торговый бот',
-      description: 'Автоматический обмен BTC по заданным условиям',
-      type: 'research',
-      cost: { knowledge: 500 },
-      purchased: false,
-      unlocked: false
     }
   },
   counters: {

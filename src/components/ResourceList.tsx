@@ -1,11 +1,12 @@
+
 import React from 'react';
-import { useGame } from '@/context/hooks/useGame';
+import { useGame } from '@/context/GameContext';
 import ResourceCard from './ResourceCard';
 
 const ResourceList: React.FC = () => {
   const { state } = useGame();
 
-  // Исправленный рендер ресурса в списке
+  // Рендер ресурсов в списке
   const renderResourceItems = () => {
     return Object.entries(state.resources)
       .filter(([, resource]) => resource.unlocked)

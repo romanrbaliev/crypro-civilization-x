@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Menu, HelpCircle, Settings, Info } from 'lucide-react';
-import { useGame } from '@/context/hooks/useGame';
+import { useGame } from '@/context/GameContext';
 
 const MainMenu: React.FC = () => {
   const { dispatch } = useGame();

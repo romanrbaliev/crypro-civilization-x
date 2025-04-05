@@ -1,152 +1,121 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription } from '@/components/ui/card';
-import { Building } from '@/context/types';
-import { formatCost } from '@/utils/costFormatter';
-import { Building as BuildingIcon, Zap, BarChart2, CpuIcon, Bitcoin } from 'lucide-react';
-import { useI18nContext } from '@/context/I18nContext';
-import { gameIds } from '@/i18n';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { formatNumber, canAfford, calculateCost } from '@/utils/helpers';
+import { useGame } from '@/context/GameContext';
+import { Building } from '@/types/game';
 
 interface BuildingCardProps {
   building: Building;
-  isAffordable: boolean;
-  onSelect: () => void;
-  isSelected: boolean;
+  id: string;
 }
 
-const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onSelect, isSelected }) => {
-  const { id, name, description, count = 0, cost = {}, effects = {} } = building;
-  const { t } = useI18nContext();
-
-  // Получаем переводы из системы i18n
-  const getBuildingName = () => {
-    const translationKey = `buildings.${id}.name`;
-    const translated = t(translationKey);
-    return typeof translated === 'string' ? translated : name;
-  };
+const BuildingCard: React.FC<BuildingCardProps> = ({ building, id }) => {
+  const { state, dispatch } = useGame();
   
-  const getBuildingDescription = () => {
-    const translationKey = `buildings.${id}.description`;
-    const translated = t(translationKey);
-    return typeof translated === 'string' ? translated : description;
-  };
-
-  // Форматирование стоимости
-  const formattedCost = formatCost(cost);
-  
-  // Определение иконки для здания
-  const getBuildingIcon = () => {
-    switch (id) {
-      case gameIds.buildings.generator:
-        return <Zap className="h-5 w-5 text-yellow-500" />;
-      case gameIds.buildings.practice:
-        return <BarChart2 className="h-5 w-5 text-blue-500" />;
-      case gameIds.buildings.homeComputer:
-        return <CpuIcon className="h-5 w-5 text-gray-700" />;
-      case gameIds.buildings.miner:
-        return <Bitcoin className="h-5 w-5 text-orange-500" />;
-      default:
-        return <BuildingIcon className="h-5 w-5 text-slate-500" />;
-    }
-  };
-
-  // Получение эффектов здания из системы переводов
-  const getBuildingEffects = () => {
-    const translationKey = `buildings.${id}.effects`;
-    const effects = t(translationKey);
+  // Расчет текущей стоимости здания
+  const calculateCurrentCost = () => {
+    const costs = Object.entries(building.cost).map(([resourceId, baseCost]) => {
+      const scaledCost = calculateCost(baseCost, building.costMultiplier, building.count);
+      return {
+        resourceId,
+        amount: scaledCost
+      };
+    });
     
-    if (Array.isArray(effects)) {
-      return effects;
+    return costs;
+  };
+  
+  // Проверка, можно ли купить здание
+  const canPurchase = () => {
+    return canAfford(
+      Object.fromEntries(
+        calculateCurrentCost().map(({ resourceId, amount }) => [resourceId, amount])
+      ),
+      state.resources
+    );
+  };
+  
+  // Информация о производстве и потреблении
+  const renderProductionInfo = () => {
+    if (!building.production && !building.consumption) {
+      return null;
     }
     
-    // Если перевода нет, возвращаем стандартные эффекты
-    return getDefaultEffects();
+    return (
+      <div className="mt-2 space-y-1 text-sm">
+        {building.production && Object.entries(building.production).map(([resourceId, amount]) => (
+          <div key={`prod-${resourceId}`} className="text-green-600">
+            +{formatNumber(amount, 2)} {state.resources[resourceId]?.name || resourceId}/сек
+          </div>
+        ))}
+        
+        {building.consumption && Object.entries(building.consumption).map(([resourceId, amount]) => (
+          <div key={`cons-${resourceId}`} className="text-red-600">
+            -{formatNumber(amount, 2)} {state.resources[resourceId]?.name || resourceId}/сек
+          </div>
+        ))}
+      </div>
+    );
   };
   
-  // Стандартные эффекты если перевод не найден
-  const getDefaultEffects = () => {
-    const effectDescriptions: string[] = [];
-    
-    // Специальные описания эффектов для конкретных зданий
-    switch (id) {
-      case gameIds.buildings.practice:
-        effectDescriptions.push('Производит +1 знаний/сек');
-        break;
-      case gameIds.buildings.generator:
-        effectDescriptions.push('Производит +0.5 электричества/сек');
-        break;
-      case gameIds.buildings.homeComputer:
-        effectDescriptions.push('Производит +2 вычисл. мощности/сек');
-        effectDescriptions.push('Потребляет 1 электричества/сек');
-        break;
-      case gameIds.buildings.miner:
-        effectDescriptions.push('Производит +0.00005 BTC/сек');
-        effectDescriptions.push('Потребляет 1 электричества/сек');
-        effectDescriptions.push('Потребляет 5 вычисл. мощности/сек');
-        break;
-      case gameIds.buildings.cryptoWallet:
-        effectDescriptions.push('+50 к макс. USDT');
-        effectDescriptions.push('+25% к макс. знаниям');
-        break;
-      case gameIds.buildings.internetChannel:
-        effectDescriptions.push('+20% к скорости получения знаний');
-        effectDescriptions.push('+5% к производству вычисл. мощности');
-        break;
-      case gameIds.buildings.coolingSystem:
-        effectDescriptions.push('-20% к потреблению вычисл. мощности');
-        break;
-      case gameIds.buildings.enhancedWallet:
-        effectDescriptions.push('+150 к макс. USDT');
-        effectDescriptions.push('+1 к макс. BTC');
-        effectDescriptions.push('+8% к обмену BTC на USDT');
-        break;
-      case gameIds.buildings.cryptoLibrary:
-        effectDescriptions.push('+50% к скорости получения знаний');
-        effectDescriptions.push('+100 к макс. знаниям');
-        break;
-    }
-    
-    return effectDescriptions;
+  // Обработчик покупки здания
+  const handlePurchase = () => {
+    dispatch({ type: 'PURCHASE_BUILDING', payload: { buildingId: id } });
   };
   
-  const borderColor = isSelected 
-    ? "border-blue-500"
-    : isAffordable
-      ? "border-green-300 hover:border-green-500"
-      : "border-gray-200";
+  // Обработчик продажи здания
+  const handleSell = () => {
+    dispatch({ type: 'SELL_BUILDING', payload: { buildingId: id } });
+  };
   
   return (
-    <Card 
-      className={`h-full cursor-pointer mb-2 transition-all ${borderColor} ${isSelected ? 'shadow-md' : ''}`}
-      onClick={onSelect}
-    >
-      <CardContent className="p-3">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            {getBuildingIcon()}
-            <div>
-              <div className="text-sm font-medium">{getBuildingName()}</div>
-              <div className="text-xs text-gray-500">Количество: {count}</div>
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex justify-between">
+          <span>{building.name}</span>
+          <span>{building.count}</span>
+        </CardTitle>
+        <CardDescription>{building.description}</CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        {renderProductionInfo()}
+        
+        <div className="mt-3 space-y-1 text-sm">
+          <div className="font-semibold">Стоимость:</div>
+          {calculateCurrentCost().map(({ resourceId, amount }) => (
+            <div key={`cost-${resourceId}`} className={
+              (state.resources[resourceId]?.value || 0) >= amount 
+                ? "text-green-600" 
+                : "text-red-600"
+            }>
+              {formatNumber(amount, 2)} {state.resources[resourceId]?.name || resourceId}
             </div>
-          </div>
-          <div className="text-sm font-medium text-green-600">
-            {formattedCost}
-          </div>
-        </div>
-        
-        <CardDescription className="text-xs mt-2">
-          {getBuildingDescription()}
-        </CardDescription>
-        
-        <div className="mt-2 text-xs">
-          <div className="font-semibold text-gray-700">Эффекты:</div>
-          <ul className="list-disc list-inside">
-            {getBuildingEffects().map((effect, index) => (
-              <li key={index} className="text-gray-600">{effect}</li>
-            ))}
-          </ul>
+          ))}
         </div>
       </CardContent>
+      
+      <CardFooter className="flex justify-between">
+        <Button 
+          onClick={handlePurchase}
+          disabled={!canPurchase()}
+          variant="default"
+        >
+          Купить
+        </Button>
+        
+        {building.count > 0 && (
+          <Button 
+            onClick={handleSell}
+            variant="outline"
+            className="ml-2"
+          >
+            Продать
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   );
 };

@@ -1,39 +1,29 @@
 
-import React, { useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { useGame } from '@/context/GameContext';
+import { Brain } from 'lucide-react';
 
-interface LearnButtonProps {
-  onClick: () => void;
-  disabled?: boolean;
-  className?: string;
-  shouldHide?: boolean;
-}
-
-export const LearnButton: React.FC<LearnButtonProps> = ({ 
-  onClick, 
-  disabled = false,
-  className = "",
-  shouldHide = false
-}) => {
-  // Если shouldHide = true, не рендерим кнопку вообще
-  if (shouldHide) return null;
+const LearnButton: React.FC = () => {
+  const { dispatch } = useGame();
   
-  // Создаем обработчик события, который гарантирует однократное выполнение
-  const handleClick = useCallback(() => {
-    // Вызываем onClick только один раз
-    console.log("LearnButton: клик по кнопке");
-    onClick();
-  }, [onClick]);
+  const handleLearn = () => {
+    dispatch({ 
+      type: 'INCREMENT_RESOURCE', 
+      payload: { 
+        resourceId: 'knowledge', 
+        amount: 1 
+      } 
+    });
+  };
   
   return (
-    <Button
-      onClick={handleClick}
-      className={`w-full border-gray-200 ${disabled ? 'text-gray-400' : 'text-gray-900'} ${className}`}
-      disabled={disabled}
-      variant="outline"
-      size="sm"
+    <Button 
+      onClick={handleLearn}
+      className="w-full py-8 text-lg"
+      size="lg"
     >
-      Изучать знания
+      <Brain className="mr-2 h-5 w-5" /> Изучить крипту
     </Button>
   );
 };

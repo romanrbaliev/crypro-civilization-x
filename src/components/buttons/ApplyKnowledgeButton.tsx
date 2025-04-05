@@ -1,56 +1,37 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { useGame } from '@/context/GameContext';
+import { formatNumber } from '@/utils/helpers';
+import { BookOpen } from 'lucide-react';
 
-interface ApplyKnowledgeButtonProps {
-  onClick: () => void;
-  disabled: boolean;
-  knowledgeEfficiencyBonus?: number;
-  className?: string;
-  knowledgeValue?: number;
-  applyAll?: boolean;
-}
-
-export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({ 
-  onClick, 
-  disabled,
-  knowledgeEfficiencyBonus = 0,
-  className = "",
-  knowledgeValue = 0,
-  applyAll = false
-}) => {
+const ApplyKnowledgeButton: React.FC = () => {
+  const { state, dispatch } = useGame();
+  
+  const knowledgeAmount = state.resources.knowledge?.value || 0;
+  const minKnowledge = 10; // Минимальное количество знаний для обмена
+  
+  const handleApplyKnowledge = () => {
+    dispatch({ type: 'APPLY_KNOWLEDGE' });
+  };
+  
+  // Рассчитываем, сколько USDT получим
+  const calculatedUsdt = Math.floor(knowledgeAmount / 10);
+  
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            onClick={onClick}
-            className={`w-full border-gray-200 ${disabled ? 'text-gray-400' : 'text-gray-900'} ${className}`}
-            variant="outline"
-            size="sm"
-            disabled={disabled}
-          >
-            Применить знания
-          </Button>
-        </TooltipTrigger>
-        {disabled && (
-          <TooltipContent>
-            <p>Требуется 10 знаний</p>
-          </TooltipContent>
-        )}
-        {!disabled && knowledgeEfficiencyBonus > 0 && (
-          <TooltipContent>
-            <p>+{knowledgeEfficiencyBonus * 100}% к эффективности</p>
-          </TooltipContent>
-        )}
-      </Tooltip>
-    </TooltipProvider>
+    <Button 
+      onClick={handleApplyKnowledge}
+      className="w-full py-6 text-lg"
+      disabled={knowledgeAmount < minKnowledge}
+    >
+      <BookOpen className="mr-2 h-5 w-5" /> 
+      Применить знания
+      {knowledgeAmount >= minKnowledge && 
+        <span className="ml-2 text-sm">
+          ({formatNumber(Math.floor(knowledgeAmount / 10) * 10, 0)} → {formatNumber(calculatedUsdt, 2)} USDT)
+        </span>
+      }
+    </Button>
   );
 };
 

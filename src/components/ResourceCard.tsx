@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatNumber } from '@/utils/helpers';
-import { Resource } from '@/context/types';
+import { Resource } from '@/types/game';
 
 export interface ResourceCardProps {
   resource: Resource;

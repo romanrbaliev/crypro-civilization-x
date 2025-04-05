@@ -3,14 +3,13 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { isTelegramWebAppAvailable } from '@/utils/helpers';
-import { initializeTelegram } from '@/utils/telegramInit';
 
 const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
 
   // Инициализируем Telegram WebApp при загрузке
   useEffect(() => {
-    initializeTelegram();
+    // Здесь будет инициализация Telegram WebApp
     
     // Автоматически перенаправляем в игру если открыто в Telegram
     if (isTelegramWebAppAvailable()) {

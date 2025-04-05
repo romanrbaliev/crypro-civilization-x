@@ -1,184 +1,92 @@
 
-import { ReferralHelper } from '@/context/types';
-
 /**
- * Проверяет доступность Telegram WebApp
- * @returns true если Telegram WebApp доступен
+ * Форматирует число для отображения, добавляя суффиксы K, M, B и т.д.
  */
-export const isTelegramWebAppAvailable = (): boolean => {
-  if (typeof window === 'undefined') {
-    return false;
+export function formatNumber(num: number, precision: number = 0): string {
+  if (num === 0) return '0';
+  
+  if (num < 0.0001 && num > 0) {
+    return num.toExponential(precision);
   }
   
-  try {
-    return Boolean(
-      window.Telegram && 
-      window.Telegram.WebApp && 
-      typeof window.Telegram.WebApp.ready === 'function'
-    );
-  } catch (error) {
-    console.error('Ошибка при проверке Telegram WebApp:', error);
-    return false;
-  }
-};
-
-/**
- * Форматирует число с указанной точностью
- * @param value Число для форматирования
- * @param precision Количество знаков после запятой
- * @returns Отформатированное число
- */
-export const formatNumber = (value: number, precision: number = 2): string => {
-  if (value === undefined || value === null) return '0';
-  
-  if (value === 0) return '0';
-  
-  if (value < 0.0001 && value > 0) {
-    return value.toExponential(precision);
+  if (num < 1000) {
+    if (Number.isInteger(num)) {
+      return num.toString();
+    }
+    return num.toFixed(precision);
   }
   
-  if (value >= 1e6) {
-    return (value / 1e6).toFixed(precision) + 'M';
-  }
+  const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
   
-  if (value >= 1e3) {
-    return (value / 1e3).toFixed(precision) + 'K';
-  }
+  // Находим необходимый суффикс
+  const magnitude = Math.floor(Math.log10(num) / 3);
+  const suffix = suffixes[magnitude] || '';
   
-  if (Number.isInteger(value)) {
-    return value.toString();
-  }
+  // Масштабируем число для суффикса
+  const scaled = num / Math.pow(1000, magnitude);
   
-  return value.toFixed(precision);
-};
-
-/**
- * Вычисляет стоимость следующего уровня здания
- * @param baseCost Базовая стоимость
- * @param multiplier Множитель стоимости
- * @param level Текущий уровень
- * @returns Стоимость следующего уровня
- */
-export const calculateCost = (
-  baseCost: number,
-  multiplier: number,
-  level: number
-): number => {
-  return Math.floor(baseCost * Math.pow(multiplier, level));
-};
-
-/**
- * Проверяет, есть ли у пользователя достаточно ресурсов для покупки
- * @param currentResources Текущие ресурсы
- * @param cost Стоимость
- * @returns true если достаточно ресурсов
- */
-export const canAfford = (
-  currentResources: { [key: string]: number },
-  cost: { [key: string]: number }
-): boolean => {
-  return Object.entries(cost).every(
-    ([resource, amount]) => 
-      (currentResources[resource] || 0) >= amount
-  );
-};
-
-/**
- * Вычисляет прогресс до следующего значения
- * @param current Текущее значение
- * @param target Целевое значение
- * @returns Процент прогресса (0-100)
- */
-export const calculateProgress = (current: number, target: number): number => {
-  if (target <= 0) return 0;
-  const progress = (current / target) * 100;
-  return Math.min(100, Math.max(0, progress));
-};
-
-/**
- * Генерирует уникальный ID
- * @returns Уникальный ID
- */
-export const generateId = (): string => {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-};
-
-/**
- * Генерирует реферальный код
- * @param length Длина реферального кода
- * @returns Реферальный код
- */
-export function generateReferralCode(length = 8): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  // Округляем до заданной точности
+  return scaled.toFixed(precision) + suffix;
 }
 
 /**
- * Проверяет, является ли реферал помощником для указанного здания
- * @param helperId ID помощника
- * @param buildingId ID здания
- * @param helpers список всех помощников
- * @returns true, если реферал является помощником для здания
+ * Проверяет, можно ли позволить себе покупку
  */
-export const isReferralHelperForBuilding = (
-  helperId: string,
-  buildingId: string,
-  helpers: ReferralHelper[]
-): boolean => {
-  return helpers.some(
-    (helper) => 
-      helper.helperId === helperId && 
-      helper.buildingId === buildingId && 
-      helper.status === 'accepted'
-  );
-};
+export function canAfford(cost: { [key: string]: number }, resources: { [key: string]: any }): boolean {
+  return Object.entries(cost).every(([resourceId, amount]) => {
+    const resource = resources[resourceId];
+    return resource && resource.unlocked && resource.value >= amount;
+  });
+}
 
 /**
- * Получает ID запроса на помощь для указанного реферала и здания
- * @param helperId ID помощника
- * @param buildingId ID здания
- * @param helpers список всех помощников
- * @returns ID запроса или undefined, если запрос не найден
+ * Рассчитывает стоимость с учетом множителя
  */
-export const getHelperRequestId = (
-  helperId: string,
-  buildingId: string,
-  helpers: ReferralHelper[]
-): string | undefined => {
-  const helper = helpers.find(
-    (h) => h.helperId === helperId && h.buildingId === buildingId
-  );
-  return helper?.id;
-};
+export function calculateCost(baseCost: number, multiplier: number, count: number): number {
+  return baseCost * Math.pow(multiplier, count);
+}
 
 /**
- * Рассчитывает время, необходимое для достижения целевого значения ресурса
- * @param currentValue текущее значение ресурса
- * @param targetValue целевое значение ресурса
- * @param perSecond скорость производства ресурса в секунду
- * @returns время в секундах или Infinity, если невозможно достичь
+ * Проверяет доступность Telegram WebApp
  */
-export const calculateTimeToReach = (
-  currentValue: number,
-  targetValue: number,
-  perSecond: number
-): number => {
-  if (perSecond <= 0) return Infinity;
-  
-  const remainingValue = targetValue - currentValue;
-  if (remainingValue <= 0) return 0;
-  
-  return remainingValue / perSecond;
-};
+export function isTelegramWebAppAvailable(): boolean {
+  return !!(window.Telegram && window.Telegram.WebApp);
+}
 
-// Глобальные типы для Telegram WebApp
+/**
+ * Рассчитывает время до достижения определенного значения ресурса
+ */
+export function calculateTimeToReach(current: number, target: number, perSecond: number): number | null {
+  if (perSecond <= 0) return null;
+  
+  const remainingAmount = target - current;
+  if (remainingAmount <= 0) return 0;
+  
+  return remainingAmount / perSecond;
+}
+
+/**
+ * Форматирует время в секундах в читаемый формат
+ */
+export function formatTime(seconds: number): string {
+  if (seconds === Infinity || seconds === null) return '∞';
+  if (seconds < 0) return '0с';
+  
+  if (seconds < 60) {
+    return `${Math.ceil(seconds)}с`;
+  } else if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)}м ${Math.ceil(seconds % 60)}с`;
+  } else if (seconds < 86400) {
+    return `${Math.floor(seconds / 3600)}ч ${Math.floor((seconds % 3600) / 60)}м`;
+  } else {
+    return `${Math.floor(seconds / 86400)}д ${Math.floor((seconds % 86400) / 3600)}ч`;
+  }
+}
+
+// Объявление глобальных типов для Telegram WebApp
 declare global {
   interface Window {
-    Telegram: {
+    Telegram?: {
       WebApp: {
         ready: () => void;
         expand: () => void;
@@ -197,17 +105,19 @@ declare global {
           start_param?: string;
           startapp?: string;
         };
-        showScanQrPopup?: (params: any) => void;
-        closeScanQrPopup?: () => void;
-        BackButton?: any;
-        MainButton?: any;
-        HapticFeedback?: any;
-        openLink?: (url: string) => void;
+        onEvent?: (eventType: string, eventHandler: Function) => void;
+        offEvent?: (eventType: string, eventHandler: Function) => void;
+        sendData?: (data: string) => void;
+        openTelegramLink?: (url: string) => void;
+        openInvoice?: (url: string, callback: Function) => void;
+        showPopup?: (params: any, callback: Function) => void;
+        showAlert?: (message: string, callback: Function) => void;
+        showConfirm?: (message: string, callback: Function) => void;
         share?: (url: string) => void;
       };
     };
     __game_user_id?: string;
+    __game_state?: any;
     __cloudflareRetryCount?: number;
-    __lastSaveErrorTime?: number;
   }
 }

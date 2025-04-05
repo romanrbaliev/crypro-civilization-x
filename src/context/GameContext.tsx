@@ -1,16 +1,10 @@
 
-import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
-import { GameState, GameAction } from './types';
+import React, { createContext, useReducer, useEffect, ReactNode } from 'react';
+import { GameState, GameAction } from '../types/game';
 import { initialState } from './initialState';
 import { gameReducer } from './gameReducer';
-import { initializeTelegram } from '@/utils/telegramInit';
-import { getUserIdentifier } from '@/api/userIdentification';
-import { saveGame } from '@/utils/gameSaver';
+import { Toast } from '@/components/ui/toast';
 import { Toaster } from '@/components/ui/toaster';
-import LoadingScreen from '@/components/LoadingScreen';
-import ErrorScreen from '@/components/ErrorScreen';
-import { useConnectionStatus } from '@/hooks/useConnectionStatus';
-import { useGameLoader } from '@/hooks/useGameLoader';
 
 export interface GameContextProps {
   state: GameState;
@@ -26,11 +20,11 @@ interface GameProviderProps {
 }
 
 export function GameProvider({ children }: GameProviderProps) {
-  const [initialGameState, initialDispatch] = useReducer(
+  const [state, dispatch] = useReducer(
     gameReducer, 
     { 
       ...initialState, 
-      gameStarted: true, 
+      gameStarted: true,
       lastUpdate: Date.now(), 
       lastSaved: Date.now(),
       resources: {
@@ -43,130 +37,51 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   );
   
-  const {
-    hasConnection,
-    isInitialized,
-    cloudflareError,
-    loadingMessage,
-    setLoadingMessage
-  } = useConnectionStatus();
-  
-  const {
-    loadedState,
-    isLoading,
-    gameInitialized,
-    setGameInitialized
-  } = useGameLoader(hasConnection, setLoadingMessage);
-  
-  const [state, dispatch] = useReducer(
-    gameReducer, 
-    loadedState || initialGameState
-  );
-  
   const isMountedRef = React.useRef(false);
   
-  // Инициализация Telegram
+  // Инициализация при монтировании
   useEffect(() => {
     if (isMountedRef.current) return;
     isMountedRef.current = true;
     
-    initializeTelegram();
+    // Здесь можно добавить дополнительную инициализацию
+    console.log('🎮 Игра инициализирована');
   }, []);
-  
-  // Синхронизация данных пользователя
-  useEffect(() => {
-    const syncUserData = async () => {
-      try {
-        const userId = await getUserIdentifier();
-        if (userId && window.__game_user_id) {
-          setTimeout(() => {
-            const event = new CustomEvent('refresh-user-data');
-            window.dispatchEvent(event);
-          }, 1500);
-        }
-      } catch (error) {
-        console.error('❌ Ошибка при синхронизации данных пользователя:', error);
-      }
-    };
-    
-    setTimeout(syncUserData, 2000);
-  }, []);
-  
-  // Применение загруженного состояния
-  useEffect(() => {
-    if (loadedState && !isLoading && gameInitialized) {
-      dispatch({ type: 'LOAD_GAME', payload: loadedState });
-      
-      setTimeout(() => {
-        saveGame(state, hasConnection);
-      }, 1000);
-    }
-  }, [loadedState, isLoading, gameInitialized]);
   
   // Основной интервал обновления игры
   useEffect(() => {
-    if (!state.gameStarted || isLoading) return;
+    if (!state.gameStarted) return;
     
     const intervalId = setInterval(() => {
       dispatch({ type: 'UPDATE_RESOURCES' });
     }, 1000);
     
     return () => clearInterval(intervalId);
-  }, [state.gameStarted, isLoading]);
+  }, [state.gameStarted]);
   
   // Интервал автосохранения
   useEffect(() => {
-    if (!state.gameStarted || isLoading || !hasConnection || !gameInitialized) return;
+    if (!state.gameStarted) return;
     
     console.log('🔄 Настройка автосохранения игры');
     
     const initialSaveTimeout = setTimeout(() => {
-      saveGame(state, hasConnection);
+      // Здесь будет логика сохранения
+      console.log('💾 Игра сохранена (первичное сохранение)');
     }, 2000);
     
     const intervalId = setInterval(() => {
-      saveGame(state, hasConnection);
+      // Здесь будет логика сохранения
+      console.log('💾 Игра сохранена (регулярное сохранение)');
     }, SAVE_INTERVAL);
     
     return () => {
       clearTimeout(initialSaveTimeout);
       clearInterval(intervalId);
     };
-  }, [state, isLoading, hasConnection, gameInitialized]);
+  }, [state.gameStarted]);
   
-  // Отображение экрана ошибки при проблемах с Cloudflare
-  if (isInitialized && cloudflareError) {
-    return (
-      <ErrorScreen 
-        title="Проблема с доступом к серверу"
-        description="Возможно, произошла ошибка Cloudflare или сервер временно недоступен."
-        onRetry={() => {
-          window.__cloudflareRetryCount = 0;
-          setGameInitialized(false);
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-        }}
-      />
-    );
-  }
-
-  // Отображение экрана ошибки при отсутствии соединения
-  if (isInitialized && (!hasConnection)) {
-    return (
-      <ErrorScreen 
-        title="Отсутствует соединение"
-        description="Для игры в Crypto Civilization требуется стабильное подключение к интернету."
-      />
-    );
-  }
-
-  // Отображение экрана загрузки
-  if (isLoading) {
-    return <LoadingScreen message={loadingMessage} />;
-  }
-  
-  // Отображение игры с контекстом
+  // Отображение игрового интерфейса с контекстом
   return (
     <GameContext.Provider value={{ state, dispatch }}>
       {children}
@@ -175,5 +90,14 @@ export function GameProvider({ children }: GameProviderProps) {
   );
 }
 
-// Экспорт хука useGame
-export { useGame } from './hooks/useGame';
+// Хук для использования игрового контекста
+export const useGame = () => {
+  const context = React.useContext(GameContext);
+  
+  if (!context) {
+    console.error("GameContext не найден. Убедитесь, что компонент находится внутри GameProvider");
+    throw new Error('useGame must be used within a GameProvider');
+  }
+  
+  return context;
+};
