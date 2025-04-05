@@ -1,6 +1,6 @@
 
 import { useContext, createContext, useEffect, useState } from 'react';
-import { UnlockManager } from '../UnlockManager';
+import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
 
 // Создаем контекст для предоставления доступа к менеджеру разблокировок

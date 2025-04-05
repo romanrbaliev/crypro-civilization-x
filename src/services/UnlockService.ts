@@ -1,6 +1,6 @@
 
 import { GameState } from '@/context/types';
-import { UnlockManager } from '@/systems/unlock/UnlockManager';
+import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 
 /**
  * Сервис для управления разблокировками элементов игры

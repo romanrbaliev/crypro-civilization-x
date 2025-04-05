@@ -1,7 +1,7 @@
 
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { UnlockManager } from '@/systems/unlock/UnlockManager';
+import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 
 /**
  * Централизованный сервис для управления разблокировками контента в игре

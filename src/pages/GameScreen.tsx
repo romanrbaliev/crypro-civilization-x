@@ -6,7 +6,7 @@ import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
 import Header from "@/components/Header";
 import EquipmentTab from "@/components/EquipmentTab";
-import ResearchTab from "@/components/ResearchTab";
+import ResearchContainer from "@/components/ResearchContainer";
 import ReferralsTab from "@/components/ReferralsTab";
 import SpecializationTab from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
@@ -373,7 +373,7 @@ const GameScreen = () => {
               )}
               
               {selectedTab === "research" && hasUnlockedResearch && (
-                <ResearchTab onAddEvent={addEvent} />
+                <ResearchContainer onAddEvent={addEvent} />
               )}
               
               {selectedTab === "specialization" && hasUnlockedSpecialization && (

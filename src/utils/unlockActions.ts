@@ -2,7 +2,7 @@
 import { GameState } from '@/context/types';
 import { UnlockManagerService } from '@/services/UnlockManagerService';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { UnlockManager } from '@/systems/unlock/UnlockManager';
+import { UnlockManager, ensureBuildingsCostProperty } from '@/utils/unifiedUnlockSystem';
 
 /**
  * Принудительно проверяет и применяет все разблокировки
@@ -32,36 +32,4 @@ export function forceCheckAdvancedUnlocks(state: GameState): GameState {
   // Используем новую систему разблокировок
   const unlockManager = new UnlockManager(updatedState);
   return unlockManager.forceCheckAllUnlocks();
-}
-
-/**
- * Проверяет и добавляет свойство cost для всех зданий, у которых его нет
- */
-function ensureBuildingsCostProperty(state: GameState): GameState {
-  const newState = { ...state };
-  
-  // Проверяем все здания и добавляем свойство cost там, где его нет
-  for (const buildingKey in newState.buildings) {
-    const building = newState.buildings[buildingKey];
-    
-    if (building && !building.cost) {
-      console.log(`ensureBuildingsCostProperty: Добавляем свойство cost для здания ${buildingKey}`);
-      
-      // Если у здания есть baseCost, используем его значение
-      if (building.baseCost) {
-        newState.buildings[buildingKey] = {
-          ...building,
-          cost: { ...building.baseCost }
-        };
-      } else {
-        // Если baseCost отсутствует, создаем пустой объект cost для предотвращения ошибок
-        newState.buildings[buildingKey] = {
-          ...building,
-          cost: {}
-        };
-      }
-    }
-  }
-  
-  return newState;
 }
