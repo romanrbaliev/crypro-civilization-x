@@ -15,7 +15,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // Убедимся, что ID всегда определен с дефолтным значением
+  // ИСПРАВЛЕНИЕ: Убедимся, что ID всегда существует
   const researchId = gameIds?.features?.research || 'research';
   
   // Добавляем диагностический консоль-лог для проверки researchId
@@ -23,6 +23,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     console.log("ResearchTab: ID исследований:", researchId);
   }, [researchId]);
   
+  // ИСПРАВЛЕНИЕ: Используем дефолтное значение researchId для защиты от undefined
   const researchUnlocked = useUnlockStatus(researchId);
   
   // Расширенные диагностические логи
