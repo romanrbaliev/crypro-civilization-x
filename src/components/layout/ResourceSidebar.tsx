@@ -53,10 +53,9 @@ const ResourceSidebar: React.FC = () => {
           
           {resource.perSecond !== 0 && (
             <div className="text-right">
-              <span className={resource.perSecond > 0 
+              <span className={`${resource.perSecond > 0 
                 ? (resourceColors[resource.id]?.perSecond || 'text-green-600 dark:text-green-400')
-                : 'text-red-600 dark:text-red-400'
-              } className="text-xs">
+                : 'text-red-600 dark:text-red-400'} text-xs`}>
                 {resource.perSecond > 0 ? '+' : ''}{formatNumber(resource.perSecond, 2)}/сек
               </span>
             </div>
