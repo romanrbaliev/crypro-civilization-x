@@ -1,4 +1,3 @@
-
 import { GameState } from './types';
 
 // Интерфейс MiningParams
@@ -23,6 +22,7 @@ export const initialState: GameState = {
   rebirths: 0,
   prestigePoints: 0,
   language: 'ru',
+  phase: 0,
   counters: {
     learn: { id: 'learn', value: 0 },
     apply: { id: 'apply', value: 0 },

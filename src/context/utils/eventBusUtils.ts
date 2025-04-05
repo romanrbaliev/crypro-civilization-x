@@ -20,3 +20,17 @@ export const safeDispatchGameEvent = (message: string, type: "success" | "warnin
     console.error('Error dispatching game event:', error);
   }
 };
+
+// Функция для проверки и создания шины событий, если она не существует
+export const ensureGameEventBus = (): EventTarget => {
+  if (typeof window !== 'undefined') {
+    if (!window.gameEventBus) {
+      window.gameEventBus = new EventTarget();
+      console.log('GameEventBus создан');
+    }
+    return window.gameEventBus;
+  }
+  
+  // Возвращаем заглушку для серверного рендеринга
+  return new EventTarget();
+};
