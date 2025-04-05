@@ -1,64 +1,85 @@
-import { GameState } from '@/context/types';
 
-// Определение базовых зданий, которые будут разблокированы на фазе 2
-const initialPhase2Buildings = {
-  cryptoWallet: {
-    name: "Криптокошелек",
-    description: "Безопасное хранение криптовалюты",
-    count: 0,
-    baseCost: { usdt: 50 },
-    costMultiplier: 1.15,
-    baseProduction: { btc: 0.01 },
-    productionMultiplier: 1.1,
-    unlocked: false
-  },
-  internetChannel: {
-    name: "Интернет-канал",
-    description: "Улучшенное подключение к сети",
-    count: 0,
-    baseCost: { usdt: 120 },
-    costMultiplier: 1.2,
-    baseProduction: { computingPower: 0.5 },
-    productionMultiplier: 1.15,
-    unlocked: false
-  },
-  miner: {
-    name: "Майнер",
-    description: "Специализированное устройство для майнинга",
-    count: 0,
-    baseCost: { usdt: 300, electricity: 50 },
-    costMultiplier: 1.25,
-    baseProduction: { btc: 0.05 },
-    productionMultiplier: 1.2,
-    unlocked: false
-  }
-};
+import { GameState, Building } from '@/types/game';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
-/**
- * Разблокирует здания в соответствии с текущей фазой игры
- */
-export const unlockBuildingsByPhase = (state: GameState): GameState => {
-  const { phase } = state;
-  let newState = { ...state };
+export function processUnlockBuildings(state: GameState): GameState {
+  // Копируем текущее состояние зданий
+  const updatedBuildings = { ...state.buildings };
   
-  if (phase === 2) {
-    // Разблокируем здания для фазы 2
-    const phase2Buildings = { ...initialPhase2Buildings };
-    
-    // Обновляем состояние зданий
-    newState = {
-      ...newState,
-      buildings: {
-        ...newState.buildings,
-        ...Object.fromEntries(
-          Object.entries(phase2Buildings).map(([id, building]) => [
-            id, 
-            { ...building, unlocked: true }
-          ])
-        )
-      }
-    };
+  // Здание "Практика" разблокируется после 2 раз использования "Применить знания"
+  if (state.counters.applyKnowledge && state.counters.applyKnowledge.value >= 2) {
+    if (updatedBuildings.practice && !updatedBuildings.practice.unlocked) {
+      updatedBuildings.practice = {
+        ...updatedBuildings.practice,
+        unlocked: true
+      };
+      
+      safeDispatchGameEvent("Разблокировано новое здание: Практика!", "success");
+    }
   }
   
-  return newState;
-};
+  // Здание "Генератор" разблокируется после накопления 11+ USDT
+  if (state.resources.usdt && state.resources.usdt.unlocked && state.resources.usdt.value >= 11) {
+    if (updatedBuildings.generator && !updatedBuildings.generator.unlocked) {
+      updatedBuildings.generator = {
+        ...updatedBuildings.generator,
+        unlocked: true
+      };
+      
+      safeDispatchGameEvent("Разблокировано новое здание: Генератор!", "success");
+    }
+  }
+  
+  // Здание "Криптокошелек" разблокируется после исследования "Основы блокчейна"
+  if (state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.purchased) {
+    if (updatedBuildings.cryptoWallet && !updatedBuildings.cryptoWallet.unlocked) {
+      updatedBuildings.cryptoWallet = {
+        ...updatedBuildings.cryptoWallet,
+        unlocked: true
+      };
+      
+      safeDispatchGameEvent("Разблокировано новое здание: Криптокошелек!", "success");
+    }
+  }
+  
+  // Здание "Домашний компьютер" разблокируется после достижения 50 единиц электричества
+  if (state.resources.electricity && state.resources.electricity.value >= 50) {
+    if (updatedBuildings.homeComputer && !updatedBuildings.homeComputer.unlocked) {
+      updatedBuildings.homeComputer = {
+        ...updatedBuildings.homeComputer,
+        unlocked: true
+      };
+      
+      safeDispatchGameEvent("Разблокировано новое здание: Домашний компьютер!", "success");
+    }
+  }
+  
+  // Здание "Интернет-канал" разблокируется после покупки домашнего компьютера
+  if (updatedBuildings.homeComputer && updatedBuildings.homeComputer.count > 0) {
+    if (updatedBuildings.internetConnection && !updatedBuildings.internetConnection.unlocked) {
+      updatedBuildings.internetConnection = {
+        ...updatedBuildings.internetConnection,
+        unlocked: true
+      };
+      
+      safeDispatchGameEvent("Разблокировано новое здание: Интернет-канал!", "success");
+    }
+  }
+  
+  // Здание "Майнер" разблокируется после исследования "Основы криптовалют"
+  if (state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased) {
+    if (updatedBuildings.miner && !updatedBuildings.miner.unlocked) {
+      updatedBuildings.miner = {
+        ...updatedBuildings.miner,
+        unlocked: true
+      };
+      
+      safeDispatchGameEvent("Разблокировано новое здание: Майнер!", "success");
+    }
+  }
+  
+  return {
+    ...state,
+    buildings: updatedBuildings
+  };
+}

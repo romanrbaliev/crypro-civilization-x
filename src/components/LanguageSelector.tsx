@@ -9,7 +9,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { SupportedLocale } from '@/i18n';
+import { SupportedLocale } from '@/context/I18nContext';
 
 interface LanguageSelectorProps {
   variant?: 'default' | 'ghost' | 'outline';

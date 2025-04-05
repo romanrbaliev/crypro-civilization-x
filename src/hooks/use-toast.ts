@@ -1,20 +1,20 @@
+
 import * as React from "react"
 import {
   type ToastActionElement,
   type ToastProps,
+  type ToastType
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 1000000
-
-type ToastType = "default" | "destructive" | "success" | "warning" | "info";
 
 export type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  variant?: ToastType
+  variant?: ToastType | "info" | "error"  // Поддерживаем эти типы для обратной совместимости
 }
 
 const actionTypes = {
@@ -147,12 +147,17 @@ type Toast = Omit<ToasterToast, "id"> & {
 function toast({ ...props }: Toast) {
   const id = props.id || genId()
 
-  // Преобразование "error" в "destructive" и "info" в "default"
-  let normalizedVariant = props.variant;
-  if (normalizedVariant === "error") {
-    normalizedVariant = "destructive" as ToastType;
-  } else if (normalizedVariant === "info") {
-    normalizedVariant = "default" as ToastType;
+  // Преобразование типов тостов для совместимости
+  let normalizedVariant: ToastType = "default";
+  
+  if (props.variant === "destructive" || props.variant === "error") {
+    normalizedVariant = "destructive";
+  } else if (props.variant === "success") {
+    normalizedVariant = "success";
+  } else if (props.variant === "warning") {
+    normalizedVariant = "warning";
+  } else {
+    normalizedVariant = "default";
   }
 
   const update = (props: ToasterToast) =>
@@ -166,12 +171,12 @@ function toast({ ...props }: Toast) {
     type: "ADD_TOAST",
     toast: {
       ...props,
-      variant: normalizedVariant,
       id,
+      variant: normalizedVariant,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
-        props.onOpenChange?.(open)
+        if (props.onOpenChange) props.onOpenChange(open)
       },
     },
   })

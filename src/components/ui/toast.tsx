@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -34,9 +33,9 @@ const toastVariants = cva(
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
         success:
-          "success group border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200",
+          "success group border-green-500 bg-green-100 text-green-900",
         warning:
-          "warning group border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200",
+          "warning group border-yellow-500 bg-yellow-100 text-yellow-900",
       },
     },
     defaultVariants: {
@@ -50,16 +49,13 @@ const Toast = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
-  // Преобразование variant к допустимому типу
-  const normalizedVariant = variant === "error" ? "destructive" : variant;
-  
   return (
     <ToastPrimitives.Root
       ref={ref}
-      className={cn(toastVariants({ variant: normalizedVariant as ToastType }), className)}
+      className={cn(toastVariants({ variant }), className)}
       {...props}
     />
-  );
+  )
 })
 Toast.displayName = ToastPrimitives.Root.displayName
 
@@ -120,15 +116,10 @@ const ToastDescription = React.forwardRef<
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof Toast> & {
-  onOpenChange?: (open: boolean) => void;
-};
-
-type ToastActionElement = React.ReactElement<typeof ToastAction>
+type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 export {
   type ToastProps,
-  type ToastActionElement,
   ToastProvider,
   ToastViewport,
   Toast,

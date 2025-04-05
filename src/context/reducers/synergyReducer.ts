@@ -1,166 +1,114 @@
+import { GameState, SpecializationSynergy } from '@/types/game';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
-import { GameState } from '../types';
-import { SpecializationSynergy } from '../types';
-
-// Инициализация синергий
 export const initializeSynergies = (state: GameState): GameState => {
-  // Если синергии уже инициализированы, ничего не делаем
-  if (state.specializationSynergies && Object.keys(state.specializationSynergies).length > 0) {
-    return state;
-  }
-
-  // Определяем базовые синергии для специализаций
-  const synergies: { [key: string]: SpecializationSynergy } = {
-    miningEfficiency: {
-      id: 'miningEfficiency',
-      name: 'Эффективность майнинга',
-      description: 'Повышает эффективность майнинга и снижает потребление энергии',
+  // Создаем базовый набор синергий
+  const synergies: Record<string, SpecializationSynergy> = {
+    // Технологическая синергия
+    techSynergy: {
+      id: 'techSynergy',
+      name: 'Технологическая синергия',
+      description: 'Оптимизирует работу компьютеров и майнеров, повышая их эффективность на 20%',
       active: false,
-      effects: {
-        miningEfficiencyBoost: 1.15,
-        energyConsumption: 0.9
-      },
-      requirement: {
-        homeComputer: 2,
-        miner: 1
-      }
+      unlocked: state.upgrades.blockchainBasics?.purchased,
+      requiredCategories: ['tech', 'mining'],
+      bonus: { productionBoost: 0.2 },
+      requirement: 'tech'
     },
-    knowledgeBoost: {
-      id: 'knowledgeBoost',
-      name: 'Ускоренное обучение',
-      description: 'Увеличивает скорость получения знаний',
+    
+    // Образовательная синергия
+    eduSynergy: {
+      id: 'eduSynergy',
+      name: 'Образовательная синергия',
+      description: 'Повышает эффективность обучения и применения знаний на 15%',
       active: false,
-      effects: {
-        knowledgeProduction: 1.2
-      },
-      requirement: {
-        practice: 3
-      }
+      unlocked: state.upgrades.cryptoSecurity?.purchased,
+      requiredCategories: ['education', 'research'],
+      bonus: { knowledgeBoost: 0.15 },
+      requirement: 'education'
     },
-    efficientTrading: {
-      id: 'efficientTrading',
-      name: 'Эффективный трейдинг',
-      description: 'Улучшает обмен знаний на USDT и снижает комиссии',
+    
+    // Финансовая синергия
+    finSynergy: {
+      id: 'finSynergy',
+      name: 'Финансовая синергия',
+      description: 'Оптимизирует хранение и конвертацию криптовалют, увеличивая вместимость кошельков на 25%',
       active: false,
-      effects: {
-        exchangeRate: 1.1,
-        tradingFee: 0.9
-      },
-      requirement: {
-        cryptoWallet: 2
-      }
+      unlocked: state.upgrades.cryptoBasics?.purchased,
+      requiredCategories: ['finance', 'storage'],
+      bonus: { storageBoost: 0.25 },
+      requirement: 'finance'
     }
   };
-
+  
   return {
     ...state,
     specializationSynergies: synergies
   };
 };
 
-// Проверка активации синергий
 export const checkSynergies = (state: GameState): GameState => {
-  if (!state.specializationSynergies) {
-    return initializeSynergies(state);
-  }
-
-  const { buildings, upgrades } = state;
-  const updatedSynergies = { ...state.specializationSynergies };
-  let synergyActivated = false;
-
-  // Проверяем каждую синергию на соответствие требованиям
-  Object.values(updatedSynergies).forEach(synergy => {
-    const canActivate = checkSynergyRequirements(synergy, buildings, upgrades);
-    
-    if (canActivate && !synergy.active) {
-      updatedSynergies[synergy.id].active = true;
-      synergyActivated = true;
-      console.log(`Синергия активирована: ${synergy.name}`);
-    }
-  });
-
-  // Если активировали новые синергии, обновляем состояние
-  if (synergyActivated) {
-    return {
-      ...state,
-      specializationSynergies: updatedSynergies
-    };
-  }
-
-  return state;
-};
-
-// Проверка требований для активации синергии
-function checkSynergyRequirements(
-  synergy: SpecializationSynergy,
-  buildings: { [key: string]: any },
-  upgrades: { [key: string]: any }
-): boolean {
-  // Проверяем требования к зданиям
-  if (synergy.requirement) {
-    for (const [buildingId, requiredCount] of Object.entries(synergy.requirement)) {
-      const building = buildings[buildingId];
-      if (!building || building.count < requiredCount) {
-        return false;
-      }
-    }
-  }
-
-  // Проверяем требования к категориям улучшений
-  if (synergy.requiredCategories) {
-    for (const category of synergy.requiredCategories) {
-      const hasCategory = Object.values(upgrades).some(
-        upgrade => upgrade.purchased && upgrade.category === category
-      );
-      if (!hasCategory) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-// Активация синергии вручную
-export const activateSynergy = (state: GameState, payload: { synergyId: string }): GameState => {
-  const { synergyId } = payload;
+  const { specializationSynergies, upgrades } = state;
   
-  if (!state.specializationSynergies || !state.specializationSynergies[synergyId]) {
-    return state;
+  // Обновляем статус разблокировки для каждой синергии
+  const updatedSynergies = { ...specializationSynergies };
+  
+  // Технологическая синергия
+  if (updatedSynergies.techSynergy) {
+    updatedSynergies.techSynergy.unlocked = upgrades.blockchainBasics?.purchased;
   }
-
-  // Если синергия уже активирована, ничего не делаем
-  if (state.specializationSynergies[synergyId].active) {
-    return state;
+  
+  // Образовательная синергия
+  if (updatedSynergies.eduSynergy) {
+    updatedSynergies.eduSynergy.unlocked = upgrades.cryptoSecurity?.purchased;
   }
-
-  // Проверяем, можно ли активировать синергию
-  const canActivate = checkSynergyRequirements(
-    state.specializationSynergies[synergyId],
-    state.buildings,
-    state.upgrades
-  );
-
-  if (!canActivate) {
-    console.log(`Не удалось активировать синергию: ${synergyId}`);
-    return state;
+  
+  // Финансовая синергия
+  if (updatedSynergies.finSynergy) {
+    updatedSynergies.finSynergy.unlocked = upgrades.cryptoBasics?.purchased;
   }
-
-  const updatedSynergies = {
-    ...state.specializationSynergies,
-    [synergyId]: {
-      ...state.specializationSynergies[synergyId],
-      active: true
-    }
-  };
-
+  
   return {
     ...state,
     specializationSynergies: updatedSynergies
   };
 };
 
-// Редьюсер для синергий
+export const activateSynergy = (state: GameState, payload: { synergyId: string }): GameState => {
+  const { synergyId } = payload;
+  const targetSynergy = state.specializationSynergies[synergyId];
+  
+  if (!targetSynergy) {
+    console.error(`Синергия с ID ${synergyId} не найдена`);
+    return state;
+  }
+  
+  if (!targetSynergy.unlocked) {
+    console.error(`Синергия ${targetSynergy.name} не разблокирована`);
+    safeDispatchGameEvent(`Синергия ${targetSynergy.name} не разблокирована`, "warning");
+    return state;
+  }
+  
+  if (targetSynergy.active) {
+    console.log(`Синергия ${targetSynergy.name} уже активна`);
+    return state;
+  }
+  
+  // Активируем синергию
+  const updatedSynergies = { ...state.specializationSynergies };
+  updatedSynergies[synergyId] = {
+    ...targetSynergy,
+    active: true
+  };
+  
+  safeDispatchGameEvent(`Активирована синергия: ${targetSynergy.name}`, "success");
+  
+  return {
+    ...state,
+    specializationSynergies: updatedSynergies
+  };
+};
+
 export const synergyReducer = (state: GameState): GameState => {
   // Проверяем и обновляем все синергии
   return checkSynergies(state);

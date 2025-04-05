@@ -88,7 +88,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
-// Хук для использования i18n
+// Хук для использования i18n - исправляем именование хука для использования из других компонентов
 export const useI18n = (): I18nContextType => {
   const context = useContext(I18nContext);
   if (!context) {
@@ -96,3 +96,6 @@ export const useI18n = (): I18nContextType => {
   }
   return context;
 };
+
+// Экспортируем тот же хук под другим именем для обратной совместимости
+export const useI18nContext = useI18n;

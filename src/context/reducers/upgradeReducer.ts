@@ -1,4 +1,3 @@
-
 import { GameState } from '@/types/game';
 
 /**
@@ -44,13 +43,20 @@ export const processPurchaseUpgrade = (
     }
   };
   
-  // Обновляем счетчик купленных улучшений
-  const newCounters = {
-    ...state.counters,
-    upgradesPurchased: {
-      ...state.counters.upgradesPurchased,
-      value: state.counters.upgradesPurchased.value + 1
-    }
+  // Убедимся, что счетчик upgradesPurchased существует в state
+  let counterState = { ...state.counters };
+  if (!counterState.upgradesPurchased) {
+    counterState.upgradesPurchased = {
+      id: 'upgradesPurchased',
+      name: 'Исследования куплены',
+      value: 0
+    };
+  }
+  
+  // Увеличиваем счетчик купленных исследований
+  counterState.upgradesPurchased = {
+    ...counterState.upgradesPurchased,
+    value: counterState.upgradesPurchased.value + 1
   };
   
   // Применяем эффекты улучшения
@@ -58,7 +64,7 @@ export const processPurchaseUpgrade = (
     ...state,
     resources: newResources,
     upgrades: newUpgrades,
-    counters: newCounters
+    counters: counterState
   };
   
   // Применяем специальные эффекты в зависимости от типа улучшения

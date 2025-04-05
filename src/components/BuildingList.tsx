@@ -3,7 +3,6 @@ import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import BuildingCard from './BuildingCard';
 import { Building } from '@/types/game';
-import { canAfford, calculateCost } from '@/utils/helpers';
 
 interface BuildingListProps {
   // дополнительные свойства, если нужны

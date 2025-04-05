@@ -954,17 +954,26 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
   };
 
   const totalReferrals = state.referrals?.length || 0;
-  const activeReferrals = state.referrals?.filter(ref => 
-    typeof ref.activated === 'boolean' 
-      ? ref.activated 
-      : String(ref.activated).toLowerCase() === 'true'
-  )?.length || 0;
+  const activeReferrals = state.referrals?.filter(ref => {
+    if (typeof ref.activated === 'boolean') {
+      return ref.activated;
+    }
+    if (typeof ref.activated === 'string') {
+      return ref.activated.toLowerCase() === 'true';
+    }
+    return false;
+  })?.length || 0;
 
   const filteredReferrals = currentTab === 'active' 
-    ? (state.referrals || []).filter(ref => 
-        (typeof ref.activated === 'boolean' && ref.activated === true) ||
-        (typeof ref.activated === 'string' && ref.activated.toLowerCase() === 'true')
-      )
+    ? (state.referrals || []).filter(ref => {
+        if (typeof ref.activated === 'boolean') {
+          return ref.activated;
+        }
+        if (typeof ref.activated === 'string') {
+          return ref.activated.toLowerCase() === 'true';
+        }
+        return false;
+      })
     : (state.referrals || []);
 
   const getUserBuildings = () => Object.values(state.buildings || {})

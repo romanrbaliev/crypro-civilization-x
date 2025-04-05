@@ -20,10 +20,14 @@ export function Toaster() {
         let adjustedVariant: ToastType = (props.variant || "default") as ToastType;
         
         // Преобразуем варианты, которые не соответствуют ToastType
-        if (props.variant === "error") {
+        if (props.variant === "destructive" || props.variant === "error") {
           adjustedVariant = "destructive";
-        } else if (props.variant === "info") {
+        } else if (props.variant === "default" || props.variant === "info") {
           adjustedVariant = "default";
+        } else if (props.variant === "success") {
+          adjustedVariant = "success";
+        } else if (props.variant === "warning") {
+          adjustedVariant = "warning";
         }
         
         return (
