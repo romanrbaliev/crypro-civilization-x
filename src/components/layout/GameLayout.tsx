@@ -68,6 +68,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({ children }) => {
         <h3 className="text-sm font-medium mb-2">Журнал событий</h3>
         <EventLog />
       </div>
+      
+      {/* Отображаем дополнительный контент, если он есть */}
+      {children}
     </div>
   );
 };

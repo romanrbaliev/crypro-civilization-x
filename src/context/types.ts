@@ -2,7 +2,7 @@
 export interface Resource {
   id: string;
   name: string;
-  description?: string;
+  description: string; // Изменено с description?: string на description: string
   type: string;
   icon?: string;
   value: number;

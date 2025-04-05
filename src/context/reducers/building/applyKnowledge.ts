@@ -88,26 +88,28 @@ export function processApplyKnowledge(state: GameState): GameState {
   
   // Проверяем разблокировку Практики после второго применения знаний
   if (newCounters.applyKnowledge.value >= 2 && !state.buildings.practice?.unlocked) {
-    const newBuildings = { ...state.buildings };
-    if (newBuildings.practice) {
-      newBuildings.practice = {
-        ...newBuildings.practice,
-        unlocked: true
+    if (state.buildings.practice) {
+      state = {
+        ...state,
+        buildings: {
+          ...state.buildings,
+          practice: {
+            ...state.buildings.practice,
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...newUnlocks,
+          practice: true
+        }
       };
-      newUnlocks.practice = true;
       
       // Отправляем уведомление о разблокировке
       safeDispatchGameEvent("Разблокировано здание: Практика", "success");
     }
   }
   
-  // Отправляем уведомление
-  safeDispatchGameEvent(
-    `Обменяно ${exchangeKnowledge} знаний на ${usdtToAdd.toFixed(2)} USDT`,
-    "success"
-  );
-  
-  // Возвращаем обновленное состояние
+  // Возвращаем обновленное состояние с изменениями ресурсов и счетчиков
   return {
     ...state,
     resources: newResources,
@@ -203,26 +205,28 @@ export function processApplyAllKnowledge(state: GameState): GameState {
   
   // Проверяем разблокировку Практики после второго применения знаний
   if (newCounters.applyKnowledge.value >= 2 && !state.buildings.practice?.unlocked) {
-    const newBuildings = { ...state.buildings };
-    if (newBuildings.practice) {
-      newBuildings.practice = {
-        ...newBuildings.practice,
-        unlocked: true
+    if (state.buildings.practice) {
+      state = {
+        ...state,
+        buildings: {
+          ...state.buildings,
+          practice: {
+            ...state.buildings.practice,
+            unlocked: true
+          }
+        },
+        unlocks: {
+          ...newUnlocks,
+          practice: true
+        }
       };
-      newUnlocks.practice = true;
       
       // Отправляем уведомление о разблокировке
       safeDispatchGameEvent("Разблокировано здание: Практика", "success");
     }
   }
   
-  // Отправляем уведомление
-  safeDispatchGameEvent(
-    `Обменяно ${exchangeKnowledge} знаний на ${usdtToAdd.toFixed(2)} USDT`,
-    "success"
-  );
-  
-  // Возвращаем обновленное состояние
+  // Возвращаем обновленное состояние с изменениями ресурсов и счетчиков
   return {
     ...state,
     resources: newResources,
