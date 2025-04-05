@@ -6,7 +6,7 @@ import { BuildingsContainer } from './BuildingsContainer';
 import ActionButtons from './ActionButtons';
 import EventLog from './EventLog';
 import { GameHeader } from './GameHeader';
-import { ResearchContainer } from './ResearchContainer';
+import ResearchContainer from './ResearchContainer';
 import { useGameSaver } from '../hooks/useGameSaver';
 import { useGameStateUpdateService } from '../hooks/useGameStateUpdateService';
 
