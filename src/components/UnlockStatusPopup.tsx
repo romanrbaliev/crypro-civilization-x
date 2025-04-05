@@ -69,36 +69,42 @@ const UnlockStatusPopup = () => {
       const counter = state.counters[condition.targetId];
       const counterValue = typeof counter === 'object' ? counter?.value : counter;
       
-      if (condition.operator === 'eq') return counterValue === condition.targetValue;
-      if (condition.operator === 'neq') return counterValue !== condition.targetValue;
-      if (condition.operator === 'gte') return (counterValue || 0) >= condition.targetValue;
-      if (condition.operator === 'lte') return (counterValue || 0) <= condition.targetValue;
-      if (condition.operator === 'gt') return (counterValue || 0) > condition.targetValue;
-      if (condition.operator === 'lt') return (counterValue || 0) < condition.targetValue;
+      if (typeof counterValue === 'number') {
+        if (condition.operator === 'eq') return counterValue === Number(condition.targetValue);
+        if (condition.operator === 'neq') return counterValue !== Number(condition.targetValue);
+        if (condition.operator === 'gte') return counterValue >= Number(condition.targetValue);
+        if (condition.operator === 'lte') return counterValue <= Number(condition.targetValue);
+        if (condition.operator === 'gt') return counterValue > Number(condition.targetValue);
+        if (condition.operator === 'lt') return counterValue < Number(condition.targetValue);
+      }
     }
     
     if (condition.type === 'resource') {
       const resource = state.resources[condition.targetId];
       const resourceValue = resource?.value || 0;
       
-      if (condition.operator === 'eq') return resourceValue === condition.targetValue;
-      if (condition.operator === 'neq') return resourceValue !== condition.targetValue;
-      if (condition.operator === 'gte') return resourceValue >= condition.targetValue;
-      if (condition.operator === 'lte') return resourceValue <= condition.targetValue;
-      if (condition.operator === 'gt') return resourceValue > condition.targetValue;
-      if (condition.operator === 'lt') return resourceValue < condition.targetValue;
+      if (typeof resourceValue === 'number') {
+        if (condition.operator === 'eq') return resourceValue === Number(condition.targetValue);
+        if (condition.operator === 'neq') return resourceValue !== Number(condition.targetValue);
+        if (condition.operator === 'gte') return resourceValue >= Number(condition.targetValue);
+        if (condition.operator === 'lte') return resourceValue <= Number(condition.targetValue);
+        if (condition.operator === 'gt') return resourceValue > Number(condition.targetValue);
+        if (condition.operator === 'lt') return resourceValue < Number(condition.targetValue);
+      }
     }
     
     if (condition.type === 'building') {
       const building = state.buildings[condition.targetId];
       const buildingCount = building?.count || 0;
       
-      if (condition.operator === 'eq') return buildingCount === condition.targetValue;
-      if (condition.operator === 'neq') return buildingCount !== condition.targetValue;
-      if (condition.operator === 'gte') return buildingCount >= condition.targetValue;
-      if (condition.operator === 'lte') return buildingCount <= condition.targetValue;
-      if (condition.operator === 'gt') return buildingCount > condition.targetValue;
-      if (condition.operator === 'lt') return buildingCount < condition.targetValue;
+      if (typeof buildingCount === 'number') {
+        if (condition.operator === 'eq') return buildingCount === Number(condition.targetValue);
+        if (condition.operator === 'neq') return buildingCount !== Number(condition.targetValue);
+        if (condition.operator === 'gte') return buildingCount >= Number(condition.targetValue);
+        if (condition.operator === 'lte') return buildingCount <= Number(condition.targetValue);
+        if (condition.operator === 'gt') return buildingCount > Number(condition.targetValue);
+        if (condition.operator === 'lt') return buildingCount < Number(condition.targetValue);
+      }
     }
     
     if (condition.type === 'upgrade') {
@@ -157,7 +163,7 @@ const UnlockStatusPopup = () => {
       toast({
         title: "Разблокировка элемента",
         description: `Элемент ${itemId} принудительно разблокирован`,
-        variant: "success",
+        variant: "default",
       });
     }, 100);
   };
@@ -169,7 +175,7 @@ const UnlockStatusPopup = () => {
     toast({
       title: "Проверка разблокировок",
       description: "Проверка всех разблокировок завершена",
-      variant: "success",
+      variant: "default",
     });
   };
   
@@ -242,7 +248,7 @@ const UnlockStatusPopup = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{item.name || item.id}</span>
-                      <Badge variant={isUnlocked ? "success" : "outline"} className="text-xs">
+                      <Badge variant={isUnlocked ? "secondary" : "outline"} className="text-xs">
                         {isUnlocked ? "Разблокировано" : "Заблокировано"}
                       </Badge>
                       <Badge variant="secondary" className="text-xs">
@@ -333,15 +339,9 @@ const UnlockStatusPopup = () => {
             Проверить все разблокировки
           </Button>
           
-          <Tabs defaultValue="registryAll">
-            <TabsList className="mb-2">
-              <TabsTrigger value="registryAll">Реестр разблокировок</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="registryAll" className="space-y-4">
-              {renderUnlockableItemsList()}
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-4">
+            {renderUnlockableItemsList()}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
