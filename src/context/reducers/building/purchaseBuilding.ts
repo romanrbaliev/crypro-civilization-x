@@ -11,6 +11,12 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     return state;
   }
   
+  // Проверяем, что у здания есть стоимость
+  if (!building.cost) {
+    console.error(`Building ${buildingId} does not have a cost defined`);
+    return state;
+  }
+  
   // Проверяем, достаточно ли ресурсов для покупки
   for (const [resourceId, amount] of Object.entries(building.cost)) {
     const resource = state.resources[resourceId];

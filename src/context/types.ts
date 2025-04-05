@@ -1,4 +1,3 @@
-
 // Базовые типы
 export type ResourceType = 'basic' | 'currency' | 'power' | 'computational' | 'crypto' | 'social' | 'resource';
 
@@ -23,17 +22,15 @@ export interface Building {
   description: string;
   count: number;
   unlocked: boolean;
-  baseCost: Record<string, number>;
-  cost: Record<string, number>; 
+  baseCost?: { [resourceId: string]: number }; // Базовая стоимость здания
+  cost: { [resourceId: string]: number }; // Текущая стоимость здания (обязательное поле)
   costMultiplier: number;
-  production: Record<string, number>;
-  consumption?: Record<string, number>;
-  effects?: Record<string, any>;
-  maxCount?: number;
-  requirements?: Record<string, number>;
-  resourceProduction?: Record<string, number>;
-  productionBoost?: Record<string, number>;
-  type?: string;
+  production?: { [resourceId: string]: number };
+  consumption?: { [resourceId: string]: number };
+  effects?: { [effectId: string]: number | string };
+  requirements?: { [resourceId: string]: number };
+  maxLevel?: number;
+  specialization?: string;
 }
 
 export interface Upgrade {

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -40,6 +41,10 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const canAfford = (): boolean => {
+    if (!building.cost) {
+      return false;
+    }
+    
     const nextCost = getNextCost();
     for (const [resourceId, amount] of Object.entries(nextCost)) {
       const resource = state.resources[resourceId];
@@ -52,6 +57,12 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   
   const getNextCost = () => {
     const nextCost = {};
+    // Проверяем, существует ли building.cost
+    if (!building.cost) {
+      console.warn(`Building ${building.id} has no cost defined`);
+      return nextCost;
+    }
+    
     for (const [resourceId, baseAmount] of Object.entries(building.cost)) {
       const multiplier = building.costMultiplier || 1.15;
       const calculatedCost = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
@@ -74,6 +85,11 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const renderCost = () => {
+    // Проверяем, существует ли building.cost
+    if (!building.cost) {
+      return <div className="text-red-500 text-[11px]">Стоимость не определена</div>;
+    }
+    
     const costs = building.count === 0 ? building.cost : getNextCost();
     return Object.entries(costs).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
