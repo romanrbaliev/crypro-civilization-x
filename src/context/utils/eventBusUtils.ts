@@ -34,3 +34,43 @@ export const ensureGameEventBus = (): EventTarget => {
   // Возвращаем заглушку для серверного рендеринга
   return new EventTarget();
 };
+
+// Функция для подписки на события игры
+export const subscribeToGameEvents = (
+  callback: (event: CustomEvent) => void
+): () => void => {
+  const eventBus = ensureGameEventBus();
+  
+  const handleEvent = (e: Event) => {
+    if (e instanceof CustomEvent) {
+      callback(e);
+    }
+  };
+  
+  eventBus.addEventListener('game-event', handleEvent);
+  
+  // Возвращаем функцию для отписки
+  return () => {
+    eventBus.removeEventListener('game-event', handleEvent);
+  };
+};
+
+// Отправить событие с деталями
+export const dispatchGameEventWithDetails = (
+  message: string, 
+  type: "success" | "warning" | "info" | "error" = "info",
+  details?: any
+) => {
+  try {
+    const eventBus = ensureGameEventBus();
+    
+    const event = new CustomEvent('game-event-detail', {
+      detail: { message, type, details }
+    });
+    
+    eventBus.dispatchEvent(event);
+    console.log(`[Event with details dispatched] ${type}: ${message}`, details);
+  } catch (error) {
+    console.error('Error dispatching detailed game event:', error);
+  }
+};

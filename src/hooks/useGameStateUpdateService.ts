@@ -1,77 +1,64 @@
 
 import { useEffect, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
+import { unlockSystemService } from '@/services/UnlockSystemService';
 
-/**
- * Хук для управления обновлением состояния игры на основе прошедшего времени
- */
+// Интервал обновления состояния игры в миллисекундах
+const UPDATE_INTERVAL = 1000;
+
 export const useGameStateUpdateService = () => {
   const { state, dispatch, isPageVisible } = useGame();
-  const lastUpdateRef = useRef<number>(Date.now());
-  const intervalIdRef = useRef<number | null>(null);
+  const lastUpdateRef = useRef(Date.now());
   
-  // Функция обновления ресурсов
-  const updateResources = () => {
-    // Если страница не видима, не обновляем ресурсы слишком часто
-    const now = Date.now();
-    const timeSinceLastUpdate = now - lastUpdateRef.current;
-    
-    // ВАЖНО: Жестко фиксируем интервал обновления на 1000 мс (1 секунда)
-    // Это гарантирует, что скорость накопления ресурсов точно соответствует отображаемым значениям
-    const fixedDeltaTime = 1000;
-    
-    // Отправляем действие для обновления ресурсов с фиксированным временным интервалом
-    dispatch({ 
-      type: 'UPDATE_RESOURCES',
-      payload: { deltaTime: fixedDeltaTime }
-    });
-    
-    // Обновляем время последнего обновления
-    lastUpdateRef.current = now;
-  };
-  
-  // Эффект для настройки интервала обновления состояния
   useEffect(() => {
-    if (!state.gameStarted) return;
-    
-    // Всегда используем строго фиксированный интервал в 1000 мс
-    // Этот интервал задает частоту обновления ресурсов и соответствует отображаемому значению "/сек"
-    const updateInterval = 1000;
-    
-    // Очищаем предыдущий интервал, если он был
-    if (intervalIdRef.current !== null) {
-      clearInterval(intervalIdRef.current);
-    }
-    
-    // Устанавливаем новый интервал для обновления ресурсов - строго 1 раз в секунду
-    intervalIdRef.current = window.setInterval(updateResources, updateInterval);
-    
-    // Выполняем начальное обновление
-    updateResources();
-    
-    // Логирование для отладки
-    console.log(`useGameStateUpdateService: Интервал обновления установлен строго на ${updateInterval}мс для точного соответствия отображению`);
-    
-    return () => {
-      if (intervalIdRef.current !== null) {
-        clearInterval(intervalIdRef.current);
-        intervalIdRef.current = null;
+    // Функция обновления игрового состояния
+    const updateGameState = () => {
+      const now = Date.now();
+      const delta = now - lastUpdateRef.current;
+      
+      // Обновляем состояние только если прошло нужное количество времени и вкладка видима
+      if (delta >= UPDATE_INTERVAL && isPageVisible !== false) {
+        dispatch({ 
+          type: 'UPDATE_RESOURCES',
+          payload: { deltaTime: delta }
+        });
+        
+        lastUpdateRef.current = now;
       }
     };
-  }, [state.gameStarted, isPageVisible]);
-  
-  // Эффект для обработки изменения видимости страницы
-  useEffect(() => {
-    if (!state.gameStarted) return;
     
-    // При возвращении на страницу, немедленно обновляем ресурсы
-    if (isPageVisible) {
-      updateResources();
-      
-      // Проверяем статус оборудования
-      dispatch({ type: 'CHECK_EQUIPMENT_STATUS' });
-      
-      console.log("useGameStateUpdateService: Обновление ресурсов при возвращении на страницу");
+    // Устанавливаем интервал обновления
+    const intervalId = setInterval(updateGameState, 100);
+    
+    // При первой загрузке форсированно проверяем все разблокировки
+    if (state.gameStarted) {
+      // Форсированно проверяем все разблокировки
+      setTimeout(() => {
+        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+      }, 500);
     }
-  }, [isPageVisible]);
+    
+    // Очищаем интервал при размонтировании
+    return () => clearInterval(intervalId);
+  }, [dispatch, isPageVisible, state.gameStarted]);
+  
+  // Производим принудительное обновление при изменении флага видимости
+  useEffect(() => {
+    if (isPageVisible && state.gameStarted) {
+      const now = Date.now();
+      const timeSinceLastUpdate = now - state.lastUpdate;
+      
+      // Если прошло больше 1 секунды с последнего обновления
+      if (timeSinceLastUpdate > 1000) {
+        dispatch({ 
+          type: 'UPDATE_RESOURCES',
+          payload: { deltaTime: timeSinceLastUpdate }
+        });
+        
+        lastUpdateRef.current = now;
+      }
+    }
+  }, [isPageVisible, dispatch, state.lastUpdate, state.gameStarted]);
+  
+  return null;
 };

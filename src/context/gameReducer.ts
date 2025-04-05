@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -8,7 +9,7 @@ import {
   processPurchaseBuilding, 
   processSellBuilding,
   processChooseSpecialization 
-} from './reducers/building/index';
+} from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processSetLanguage } from './reducers';
 import {
@@ -26,9 +27,7 @@ import {
 } from './gameStateReducer';
 import { 
   checkSynergies, 
-  activateSynergy, 
-  initializeSynergies,
-  synergyReducer 
+  activateSynergy
 } from './reducers/synergyReducer';
 
 // Импортируем обработчики для реферальной системы
@@ -38,9 +37,15 @@ import {
   processActivateReferral,
   processHireReferralHelper,
   processRespondToHelperRequest,
-  processUpdateReferralStatus,
-  initializeReferralSystem
+  processUpdateReferralStatus
 } from './reducers/referralReducer';
+
+// Импортируем обработчики для действий
+import {
+  processApplyKnowledge,
+  processApplyAllKnowledge,
+  processExchangeBitcoin
+} from './reducers/actionReducers';
 
 // Создаем экземпляр централизованного сервиса состояния
 const gameStateService = new GameStateService();
@@ -55,7 +60,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return processIncrementResource(state, action.payload);
     
     case "UPDATE_RESOURCES": 
-      return gameStateService.processGameStateUpdate(state);
+      return gameStateService.processGameStateUpdate(state, action.payload?.deltaTime);
     
     case "PURCHASE_BUILDING": 
       return processPurchaseBuilding(state, action.payload);
@@ -118,14 +123,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return state; // Заглушка, которую нужно будет реализовать
     
     case "APPLY_KNOWLEDGE": 
-      return state; // Заглушка, которую нужно будет реализовать
+      return processApplyKnowledge(state);
         
     case "APPLY_ALL_KNOWLEDGE": 
-      return state; // Заглушка, которую нужно будет реализовать
+      return processApplyAllKnowledge(state);
         
     case "EXCHANGE_BTC":
     case "EXCHANGE_BITCOIN": 
-      return state; // Заглушка, которую нужно будет реализовать
+      return processExchangeBitcoin(state);
         
     case "SET_REFERRAL_CODE": 
       return processSetReferralCode(state, action.payload);
