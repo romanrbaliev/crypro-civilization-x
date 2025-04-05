@@ -53,7 +53,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
       
       console.log("handleApplyAllKnowledge: Увеличение счетчика applyKnowledge на 1");
       
-      onAddEvent(t('events.knowledgeApplied') as string, "success");
+      onAddEvent(t('events.knowledgeApplied'), "success");
       
       // Проверяем разблокировки после применения знаний
       dispatch({ type: "FORCE_CHECK_UNLOCKS" });
@@ -63,7 +63,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const handleExchangeBTC = () => {
     if (bitcoin > 0) {
       dispatch({ type: "EXCHANGE_BTC" });
-      onAddEvent(t('events.btcExchanged') as string, "success");
+      onAddEvent(t('events.btcExchanged'), "success");
       
       // Проверяем разблокировки после обмена
       dispatch({ type: "FORCE_CHECK_UNLOCKS" });

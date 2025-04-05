@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -55,7 +54,6 @@ const GameScreen = () => {
   const { toast } = useToast();
   const { t } = useI18nContext();
   
-  // Используем унифицированные ID для проверки разблокировок
   const hasUnlockedEquipment = useUnlockStatus(gameIds.features.equipment);
   const hasUnlockedResearch = useUnlockStatus(gameIds.features.research);
   const hasUnlockedSpecialization = useUnlockStatus(gameIds.features.specialization);
@@ -176,15 +174,15 @@ const GameScreen = () => {
   const handleResetGame = () => {
     dispatch({ type: "RESET_GAME" });
     setResetConfirmOpen(false);
-    addEvent(t('events.gameReset') as string, "info");
+    addEvent(t('events.gameReset'), "info");
   };
   
   const handleResetAll = async () => {
     try {
       localStorage.clear();
       toast({
-        title: t('ui.resetSuccess') as string,
-        description: t('ui.resetSuccessDetail') as string,
+        title: t('ui.resetSuccess'),
+        description: t('ui.resetSuccessDetail'),
         variant: "success",
       });
       
@@ -193,8 +191,8 @@ const GameScreen = () => {
       }, 1500);
     } catch (error) {
       toast({
-        title: t('ui.resetError') as string,
-        description: t('ui.resetErrorDetail') as string,
+        title: t('ui.resetError'),
+        description: t('ui.resetErrorDetail'),
         variant: "destructive",
       });
     }
@@ -254,22 +252,22 @@ const GameScreen = () => {
                   <TabsContent value="resources" className="space-y-4 mt-4">
                     <h4 className="font-semibold">{t('tutorial.resourcesTitle')}</h4>
                     <ul className="space-y-2 text-xs">
-                      <li><strong>{t('resources.knowledge')}</strong> - {(t('tutorial.resourcesList.knowledge') as string)}</li>
-                      <li><strong>{t('resources.usdt')}</strong> - {(t('tutorial.resourcesList.usdt') as string)}</li>
-                      <li><strong>{t('resources.electricity')}</strong> - {(t('tutorial.resourcesList.electricity') as string)}</li>
-                      <li><strong>{t('resources.computingPower')}</strong> - {(t('tutorial.resourcesList.computingPower') as string)}</li>
-                      <li><strong>{t('resources.reputation')}</strong> - {(t('tutorial.resourcesList.reputation') as string)}</li>
+                      <li><strong>{t('resources.knowledge')}</strong> - {t('tutorial.resourcesList.knowledge')}</li>
+                      <li><strong>{t('resources.usdt')}</strong> - {t('tutorial.resourcesList.usdt')}</li>
+                      <li><strong>{t('resources.electricity')}</strong> - {t('tutorial.resourcesList.electricity')}</li>
+                      <li><strong>{t('resources.computingPower')}</strong> - {t('tutorial.resourcesList.computingPower')}</li>
+                      <li><strong>{t('resources.reputation')}</strong> - {t('tutorial.resourcesList.reputation')}</li>
                     </ul>
                   </TabsContent>
                   
                   <TabsContent value="buildings" className="space-y-4 mt-4">
                     <h4 className="font-semibold">{t('tutorial.equipmentTitle')}</h4>
                     <ul className="space-y-2 text-xs">
-                      <li><strong>{(t('buildings.practice.name') as string)}</strong> - {(t('tutorial.equipmentList.practice') as string)}</li>
-                      <li><strong>{(t('buildings.generator.name') as string)}</strong> - {(t('tutorial.equipmentList.generator') as string)}</li>
-                      <li><strong>{(t('buildings.homeComputer.name') as string)}</strong> - {(t('tutorial.equipmentList.homeComputer') as string)}</li>
-                      <li><strong>{(t('buildings.cryptoWallet.name') as string)}</strong> - {(t('tutorial.equipmentList.cryptoWallet') as string)}</li>
-                      <li><strong>{(t('buildings.internetChannel.name') as string)}</strong> - {(t('tutorial.equipmentList.internetChannel') as string)}</li>
+                      <li><strong>{t('buildings.practice.name')}</strong> - {t('tutorial.equipmentList.practice')}</li>
+                      <li><strong>{t('buildings.generator.name')}</strong> - {t('tutorial.equipmentList.generator')}</li>
+                      <li><strong>{t('buildings.homeComputer.name')}</strong> - {t('tutorial.equipmentList.homeComputer')}</li>
+                      <li><strong>{t('buildings.cryptoWallet.name')}</strong> - {t('tutorial.equipmentList.cryptoWallet')}</li>
+                      <li><strong>{t('buildings.internetChannel.name')}</strong> - {t('tutorial.equipmentList.internetChannel')}</li>
                     </ul>
                   </TabsContent>
                 </Tabs>

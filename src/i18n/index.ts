@@ -18,7 +18,10 @@ export const localeNames: Record<SupportedLocale, string> = {
 };
 
 // Тип возвращаемого значения t() функции
-export type TranslationValue = string | string[] | Record<string, any>;
+export type TranslationValue = string;
+
+// Вспомогательный тип для значений в переводах
+export type TranslationRawValue = string | string[] | Record<string, any>;
 
 // Названия всех разделов перевода для автодополнения
 export type TranslationSection = 
@@ -64,6 +67,19 @@ export function getTranslation(
       (str, [paramKey, paramValue]) => str.replace(`{${paramKey}}`, paramValue),
       result
     );
+  }
+  
+  // Принудительно приводим результат к строке, если это не строка
+  if (typeof result !== 'string') {
+    console.warn(`Translation for key ${key} is not a string. Converting to string.`);
+    
+    if (Array.isArray(result)) {
+      return result.join(', ');
+    } else if (result && typeof result === 'object') {
+      return JSON.stringify(result);
+    }
+    
+    return String(result);
   }
   
   return result;
