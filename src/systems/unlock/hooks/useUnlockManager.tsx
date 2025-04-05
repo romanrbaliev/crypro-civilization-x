@@ -4,6 +4,7 @@ import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { normalizeId } from '@/i18n';
 import { GameState } from '@/context/types';
+import { GameContext } from '@/context/GameContext';
 
 // Создаем заглушку состояния для случаев, когда контекст недоступен
 const createEmptyGameState = (): GameState => ({
@@ -49,7 +50,8 @@ const UnlockManagerContext = createContext<UnlockManager | null>(null);
 
 // Провайдер контекста
 export const UnlockManagerProvider = ({ children }: { children: React.ReactNode }) => {
-  const gameContext = useContext(useGame["_context"]); // Получаем напрямую контекст
+  // Получаем контекст игры обычным способом
+  const gameContext = useContext(GameContext);
   const state = gameContext?.state || createEmptyGameState();
   const [unlockManager, setUnlockManager] = useState<UnlockManager | null>(null);
   
