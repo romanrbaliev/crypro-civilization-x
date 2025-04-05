@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NotFound from '@/pages/NotFound';
 import GameScreen from '@/pages/GameScreen';
-import { GameStateProvider } from '@/context/GameStateContext';
 import { I18nProvider } from '@/context/I18nContext';
 import './App.css';
 
@@ -23,17 +22,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <GameStateProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<Navigate to="/game" replace />} />
-              <Route path="/game" element={<GameScreen />} />
-              <Route path="/404" element={<NotFound />} />
-              <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
-          </Router>
-          <Toaster />
-        </GameStateProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Navigate to="/game" replace />} />
+            <Route path="/game" element={<GameScreen />} />
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
+          </Routes>
+        </Router>
+        <Toaster />
       </I18nProvider>
     </QueryClientProvider>
   );

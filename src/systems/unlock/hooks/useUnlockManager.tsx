@@ -14,13 +14,15 @@ export const UnlockManagerProvider = ({ children }: { children: React.ReactNode 
   
   // Инициализируем менеджер разблокировок при изменении состояния игры
   useEffect(() => {
-    const manager = new UnlockManager(state);
-    setUnlockManager(manager);
-  }, [state.version]); // Пересоздаем только при изменении версии состояния
+    if (state) {
+      const manager = new UnlockManager(state);
+      setUnlockManager(manager);
+    }
+  }, [state?.version]); // Пересоздаем только при изменении версии состояния
   
   // Обновляем состояние при изменении игры
   useEffect(() => {
-    if (unlockManager) {
+    if (unlockManager && state) {
       unlockManager.updateGameState(state);
     }
   }, [state, unlockManager]);
@@ -46,7 +48,7 @@ export const useUnlockManager = (): UnlockManager => {
     const { state } = useGame();
     
     // Возвращаем новый экземпляр менеджера
-    return new UnlockManager(state);
+    return new UnlockManager(state || {});
   }
   
   return context;
@@ -61,6 +63,8 @@ export const useUnlockStatus = (itemId: string): boolean => {
   useEffect(() => {
     // Проверяем текущий статус разблокировки
     const checkUnlockStatus = () => {
+      if (!unlockManager) return false;
+      
       // Нормализуем ID для проверки (обрабатываем устаревшие ID)
       const normalizedId = normalizeId(itemId);
       
