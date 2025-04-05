@@ -1,32 +1,24 @@
 
 import { GameState } from '../types';
 
-// Обработка разблокировки фичи
 export const processUnlockFeature = (
   state: GameState,
   payload: { featureId: string }
 ): GameState => {
-  const { featureId } = payload;
-  
   return {
     ...state,
     unlocks: {
       ...state.unlocks,
-      [featureId]: true
+      [payload.featureId]: true
     }
   };
 };
 
-// Обработка разблокировки здания
 export const processSetBuildingUnlocked = (
   state: GameState,
   payload: { buildingId: string; unlocked: boolean }
 ): GameState => {
   const { buildingId, unlocked } = payload;
-  
-  if (!state.buildings[buildingId]) {
-    return state;
-  }
   
   return {
     ...state,
@@ -40,16 +32,11 @@ export const processSetBuildingUnlocked = (
   };
 };
 
-// Обработка разблокировки улучшения
 export const processSetUpgradeUnlocked = (
   state: GameState,
   payload: { upgradeId: string; unlocked: boolean }
 ): GameState => {
   const { upgradeId, unlocked } = payload;
-  
-  if (!state.upgrades[upgradeId]) {
-    return state;
-  }
   
   return {
     ...state,
@@ -63,39 +50,32 @@ export const processSetUpgradeUnlocked = (
   };
 };
 
-// Обработка инкремента счетчика
 export const processIncrementCounter = (
   state: GameState,
   payload: { counterId: string; value?: number }
 ): GameState => {
   const { counterId, value = 1 } = payload;
   
-  // Если счетчик не существует, создаем его
+  // Проверяем существование счетчика
   if (!state.counters[counterId]) {
+    // Создаем новый счетчик, если его не существует
     return {
       ...state,
       counters: {
         ...state.counters,
-        [counterId]: {
-          id: counterId,
-          name: counterId,
-          value: value
-        }
+        [counterId]: { id: counterId, value }
       }
     };
   }
   
-  // Обновляем существующий счетчик
-  const counter = state.counters[counterId];
-  const currentValue = typeof counter === 'number' ? counter : counter.value;
-  
+  // Инкрементируем существующий счетчик
   return {
     ...state,
     counters: {
       ...state.counters,
       [counterId]: {
-        ...(typeof counter === 'object' ? counter : { id: counterId, name: counterId }),
-        value: currentValue + value
+        ...state.counters[counterId],
+        value: state.counters[counterId].value + value
       }
     }
   };

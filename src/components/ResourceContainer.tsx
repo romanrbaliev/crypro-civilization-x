@@ -20,7 +20,7 @@ export function ResourceContainer() {
         {unlockedResources.map((resource) => (
           <div key={resource.id} className="flex justify-between items-center border-b pb-1">
             <div className="flex items-center">
-              <span className="text-sm font-medium">{t(`resources.${resource.id}`)}</span>
+              <span className="text-sm font-medium">{t(`resources.${resource.id}` as const)}</span>
             </div>
             <div className="flex flex-col items-end">
               <span className="text-sm font-bold">{formatNumber(resource.value)}</span>
