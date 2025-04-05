@@ -13,7 +13,7 @@
 }
 
 .tab-button {
-  @apply py-2 px-4 text-base font-medium border-b-2 border-transparent hover:border-gray-300 focus:outline-none;
+  @apply py-2 px-4 font-medium border-b-2 border-transparent hover:border-gray-300 focus:outline-none;
 }
 
 .tab-button.active {
@@ -34,11 +34,11 @@
 }
 
 .resource-name {
-  @apply font-medium text-gray-700;
+  @apply font-medium text-gray-700 text-base;
 }
 
 .resource-value {
-  @apply font-bold text-gray-900;
+  @apply font-bold text-gray-900 text-base;
 }
 
 /* Стили для зданий */
@@ -138,7 +138,7 @@
 
 /* Стили для журнала событий */
 .event-log {
-  @apply mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto;
+  @apply mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto;
 }
 
 .event-log-title {
@@ -165,71 +165,27 @@
   @apply border-red-400;
 }
 
-/* Добавляем стили для корректного отображения размеров шрифтов */
+/* Восстанавливаем правильные размеры шрифтов */
 .tab-button {
   @apply text-base;
 }
 
-.building-name {
-  @apply text-base;
-}
-
-.action-name {
-  @apply text-base;
-}
-
-.upgrade-name {
-  @apply text-base;
-}
-
-.event-log-title {
-  @apply text-base;
-}
-
-/* Настройка размеров шрифтов в контейнерах */
-.game-container p, 
-.game-container div, 
-.game-container span, 
-.game-container button {
-  @apply text-base;
-}
-
-/* Исключения для ресурсов, которые могут иметь свой размер */
-.resource-item p, 
-.resource-item div, 
-.resource-item span {
-  @apply text-sm;
-}
-
-/* Увеличиваем шрифт для значений ресурсов */
-.resource-value {
-  @apply text-base font-bold;
-}
-
-/* Глобальное увеличение размера шрифта для интерфейса игры */
-.action-name,
-.building-name,
-.upgrade-name,
-.event-log-title,
-.resource-name,
+.building-name, 
+.action-name, 
+.upgrade-name, 
+.event-log-title, 
+.resource-name, 
+.resource-value,
 .section-title,
-.dialog-title,
-.dialog-description,
-h3, h4, button {
-  @apply text-base !important;
+h3, h4 {
+  @apply text-base;
 }
 
-/* Применяем выравнивание по левому краю для событий */
+p, div, span, button {
+  @apply text-base;
+}
+
+/* Глобальное выравнивание для журнала событий */
 .event-message {
   @apply text-left !important;
-}
-
-/* Размер для основного текста */
-p, div, span {
-  @apply text-sm;
-}
-
-/* Кнопки в интерфейсе должны иметь корректный размер */
-button {
-  @apply text-sm;
 }

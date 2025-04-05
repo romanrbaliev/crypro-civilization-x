@@ -81,10 +81,10 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   }
 
   return (
-    <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
+    <div className="w-full" ref={resourceRef} title={debugInfo}>
       <div className="flex justify-between items-center mb-0.5">
-        <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{displayName}</div>
-        <div id={`resource-value-${id}`} className="text-gray-600 text-[10px] whitespace-nowrap transition-colors">
+        <div className="font-medium truncate mr-1 max-w-[70%] text-base">{displayName}</div>
+        <div id={`resource-value-${id}`} className="text-gray-600 whitespace-nowrap transition-colors text-base">
           {formattedValue}
           {max !== Infinity && ` / ${formattedMax}`}
         </div>
@@ -93,7 +93,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
       {/* Отображаем скорость только если она не равна нулю */}
       {safePerSecond !== 0 && (
         <div className="flex items-center justify-end">
-          <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
+          <div className={`text-sm ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
             {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
           </div>
         </div>

@@ -23,15 +23,15 @@ const ResourceItem: React.FC<ResourceItemProps> = ({ resource, name }) => {
     <div className="resource-item">
       <div className="flex flex-col w-full">
         <div className="flex justify-between items-center">
-          <span className="resource-name text-base">{name}</span>
-          <span className="resource-value text-base">
+          <span className="resource-name font-medium">{name}</span>
+          <span className="resource-value font-bold">
             {formatNumber(resource.value)}
             {resource.max ? ` / ${formatNumber(resource.max)}` : ''}
           </span>
         </div>
         
         {resource.max > 0 && (
-          <div className="w-full h-1 bg-gray-200 rounded-full mt-1 overflow-hidden">
+          <div className="w-full h-2 bg-gray-200 rounded-full mt-1 overflow-hidden">
             <div 
               className={`h-full ${getProgressClass()}`} 
               style={{ width: `${progress}%` }}
@@ -40,7 +40,7 @@ const ResourceItem: React.FC<ResourceItemProps> = ({ resource, name }) => {
         )}
         
         {resource.perSecond !== undefined && resource.perSecond !== 0 && (
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-sm text-gray-500 mt-1">
             {resource.perSecond > 0 ? '+' : ''}{formatNumber(resource.perSecond)}/сек
           </div>
         )}

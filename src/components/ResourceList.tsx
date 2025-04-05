@@ -18,7 +18,6 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
     .filter(([_, resource]) => resource.unlocked)
     .map(([id, resource]) => ({ id, ...resource }));
   
-  // Проверяем состояние ресурсов для отладки
   console.log('ResourceList: Состояние ресурсов:', 
     unlockedResources.map(r => `${r.id} (unlocked=${r.unlocked}, value=${r.value})`)
   );
@@ -36,7 +35,7 @@ const ResourceList: React.FC<ResourceListProps> = ({ resources }) => {
   if (unlockedResources.length === 0) {
     return (
       <div className="resources-list">
-        <p className="text-gray-500">{t('resources.noResourcesUnlocked')}</p>
+        <p className="text-gray-500">Нет разблокированных ресурсов</p>
       </div>
     );
   }

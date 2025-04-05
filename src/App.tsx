@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -28,7 +28,7 @@ function App() {
         <GameStateProvider>
           <Router>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Navigate to="/game" replace />} />
               <Route path="/game" element={<GameScreen />} />
               <Route path="/game-legacy" element={<Game />} />
               <Route path="/404" element={<NotFound />} />
