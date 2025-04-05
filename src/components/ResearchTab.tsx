@@ -15,15 +15,23 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем действительно безопасный ID с дефолтным значением
-  const researchId = gameIds?.features?.research || 'research';
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем константу вместо undefined
+  const DEFAULT_RESEARCH_ID = 'research';
   
-  // ИСПРАВЛЕНИЕ: Явно логгируем используемый ID
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем наличие gameIds и устанавливаем дефолтное значение
+  const researchId = gameIds?.features?.research || DEFAULT_RESEARCH_ID;
+  
+  // ИСПРАВЛЕНИЕ: Логируем используемый ID
   useEffect(() => {
     console.log("ResearchTab: Используется ID для проверки разблокировки исследований:", researchId);
+    
+    // Проверяем наличие gameIds для отладки
+    if (!gameIds || !gameIds.features) {
+      console.warn("ResearchTab: gameIds или gameIds.features не определены!");
+    }
   }, [researchId]);
   
-  // ИСПРАВЛЕНИЕ: Используем researchId, который теперь никогда не будет undefined
+  // ИСПРАВЛЕНИЕ: Используем researchId, который теперь гарантированно является строкой
   const researchUnlocked = useUnlockStatus(researchId);
   
   // ИСПРАВЛЕНИЕ: Усиленное логгирование для отладки
@@ -44,7 +52,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     // Создаем нормализованную копию исследований
     const normalizedUpgrades = { ...state.upgrades };
     
-    // Проверяем наличие исследования Основы блокчейна
+    // ИСПРАВЛЕНИЕ: Используем гарантированно строковый ID
     const blockchainBasicsId = gameIds?.upgrades?.blockchainBasics || 'blockchainBasics';
     
     // Проверяем все возможные устаревшие ID для совместимости

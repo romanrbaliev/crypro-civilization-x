@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
@@ -51,11 +52,12 @@ const GameScreen = () => {
   const { toast } = useToast();
   const { t } = useI18nContext();
   
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Гарантируем, что ID функций будут строками, даже если gameIds не определен
   const featureIds = useMemo(() => ({
-    equipment: 'equipment',
-    research: 'research',
-    specialization: 'specialization',
-    referrals: 'referrals'
+    equipment: gameIds?.features?.equipment || 'equipment',
+    research: gameIds?.features?.research || 'research',
+    specialization: gameIds?.features?.specialization || 'specialization',
+    referrals: gameIds?.features?.referrals || 'referrals'
   }), []);
   
   useEffect(() => {
@@ -64,10 +66,11 @@ const GameScreen = () => {
     if (gameIds?.features) {
       console.log("GameScreen: ID функций из gameIds:", gameIds.features);
     } else {
-      console.log("GameScreen: gameIds.features не определены!");
+      console.log("GameScreen: gameIds.features не определены, используем дефолтные значения");
     }
   }, [featureIds]);
   
+  // После объявления ID проверяем их разблокировку
   const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment);
   const hasUnlockedResearch = useUnlockStatus(featureIds.research);
   const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization); 

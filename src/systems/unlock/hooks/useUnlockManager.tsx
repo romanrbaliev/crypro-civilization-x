@@ -112,13 +112,14 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
-  // ИСПРАВЛЕНИЕ: Используем пустую строку вместо undefined и защищаем от null
+  // ИСПРАВЛЕНИЕ: Принудительно преобразуем itemId в строку, никогда не дадим ему быть undefined
   const safeItemId = itemId || '';
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Полностью переработанный хук useMemo для избежания ошибок с undefined
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем безопасную реализацию useMemo, которая гарантирует, 
+  // что зависимости никогда не будут undefined
   const normalizedItemId = useMemo(() => {
     try {
-      // Проверяем, что safeItemId - это не пустая строка
+      // Проверяем наличие safeItemId
       if (!safeItemId) {
         console.log("useUnlockStatus: Обнаружен пустой ID, пропуск нормализации");
         return '';
@@ -127,14 +128,14 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
       // Безопасно нормализуем ID
       const normalized = normalizeId(safeItemId);
       console.log(`useUnlockStatus: Нормализация ID ${safeItemId} -> ${normalized}`);
-      return normalized;
+      return normalized || ''; // Добавляем fallback к пустой строке
     } catch (error) {
       console.error("Ошибка нормализации ID:", error, "для itemId:", safeItemId);
       return '';
     }
-  }, [safeItemId]); // Только safeItemId в зависимостях
+  }, [safeItemId]); // Явно указываем зависимости
   
-  // ИСПРАВЛЕНИЕ: Улучшенный checkUnlockStatus с дополнительными проверками
+  // ИСПРАВЛЕНИЕ: Оптимизированный checkUnlockStatus с защитой от ошибок
   const checkUnlockStatus = useCallback(() => {
     try {
       // Пропускаем проверку для пустых ID
@@ -183,7 +184,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
       // Нормализуем ID из события
       let normalizedEventId;
       try {
-        normalizedEventId = normalizeId(eventId);
+        normalizedEventId = normalizeId(eventId) || ''; // Добавлен fallback к пустой строке
       } catch (error) {
         console.error("Ошибка нормализации eventId:", error);
         return;
@@ -204,6 +205,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     try {
       // Пропускаем эффект для пустых ID
       if (!normalizedItemId) {
+        console.log("useUnlockStatus: Пропуск эффекта для пустого ID");
         return;
       }
       
