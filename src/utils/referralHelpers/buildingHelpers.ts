@@ -1,5 +1,5 @@
-
-import { Building, ReferralHelper } from '@/context/types';
+import { Building } from '@/context/types';
+import { ReferralHelper } from '@/context/types';
 
 // Функции для работы с зданиями в контексте помощников
 

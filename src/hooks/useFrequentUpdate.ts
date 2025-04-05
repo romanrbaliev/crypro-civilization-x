@@ -1,5 +1,4 @@
-
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { GameDispatch } from '@/context/types';
 

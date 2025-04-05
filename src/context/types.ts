@@ -54,6 +54,35 @@ export interface Upgrade {
   requiredUpgrades?: string[];
 }
 
+export interface SpecializationSynergy {
+  id: string;
+  name: string;
+  description: string;
+  unlocked: boolean;
+  active: boolean;
+  requiredSpecializations: string[];
+  bonus: { [key: string]: number | string | boolean };
+}
+
+export interface ReferralHelper {
+  id: string;
+  userId: string;
+  name: string;
+  level: number;
+  status: string;
+  assignedTo?: string;
+  productivity: number;
+  specialization?: string;
+  createdAt: number;
+}
+
+export interface GameEvent {
+  id: string;
+  type: string;
+  message: string;
+  timestamp: number;
+}
+
 // Тип для игрового состояния
 export interface GameState {
   gameStarted: boolean;
@@ -81,12 +110,27 @@ export interface GameState {
     networkDifficulty?: number;
     volatility?: number;
   };
+  specializationSynergies?: Record<string, SpecializationSynergy>;
   specializations?: Record<string, any>;
   synergies?: Record<string, any>;
   referralCode?: string | null;
   referrals?: any[];
-  referralHelpers?: any[];
+  referralHelpers?: ReferralHelper[];
   player?: Record<string, any>;
+  stats?: Record<string, number>;
+  effects?: Record<string, number>;
+  research?: Record<string, any>;
+  gameTime?: number;
+}
+
+// Типы для контекста игры
+export type GameDispatch = React.Dispatch<GameAction>;
+
+export interface GameContextProps {
+  state: GameState;
+  dispatch: GameDispatch;
+  forceUpdate: () => void;
+  isPageVisible: boolean;
 }
 
 // Типы действий для редьюсера

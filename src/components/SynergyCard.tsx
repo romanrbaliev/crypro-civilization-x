@@ -42,7 +42,7 @@ const SynergyCard: React.FC<SynergyCardProps> = ({ synergy, onActivate }) => {
       <ul>
         {Object.entries(synergy.bonus).map(([key, value]) => (
           <li key={key} className="text-xs">
-            {key}: {value}
+            {key}: {String(value)}
           </li>
         ))}
       </ul>
