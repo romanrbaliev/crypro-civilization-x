@@ -1,5 +1,5 @@
 
-import { useContext, createContext, useEffect, useState, useMemo } from 'react';
+import { useContext, createContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { normalizeId } from '@/i18n';
@@ -103,36 +103,35 @@ export const useUnlockStatus = (itemId: string): boolean => {
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
-  // Нормализуем ID для проверки и мемоизируем его
-  const normalizedItemId = useMemo(() => normalizeId(itemId), [itemId]);
+  // Защита от undefined itemId
+  const safeItemId = itemId || '';
   
-  // Мемоизируем функцию проверки статуса разблокировки
-  const checkUnlockStatus = useMemo(() => {
-    return () => {
-      if (!unlockManager) return false;
-      
-      // Получаем результат проверки
-      const status = unlockManager.isUnlocked(normalizedItemId);
-      setIsUnlocked(status);
-    };
+  // Нормализуем ID для проверки и мемоизируем его
+  const normalizedItemId = useMemo(() => normalizeId(safeItemId), [safeItemId]);
+  
+  // Проверка статуса разблокировки
+  const checkUnlockStatus = useCallback(() => {
+    if (!unlockManager) return false;
+    
+    // Получаем результат проверки
+    const status = unlockManager.isUnlocked(normalizedItemId);
+    setIsUnlocked(status);
   }, [unlockManager, normalizedItemId]);
   
   // Мемоизируем обработчик событий разблокировки
-  const handleUnlockEvent = useMemo(() => {
-    return (event: Event) => {
-      if (event instanceof CustomEvent) {
-        // Нормализуем ID для сравнения
-        const eventId = event.detail?.itemId;
-        if (!eventId) return;
-        
-        const normalizedEventId = normalizeId(eventId);
-        
-        // Проверяем совпадение после нормализации
-        if (normalizedEventId === normalizedItemId) {
-          checkUnlockStatus();
-        }
+  const handleUnlockEvent = useCallback((event: Event) => {
+    if (event instanceof CustomEvent && event.detail) {
+      // Нормализуем ID для сравнения
+      const eventId = event.detail?.itemId || '';
+      if (!eventId) return;
+      
+      const normalizedEventId = normalizeId(eventId);
+      
+      // Проверяем совпадение после нормализации
+      if (normalizedEventId === normalizedItemId) {
+        checkUnlockStatus();
       }
-    };
+    }
   }, [checkUnlockStatus, normalizedItemId]);
   
   // Эффект для проверки статуса разблокировки и подписки на события
@@ -161,7 +160,7 @@ export const UnlockedContent = ({
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) => {
-  const isUnlocked = useUnlockStatus(itemId);
+  const isUnlocked = useUnlockStatus(itemId || ''); // Защита от undefined
   
   return isUnlocked ? <>{children}</> : <>{fallback}</>;
 };

@@ -54,10 +54,10 @@ const GameScreen = () => {
   
   // Используем useMemo для мемоизации ID фич, чтобы избежать лишних перерендеров
   const featureIds = useMemo(() => ({
-    equipment: gameIds.features.equipment,
-    research: gameIds.features.research,
-    specialization: gameIds.features.specialization,
-    referrals: gameIds.features.referrals
+    equipment: gameIds.features.equipment || 'equipment',
+    research: gameIds.features.research || 'research',
+    specialization: gameIds.features.specialization || 'specialization',
+    referrals: gameIds.features.referrals || 'referrals'
   }), []);
   
   // Проверяем разблокировку различных функций
@@ -73,31 +73,36 @@ const GameScreen = () => {
   
   // Обрабатываем изменения разблокировок
   useEffect(() => {
-    console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
+    console.log("Текущие разблокированные функции:", 
+      Object.entries(state.unlocks || {})
+        .filter(([_, v]) => v)
+        .map(([k]) => k)
+        .join(', '));
     
     dispatch({ type: "FORCE_RESOURCE_UPDATE" });
   }, [state.unlocks, dispatch]);
   
   // Обрабатываем разблокировку вкладки оборудования
   useEffect(() => {
-    const buildingsUnlockedCount = state.counters.buildingsUnlocked ? 
-      (typeof state.counters.buildingsUnlocked === 'number' ? 
-        state.counters.buildingsUnlocked : 
-        state.counters.buildingsUnlocked.value) : 0;
+    const buildingsUnlocked = state.counters?.buildingsUnlocked;
+    const buildingsUnlockedCount = buildingsUnlocked ? 
+      (typeof buildingsUnlocked === 'number' ? 
+        buildingsUnlocked : 
+        (buildingsUnlocked.value || 0)) : 0;
     
     console.log("GameScreen: Счетчик разблокированных зданий =", buildingsUnlockedCount);
     
-    const unlockedBuildings = Object.values(state.buildings).filter(b => b.unlocked);
+    const unlockedBuildings = Object.values(state.buildings || {}).filter(b => b?.unlocked);
     console.log("GameScreen: Разблокированные здания:", unlockedBuildings.map(b => b.id));
     
-    if (unlockedBuildings.length > 0 && !state.unlocks.equipment) {
+    if (unlockedBuildings.length > 0 && !state.unlocks?.equipment) {
       console.log("GameScreen: Принудительная разблокировка вкладки оборудования");
       dispatch({ 
         type: "UNLOCK_FEATURE", 
         payload: { featureId: featureIds.equipment } 
       });
     }
-  }, [state.buildings, state.unlocks.equipment, dispatch, featureIds.equipment]);
+  }, [state.buildings, state.unlocks, dispatch, featureIds.equipment]);
   
   // Функция добавления события в лог
   const addEvent = useCallback((message: string, type: GameEvent["type"] = "info") => {
@@ -165,18 +170,18 @@ const GameScreen = () => {
   
   // Принудительная проверка разблокировок при загрузке
   useEffect(() => {
-    if (state.buildings.generator?.count > 0 && !state.unlocks.research) {
+    if (state.buildings?.generator?.count > 0 && !state.unlocks?.research) {
       console.log("GameScreen: Принудительная проверка разблокировок при первичной загрузке");
       
       const unlockService = new UnlockService();
       const updatedState = unlockService.checkAllUnlocks(state);
       
-      if (updatedState.unlocks.research !== state.unlocks.research) {
+      if (updatedState.unlocks?.research !== state.unlocks?.research) {
         console.log("GameScreen: Обнаружено изменение разблокировок, применяем");
         dispatch({ type: "FORCE_RESOURCE_UPDATE" });
       }
     }
-  }, [state.buildings.generator?.count, state.unlocks.research, state, dispatch]);
+  }, [state.buildings?.generator?.count, state.unlocks?.research, state, dispatch]);
   
   // Обработчики событий UI
   const handleResetGame = useCallback(() => {
