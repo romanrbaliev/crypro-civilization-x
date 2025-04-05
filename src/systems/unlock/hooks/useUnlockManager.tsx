@@ -2,6 +2,7 @@
 import { useContext, createContext, useEffect, useState } from 'react';
 import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
+import { normalizeId } from '@/i18n';
 
 // Создаем контекст для предоставления доступа к менеджеру разблокировок
 const UnlockManagerContext = createContext<UnlockManager | null>(null);
@@ -60,20 +61,12 @@ export const useUnlockStatus = (itemId: string): boolean => {
   useEffect(() => {
     // Проверяем текущий статус разблокировки
     const checkUnlockStatus = () => {
-      // ИСПРАВЛЕНИЕ: Особая обработка для "Основы блокчейна"
-      if (itemId === 'blockchainBasics' || itemId === 'blockchain_basics' || itemId === 'basicBlockchain') {
-        // Проверяем все возможные ID
-        const blockchainBasicsExists = 
-          state.upgrades['blockchainBasics']?.unlocked || 
-          state.upgrades['blockchain_basics']?.unlocked || 
-          state.upgrades['basicBlockchain']?.unlocked;
-          
-        setIsUnlocked(blockchainBasicsExists);
-      } else {
-        // Для всех остальных элементов используем стандартную проверку
-        const status = unlockManager.isUnlocked(itemId);
-        setIsUnlocked(status);
-      }
+      // Нормализуем ID для проверки (обрабатываем устаревшие ID)
+      const normalizedId = normalizeId(itemId);
+      
+      // Получаем результат проверки
+      const status = unlockManager.isUnlocked(normalizedId);
+      setIsUnlocked(status);
     };
     
     // Проверяем при монтировании и при изменении зависимостей
@@ -82,14 +75,13 @@ export const useUnlockStatus = (itemId: string): boolean => {
     // Подписываемся на события разблокировки
     const handleUnlockEvent = (event: Event) => {
       if (event instanceof CustomEvent) {
-        // Особая обработка для "Основы блокчейна"
-        if (itemId === 'blockchainBasics' || itemId === 'blockchain_basics' || itemId === 'basicBlockchain') {
-          if (['blockchainBasics', 'blockchain_basics', 'basicBlockchain'].includes(event.detail?.itemId)) {
-            checkUnlockStatus();
-          }
-        }
-        // Для остальных элементов - только точное совпадение ID
-        else if (event.detail?.itemId === itemId) {
+        // Нормализуем ID для сравнения
+        const eventId = event.detail?.itemId;
+        const normalizedEventId = normalizeId(eventId);
+        const normalizedItemId = normalizeId(itemId);
+        
+        // Проверяем совпадение после нормализации
+        if (normalizedEventId === normalizedItemId) {
           checkUnlockStatus();
         }
       }

@@ -4,6 +4,8 @@ import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
 import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
+import { useI18nContext } from "@/context/I18nContext";
+import { gameIds, normalizeId } from "@/i18n";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -11,9 +13,10 @@ interface ResearchTabProps {
 
 const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
+  const { t } = useI18nContext();
   
-  // Используем новую систему разблокировок
-  const researchUnlocked = useUnlockStatus('research');
+  // Используем новую систему разблокировок с унифицированными ID
+  const researchUnlocked = useUnlockStatus(gameIds.features.research);
   
   // Расширенные диагностические логи для отслеживания проблемы
   useEffect(() => {
@@ -21,42 +24,43 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     console.log("ResearchTab: total upgrades =", Object.keys(state.upgrades || {}).length);
     console.log("ResearchTab: upgrades keys =", Object.keys(state.upgrades || {}));
     
-    // Проверяем наличие ВСЕХ возможных вариантов ID для "Основы блокчейна"
-    const possibleBlockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
-    console.log("ResearchTab: Проверка всех возможных ID для 'Основы блокчейна'");
-    
-    for (const id of possibleBlockchainBasicsIds) {
-      if (state.upgrades && state.upgrades[id]) {
-        console.log(`ResearchTab: ${id} exists = true, unlocked = ${state.upgrades[id].unlocked}, purchased = ${state.upgrades[id].purchased}`);
-      } else {
-        console.log(`ResearchTab: ${id} does not exist in state.upgrades`);
-      }
-    }
+    // Проверяем наличие блокчейн-исследования
+    console.log("ResearchTab: Проверка blockchainBasics", 
+      state.upgrades[gameIds.upgrades.blockchainBasics] ? 
+      `exists, unlocked=${state.upgrades[gameIds.upgrades.blockchainBasics].unlocked}` : 
+      "not exists");
     
     // Проверяем общее состояние системы разблокировок
     console.log("ResearchTab: Разблокировки (unlocks):", state.unlocks);
   }, [state.upgrades, researchUnlocked, state.unlocks]);
   
-  // Безопасно фильтруем исследования с явной проверкой на null/undefined
-  // ВАЖНОЕ ИСПРАВЛЕНИЕ: Проверяем все возможные ID для "Основы блокчейна"
-  const getUpgradesByAllPossibleIds = () => {
-    // Создаем нормализованную мапу исследований, учитывая все варианты ID
+  // Безопасно получаем нормализованные исследования, используя единую систему ID
+  const getNormalizedUpgrades = () => {
+    // Создаем нормализованную копию исследований
     const normalizedUpgrades = { ...state.upgrades };
     
-    // Проверяем наличие базовых исследований с разными ID, но выбираем единый ID
-    const blockchainBasicsIds = ['blockchainBasics', 'blockchain_basics', 'basicBlockchain'];
+    // Проверяем наличие исследования Основы блокчейна с новым стандартизированным ID
+    const blockchainBasicsId = gameIds.upgrades.blockchainBasics;
+    
+    // Проверяем все возможные устаревшие ID для совместимости
+    const possibleBlockchainBasicsIds = [
+      blockchainBasicsId, 
+      'blockchain_basics', 
+      'basicBlockchain'
+    ];
+    
     let foundBlockchainBasics = false;
     
-    for (const id of blockchainBasicsIds) {
+    for (const id of possibleBlockchainBasicsIds) {
       if (normalizedUpgrades[id] && normalizedUpgrades[id].unlocked) {
         foundBlockchainBasics = true;
         console.log(`ResearchTab: Найдено исследование Основы блокчейна с ID ${id}`);
         
-        // Принудительно добавляем в основной ID, если его нет
-        if (!normalizedUpgrades['blockchainBasics']) {
-          normalizedUpgrades['blockchainBasics'] = {
+        // Нормализуем ID в стандартный формат
+        if (id !== blockchainBasicsId) {
+          normalizedUpgrades[blockchainBasicsId] = {
             ...normalizedUpgrades[id],
-            id: 'blockchainBasics'
+            id: blockchainBasicsId
           };
         }
       }
@@ -66,7 +70,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   };
   
   // Получаем нормализованные исследования
-  const normalizedUpgrades = getUpgradesByAllPossibleIds();
+  const normalizedUpgrades = getNormalizedUpgrades();
   
   // Фильтруем разблокированные и приобретенные исследования
   const unlockedUpgrades = Object.entries(normalizedUpgrades)
@@ -99,8 +103,8 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       <div className="text-center py-6 text-gray-500">
         <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
         <p className="text-xs">
-          Исследования пока недоступны.<br />
-          Продолжайте развиваться для открытия новых технологий.
+          {t('research.researchUnavailable')}<br />
+          {t('research.researchUnavailableDetail')}
         </p>
       </div>
     );
@@ -112,15 +116,15 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         <div className="text-center py-6 text-gray-500">
           <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
           <p className="text-xs">
-            Исследования пока недоступны.<br />
-            Продолжайте развиваться для открытия новых технологий.
+            {t('research.noAvailableResearch')}<br />
+            {t('research.noAvailableResearchDetail')}
           </p>
         </div>
       ) : (
         <>
           {unlockedUpgrades.length > 0 && (
             <div className="mb-4">
-              <h2 className="text-sm font-medium mb-2">Доступные исследования</h2>
+              <h2 className="text-sm font-medium mb-2">{t('research.availableResearch')}</h2>
               <div className="space-y-1">
                 {unlockedUpgrades.map(upgrade => (
                   <UpgradeItem 
@@ -135,7 +139,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
           
           {purchasedUpgrades.length > 0 && (
             <div>
-              <h2 className="text-sm font-medium mb-2">Завершенные исследования</h2>
+              <h2 className="text-sm font-medium mb-2">{t('research.completedResearch')}</h2>
               <div className="space-y-1">
                 {purchasedUpgrades.map(upgrade => (
                   <UpgradeItem 

@@ -5,6 +5,8 @@ import { formatNumberWithAbbreviation, numberWithCommas } from "@/utils/formatte
 import { calculateResourceMaxValue } from "@/utils/resourceCalculator";
 import { Button } from "@/components/ui/button";
 import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
+import { useI18nContext } from "@/context/I18nContext";
+import { gameIds } from "@/i18n";
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
@@ -12,20 +14,21 @@ interface ActionButtonsProps {
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
+  const { t } = useI18nContext();
   
-  // Используем новую систему разблокировок
+  // Используем новую систему разблокировок с унифицированными ID
   const isApplyAllKnowledgeUnlocked = true; // Доступно с самого начала
-  const isExchangeBtcUnlocked = useUnlockStatus('exchangeBtc');
+  const isExchangeBtcUnlocked = useUnlockStatus(gameIds.features.exchangeBtc);
   
   const knowledge = state.resources.knowledge?.value || 0;
-  const knowledgeMax = calculateResourceMaxValue(state, 'knowledge');
+  const knowledgeMax = calculateResourceMaxValue(state, gameIds.resources.knowledge);
   const bitcoin = state.resources.bitcoin?.value || 0;
   const usdt = state.resources.usdt?.value || 0;
-  const usdtMax = calculateResourceMaxValue(state, 'usdt');
+  const usdtMax = calculateResourceMaxValue(state, gameIds.resources.usdt);
   const canApplyKnowledge = knowledge >= 10;
   
   const handleStudyClick = () => {
-    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: "knowledge", amount: 1 } });
+    dispatch({ type: "INCREMENT_RESOURCE", payload: { resourceId: gameIds.resources.knowledge, amount: 1 } });
     
     // Увеличиваем счетчик кликов
     dispatch({ 
@@ -39,13 +42,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   
   const handleApplyAllKnowledge = () => {
     if (canApplyKnowledge) {
-      // ИСПРАВЛЕНИЕ: Сначала отправляем действие INCREMENT_COUNTER, потом APPLY_ALL_KNOWLEDGE
-      // Это гарантирует, что счетчик увеличится только один раз до применения знаний
-      
       // Увеличиваем счетчик применений знаний ровно на 1
       dispatch({ 
         type: "INCREMENT_COUNTER", 
-        payload: { counterId: "applyKnowledge", value: 1 } 
+        payload: { counterId: gameIds.actions.applyKnowledge, value: 1 } 
       });
       
       // Применяем знания
@@ -53,7 +53,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
       
       console.log("handleApplyAllKnowledge: Увеличение счетчика applyKnowledge на 1");
       
-      onAddEvent(`Все знания применены! Получено USDT`, "success");
+      onAddEvent(t('events.knowledgeApplied') as string, "success");
       
       // Проверяем разблокировки после применения знаний
       dispatch({ type: "FORCE_CHECK_UNLOCKS" });
@@ -63,7 +63,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const handleExchangeBTC = () => {
     if (bitcoin > 0) {
       dispatch({ type: "EXCHANGE_BTC" });
-      onAddEvent(`BTC обменяны на USDT по текущему курсу`, "success");
+      onAddEvent(t('events.btcExchanged') as string, "success");
       
       // Проверяем разблокировки после обмена
       dispatch({ type: "FORCE_CHECK_UNLOCKS" });
@@ -82,7 +82,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
             onClick={handleExchangeBTC}
             disabled={bitcoin <= 0}
           >
-            Обменять BTC
+            {t('actions.exchangeBTC')}
           </Button>
         )}
         
@@ -94,7 +94,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
             onClick={handleApplyAllKnowledge}
             disabled={!canApplyKnowledge}
           >
-            Применить знания
+            {t('actions.applyKnowledge')}
           </Button>
         )}
         
@@ -105,7 +105,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
           className="border-gray-200 text-gray-900"
           onClick={handleStudyClick}
         >
-          Изучить крипту
+          {t('actions.learnCrypto')}
         </Button>
       </div>
       

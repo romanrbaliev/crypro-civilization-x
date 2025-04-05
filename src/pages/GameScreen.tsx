@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +17,9 @@ import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
 import { UnlockService } from "@/services/UnlockService";
 import { useToast } from "@/hooks/use-toast";
 import UnlockStatusPopup from "@/components/UnlockStatusPopup";
+import LanguageSelector from "@/components/LanguageSelector";
+import { useI18nContext } from "@/context/I18nContext";
+import { gameIds } from "@/i18n";
 import {
   Dialog,
   DialogContent,
@@ -49,11 +53,13 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const { toast } = useToast();
+  const { t } = useI18nContext();
   
-  const hasUnlockedEquipment = state.unlocks.equipment === true;
-  const hasUnlockedResearch = state.unlocks.research === true;
-  const hasUnlockedSpecialization = state.unlocks.specialization === true;
-  const hasUnlockedReferrals = state.unlocks.referrals === true;
+  // Используем унифицированные ID для проверки разблокировок
+  const hasUnlockedEquipment = useUnlockStatus(gameIds.features.equipment);
+  const hasUnlockedResearch = useUnlockStatus(gameIds.features.research);
+  const hasUnlockedSpecialization = useUnlockStatus(gameIds.features.specialization);
+  const hasUnlockedReferrals = useUnlockStatus(gameIds.features.referrals);
   
   console.log("GameScreen: Состояние вкладок:", {
     equipment: hasUnlockedEquipment,
@@ -87,7 +93,7 @@ const GameScreen = () => {
       console.log("GameScreen: Принудительная разблокировка вкладки оборудования");
       dispatch({ 
         type: "UNLOCK_FEATURE", 
-        payload: { featureId: "equipment" } 
+        payload: { featureId: gameIds.features.equipment } 
       });
     }
   }, [state.buildings, state.unlocks.equipment, dispatch]);
@@ -170,15 +176,15 @@ const GameScreen = () => {
   const handleResetGame = () => {
     dispatch({ type: "RESET_GAME" });
     setResetConfirmOpen(false);
-    addEvent("Игра полностью сброшена", "info");
+    addEvent(t('events.gameReset') as string, "info");
   };
   
   const handleResetAll = async () => {
     try {
       localStorage.clear();
       toast({
-        title: "Сброс выполнен",
-        description: "Все сохранения успешно удалены. Страница будет перезагружена.",
+        title: t('ui.resetSuccess') as string,
+        description: t('ui.resetSuccessDetail') as string,
         variant: "success",
       });
       
@@ -187,16 +193,14 @@ const GameScreen = () => {
       }, 1500);
     } catch (error) {
       toast({
-        title: "Ошибка сброса",
-        description: "Не удалось удалить сохранения игры.",
+        title: t('ui.resetError') as string,
+        description: t('ui.resetErrorDetail') as string,
         variant: "destructive",
       });
     }
   };
   
-  const renderTabButton = (id: string, label: string, icon: React.ReactNode, isUnlocked: boolean) => {
-    console.log(`Вкладка ${id}: разблокирована = ${isUnlocked}, выбрана = ${selectedTab === id}`);
-    
+  const renderTabButton = (id: string, labelKey: string, icon: React.ReactNode, isUnlocked: boolean) => {
     if (!isUnlocked) return null;
     
     return (
@@ -206,7 +210,7 @@ const GameScreen = () => {
         onClick={() => setSelectedTab(id)}
       >
         {icon}
-        {label}
+        {t(`tabs.${labelKey}`)}
       </Button>
     );
   };
@@ -222,53 +226,50 @@ const GameScreen = () => {
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  Как играть
+                  {t('ui.howToPlay')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Как играть в Crypto Civilization</DialogTitle>
+                  <DialogTitle>{t('tutorial.title')}</DialogTitle>
                   <DialogDescription>
-                    Руководство по основным механикам игры
+                    {t('tutorial.description')}
                   </DialogDescription>
                 </DialogHeader>
                 
                 <Tabs defaultValue="basics">
                   <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="basics">Основы</TabsTrigger>
-                    <TabsTrigger value="resources">Ресурсы</TabsTrigger>
-                    <TabsTrigger value="buildings">Оборудование</TabsTrigger>
+                    <TabsTrigger value="basics">{t('tutorial.basics')}</TabsTrigger>
+                    <TabsTrigger value="resources">{t('tutorial.resources')}</TabsTrigger>
+                    <TabsTrigger value="buildings">{t('tutorial.buildings')}</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="basics" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Начало игры</h4>
-                    <p className="text-sm">
-                      1. Начните с изучения основ криптовалют, нажимая на кнопку "Изучить крипту".<br />
-                      2. Накопив достаточно знаний, вы сможете применить их для получения USDT.<br />
-                      3. Используйте USDT для приобретения оборудования, которое будет автоматически генерировать ресурсы.<br />
-                      4. Постепенно открывайте новые механики и возможности по мере развития.
+                    <h4 className="font-semibold">{t('tutorial.startGame')}</h4>
+                    <p className="text-xs whitespace-pre-line">
+                      {t('tutorial.startGameSteps')}
                     </p>
                   </TabsContent>
                   
                   <TabsContent value="resources" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Основные ресурсы</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li><strong>Знания о крипте</strong> - базовый ресурс для исследований и обмена на USDT.</li>
-                      <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
-                      <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
-                      <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
-                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
+                    <h4 className="font-semibold">{t('tutorial.resourcesTitle')}</h4>
+                    <ul className="space-y-2 text-xs">
+                      <li><strong>{t('resources.knowledge')}</strong> - {(t('tutorial.resourcesList.knowledge') as string)}</li>
+                      <li><strong>{t('resources.usdt')}</strong> - {(t('tutorial.resourcesList.usdt') as string)}</li>
+                      <li><strong>{t('resources.electricity')}</strong> - {(t('tutorial.resourcesList.electricity') as string)}</li>
+                      <li><strong>{t('resources.computingPower')}</strong> - {(t('tutorial.resourcesList.computingPower') as string)}</li>
+                      <li><strong>{t('resources.reputation')}</strong> - {(t('tutorial.resourcesList.reputation') as string)}</li>
                     </ul>
                   </TabsContent>
                   
                   <TabsContent value="buildings" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">Типы оборудования</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li><strong>Практика</strong> - автоматически генерирует знания о криптовалютах.</li>
-                      <li><strong>Генератор</strong> - производит электричество для ваших устройств.</li>
-                      <li><strong>Домашний компьютер</strong> - обеспечивает вычислительную мощность.</li>
-                      <li><strong>Криптокошелек</strong> - увеличивает максимальное хранение USDT.</li>
-                      <li><strong>Интернет-канал</strong> - ускоряет получение знаний.</li>
+                    <h4 className="font-semibold">{t('tutorial.equipmentTitle')}</h4>
+                    <ul className="space-y-2 text-xs">
+                      <li><strong>{(t('buildings.practice.name') as string)}</strong> - {(t('tutorial.equipmentList.practice') as string)}</li>
+                      <li><strong>{(t('buildings.generator.name') as string)}</strong> - {(t('tutorial.equipmentList.generator') as string)}</li>
+                      <li><strong>{(t('buildings.homeComputer.name') as string)}</strong> - {(t('tutorial.equipmentList.homeComputer') as string)}</li>
+                      <li><strong>{(t('buildings.cryptoWallet.name') as string)}</strong> - {(t('tutorial.equipmentList.cryptoWallet') as string)}</li>
+                      <li><strong>{(t('buildings.internetChannel.name') as string)}</strong> - {(t('tutorial.equipmentList.internetChannel') as string)}</li>
                     </ul>
                   </TabsContent>
                 </Tabs>
@@ -278,22 +279,22 @@ const GameScreen = () => {
             <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  Сбросить прогресс
+                  {t('ui.resetProgress')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Сбросить прогресс?</DialogTitle>
+                  <DialogTitle>{t('ui.resetProgress')}?</DialogTitle>
                   <DialogDescription>
-                    Это действие удалит все ваши достижения и начнет игру заново. Это действие нельзя отменить.
+                    {t('ui.resetConfirmation')}
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setResetConfirmOpen(false)}>
-                    Отмена
+                    {t('ui.cancel')}
                   </Button>
                   <Button variant="destructive" onClick={handleResetGame}>
-                    Сбросить игру
+                    {t('ui.confirm')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -303,18 +304,23 @@ const GameScreen = () => {
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
                   <Settings className="h-3.5 w-3.5 mr-1" />
-                  Настройки
+                  {t('ui.settings')}
                 </Button>
               </SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Настройки</SheetTitle>
+                  <SheetTitle>{t('ui.settings')}</SheetTitle>
                   <SheetDescription>
-                    Управление игрой и дополнительные опции
+                    {t('ui.settings')}
                   </SheetDescription>
                 </SheetHeader>
                 <div className="py-4">
-                  <h3 className="font-medium mb-2">Настройки игры</h3>
+                  <h3 className="font-medium mb-2">{t('ui.language')}</h3>
+                  <div className="flex gap-2 mb-4">
+                    <LanguageSelector variant="outline" />
+                  </div>
+                  
+                  <h3 className="font-medium mb-2">{t('ui.settings')}</h3>
                   <div className="space-y-2">
                     <Button
                       variant="outline"
@@ -322,7 +328,7 @@ const GameScreen = () => {
                       onClick={() => setResetConfirmOpen(true)}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Сбросить прогресс
+                      {t('ui.resetProgress')}
                     </Button>
                     <Button
                       variant="outline"
@@ -330,7 +336,7 @@ const GameScreen = () => {
                       onClick={() => dispatch({ type: "FORCE_RESOURCE_UPDATE" })}
                     >
                       <Info className="h-4 w-4 mr-2" />
-                      Проверить разблокировки
+                      {t('actions.checkUnlocks')}
                     </Button>
                   </div>
                   
@@ -338,7 +344,7 @@ const GameScreen = () => {
                   
                   <h3 className="font-medium mb-2">О игре</h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    Версия: 0.1.0 (Альфа)<br />
+                    {t('ui.version')}: 0.1.0 (Альфа)<br />
                     © 2023 Crypto Civilization
                   </p>
                 </div>
@@ -357,10 +363,10 @@ const GameScreen = () => {
           
           <div className="border-t mt-auto">
             <div className="flex flex-col">
-              {renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />, hasUnlockedEquipment)}
-              {renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />, hasUnlockedResearch)}
-              {renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />, hasUnlockedSpecialization)}
-              {renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />, hasUnlockedReferrals)}
+              {renderTabButton("equipment", "equipment", <Building className="h-3 w-3 mr-2" />, hasUnlockedEquipment)}
+              {renderTabButton("research", "research", <Lightbulb className="h-3 w-3 mr-2" />, hasUnlockedResearch)}
+              {renderTabButton("specialization", "specialization", <User className="h-3 w-3 mr-2" />, hasUnlockedSpecialization)}
+              {renderTabButton("referrals", "referrals", <Users className="h-3 w-3 mr-2" />, hasUnlockedReferrals)}
             </div>
           </div>
         </div>
