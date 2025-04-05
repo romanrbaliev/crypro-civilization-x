@@ -106,12 +106,16 @@ export const useUnlockStatus = (itemId: string): boolean => {
   // Защита от undefined itemId
   const safeItemId = itemId || '';
   
-  // Нормализуем ID для проверки и мемоизируем его
-  const normalizedItemId = useMemo(() => normalizeId(safeItemId), [safeItemId]);
+  // ИСПРАВЛЕНИЕ: Безопасно нормализуем ID
+  const normalizedItemId = useMemo(() => {
+    // Дополнительная проверка на undefined и пустую строку
+    if (!safeItemId) return '';
+    return normalizeId(safeItemId);
+  }, [safeItemId]);
   
   // Проверка статуса разблокировки
   const checkUnlockStatus = useCallback(() => {
-    if (!unlockManager) return false;
+    if (!unlockManager || !normalizedItemId) return false;
     
     // Получаем результат проверки
     const status = unlockManager.isUnlocked(normalizedItemId);
@@ -120,17 +124,17 @@ export const useUnlockStatus = (itemId: string): boolean => {
   
   // Мемоизируем обработчик событий разблокировки
   const handleUnlockEvent = useCallback((event: Event) => {
-    if (event instanceof CustomEvent && event.detail) {
-      // Нормализуем ID для сравнения
-      const eventId = event.detail?.itemId || '';
-      if (!eventId) return;
-      
-      const normalizedEventId = normalizeId(eventId);
-      
-      // Проверяем совпадение после нормализации
-      if (normalizedEventId === normalizedItemId) {
-        checkUnlockStatus();
-      }
+    if (!(event instanceof CustomEvent) || !event.detail) return;
+    
+    // Нормализуем ID для сравнения
+    const eventId = event.detail?.itemId || '';
+    if (!eventId || !normalizedItemId) return;
+    
+    const normalizedEventId = normalizeId(eventId);
+    
+    // Проверяем совпадение после нормализации
+    if (normalizedEventId === normalizedItemId) {
+      checkUnlockStatus();
     }
   }, [checkUnlockStatus, normalizedItemId]);
   
@@ -160,7 +164,9 @@ export const UnlockedContent = ({
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) => {
-  const isUnlocked = useUnlockStatus(itemId || ''); // Защита от undefined
+  // ИСПРАВЛЕНИЕ: Дополнительная проверка на undefined
+  const safeItemId = itemId || '';
+  const isUnlocked = useUnlockStatus(safeItemId);
   
   return isUnlocked ? <>{children}</> : <>{fallback}</>;
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
@@ -52,26 +51,22 @@ const GameScreen = () => {
   const { toast } = useToast();
   const { t } = useI18nContext();
   
-  // Используем useMemo для мемоизации ID фич, чтобы избежать лишних перерендеров
   const featureIds = useMemo(() => ({
-    equipment: gameIds.features.equipment || 'equipment',
-    research: gameIds.features.research || 'research',
-    specialization: gameIds.features.specialization || 'specialization',
-    referrals: gameIds.features.referrals || 'referrals'
+    equipment: gameIds?.features?.equipment || 'equipment',
+    research: gameIds?.features?.research || 'research',
+    specialization: gameIds?.features?.specialization || 'specialization',
+    referrals: gameIds?.features?.referrals || 'referrals'
   }), []);
   
-  // Проверяем разблокировку различных функций
-  const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment);
-  const hasUnlockedResearch = useUnlockStatus(featureIds.research);
-  const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization);
-  const hasUnlockedReferrals = useUnlockStatus(featureIds.referrals);
+  const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment || '');
+  const hasUnlockedResearch = useUnlockStatus(featureIds.research || '');
+  const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization || '');
+  const hasUnlockedReferrals = useUnlockStatus(featureIds.referrals || '');
   
-  // Инициализируем игру при монтировании
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
   
-  // Обрабатываем изменения разблокировок
   useEffect(() => {
     console.log("Текущие разблокированные функции:", 
       Object.entries(state.unlocks || {})
@@ -82,29 +77,30 @@ const GameScreen = () => {
     dispatch({ type: "FORCE_RESOURCE_UPDATE" });
   }, [state.unlocks, dispatch]);
   
-  // Обрабатываем разблокировку вкладки оборудования
   useEffect(() => {
     const buildingsUnlocked = state.counters?.buildingsUnlocked;
     const buildingsUnlockedCount = buildingsUnlocked ? 
       (typeof buildingsUnlocked === 'number' ? 
         buildingsUnlocked : 
-        (buildingsUnlocked.value || 0)) : 0;
+        (buildingsUnlocked?.value || 0)) : 0;
     
     console.log("GameScreen: Счетчик разблокированных зданий =", buildingsUnlockedCount);
     
-    const unlockedBuildings = Object.values(state.buildings || {}).filter(b => b?.unlocked);
+    const buildings = state.buildings || {};
+    const unlockedBuildings = Object.values(buildings).filter(b => b?.unlocked);
+    
     console.log("GameScreen: Разблокированные здания:", unlockedBuildings.map(b => b.id));
     
     if (unlockedBuildings.length > 0 && !state.unlocks?.equipment) {
-      console.log("GameScreen: Принудительная разблокировка вкладки оборудования");
-      dispatch({ 
-        type: "UNLOCK_FEATURE", 
-        payload: { featureId: featureIds.equipment } 
-      });
+      if (featureIds.equipment) {
+        dispatch({ 
+          type: "UNLOCK_FEATURE", 
+          payload: { featureId: featureIds.equipment } 
+        });
+      }
     }
   }, [state.buildings, state.unlocks, dispatch, featureIds.equipment]);
   
-  // Функция добавления события в лог
   const addEvent = useCallback((message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
       id: generateId(),
@@ -126,7 +122,6 @@ const GameScreen = () => {
     });
   }, []);
   
-  // Обрабатываем игровые события
   useEffect(() => {
     const handleGameEvent = (event: Event) => {
       if (event instanceof CustomEvent && event.detail) {
@@ -157,7 +152,6 @@ const GameScreen = () => {
     return undefined;
   }, [addEvent]);
   
-  // Обновляем выбранную вкладку при разблокировке функций
   useEffect(() => {
     if (hasUnlockedEquipment) {
       setSelectedTab("equipment");
@@ -168,9 +162,10 @@ const GameScreen = () => {
     }
   }, [hasUnlockedEquipment, hasUnlockedResearch, hasUnlockedReferrals]);
   
-  // Принудительная проверка разблокировок при загрузке
   useEffect(() => {
-    if (state.buildings?.generator?.count > 0 && !state.unlocks?.research) {
+    const generatorCount = state.buildings?.generator?.count || 0;
+    
+    if (generatorCount > 0 && !state.unlocks?.research) {
       console.log("GameScreen: Принудительная проверка разблокировок при первичной загрузке");
       
       const unlockService = new UnlockService();
@@ -183,7 +178,6 @@ const GameScreen = () => {
     }
   }, [state.buildings?.generator?.count, state.unlocks?.research, state, dispatch]);
   
-  // Обработчики событий UI
   const handleResetGame = useCallback(() => {
     dispatch({ type: "RESET_GAME" });
     setResetConfirmOpen(false);
@@ -211,7 +205,6 @@ const GameScreen = () => {
     }
   }, [toast, t]);
   
-  // Рендерим кнопки вкладок
   const renderTabButton = useCallback((id: string, labelKey: string, icon: React.ReactNode, isUnlocked: boolean) => {
     if (!isUnlocked) return null;
     
@@ -227,12 +220,11 @@ const GameScreen = () => {
     );
   }, [selectedTab, t]);
   
-  // Подготавливаем контент вкладок - мемоизируем, чтобы избежать лишних перерендеров
   const tabContent = useMemo(() => ({
-    equipment: hasUnlockedEquipment && <EquipmentTab onAddEvent={addEvent} />,
-    research: hasUnlockedResearch && <ResearchContainer onAddEvent={addEvent} />,
-    specialization: hasUnlockedSpecialization && <SpecializationTab onAddEvent={addEvent} />,
-    referrals: hasUnlockedReferrals && <ReferralsTab onAddEvent={addEvent} />
+    equipment: hasUnlockedEquipment ? <EquipmentTab onAddEvent={addEvent} /> : null,
+    research: hasUnlockedResearch ? <ResearchContainer onAddEvent={addEvent} /> : null,
+    specialization: hasUnlockedSpecialization ? <SpecializationTab onAddEvent={addEvent} /> : null,
+    referrals: hasUnlockedReferrals ? <ReferralsTab onAddEvent={addEvent} /> : null
   }), [hasUnlockedEquipment, hasUnlockedResearch, hasUnlockedSpecialization, hasUnlockedReferrals, addEvent]);
   
   return (
