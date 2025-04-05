@@ -41,7 +41,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const canAfford = (): boolean => {
-    if (!building.cost) {
+    if (!building.cost || Object.keys(building.cost).length === 0) {
       return false;
     }
     
@@ -58,7 +58,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   const getNextCost = () => {
     const nextCost = {};
     // Проверяем, существует ли building.cost
-    if (!building.cost) {
+    if (!building.cost || Object.keys(building.cost).length === 0) {
       console.warn(`Building ${building.id} has no cost defined`);
       return nextCost;
     }
@@ -86,7 +86,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   
   const renderCost = () => {
     // Проверяем, существует ли building.cost
-    if (!building.cost) {
+    if (!building.cost || Object.keys(building.cost).length === 0) {
       return <div className="text-red-500 text-[11px]">Стоимость не определена</div>;
     }
     
