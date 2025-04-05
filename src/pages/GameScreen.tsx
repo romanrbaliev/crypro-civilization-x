@@ -1,51 +1,38 @@
 
-import React from 'react';
-import { GameProvider } from '@/context/GameContext';
-import MainMenu from '@/components/MainMenu';
-import ResourceList from '@/components/ResourceList';
+import React, { useState } from 'react';
+import { useGame } from '@/context/hooks/useGame';
+import GameLayout from '@/components/layout/GameLayout';
 import BuildingList from '@/components/BuildingList';
-import LearnButton from '@/components/buttons/LearnButton';
-import ApplyKnowledgeButton from '@/components/buttons/ApplyKnowledgeButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const GameScreen: React.FC = () => {
+  const { state } = useGame();
+  const [activeTab, setActiveTab] = useState('buildings');
+  
   return (
-    <GameProvider>
-      <div className="max-w-lg mx-auto p-4 min-h-screen flex flex-col">
-        <MainMenu />
+    <GameLayout>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="buildings">Здания</TabsTrigger>
+          <TabsTrigger value="research">Исследования</TabsTrigger>
+          <TabsTrigger value="stats">Статистика</TabsTrigger>
+        </TabsList>
         
-        <div className="my-4">
-          <ResourceList />
-        </div>
+        <TabsContent value="buildings" className="space-y-4">
+          <BuildingList />
+        </TabsContent>
         
-        <div className="mb-4 space-y-2">
-          <LearnButton />
-          <ApplyKnowledgeButton />
-        </div>
+        <TabsContent value="research" className="space-y-4">
+          <h2 className="text-xl font-bold mb-3">Исследования</h2>
+          <p className="text-gray-500">Исследования будут доступны позже</p>
+        </TabsContent>
         
-        <Tabs defaultValue="buildings" className="flex-grow">
-          <TabsList className="w-full">
-            <TabsTrigger value="buildings" className="flex-1">Здания</TabsTrigger>
-            <TabsTrigger value="research" className="flex-1">Исследования</TabsTrigger>
-            <TabsTrigger value="stats" className="flex-1">Статистика</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="buildings" className="py-4">
-            <BuildingList />
-          </TabsContent>
-          
-          <TabsContent value="research" className="py-4">
-            <h2 className="text-xl font-bold mb-3">Исследования</h2>
-            <p className="text-gray-500">Исследования будут доступны позже</p>
-          </TabsContent>
-          
-          <TabsContent value="stats" className="py-4">
-            <h2 className="text-xl font-bold mb-3">Статистика</h2>
-            <p className="text-gray-500">Статистика будет доступна позже</p>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </GameProvider>
+        <TabsContent value="stats" className="space-y-4">
+          <h2 className="text-xl font-bold mb-3">Статистика</h2>
+          <p className="text-gray-500">Статистика будет доступна позже</p>
+        </TabsContent>
+      </Tabs>
+    </GameLayout>
   );
 };
 

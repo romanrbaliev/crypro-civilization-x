@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -123,6 +124,7 @@
   margin-left: 0 !important;
 }
 
+/* Анимация изменения ресурсов */
 @keyframes resource-highlight {
   0% {
     color: inherit;
@@ -137,4 +139,58 @@
 
 .resource-changed {
   animation: resource-highlight 0.5s ease-in-out;
+}
+
+/* Стили для нового интерфейса */
+.game-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.game-sidebar {
+  width: 40%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+.game-main {
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+}
+
+.resource-sidebar {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.sidebar-tabs {
+  border-top: 1px solid var(--border);
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.action-buttons {
+  border-top: 1px solid var(--border);
+  padding: 1rem;
+}
+
+.event-log {
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  max-height: 8rem;
+  overflow-y: auto;
 }
