@@ -58,10 +58,23 @@ const GameScreen = () => {
     referrals: gameIds?.features?.referrals || 'referrals'
   }), []);
   
+  useEffect(() => {
+    console.log("GameScreen: Проверка ID функций:", featureIds);
+  }, [featureIds]);
+  
   const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment);
   const hasUnlockedResearch = useUnlockStatus(featureIds.research);
-  const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization);
+  const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization); 
   const hasUnlockedReferrals = useUnlockStatus(featureIds.referrals);
+  
+  useEffect(() => {
+    console.log("GameScreen: Статусы разблокировок:", {
+      equipment: hasUnlockedEquipment,
+      research: hasUnlockedResearch,
+      specialization: hasUnlockedSpecialization,
+      referrals: hasUnlockedReferrals
+    });
+  }, [hasUnlockedEquipment, hasUnlockedResearch, hasUnlockedSpecialization, hasUnlockedReferrals]);
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });

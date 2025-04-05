@@ -61,6 +61,7 @@ export const UnlockManagerProvider = ({ children }: { children: React.ReactNode 
       try {
         const manager = new UnlockManager(state);
         setUnlockManager(manager);
+        console.log("UnlockManagerProvider: Создан новый экземпляр UnlockManager");
       } catch (error) {
         console.error("Ошибка при создании UnlockManager:", error);
       }
@@ -114,20 +115,23 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   // Используем пустую строку вместо undefined и защищаем от null
   const safeItemId = itemId || '';
   
-  // Мемоизируем ID с защитой от undefined
+  // Мемоизируем ID с защитой от undefined - ВАЖНОЕ ИСПРАВЛЕНИЕ
   const normalizedItemId = useMemo(() => {
+    // Проверяем, что safeItemId не пустая строка
     if (!safeItemId) return '';
+    
     try {
       return normalizeId(safeItemId);
     } catch (error) {
-      console.error("Ошибка нормализации ID:", error);
+      console.error("Ошибка нормализации ID:", error, "для itemId:", safeItemId);
       return '';
     }
-  }, [safeItemId]);
+  }, [safeItemId]); // Используем только safeItemId как зависимость
   
   // Улучшенный callback с проверками на undefined
   const checkUnlockStatus = useCallback(() => {
     if (!unlockManager || !normalizedItemId) {
+      console.log(`useUnlockStatus: Пропуск проверки для ${normalizedItemId || 'пустого ID'}`);
       setIsUnlocked(false);
       return;
     }
@@ -135,6 +139,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     try {
       const status = unlockManager.isUnlocked(normalizedItemId);
       setIsUnlocked(!!status);
+      console.log(`useUnlockStatus: Статус для ${normalizedItemId}: ${status ? 'разблокирован' : 'заблокирован'}`);
     } catch (error) {
       console.error(`Ошибка при проверке разблокировки элемента ${normalizedItemId}`, error);
       setIsUnlocked(false);
@@ -143,14 +148,29 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   
   // Безопасный обработчик событий
   const handleUnlockEvent = useCallback((event: Event) => {
-    if (!(event instanceof CustomEvent) || !event.detail) return;
+    if (!(event instanceof CustomEvent) || !event.detail) {
+      console.log("useUnlockStatus: Получено некорректное событие");
+      return;
+    }
     
     try {
       const eventId = event.detail?.itemId || '';
-      if (!eventId || !normalizedItemId) return;
+      if (!eventId || !normalizedItemId) {
+        console.log("useUnlockStatus: Пропуск обработки события из-за пустого ID");
+        return;
+      }
       
-      const normalizedEventId = normalizeId(eventId);
+      // Безопасно нормализуем eventId
+      let normalizedEventId;
+      try {
+        normalizedEventId = normalizeId(eventId);
+      } catch (error) {
+        console.error("Ошибка нормализации eventId:", error);
+        return;
+      }
+      
       if (normalizedEventId === normalizedItemId) {
+        console.log(`useUnlockStatus: Обнаружено соответствующее событие разблокировки для ${normalizedItemId}`);
         checkUnlockStatus();
       }
     } catch (error) {
@@ -162,6 +182,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   useEffect(() => {
     try {
       // Проверяем при монтировании
+      console.log(`useUnlockStatus: Начальная проверка для ${normalizedItemId || 'пустого ID'}`);
       checkUnlockStatus();
       
       // Подписываемся на события разблокировки

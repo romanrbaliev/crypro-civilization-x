@@ -15,8 +15,14 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // Убедимся, что ID всегда определен
+  // Убедимся, что ID всегда определен с дефолтным значением
   const researchId = gameIds?.features?.research || 'research';
+  
+  // Добавляем диагностический консоль-лог для проверки researchId
+  useEffect(() => {
+    console.log("ResearchTab: ID исследований:", researchId);
+  }, [researchId]);
+  
   const researchUnlocked = useUnlockStatus(researchId);
   
   // Расширенные диагностические логи
@@ -74,7 +80,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Получаем нормализованные исследования
   const normalizedUpgrades = getNormalizedUpgrades();
   
-  // Фильтруем разблокированные и приобретенные исследования
+  // Фильтруем разблокированные и приобретенные исследования с проверкой на undefined
   const unlockedUpgrades = Object.entries(normalizedUpgrades)
     .filter(([_, upgrade]) => upgrade && upgrade.unlocked && !upgrade.purchased)
     .map(([_, upgrade]) => upgrade);
