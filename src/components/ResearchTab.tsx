@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";

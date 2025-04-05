@@ -98,15 +98,15 @@ export const useUnlockManager = (): UnlockManager => {
 };
 
 // Хук для проверки разблокировки элемента
-export const useUnlockStatus = (itemId: string): boolean => {
+export const useUnlockStatus = (itemId: string | undefined): boolean => {
   const unlockManager = useUnlockManager();
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
-  // ИСПРАВЛЕНО: Используем пустую строку вместо undefined
+  // ИСПРАВЛЕНО: Используем пустую строку вместо undefined и защищаем от null
   const safeItemId = itemId || '';
   
-  // ИСПРАВЛЕНО: Мемоизируем ID с защитой от undefined
+  // ИСПРАВЛЕНО: Мемоизируем ID с защитой от undefined и передаем пустой массив если нет ID
   const normalizedItemId = useMemo(() => {
     if (!safeItemId) return '';
     return normalizeId(safeItemId);
@@ -167,7 +167,7 @@ export const UnlockedContent = ({
   children,
   fallback = null
 }: { 
-  itemId: string; 
+  itemId: string | undefined; 
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) => {
