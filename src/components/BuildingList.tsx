@@ -54,69 +54,70 @@ const BuildingList: React.FC = () => {
         const affordable = canAfford(building);
         
         return (
-          <div key={building.id} className="border rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
+          <div key={building.id} className="border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-sm">
             <div 
-              className="p-4 flex justify-between items-center cursor-pointer"
+              className="p-3 flex justify-between items-center cursor-pointer"
               onClick={() => toggleBuilding(building.id)}
             >
               <div className="flex-1">
                 <div className="flex items-center">
-                  <span className="font-medium">{building.name}</span>
+                  <span className="text-sm font-medium">{building.name}</span>
                   {building.count > 0 && (
-                    <span className="ml-2 text-gray-500">×{building.count}</span>
+                    <span className="ml-2 text-gray-500 text-xs">×{building.count}</span>
                   )}
                 </div>
               </div>
               <div className="text-gray-500">
-                {isExpanded ? <ChevronUp /> : <ChevronDown />}
+                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </div>
             </div>
             
             {isExpanded && (
-              <div className="p-4 border-t bg-gray-50 dark:bg-gray-900">
-                <p className="text-gray-600 dark:text-gray-400 mb-4">{building.description}</p>
+              <div className="p-3 border-t bg-white dark:bg-gray-900">
+                <p className="text-gray-600 dark:text-gray-400 mb-3 text-xs">{building.description}</p>
                 
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-gray-700 dark:text-gray-300">Стоимость:</span>
-                    <span className={affordable ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400'}>
-                      {Object.entries(building.cost).map(([resourceId, cost]) => (
-                        <span key={resourceId} className="ml-2">
-                          {formatNumber(Number(cost), 0)} {state.resources[resourceId]?.name}
+                <div className="mb-3">
+                  <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">Стоимость:</div>
+                  <div className="space-y-1">
+                    {Object.entries(building.cost).map(([resourceId, cost]) => (
+                      <div key={resourceId} className="flex justify-between">
+                        <span className="text-xs">{state.resources[resourceId]?.name}</span>
+                        <span className={affordable ? 'text-xs' : 'text-xs text-red-500'}>
+                          {formatNumber(Number(cost), 0)}
                         </span>
-                      ))}
-                    </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 
                 {Object.entries(building.production || {}).length > 0 && (
-                  <div className="mb-4">
-                    <div className="text-gray-700 dark:text-gray-300 mb-1">Производит:</div>
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">Производит:</div>
                     {Object.entries(building.production || {}).map(([resourceId, amount]) => (
                       <div key={resourceId} className="flex justify-between items-center">
-                        <span className="text-green-600 dark:text-green-400">{state.resources[resourceId]?.name}</span>
-                        <span className="text-green-600 dark:text-green-400">+{amount}/сек</span>
+                        <span className="text-xs text-green-600 dark:text-green-400">{state.resources[resourceId]?.name}</span>
+                        <span className="text-xs text-green-600 dark:text-green-400">+{amount}/сек</span>
                       </div>
                     ))}
                   </div>
                 )}
                 
                 {Object.entries(building.consumption || {}).length > 0 && (
-                  <div className="mb-4">
-                    <div className="text-gray-700 dark:text-gray-300 mb-1">Потребляет:</div>
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">Потребляет:</div>
                     {Object.entries(building.consumption || {}).map(([resourceId, amount]) => (
                       <div key={resourceId} className="flex justify-between items-center">
-                        <span className="text-red-600 dark:text-red-400">{state.resources[resourceId]?.name}</span>
-                        <span className="text-red-600 dark:text-red-400">-{amount}/сек</span>
+                        <span className="text-xs text-red-500 dark:text-red-400">{state.resources[resourceId]?.name}</span>
+                        <span className="text-xs text-red-500 dark:text-red-400">-{amount}/сек</span>
                       </div>
                     ))}
                   </div>
                 )}
                 
-                <div className="flex space-x-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="default"
-                    className="flex-1"
+                    className="text-xs"
                     onClick={() => purchaseBuilding(building.id)}
                     disabled={!affordable}
                   >
@@ -126,7 +127,7 @@ const BuildingList: React.FC = () => {
                   {building.count > 0 && (
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="text-xs"
                       onClick={() => sellBuilding(building.id)}
                     >
                       Продать

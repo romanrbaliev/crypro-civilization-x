@@ -30,29 +30,18 @@ const GameLayout: React.FC<GameLayoutProps> = ({ children }) => {
           {/* Вкладки (отображаются снизу вверх) */}
           <div className="border-t">
             <div className="p-2">
-              {state.buildingUnlocked.homeComputer && (
-                <div className="py-2 border-b">
-                  <button className="flex items-center w-full py-2 px-4 bg-blue-900 text-white rounded-md">
-                    <span className="mr-2">📱</span>
-                    <span>Оборудование</span>
-                  </button>
-                </div>
-              )}
+              <div className="py-2 border-b">
+                <button className="flex items-center w-full py-2 px-4 bg-blue-900 text-white rounded-md">
+                  <span className="mr-2">💻</span>
+                  <span className="text-xs">Оборудование</span>
+                </button>
+              </div>
               
               {state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.unlocked && (
                 <div className="py-2 border-b">
                   <button className="flex items-center w-full py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
                     <span className="mr-2">💡</span>
-                    <span>Исследования</span>
-                  </button>
-                </div>
-              )}
-              
-              {state.specializationSynergies && Object.keys(state.specializationSynergies).length > 0 && (
-                <div className="py-2 border-b">
-                  <button className="flex items-center w-full py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
-                    <span className="mr-2">🔍</span>
-                    <span>Специализации</span>
+                    <span className="text-xs">Исследования</span>
                   </button>
                 </div>
               )}
@@ -77,8 +66,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({ children }) => {
       {/* Журнал событий внизу на всю ширину */}
       <div className="border-t p-2">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-medium">Журнал событий</h3>
-          <span className="text-gray-500 text-sm">{state.eventMessages ? Object.keys(state.eventMessages).length : 0} событий</span>
+          <h3 className="text-xs font-medium">Журнал событий</h3>
+          <span className="text-gray-500 text-xs">{state.eventMessages ? Object.keys(state.eventMessages).length : 0} событий</span>
         </div>
         <div className="max-h-32 overflow-y-auto">
           <EventLog />

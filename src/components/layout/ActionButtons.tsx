@@ -38,20 +38,20 @@ const ActionButtons: React.FC = () => {
       {/* Изучить крипту - всегда доступна */}
       <Button 
         variant="default" 
-        className="w-full justify-center py-6 text-lg" 
+        className="w-full justify-center py-4 text-sm" 
         onClick={handleGetKnowledge}
       >
-        <Brain className="mr-2 h-5 w-5" /> Изучить крипту
+        Изучить крипту
       </Button>
       
       {/* Применить знания - появляется после разблокировки */}
       {state.counters.knowledgeClicks && state.counters.knowledgeClicks.value >= 3 && (
         <Button 
           variant="default" 
-          className="w-full justify-center py-6 text-lg bg-blue-900 hover:bg-blue-800" 
+          className="w-full justify-center py-4 text-sm bg-blue-900 hover:bg-blue-800" 
           onClick={handleApplyKnowledge}
         >
-          <DollarSign className="mr-2 h-5 w-5" /> Применить знания
+          Применить знания
         </Button>
       )}
       
@@ -59,11 +59,10 @@ const ActionButtons: React.FC = () => {
       {state.buildingUnlocked.miner && (
         <Button 
           variant="default" 
-          className="w-full justify-center py-6 text-lg bg-orange-500 hover:bg-orange-600" 
+          className="w-full justify-center py-4 text-sm bg-orange-500 hover:bg-orange-600" 
           onClick={handleExchangeBtc}
-          disabled={state.btcBalance <= 0}
         >
-          <RefreshCw className="mr-2 h-5 w-5" /> Обменять Bitcoin
+          Обменять Bitcoin
         </Button>
       )}
     </div>

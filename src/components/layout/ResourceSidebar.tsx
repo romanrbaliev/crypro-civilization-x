@@ -12,28 +12,28 @@ const ResourceSidebar: React.FC = () => {
   // Цвета для разных типов ресурсов
   const resourceColors = {
     knowledge: {
-      name: 'text-blue-700 dark:text-blue-400',
-      value: 'text-blue-800 dark:text-blue-300',
+      name: 'text-black dark:text-white',
+      value: 'text-black dark:text-white',
       perSecond: 'text-green-600 dark:text-green-400'
     },
     usdt: {
-      name: 'text-green-700 dark:text-green-400',
-      value: 'text-green-800 dark:text-green-300',
+      name: 'text-black dark:text-white',
+      value: 'text-black dark:text-white',
       perSecond: 'text-green-600 dark:text-green-400'
     },
     electricity: {
-      name: 'text-yellow-700 dark:text-yellow-400',
-      value: 'text-yellow-800 dark:text-yellow-300',
+      name: 'text-black dark:text-white',
+      value: 'text-black dark:text-white',
       perSecond: 'text-green-600 dark:text-green-400'
     },
     computingPower: {
-      name: 'text-purple-700 dark:text-purple-400',
-      value: 'text-purple-800 dark:text-purple-300',
+      name: 'text-black dark:text-white',
+      value: 'text-black dark:text-white',
       perSecond: 'text-green-600 dark:text-green-400'
     },
     bitcoin: {
-      name: 'text-orange-700 dark:text-orange-400',
-      value: 'text-orange-800 dark:text-orange-300',
+      name: 'text-black dark:text-white',
+      value: 'text-black dark:text-white',
       perSecond: 'text-green-600 dark:text-green-400'
     }
   };
@@ -41,12 +41,12 @@ const ResourceSidebar: React.FC = () => {
   return (
     <div className="p-4 space-y-1">
       {unlockedResources.map(resource => (
-        <div key={resource.id} className="p-2 border-b">
-          <div className="flex justify-between items-center">
-            <span className={`${resourceColors[resource.id]?.name || 'text-gray-700 dark:text-gray-300'}`}>
+        <div key={resource.id} className="py-2 border-b">
+          <div className="flex justify-between items-center mb-1">
+            <span className={`${resourceColors[resource.id]?.name || 'text-black dark:text-white'} text-xs`}>
               {resource.name}
             </span>
-            <span className={`${resourceColors[resource.id]?.value || 'text-gray-800 dark:text-gray-200'} font-medium`}>
+            <span className={`${resourceColors[resource.id]?.value || 'text-black dark:text-white'} text-xs`}>
               {formatNumber(resource.value, 2)} / {formatNumber(resource.max, 0)}
             </span>
           </div>
@@ -56,7 +56,7 @@ const ResourceSidebar: React.FC = () => {
               <span className={resource.perSecond > 0 
                 ? (resourceColors[resource.id]?.perSecond || 'text-green-600 dark:text-green-400')
                 : 'text-red-600 dark:text-red-400'
-              }>
+              } className="text-xs">
                 {resource.perSecond > 0 ? '+' : ''}{formatNumber(resource.perSecond, 2)}/сек
               </span>
             </div>
