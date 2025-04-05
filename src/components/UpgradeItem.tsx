@@ -1,178 +1,90 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Upgrade } from "@/context/types";
-import { useGame } from "@/context/hooks/useGame";
-import { formatNumber } from "@/utils/helpers";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
-import { formatEffectName, formatEffectValue } from "@/utils/researchUtils";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from "@/components/ui/collapsible";
-import { ChevronRight } from "lucide-react";
+import React from 'react';
+import { useGame } from '@/context/hooks/useGame';
+import { formatNumber } from '@/utils/numberUtils';
+import { Upgrade } from '@/context/types';
+import { useI18nContext } from '@/context/I18nContext';
 
 interface UpgradeItemProps {
   upgrade: Upgrade;
-  onPurchase?: () => void;
-  onAddEvent?: (message: string, type: string) => void;
+  onAddEvent: (message: string, type: string) => void;
 }
 
-const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onPurchase, onAddEvent }) => {
+const UpgradeItem: React.FC<UpgradeItemProps> = ({ upgrade, onAddEvent }) => {
   const { state, dispatch } = useGame();
-  const [isOpen, setIsOpen] = useState(false);
+  const { t } = useI18nContext();
   
-  const handlePurchase = () => {
-    dispatch({ type: "PURCHASE_UPGRADE", payload: { upgradeId: upgrade.id } });
-    if (onPurchase) onPurchase();
-    // Добавляем событие в журнал, если передан обработчик
-    if (onAddEvent) onAddEvent(`Исследование "${upgrade.name}" завершено`, "success");
-  };
-  
-  const canAfford = (): boolean => {
+  // Определяем, можно ли купить исследование
+  const canPurchase = () => {
+    if (upgrade.purchased) return false;
+    
     for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
-      const resource = state.resources[resourceId];
-      if (!resource || resource.value < Number(amount)) {
+      if (!state.resources[resourceId] || state.resources[resourceId].value < amount) {
         return false;
       }
     }
+    
     return true;
   };
   
+  // Обработчик покупки исследования
+  const handlePurchase = () => {
+    if (!canPurchase()) return;
+    
+    // Отправляем действие покупки
+    dispatch({
+      type: 'PURCHASE_UPGRADE',
+      payload: { upgradeId: upgrade.id }
+    });
+    
+    // Добавляем событие в лог
+    onAddEvent(`${t('research.purchased')}: ${upgrade.name}`, 'success');
+  };
+  
+  // Отображаем стоимость исследования
   const renderCost = () => {
     return Object.entries(upgrade.cost).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
-      if (!resource) return null;
-      
-      const hasEnough = resource.value >= Number(amount);
-      return (
-        <div key={resourceId} className="flex justify-between w-full">
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {resource.name}
-          </span>
-          <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {formatNumber(Number(amount))}
-          </span>
-        </div>
-      );
-    });
-  };
-  
-  const renderEffects = () => {
-    // Используем эффекты из разных источников
-    const effects = upgrade.effects || upgrade.effect || {};
-    
-    // Особая обработка для исследований из базы знаний
-    if (upgrade.id === 'blockchainBasics' && (!effects.knowledgeMaxBoost || !effects.knowledgeBoost)) {
-      return (
-        <>
-          <div className="text-blue-600 text-[11px]">
-            Увеличение максимума знаний: +50%
-          </div>
-          <div className="text-blue-600 text-[11px]">
-            Прирост знаний: +10%
-          </div>
-        </>
-      );
-    }
-    
-    if (upgrade.id === 'cryptoCurrencyBasics' && (!effects.knowledgeEfficiencyBoost)) {
-      return (
-        <div className="text-blue-600 text-[11px]">
-          Эффективность применения знаний: +10%
-        </div>
-      );
-    }
-    
-    if (!effects || Object.keys(effects).length === 0) {
-      return <div className="text-gray-500 text-[11px]">Нет эффектов</div>;
-    }
-    
-    return Object.entries(effects).map(([effectId, value]) => {
-      // Используем специальные функции форматирования для каждого эффекта
-      const effectName = formatEffectName(effectId);
-      const formattedValue = formatEffectValue(Number(value), effectId);
+      const hasEnough = resource && resource.value >= amount;
       
       return (
-        <div key={effectId} className="text-blue-600 text-[11px]">
-          {effectName}: {formattedValue}
-        </div>
+        <span 
+          key={resourceId} 
+          className={`mr-2 ${hasEnough ? 'text-green-600' : 'text-red-600'}`}
+        >
+          {formatNumber(amount)} {resourceId}
+        </span>
       );
     });
   };
   
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className={`border rounded-lg ${canAfford() ? 'bg-white' : 'bg-gray-100'} shadow-sm mb-2 overflow-hidden`}
-    >
-      <CollapsibleTrigger asChild>
-        <div className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50">
-          <div className="flex-1">
-            <div className="flex justify-between items-center w-full">
-              <h3 className="text-xs font-medium">
-                {upgrade.name} {upgrade.purchased && '✓'}
-              </h3>
-            </div>
-          </div>
-          <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-        </div>
-      </CollapsibleTrigger>
+    <div className={`upgrade-item ${upgrade.purchased ? 'purchased' : ''}`}>
+      <div className="upgrade-header">
+        <h4 className="upgrade-name">{upgrade.name}</h4>
+        <span className={`upgrade-status ${upgrade.purchased ? 'purchased' : 'available'}`}>
+          {upgrade.purchased ? t('research.purchased') : t('research.available')}
+        </span>
+      </div>
       
-      <CollapsibleContent>
-        <div className="p-2 pt-0">
-          <p className="text-[11px] text-gray-500 mt-1 mb-2">{upgrade.description}</p>
-          
-          <div className="space-y-2">
-            <div className="space-y-1">
-              <h4 className="text-[11px] font-medium">Стоимость:</h4>
-              {renderCost()}
-            </div>
-            
-            <div className="border-t pt-2 mt-2">
-              <h4 className="text-[11px] font-medium mb-1">Эффекты:</h4>
-              {renderEffects()}
-            </div>
-            
-            <div className="border-t pt-2 grid grid-cols-1 gap-2 mt-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Button
-                        onClick={handlePurchase}
-                        disabled={!canAfford() || upgrade.purchased}
-                        variant={canAfford() && !upgrade.purchased ? "default" : "outline"}
-                        size="sm"
-                        className="w-full text-xs"
-                      >
-                        {upgrade.purchased ? "Исследовано" : "Исследовать"}
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  {(!canAfford() || upgrade.purchased) && (
-                    <TooltipContent>
-                      <p className="text-xs">
-                        {upgrade.purchased
-                          ? "Исследование уже проведено"
-                          : "Недостаточно ресурсов"}
-                      </p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+      <p className="upgrade-description">{upgrade.description}</p>
+      
+      {!upgrade.purchased && (
+        <>
+          <div className="upgrade-cost">
+            {t('ui.cost')}: {renderCost()}
           </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+          
+          <button
+            className="upgrade-buy-btn"
+            onClick={handlePurchase}
+            disabled={!canPurchase()}
+          >
+            {t('ui.buy')}
+          </button>
+        </>
+      )}
+    </div>
   );
 };
 

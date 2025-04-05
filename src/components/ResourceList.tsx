@@ -1,120 +1,52 @@
 
-import React, { memo, useEffect } from "react";
-import { Resource } from "@/context/types";
-import ResourceDisplay from "./ResourceDisplay";
-import { Separator } from "@/components/ui/separator";
-import { formatResourceValue } from "@/utils/resourceFormatConfig";
-import { useGame } from "@/context/hooks/useGame";
-import { Button } from "@/components/ui/button";
-import { CircleDollarSign } from "lucide-react";
+import React from 'react';
+import ResourceItem from './ResourceItem';
+import { useGame } from '@/context/hooks/useGame';
+import { useI18nContext } from '@/context/I18nContext';
 
-interface ResourceListProps {
-  resources: Resource[];
-}
-
-// Используем memo для предотвращения лишних перерисовок
-const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
-  const { dispatch, state } = useGame();
+const ResourceList: React.FC = () => {
+  const { state } = useGame();
+  const { t } = useI18nContext();
   
-  // Логируем состояние ресурсов для отладки
-  useEffect(() => {
-    console.log('ResourceList: Состояние ресурсов:', 
-      resources.map(r => `${r.id} (unlocked=${r.unlocked}, value=${r.value})`));
-    
-    // Проверяем USDT отдельно
-    const usdt = state.resources.usdt;
-    if (usdt) {
-      console.log('USDT status:', {
-        exists: true,
-        unlocked: usdt.unlocked,
-        value: usdt.value,
-        flagInUnlocks: state.unlocks.usdt
-      });
-    } else {
-      console.log('USDT status: resource does not exist');
-    }
-  }, [resources, state.resources.usdt, state.unlocks.usdt]);
+  // Получаем все разблокированные ресурсы
+  const unlockedResources = Object.entries(state.resources)
+    .filter(([_, resource]) => resource.unlocked)
+    .map(([id, resource]) => ({ id, ...resource }));
   
-  // Принудительно проверяем все разблокировки при рендеринге
-  useEffect(() => {
-    // Отправляем событие только если игра запущена
-    if (state.gameStarted) {
-      // Используем setTimeout, чтобы не блокировать рендеринг
-      setTimeout(() => {
-        dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-      }, 200);
-    }
-  }, [dispatch, state.gameStarted]);
+  // Проверяем состояние ресурсов для отладки
+  console.log('ResourceList: Состояние ресурсов:', 
+    unlockedResources.map(r => `${r.id} (unlocked=${r.unlocked}, value=${r.value})`)
+  );
   
-  // Фильтруем только разблокированные ресурсы
-  const unlockedResources = resources.filter(resource => resource.unlocked);
-  
-  // Заполнение USDT до максимального значения
-  const handleFillUsdt = () => {
-    if (state.resources.usdt && state.resources.usdt.unlocked) {
-      // Используем максимальное значение USDT из состояния
-      const maxUsdt = state.resources.usdt.max || 0;
-      const currentValue = state.resources.usdt.value || 0;
-      
-      dispatch({
-        type: "INCREMENT_RESOURCE",
-        payload: {
-          resourceId: "usdt",
-          amount: maxUsdt - currentValue
-        }
-      });
-    }
-  };
+  // Проверяем состояние USDT отдельно
+  if (state.resources.usdt) {
+    console.log('USDT status:', {
+      exists: true,
+      unlocked: state.resources.usdt.unlocked,
+      value: state.resources.usdt.value,
+      flagInUnlocks: state.unlocks.usdt
+    });
+  }
   
   if (unlockedResources.length === 0) {
     return (
-      <div className="text-center py-4 text-sm text-gray-500">
-        Нет доступных ресурсов
+      <div className="resources-list">
+        <p className="text-gray-500">{t('resources.noResourcesUnlocked')}</p>
       </div>
     );
   }
-
-  // Проверяем, разблокирован ли USDT
-  const isUsdtUnlocked = state.resources.usdt && state.resources.usdt.unlocked;
-
+  
   return (
-    <div className="flex flex-col h-full">
-      <div className="space-y-0.5 text-xs flex-grow">
-        {unlockedResources.map((resource, index) => (
-          <React.Fragment key={resource.id}>
-            <div className="py-1">
-              <ResourceDisplay 
-                resource={resource} 
-                formattedValue={formatResourceValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
-                formattedPerSecond={formatResourceValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
-              />
-            </div>
-            {index < unlockedResources.length - 1 && (
-              <Separator className="my-0.5" />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-      
-      {/* Кнопка заполнения USDT (только если USDT разблокирован) */}
-      {isUsdtUnlocked && (
-        <div className="mt-2 pt-2 border-t border-gray-200">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleFillUsdt} 
-            className="w-full text-xs flex items-center justify-center"
-          >
-            <CircleDollarSign className="h-3 w-3 mr-1" />
-            Full USDT (Тест)
-          </Button>
-        </div>
-      )}
+    <div className="resources-list">
+      {unlockedResources.map(resource => (
+        <ResourceItem 
+          key={resource.id} 
+          resource={resource} 
+          name={t(`resources.${resource.id}`)}
+        />
+      ))}
     </div>
   );
-});
-
-// Добавляем отображаемое имя для отладки
-ResourceList.displayName = "ResourceList";
+};
 
 export default ResourceList;
