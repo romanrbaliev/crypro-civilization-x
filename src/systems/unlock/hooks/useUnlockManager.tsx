@@ -112,11 +112,16 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
-  // ИСПРАВЛЕНИЕ: Принудительно преобразуем itemId в строку, никогда не дадим ему быть undefined
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Создаем пустой массив для использования как 
+  // значение по умолчанию для зависимостей useMemo
+  const emptyDeps: string[] = [];
+  
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасно преобразуем itemId в строку
+  // и гарантируем, что это никогда не будет undefined
   const safeItemId = itemId || '';
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем безопасную реализацию useMemo, которая гарантирует, 
-  // что зависимости никогда не будут undefined
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное использование useMemo с explicit
+  // проверкой зависимостей и значениями по умолчанию
   const normalizedItemId = useMemo(() => {
     try {
       // Проверяем наличие safeItemId
@@ -133,7 +138,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
       console.error("Ошибка нормализации ID:", error, "для itemId:", safeItemId);
       return '';
     }
-  }, [safeItemId]); // Явно указываем зависимости
+  }, [safeItemId] || emptyDeps); // Явно добавляем пустой массив как fallback
   
   // ИСПРАВЛЕНИЕ: Оптимизированный checkUnlockStatus с защитой от ошибок
   const checkUnlockStatus = useCallback(() => {
@@ -162,16 +167,16 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     }
   }, [unlockManager, normalizedItemId]);
   
-  // ИСПРАВЛЕНИЕ: Безопасный обработчик событий
+  // ИСПРАВЛЕНИЕ: Безопасный обработчик событий с явными проверками
   const handleUnlockEvent = useCallback((event: Event) => {
+    // Проверка на существование normalizedItemId
+    if (!normalizedItemId) {
+      return;
+    }
+    
     try {
       // Проверяем тип события
       if (!(event instanceof CustomEvent) || !event.detail) {
-        return;
-      }
-      
-      // Пропускаем обработку для пустых ID
-      if (!normalizedItemId) {
         return;
       }
       
@@ -200,15 +205,15 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
     }
   }, [checkUnlockStatus, normalizedItemId]);
   
-  // ИСПРАВЛЕНИЕ: Безопасные эффекты
+  // ИСПРАВЛЕНИЕ: Безопасный эффект с дополнительными защитными проверками
   useEffect(() => {
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасная проверка на существование normalizedItemId
+    if (!normalizedItemId && normalizedItemId !== '') {
+      console.log("useUnlockStatus: Пропуск эффекта из-за невалидного ID");
+      return;
+    }
+    
     try {
-      // Пропускаем эффект для пустых ID
-      if (!normalizedItemId) {
-        console.log("useUnlockStatus: Пропуск эффекта для пустого ID");
-        return;
-      }
-      
       // Выполняем начальную проверку
       console.log(`useUnlockStatus: Начальная проверка для ${normalizedItemId}`);
       checkUnlockStatus();

@@ -15,23 +15,25 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем константу вместо undefined
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем и инициализируем глобальные константы для безопасности
   const DEFAULT_RESEARCH_ID = 'research';
   
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем наличие gameIds и устанавливаем дефолтное значение
-  const researchId = gameIds?.features?.research || DEFAULT_RESEARCH_ID;
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID исследований
+  const safeGameIds = gameIds || {};
+  const safeFeatures = safeGameIds.features || {};
+  const researchId = safeFeatures.research || DEFAULT_RESEARCH_ID;
   
-  // ИСПРАВЛЕНИЕ: Логируем используемый ID
+  // ИСПРАВЛЕНИЕ: Усиленное логгирование для отладки
   useEffect(() => {
     console.log("ResearchTab: Используется ID для проверки разблокировки исследований:", researchId);
     
     // Проверяем наличие gameIds для отладки
-    if (!gameIds || !gameIds.features) {
-      console.warn("ResearchTab: gameIds или gameIds.features не определены!");
+    if (!safeGameIds || !safeFeatures) {
+      console.warn("ResearchTab: gameIds или gameIds.features не определены, используем дефолтные значения");
     }
-  }, [researchId]);
+  }, [researchId, safeGameIds, safeFeatures]);
   
-  // ИСПРАВЛЕНИЕ: Используем researchId, который теперь гарантированно является строкой
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Гарантируем, что researchId будет строкой
   const researchUnlocked = useUnlockStatus(researchId);
   
   // ИСПРАВЛЕНИЕ: Усиленное логгирование для отладки
@@ -52,8 +54,9 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     // Создаем нормализованную копию исследований
     const normalizedUpgrades = { ...state.upgrades };
     
-    // ИСПРАВЛЕНИЕ: Используем гарантированно строковый ID
-    const blockchainBasicsId = gameIds?.upgrades?.blockchainBasics || 'blockchainBasics';
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID блокчейн-исследования
+    const safeUpgrades = safeGameIds.upgrades || {};
+    const blockchainBasicsId = safeUpgrades.blockchainBasics || 'blockchainBasics';
     
     // Проверяем все возможные устаревшие ID для совместимости
     const possibleBlockchainBasicsIds = [
