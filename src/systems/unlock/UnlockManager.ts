@@ -199,13 +199,25 @@ export class UnlockManager {
       this.unlockResource('usdt');
     }
     
-    // ИСПРАВЛЕНИЕ: Электричество разблокируется после покупки генератора
-    // Проверяем счетчик генератора, а не его наличие
+    // ВАЖНАЯ КОРРЕКЦИЯ: Электричество должно быть разблокировано только если есть генератор
+    // И заблокировано, если генератора нет
     const generatorCount = this.state.buildings.generator?.count || 0;
-    if (generatorCount > 0 && !this.isUnlocked('electricity')) {
-      this.unlockResource('electricity');
-      if (this.debugMode) {
-        console.log(`UnlockManager: Разблокировка электричества (количество генераторов: ${generatorCount})`);
+    if (generatorCount > 0) {
+      if (!this.isUnlocked('electricity')) {
+        this.unlockResource('electricity');
+        if (this.debugMode) {
+          console.log(`UnlockManager: Разблокировка электричества (количество генераторов: ${generatorCount})`);
+        }
+      }
+    } else {
+      // Если генератора нет, убеждаемся что электричество заблокировано
+      if (this.state.resources.electricity && this.state.resources.electricity.unlocked) {
+        // Явно блокируем электричество
+        this.state.resources.electricity.unlocked = false;
+        this.state.unlocks.electricity = false;
+        if (this.debugMode) {
+          console.log("UnlockManager: Блокировка электричества (нет генераторов)");
+        }
       }
     }
     
@@ -358,6 +370,9 @@ export class UnlockManager {
         // Если исследование существует, но не разблокировано, разблокируем его
         if (!this.isUnlocked(id)) {
           this.unlockUpgrade(id);
+          if (this.debugMode) {
+            console.log(`UnlockManager: Принудительно разблокировано базовое исследование ${id}`);
+          }
         }
       }
     }
@@ -574,3 +589,4 @@ export class UnlockManager {
     return typeof counter === 'object' ? counter.value : counter;
   }
 }
+

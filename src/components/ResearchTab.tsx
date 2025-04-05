@@ -32,13 +32,14 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     }
   }, [state.upgrades, researchUnlocked]);
   
-  // Фильтруем доступные исследования
-  const unlockedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
+  // ИСПРАВЛЕНИЕ: фильтруем исследования с явной проверкой на null/undefined
+  const unlockedUpgrades = Object.entries(state.upgrades || {})
+    .filter(([_, upgrade]) => upgrade && upgrade.unlocked && !upgrade.purchased)
+    .map(([_, upgrade]) => upgrade);
   
-  // Купленные исследования
-  const purchasedUpgrades = Object.values(state.upgrades)
-    .filter(upgrade => upgrade.purchased);
+  const purchasedUpgrades = Object.entries(state.upgrades || {})
+    .filter(([_, upgrade]) => upgrade && upgrade.purchased)
+    .map(([_, upgrade]) => upgrade);
   
   // Явная проверка, у нас сейчас нет разблокированных апгрейдов,
   // но они должны быть если разблокирована вкладка research
@@ -48,13 +49,14 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       console.log("ResearchTab: Unlocks state:", state.unlocks);
       
       // Проверка, есть ли в state.upgrades исследования, но они не разблокированы
-      const potentialUpgrades = Object.values(state.upgrades).filter(u => !u.unlocked);
+      const potentialUpgrades = Object.values(state.upgrades || {}).filter(u => u && !u.unlocked);
       console.log("ResearchTab: Potential upgrades (not unlocked):", potentialUpgrades.map(u => u.id));
       
-      // Принудительно проверяем разблокировки, если вкладка исследований разблокирована
+      // Если вкладка исследований разблокирована, но нет видимых исследований,
+      // заставляем систему проверить все разблокировки
       dispatch({ type: "FORCE_CHECK_UNLOCKS" });
     }
-  }, [researchUnlocked, unlockedUpgrades.length, state.unlocks, dispatch]);
+  }, [researchUnlocked, unlockedUpgrades.length, state.unlocks, dispatch, state.upgrades]);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {
