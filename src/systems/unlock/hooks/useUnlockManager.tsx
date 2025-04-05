@@ -103,16 +103,16 @@ export const useUnlockStatus = (itemId: string): boolean => {
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
+  // Нормализуем ID для проверки - выполняем это один раз при монтировании
+  const normalizedItemId = normalizeId(itemId);
+  
   useEffect(() => {
     // Проверяем текущий статус разблокировки
     const checkUnlockStatus = () => {
       if (!unlockManager) return false;
       
-      // Нормализуем ID для проверки (обрабатываем устаревшие ID)
-      const normalizedId = normalizeId(itemId);
-      
       // Получаем результат проверки
-      const status = unlockManager.isUnlocked(normalizedId);
+      const status = unlockManager.isUnlocked(normalizedItemId);
       setIsUnlocked(status);
     };
     
@@ -124,8 +124,9 @@ export const useUnlockStatus = (itemId: string): boolean => {
       if (event instanceof CustomEvent) {
         // Нормализуем ID для сравнения
         const eventId = event.detail?.itemId;
+        if (!eventId) return;
+        
         const normalizedEventId = normalizeId(eventId);
-        const normalizedItemId = normalizeId(itemId);
         
         // Проверяем совпадение после нормализации
         if (normalizedEventId === normalizedItemId) {
@@ -139,7 +140,7 @@ export const useUnlockStatus = (itemId: string): boolean => {
     return () => {
       window.removeEventListener('unlock-event', handleUnlockEvent);
     };
-  }, [itemId, unlockManager, state]);
+  }, [unlockManager, state, normalizedItemId]); // Используем нормализованный ID в зависимостях
   
   return isUnlocked;
 };

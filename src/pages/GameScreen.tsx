@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
@@ -52,10 +52,19 @@ const GameScreen = () => {
   const { toast } = useToast();
   const { t } = useI18nContext();
   
-  const hasUnlockedEquipment = useUnlockStatus(gameIds.features.equipment);
-  const hasUnlockedResearch = useUnlockStatus(gameIds.features.research);
-  const hasUnlockedSpecialization = useUnlockStatus(gameIds.features.specialization);
-  const hasUnlockedReferrals = useUnlockStatus(gameIds.features.referrals);
+  // Используем useMemo для мемоизации ID фич, чтобы избежать лишних перерендеров
+  const featureIds = useMemo(() => ({
+    equipment: gameIds.features.equipment,
+    research: gameIds.features.research,
+    specialization: gameIds.features.specialization,
+    referrals: gameIds.features.referrals
+  }), []);
+  
+  // Проверяем разблокировку различных функций
+  const hasUnlockedEquipment = useUnlockStatus(featureIds.equipment);
+  const hasUnlockedResearch = useUnlockStatus(featureIds.research);
+  const hasUnlockedSpecialization = useUnlockStatus(featureIds.specialization);
+  const hasUnlockedReferrals = useUnlockStatus(featureIds.referrals);
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
@@ -82,10 +91,10 @@ const GameScreen = () => {
       console.log("GameScreen: Принудительная разблокировка вкладки оборудования");
       dispatch({ 
         type: "UNLOCK_FEATURE", 
-        payload: { featureId: gameIds.features.equipment } 
+        payload: { featureId: featureIds.equipment } 
       });
     }
-  }, [state.buildings, state.unlocks.equipment, dispatch]);
+  }, [state.buildings, state.unlocks.equipment, dispatch, featureIds.equipment]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
@@ -136,6 +145,7 @@ const GameScreen = () => {
     }
   }, []);
   
+  // Обновляем выбранную вкладку при разблокировке функций
   useEffect(() => {
     if (hasUnlockedEquipment) {
       setSelectedTab("equipment");
@@ -146,6 +156,7 @@ const GameScreen = () => {
     }
   }, [hasUnlockedEquipment, hasUnlockedResearch, hasUnlockedReferrals]);
   
+  // Принудительная проверка разблокировок при загрузке
   useEffect(() => {
     if (state.buildings.generator?.count > 0 && !state.unlocks.research) {
       console.log("GameScreen: Принудительная проверка разблокировок при первичной загрузке");
@@ -158,7 +169,7 @@ const GameScreen = () => {
         dispatch({ type: "FORCE_RESOURCE_UPDATE" });
       }
     }
-  }, []);
+  }, [state.buildings.generator?.count, state.unlocks.research, state, dispatch]);
   
   const handleResetGame = () => {
     dispatch({ type: "RESET_GAME" });
