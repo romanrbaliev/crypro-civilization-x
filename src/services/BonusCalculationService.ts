@@ -1,5 +1,5 @@
 import { GameState } from '@/context/types';
-import { calculateResourceProduction } from '@/utils/resourceCalculations';
+import * as ResourceCalculations from '@/utils/resourceCalculations';
 
 /**
  * Сервис для расчета бонусов и эффектов
@@ -24,7 +24,7 @@ export class BonusCalculationService {
     newState = this.applySynergyBonuses(newState);
     
     // Пересчитываем производство ресурсов с учетом всех бонусов
-    newState = calculateResourceProduction(newState);
+    newState = ResourceCalculations.calculateResourceProduction(newState);
     
     return newState;
   }

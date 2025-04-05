@@ -91,7 +91,7 @@ export function SpecializationTab({ onAddEvent }: SpecializationTabProps) {
             key={spec.id}
             className={`
               border rounded-lg p-4 hover:border-blue-500 cursor-pointer transition-colors
-              ${state.specialization === spec.id ? 'bg-blue-50 border-blue-500' : 'bg-white'}
+              ${state.player?.specialization === spec.id ? 'bg-blue-50 border-blue-500' : 'bg-white'}
             `}
             onClick={() => handleChooseSpecialization(spec.id)}
           >

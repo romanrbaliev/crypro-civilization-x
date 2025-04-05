@@ -1,4 +1,3 @@
-
 // Базовые типы
 export type ResourceType = 'basic' | 'currency' | 'power' | 'computational' | 'crypto' | 'social' | 'resource';
 
@@ -74,6 +73,11 @@ export interface ReferralHelper {
   productivity: number;
   specialization?: string;
   createdAt: number;
+  helperId: string;
+  buildingId: string;
+  employerId?: string;
+  requestedAt?: number;
+  respondedAt?: number;
 }
 
 export interface GameEvent {
@@ -121,6 +125,8 @@ export interface GameState {
   effects?: Record<string, number>;
   research?: Record<string, any>;
   gameTime?: number;
+  specialization?: string; // Добавляем поле specialization
+  referredBy?: string | null; // Добавляем поле referredBy
 }
 
 // Типы для контекста игры

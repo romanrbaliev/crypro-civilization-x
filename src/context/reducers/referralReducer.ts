@@ -62,12 +62,17 @@ export const processHireReferralHelper = (
   if (!state.referrals) return state;
   
   // Создаем новый запрос на помощь
-  const helperRequest = {
+  const helperRequest: ReferralHelper = {
     id: `helper_${payload.referralId}_${payload.buildingId}_${Date.now()}`,
     helperId: payload.referralId,
     buildingId: payload.buildingId,
     requestedAt: Date.now(),
-    status: 'pending' // pending, accepted, rejected
+    status: 'pending', // pending, accepted, rejected
+    userId: payload.referralId,
+    name: `Помощник ${payload.referralId.substring(0, 6)}`,
+    level: 1,
+    productivity: 1,
+    createdAt: Date.now()
   };
   
   // Добавляем в список запросов помощи
