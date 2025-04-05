@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
@@ -14,20 +15,19 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const { t } = useI18nContext();
   
-  // ИСПРАВЛЕНО: Убедимся, что ID всегда определен
+  // Убедимся, что ID всегда определен
   const researchId = gameIds?.features?.research || 'research';
   const researchUnlocked = useUnlockStatus(researchId);
   
-  // Расширенные диагностические логи для отслеживания проблемы
+  // Расширенные диагностические логи
   useEffect(() => {
     console.log("ResearchTab: research unlocked =", researchUnlocked);
     console.log("ResearchTab: total upgrades =", Object.keys(state.upgrades || {}).length);
     console.log("ResearchTab: upgrades keys =", Object.keys(state.upgrades || {}));
     
-    // ИСПРАВЛЕНО: Добавляем проверку на undefined
+    // Проверяем наличие блокчейн-исследования
     const blockchainBasicsId = gameIds?.upgrades?.blockchainBasics || 'blockchainBasics';
     
-    // Проверяем наличие блокчейн-исследования
     console.log("ResearchTab: Проверка blockchainBasics", 
       state.upgrades[blockchainBasicsId] ? 
       `exists, unlocked=${state.upgrades[blockchainBasicsId].unlocked}` : 
@@ -37,13 +37,15 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     console.log("ResearchTab: Разблокировки (unlocks):", state.unlocks);
   }, [state.upgrades, researchUnlocked, state.unlocks]);
   
-  // Безопасно получаем нормализованные исследования, используя единую систему ID
+  // Безопасно получаем нормализованные исследования
   const getNormalizedUpgrades = () => {
+    if (!state.upgrades) return {};
+    
     // Создаем нормализованную копию исследований
     const normalizedUpgrades = { ...state.upgrades };
     
-    // Проверяем наличие исследования Основы блокчейна с новым стандартизированным ID
-    const blockchainBasicsId = gameIds.upgrades.blockchainBasics;
+    // Проверяем наличие исследования Основы блокчейна
+    const blockchainBasicsId = gameIds?.upgrades?.blockchainBasics || 'blockchainBasics';
     
     // Проверяем все возможные устаревшие ID для совместимости
     const possibleBlockchainBasicsIds = [
@@ -52,11 +54,8 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       'basicBlockchain'
     ];
     
-    let foundBlockchainBasics = false;
-    
     for (const id of possibleBlockchainBasicsIds) {
       if (normalizedUpgrades[id] && normalizedUpgrades[id].unlocked) {
-        foundBlockchainBasics = true;
         console.log(`ResearchTab: Найдено исследование Основы блокчейна с ID ${id}`);
         
         // Нормализуем ID в стандартный формат
@@ -84,7 +83,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     .filter(([_, upgrade]) => upgrade && upgrade.purchased)
     .map(([_, upgrade]) => upgrade);
   
-  // Проверка, есть ли разблокированные исследования, если нет - запускаем проверку
+  // Проверка, есть ли разблокированные исследования
   useEffect(() => {
     if (researchUnlocked && unlockedUpgrades.length === 0) {
       console.log("ResearchTab: Warning! Research tab is unlocked but no upgrades are available.");
@@ -94,8 +93,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       const potentialUpgrades = Object.values(state.upgrades || {}).filter(u => u && !u.unlocked);
       console.log("ResearchTab: Potential upgrades (not unlocked):", potentialUpgrades.map(u => u.id));
       
-      // Если вкладка исследований разблокирована, но нет видимых исследований,
-      // заставляем систему проверить все разблокировки
+      // Заставляем систему проверить все разблокировки
       dispatch({ type: "FORCE_CHECK_UNLOCKS" });
     }
   }, [researchUnlocked, unlockedUpgrades.length, state.unlocks, dispatch, state.upgrades]);

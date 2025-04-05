@@ -168,12 +168,16 @@ const GameScreen = () => {
     if (generatorCount > 0 && !state.unlocks?.research) {
       console.log("GameScreen: Принудительная проверка разблокировок при первичной загрузке");
       
-      const unlockService = new UnlockService();
-      const updatedState = unlockService.checkAllUnlocks(state);
-      
-      if (updatedState.unlocks?.research !== state.unlocks?.research) {
-        console.log("GameScreen: Обнаружено изменение разблокировок, применяем");
-        dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      try {
+        const unlockService = new UnlockService();
+        const updatedState = unlockService.checkAllUnlocks(state);
+        
+        if (updatedState.unlocks?.research !== state.unlocks?.research) {
+          console.log("GameScreen: Обнаружено изменение разблокировок, применяем");
+          dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+        }
+      } catch (error) {
+        console.error("Ошибка при проверке разблокировок:", error);
       }
     }
   }, [state.buildings?.generator?.count, state.unlocks?.research, state, dispatch]);
