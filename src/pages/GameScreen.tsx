@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
@@ -51,11 +52,16 @@ const GameScreen = () => {
   const { toast } = useToast();
   const { t } = useI18nContext();
   
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение gameIds и его свойств
   const safeGameIds = gameIds || {};
-  const safeFeatures: Record<string, string> = 
-    typeof safeGameIds.features === 'object' && safeGameIds.features 
-      ? safeGameIds.features as Record<string, string>
-      : {};
+  // Явно определяем тип и инициализируем объект
+  const safeFeatures: Record<string, string> = typeof safeGameIds === 'object' && 
+    safeGameIds && 
+    'features' in safeGameIds && 
+    typeof safeGameIds.features === 'object' && 
+    safeGameIds.features !== null ? 
+    safeGameIds.features as Record<string, string> : 
+    {};
   
   const featureIds = useMemo(() => ({
     equipment: safeFeatures.equipment || 'equipment',
@@ -67,7 +73,11 @@ const GameScreen = () => {
   useEffect(() => {
     console.log("GameScreen: Инициализированные ID функций:", featureIds);
     
-    if (typeof safeGameIds.features === 'object' && safeGameIds.features) {
+    if (typeof safeGameIds === 'object' && 
+        safeGameIds && 
+        'features' in safeGameIds && 
+        typeof safeGameIds.features === 'object' && 
+        safeGameIds.features !== null) {
       console.log("GameScreen: ID функций из gameIds:", safeGameIds.features);
     } else {
       console.log("GameScreen: gameIds.features не определены, используем дефолтные значения");

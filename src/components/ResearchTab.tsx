@@ -20,11 +20,14 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID исследований с проверкой типов
   const safeGameIds = gameIds || {};
-  // Создаем пустой объект, если features не определено
-  const safeFeatures: Record<string, string> = 
-    typeof safeGameIds.features === 'object' && safeGameIds.features 
-      ? safeGameIds.features as Record<string, string>
-      : {};
+  // Явно определяем тип и инициализируем объект
+  const safeFeatures: Record<string, string> = typeof safeGameIds === 'object' && 
+    safeGameIds && 
+    'features' in safeGameIds && 
+    typeof safeGameIds.features === 'object' && 
+    safeGameIds.features !== null ? 
+    safeGameIds.features as Record<string, string> : 
+    {};
   
   const researchId = safeFeatures.research || DEFAULT_RESEARCH_ID;
   
@@ -60,10 +63,13 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
     const normalizedUpgrades = { ...state.upgrades };
     
     // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасное получение ID блокчейн-исследования
-    const safeUpgrades: Record<string, string> = 
-      typeof safeGameIds.upgrades === 'object' && safeGameIds.upgrades 
-        ? safeGameIds.upgrades as Record<string, string>
-        : {};
+    const safeUpgrades: Record<string, string> = typeof safeGameIds === 'object' && 
+      safeGameIds && 
+      'upgrades' in safeGameIds && 
+      typeof safeGameIds.upgrades === 'object' && 
+      safeGameIds.upgrades !== null ? 
+      safeGameIds.upgrades as Record<string, string> : 
+      {};
     
     const blockchainBasicsId = safeUpgrades.blockchainBasics || 'blockchainBasics';
     

@@ -1,3 +1,4 @@
+
 import { useContext, createContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { useGame } from '@/context/hooks/useGame';
@@ -100,8 +101,10 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   const { state } = useGame();
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   
+  // ИСПРАВЛЕНИЕ: Инициализируем с пустым массивом зависимостей, а не с undefined
   const emptyDeps: string[] = [];
   
+  // ИСПРАВЛЕНИЕ: Гарантируем, что itemId - строка
   const safeItemId = itemId || '';
   
   const normalizedItemId = useMemo(() => {
@@ -118,7 +121,7 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
       console.error("Ошибка нормализации ID:", error, "для itemId:", safeItemId);
       return '';
     }
-  }, [safeItemId]);
+  }, [safeItemId]); // ИСПРАВЛЕНИЕ: используем safeItemId вместо itemId, который может быть undefined
   
   const checkUnlockStatus = useCallback(() => {
     try {
@@ -176,8 +179,9 @@ export const useUnlockStatus = (itemId: string | undefined): boolean => {
   }, [checkUnlockStatus, normalizedItemId]);
   
   useEffect(() => {
-    if (normalizedItemId === undefined) {
-      console.log("useUnlockStatus: Пропуск эффекта из-за невалидного ID");
+    // ИСПРАВЛЕНИЕ: Избегаем проверки на undefined, т.к. safeItemId всегда строка
+    if (normalizedItemId === '') {
+      console.log("useUnlockStatus: Пропуск эффекта из-за пустого ID");
       return;
     }
     
