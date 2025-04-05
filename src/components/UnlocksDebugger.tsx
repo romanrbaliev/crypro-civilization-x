@@ -16,6 +16,7 @@ import {
   getUnlockedBuildingsByGroup, 
   getUnlockedUpgradesByGroup 
 } from '@/utils/researchUtils';
+import { convertGameState } from '@/utils/typeConverters';
 
 const UnlocksDebugger: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -29,7 +30,9 @@ const UnlocksDebugger: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   
   const checkUnlocks = () => {
-    const result = debugUnlockStatus(state);
+    // Используем функцию-помощник для преобразования типов
+    const typedState = convertGameState(state);
+    const result = debugUnlockStatus(typedState);
     setDebugInfo({
       unlocked: result.unlocked || [],
       locked: result.locked || [],
@@ -53,8 +56,11 @@ const UnlocksDebugger: React.FC = () => {
   const advancedBuildings = React.useMemo(() => {
     if (!isOpen) return null;
     
+    // Используем функцию-помощник для преобразования типов
+    const typedState = convertGameState(state);
+    
     const advancedBuildingsList = ['miner', 'cryptoLibrary', 'coolingSystem', 'enhancedWallet'];
-    const unlockedBuildings = getUnlockedBuildingsByGroup(state, advancedBuildingsList);
+    const unlockedBuildings = getUnlockedBuildingsByGroup(typedState, advancedBuildingsList);
     
     const advancedUpgradesList = [
       'cryptoCurrencyBasics', 
@@ -64,7 +70,7 @@ const UnlocksDebugger: React.FC = () => {
       'cryptoTrading', 
       'tradingBot'
     ];
-    const unlockedUpgrades = getUnlockedUpgradesByGroup(state, advancedUpgradesList);
+    const unlockedUpgrades = getUnlockedUpgradesByGroup(typedState, advancedUpgradesList);
     
     return {
       unlockedBuildings,

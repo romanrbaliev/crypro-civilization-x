@@ -1,3 +1,4 @@
+
 // Базовые типы игровых объектов
 export interface Resource {
   id: string;
@@ -58,7 +59,7 @@ export interface Counter {
 export interface ReferralInfo {
   id: string;
   username?: string;
-  activated: boolean | string;
+  activated: boolean | string; // Изменено для совместимости
   hired?: boolean;
   assignedBuildingId?: string;
   buildingId?: string;
@@ -84,7 +85,7 @@ export interface SpecializationSynergy {
   requirement?: string;
   requiredCategories?: string[];
   bonus?: { [key: string]: number };
-  effects?: { [key: string]: number } | string;
+  effects?: { [key: string]: number } | string; // Изменено для совместимости
 }
 
 // Параметры майнинга

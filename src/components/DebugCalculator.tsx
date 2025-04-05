@@ -24,7 +24,7 @@ const DebugCalculator = () => {
   const unlockCryptoWallet = () => {
     if (state.buildings.cryptoWallet) {
       const unlockService = new UnlockService();
-      // Используем функцию-помощник для преобразования типов
+      // Используем функцию-помощник для преобразования типов и нормализации значений
       const typedState = convertGameState(state);
       unlockService.forceUnlock(typedState, 'cryptoWallet');
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
@@ -35,7 +35,7 @@ const DebugCalculator = () => {
   const unlockCryptoCurrencyBasics = () => {
     if (state.upgrades.cryptoCurrencyBasics) {
       const unlockService = new UnlockService();
-      // Используем функцию-помощник для преобразования типов
+      // Используем функцию-помощник для преобразования типов и нормализации значений
       const typedState = convertGameState(state);
       unlockService.forceUnlock(typedState, 'cryptoBasics');
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });

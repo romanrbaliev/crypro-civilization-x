@@ -42,7 +42,7 @@ const KnowledgeProductionPopup = () => {
             perSecond: state.resources.knowledge?.perSecond || 0
           });
           
-          // Получаем расчеты, используя функцию-помощник для преобразования типов
+          // Получаем расчеты, используем функцию-помощник для преобразования типов
           const typedState = convertGameState(state);
           const { steps, finalValue } = debugKnowledgeProduction(typedState);
           setCalculationSteps(steps);

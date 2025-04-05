@@ -1,4 +1,3 @@
-
 // Базовые типы игровых объектов
 export interface Resource {
   id: string;
@@ -53,7 +52,7 @@ export interface Counter {
 export interface ReferralInfo {
   id: string;
   username?: string;
-  activated: boolean;
+  activated: boolean | string; // Изменено для совместимости с типом в types/game.ts
   hired?: boolean;
   assignedBuildingId?: string;
   buildingId?: string;
@@ -97,7 +96,9 @@ export interface MiningParams {
 // Обновляем интерфейс для обновления статуса реферала
 export interface ReferralStatusUpdate {
   referralId: string;
-  activated: boolean;
+  activated: boolean | string; // Изменено для совместимости
+  hired?: boolean;
+  buildingId?: string;
 }
 
 // Основное состояние игры
