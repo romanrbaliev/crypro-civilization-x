@@ -1,97 +1,49 @@
 
-import { ReferralHelper } from "@/context/types";
+import { Building, ReferralHelper } from '@/context/types';
 
-/**
- * Проверяет, нанят ли реферал на определенное здание
- * @param userId ID пользователя (user_id)
- * @param buildingId ID здания
- * @param referralHelpers Список помощников
- * @returns true, если реферал нанят на указанное здание
- */
-export const isReferralHiredForBuilding = (
-  userId: string,
+// Функции для работы с зданиями в контексте помощников
+
+export const getBuildingHelperCount = (
   buildingId: string,
-  referralHelpers: ReferralHelper[]
-): boolean => {
-  const result = referralHelpers.some(
-    helper => 
-      helper.helperId === userId && 
-      helper.buildingId === buildingId && 
-      helper.status === 'accepted'
-  );
+  helpers: ReferralHelper[]
+): number => {
+  if (!helpers || !helpers.length) return 0;
   
-  console.log(`Проверка назначения реферала ${userId} на здание ${buildingId}:`, result);
-  return result;
+  return helpers.filter(
+    helper => helper.buildingId === buildingId && helper.status === 'accepted'
+  ).length;
 };
 
-/**
- * Получает ID здания, на которое нанят реферал
- * @param userId ID пользователя (user_id)
- * @param referralHelpers Список помощников
- * @returns ID здания или null, если реферал не нанят
- */
-export const getReferralAssignedBuildingId = (
-  userId: string,
-  referralHelpers: ReferralHelper[]
-): string | null => {
-  const helper = referralHelpers.find(
-    h => h.helperId === userId && h.status === 'accepted'
-  );
-  
-  const result = helper ? helper.buildingId : null;
-  console.log(`Получение ID здания для реферала ${userId}:`, result);
-  
-  if (!result) {
-    // Если в локальном состоянии нет информации, проверяем в БД
-    import('./helperQueries').then(({ getBuildingIdFromDBAsync }) => {
-      getBuildingIdFromDBAsync(userId).then(buildingIdFromDB => {
-        if (buildingIdFromDB) {
-          console.log(`В БД найдено здание ${buildingIdFromDB} для помощника ${userId}, но отсутствует в локальном состоянии`);
-          
-          // Отправляем событие для обновления
-          setTimeout(() => {
-            const refreshEvent = new CustomEvent('refresh-referrals');
-            window.dispatchEvent(refreshEvent);
-          }, 500);
-        }
-      });
-    });
-  }
-  
-  return result;
+export const getBuildingHelperBoost = (
+  buildingId: string,
+  helpers: ReferralHelper[]
+): number => {
+  const helperCount = getBuildingHelperCount(buildingId, helpers);
+  return helperCount * 0.1; // 10% бонус за каждого помощника
 };
 
-/**
- * Ищет запрос на трудоустройство для указанных реферала и здания
- * @param userId ID пользователя (user_id)
- * @param buildingId ID здания
- * @param referralHelpers Список помощников
- * @returns Объект запроса или null
- */
-export const findHelperRequest = (
-  userId: string,
+export const getBuildingHelpers = (
   buildingId: string,
-  referralHelpers: ReferralHelper[]
-): ReferralHelper | null => {
-  return referralHelpers.find(
-    h => h.helperId === userId && h.buildingId === buildingId
-  ) || null;
-};
-
-/**
- * Получает список активных помощников для конкретного здания
- * @param buildingId ID здания
- * @param referralHelpers Список всех помощников
- * @returns Список активных помощников для данного здания
- */
-export const getActiveBuildingHelpers = (
-  buildingId: string,
-  referralHelpers: ReferralHelper[]
+  helpers: ReferralHelper[]
 ): ReferralHelper[] => {
-  const helpers = referralHelpers.filter(
+  if (!helpers || !helpers.length) return [];
+  
+  return helpers.filter(
     helper => helper.buildingId === buildingId && helper.status === 'accepted'
   );
+};
+
+export const hasHelperForBuilding = (
+  buildingId: string,
+  referralId: string,
+  helpers: ReferralHelper[]
+): boolean => {
+  if (!helpers || !helpers.length) return false;
   
-  console.log(`Получено ${helpers.length} активных помощников для здания ${buildingId}`);
-  return helpers;
+  return helpers.some(
+    helper => 
+      helper.buildingId === buildingId && 
+      helper.helperId === referralId && 
+      helper.status === 'accepted'
+  );
 };

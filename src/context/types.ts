@@ -1,6 +1,6 @@
 
 // Базовые типы
-export type ResourceType = 'basic' | 'currency' | 'power' | 'computational' | 'crypto' | 'social';
+export type ResourceType = 'basic' | 'currency' | 'power' | 'computational' | 'crypto' | 'social' | 'resource';
 
 export interface Resource {
   id: string;
@@ -24,12 +24,16 @@ export interface Building {
   count: number;
   unlocked: boolean;
   baseCost: Record<string, number>;
+  cost?: Record<string, number>; // Добавляем для обратной совместимости
   costMultiplier: number;
   production: Record<string, number>;
   consumption?: Record<string, number>;
+  effects?: Record<string, any>; // Добавляем эффекты зданий
   maxCount?: number;
   requirements?: Record<string, number>;
   resourceProduction?: Record<string, number>;
+  productionBoost?: Record<string, number>; // Добавляем для обратной совместимости
+  type?: string; // Добавляем для обратной совместимости
 }
 
 export interface Upgrade {
@@ -41,6 +45,12 @@ export interface Upgrade {
   unlocked: boolean;
   type: string;
   effects: any;
+  category?: string; // Добавляем для TechTree
+  tier?: number; // Добавляем для TechTree
+  specialization?: string; // Добавляем для специализации
+  unlockCondition?: Record<string, any>; // Условия разблокировки
+  requiredUpgrades?: string[]; // Требуемые исследования
+  effect?: any; // Альтернативное название для effects
 }
 
 export interface GameState {
@@ -79,6 +89,14 @@ export interface GameState {
     };
   };
   language?: string;
+  miningParams?: {
+    difficulty: number;
+    hashrate: number;
+    blockReward: number;
+    lastBlockTime: number;
+  };
+  eventMessages?: string[];
+  gameTime?: number;
 }
 
 // Типы действий
@@ -97,7 +115,7 @@ export type GameAction =
   | { type: "PURCHASE_UPGRADE"; payload: { upgradeId: string } }
   | { type: "CHOOSE_SPECIALIZATION"; payload: { specializationId: string } }
   | { type: "SET_LANGUAGE"; payload: { language: string } }
-  // Добавляем недостающие типы действий
+  // Дополнительные типы действий
   | { type: "INCREMENT_RESOURCE"; payload: { resourceId: string; amount?: number } }
   | { type: "UNLOCK_RESOURCE"; payload: { resourceId: string } }
   | { type: "SET_BUILDING_UNLOCKED"; payload: { buildingId: string; unlocked: boolean } }
@@ -119,5 +137,33 @@ export type GameAction =
   | { type: "ACTIVATE_REFERRAL"; payload: { referralId: string } }
   | { type: "HIRE_REFERRAL_HELPER"; payload: { referralId: string; buildingId: string } }
   | { type: "RESPOND_TO_HELPER_REQUEST"; payload: { helperId: string; accepted: boolean } }
-  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; status: any } }
-  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: any[] } };
+  | { type: "UPDATE_REFERRAL_STATUS"; payload: { referralId: string; status: any; activated?: boolean } }
+  | { type: "UPDATE_HELPERS"; payload: { updatedHelpers: any[] } }
+  | { type: "UNLOCK_BUILDING"; payload: { buildingId: string } }
+  | { type: "RESEARCH_UPGRADE"; payload: { upgradeId: string } }
+  | { type: "UNLOCK_RESEARCH" }
+  | { type: "UNLOCK_BITCOIN_EXCHANGE" }
+  | { type: "DEBUG_ADD_RESOURCES"; payload: { resources: Record<string, number> } }
+  | { type: "UNLOCK_BUILDING_PRACTICE" }
+  | { type: "UNLOCK_BUILDING_GENERATOR" };
+
+// Интерфейс для специализации синергий
+export interface SpecializationSynergy {
+  id: string;
+  name: string;
+  description: string;
+  requiredCategories: string[];
+  requiredCount: number;
+  bonus: Record<string, number>;
+}
+
+// Тип для объекта диспетчера действий
+export type GameDispatch = React.Dispatch<GameAction>;
+
+// Тип для хелперов рефералов
+export interface ReferralHelper {
+  id: string;
+  buildingId: string;
+  helperId: string;
+  status: string;
+}

@@ -3,6 +3,7 @@ import React from 'react';
 import { useGameState } from '@/context/GameStateContext';
 import { useTranslation } from '@/i18n';
 import { formatNumber } from '@/utils/helpers';
+import { TranslationKey } from '@/i18n/types';
 
 export function ResourceContainer() {
   const { state } = useGameState();
@@ -20,7 +21,7 @@ export function ResourceContainer() {
         {unlockedResources.map((resource) => (
           <div key={resource.id} className="flex justify-between items-center border-b pb-1">
             <div className="flex items-center">
-              <span className="text-sm font-medium">{t(`resources.${resource.id}` as const)}</span>
+              <span className="text-sm font-medium">{t(`resources.${resource.id}` as TranslationKey)}</span>
             </div>
             <div className="flex flex-col items-end">
               <span className="text-sm font-bold">{formatNumber(resource.value)}</span>

@@ -1,29 +1,45 @@
-
 import { useEffect } from 'react';
-import { GameState, GameAction } from '@/context/types';
+import { useGame } from '@/context/hooks/useGame';
 
-export const useReferralEvents = (
-  state: GameState,
-  dispatch: React.Dispatch<GameAction>,
-  isLoading: boolean
-) => {
+export const useReferralEvents = (state: any, dispatch: any, isLoading: boolean) => {
   useEffect(() => {
-    if (!state.gameStarted || isLoading) return;
-    
-    const handleUpdateReferralStatus = (event: CustomEvent) => {
-      const { referralId, activated } = event.detail;
-      console.log(`Получено событие обновления статуса реферала: ${referralId}, активирован=${activated}`);
-      
-      dispatch({
-        type: "UPDATE_REFERRAL_STATUS",
-        payload: { referralId, activated }
-      });
+    const handleReferralStatusUpdate = (event: any) => {
+      const { referralId, status } = event.detail;
+      updateReferralStatus(referralId, status);
     };
-    
-    window.addEventListener('update-referral-status', handleUpdateReferralStatus as EventListener);
-    
+
+    const handleHelperStatusUpdate = (event: any) => {
+      const { helperId, accepted } = event.detail;
+      respondToHelperRequest(helperId, accepted);
+    };
+
+    window.addEventListener('referral-status-update', handleReferralStatusUpdate);
+    window.addEventListener('helper-status-update', handleHelperStatusUpdate);
+
     return () => {
-      window.removeEventListener('update-referral-status', handleUpdateReferralStatus as EventListener);
+      window.removeEventListener('referral-status-update', handleReferralStatusUpdate);
+      window.removeEventListener('helper-status-update', handleHelperStatusUpdate);
     };
-  }, [state, isLoading, dispatch]);
+  }, [dispatch, isLoading]);
+
+  // Обновляем только callback для статуса реферала
+  const updateReferralStatus = (referralId: string, status: string) => {
+    dispatch({
+      type: "UPDATE_REFERRAL_STATUS",
+      payload: {
+        referralId,
+        status
+      }
+    });
+  };
+
+  const respondToHelperRequest = (helperId: string, accepted: boolean) => {
+    dispatch({
+      type: "RESPOND_TO_HELPER_REQUEST",
+      payload: {
+        helperId,
+        accepted
+      }
+    });
+  };
 };
