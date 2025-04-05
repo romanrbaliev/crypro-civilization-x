@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/context/GameContext';
 import { Building } from '@/types/game';
-import { formatNumber, canAfford, calculateCost } from '@/utils/helpers';
-import { Home, X } from 'lucide-react';
+import { formatNumber } from '@/utils/helpers';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface BuildingCardProps {
   building: Building;
@@ -12,6 +12,7 @@ interface BuildingCardProps {
 
 const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
   const { state, dispatch } = useGame();
+  const [expanded, setExpanded] = useState(false);
   
   const handlePurchase = () => {
     dispatch({
@@ -27,78 +28,136 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building }) => {
     });
   };
   
+  // Функции для вычисления стоимости здания
+  const calculateCost = (building: Building) => {
+    const cost: {[key: string]: number} = {};
+    if (!building.cost) return cost;
+    
+    Object.entries(building.cost).forEach(([resourceId, baseAmount]) => {
+      const multiplier = building.costMultiplier || 1.15;
+      cost[resourceId] = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
+    });
+    return cost;
+  };
+  
+  const canAfford = (resources: any, cost: {[key: string]: number}) => {
+    return Object.entries(cost).every(([resourceId, amount]) => {
+      const resource = resources[resourceId];
+      return resource && resource.value >= amount;
+    });
+  };
+  
   const cost = calculateCost(building);
   const canPurchase = canAfford(state.resources, cost);
   
-  // Преобразуем объект cost в читабельную строку
-  const costString = Object.entries(cost)
-    .map(([resourceId, amount]) => {
+  // Преобразуем стоимость в строку
+  const renderCost = () => {
+    return Object.entries(cost).map(([resourceId, amount]) => {
       const resourceName = state.resources[resourceId]?.name || resourceId;
-      return `${formatNumber(Number(amount))} ${resourceName}`;
-    })
-    .join(', ');
+      return (
+        <div key={resourceId} className="flex justify-between">
+          <span>{resourceName}</span>
+          <span className="text-red-500">{formatNumber(amount)}</span>
+        </div>
+      );
+    });
+  };
   
-  // Преобразуем объект production в читабельную строку
-  const productionString = building.production ? 
-    Object.entries(building.production)
-      .map(([resourceId, amount]) => {
-        const resourceName = state.resources[resourceId]?.name || resourceId;
-        return `+${formatNumber(Number(amount))}/сек ${resourceName}`;
-      })
-      .join(', ') : '';
+  // Преобразуем производство в строку
+  const renderProduction = () => {
+    if (!building.production) return null;
+    
+    return Object.entries(building.production).map(([resourceId, amount]) => {
+      const resourceName = state.resources[resourceId]?.name || resourceId;
+      return (
+        <div key={resourceId} className="flex justify-between">
+          <span className="text-green-500">{resourceName}</span>
+          <span className="text-green-500">+{formatNumber(Number(amount))}/сек</span>
+        </div>
+      );
+    });
+  };
   
-  // Преобразуем объект consumption в читабельную строку  
-  const consumptionString = building.consumption ? 
-    Object.entries(building.consumption)
-      .map(([resourceId, amount]) => {
-        const resourceName = state.resources[resourceId]?.name || resourceId;
-        return `-${formatNumber(Number(amount))}/сек ${resourceName}`;
-      })
-      .join(', ') : '';
+  // Преобразуем потребление в строку
+  const renderConsumption = () => {
+    if (!building.consumption) return null;
+    
+    return Object.entries(building.consumption).map(([resourceId, amount]) => {
+      const resourceName = state.resources[resourceId]?.name || resourceId;
+      return (
+        <div key={resourceId} className="flex justify-between">
+          <span className="text-red-500">{resourceName}</span>
+          <span className="text-red-500">-{formatNumber(Number(amount))}/сек</span>
+        </div>
+      );
+    });
+  };
   
   return (
-    <div className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-semibold">{building.name}</h3>
-        <span className="text-sm font-medium bg-blue-100 text-blue-800 py-1 px-2 rounded dark:bg-blue-900 dark:text-blue-200">
-          {building.count}
-        </span>
-      </div>
-      
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{building.description}</p>
-      
-      <div className="space-y-1 mb-3 text-sm">
-        {productionString && (
-          <div className="text-green-600 dark:text-green-400">{productionString}</div>
-        )}
-        {consumptionString && (
-          <div className="text-red-600 dark:text-red-400">{consumptionString}</div>
-        )}
-        <div className="text-gray-500 dark:text-gray-400">
-          Стоимость: {costString}
+    <div className="bg-gray-50 rounded-lg overflow-hidden mb-3">
+      {/* Заголовок карточки */}
+      <div 
+        className="p-4 flex justify-between items-center cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div>
+          <h3 className="font-medium">
+            {building.name} {building.count > 0 && `×${building.count}`}
+          </h3>
         </div>
+        {expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
       </div>
       
-      <div className="flex gap-2">
-        <Button
-          onClick={handlePurchase}
-          disabled={!canPurchase}
-          variant={canPurchase ? "default" : "outline"}
-          className="flex-1"
-        >
-          <Home className="mr-2 h-4 w-4" /> Купить
-        </Button>
-        
-        {building.count > 0 && (
-          <Button
-            onClick={handleSell}
-            variant="destructive"
-            size="icon"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      {/* Содержимое карточки (раскрывается при клике) */}
+      {expanded && (
+        <div className="p-4 pt-0 border-t border-gray-200">
+          <p className="text-gray-500 mb-3">{building.description}</p>
+          
+          {/* Стоимость */}
+          <div className="mb-3">
+            <h4 className="font-medium mb-1">Стоимость:</h4>
+            {renderCost()}
+          </div>
+          
+          {/* Производство */}
+          {building.production && Object.keys(building.production).length > 0 && (
+            <div className="mb-3">
+              <h4 className="font-medium mb-1">Производит:</h4>
+              {renderProduction()}
+            </div>
+          )}
+          
+          {/* Потребление */}
+          {building.consumption && Object.keys(building.consumption).length > 0 && (
+            <div className="mb-3">
+              <h4 className="font-medium mb-1">Потребляет:</h4>
+              {renderConsumption()}
+            </div>
+          )}
+          
+          {/* Кнопки действий */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <Button
+              onClick={handlePurchase}
+              disabled={!canPurchase}
+              variant="outline"
+              className="w-full"
+            >
+              Купить
+            </Button>
+            
+            {building.count > 0 && (
+              <Button
+                onClick={handleSell}
+                variant="outline"
+                className="w-full"
+              >
+                Продать
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

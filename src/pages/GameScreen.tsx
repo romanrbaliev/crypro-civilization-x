@@ -1,25 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import GameLayout from '@/components/layout/GameLayout';
-import BuildingList from '@/components/BuildingList';
+import BuildingsTab from '@/components/BuildingsTab';
 import ResearchList from '@/components/ResearchList';
 
 const GameScreen: React.FC = () => {
-  const { state } = useGame();
-  const [activeTab, setActiveTab] = useState('equipment');
+  const [activeTab, setActiveTab] = useState('equipment'); // 'equipment' или 'research'
   
-  // Эффект для установки активной вкладки на основе разблокированного контента
-  useEffect(() => {
-    // Если ничего не разблокировано, показываем оборудование
-    if (!state.unlocks.research) {
-      setActiveTab('equipment');
-    }
-  }, [state.unlocks]);
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
   
   return (
     <GameLayout>
-      {activeTab === 'equipment' && <BuildingList />}
+      {activeTab === 'equipment' && <BuildingsTab />}
       {activeTab === 'research' && <ResearchList />}
     </GameLayout>
   );

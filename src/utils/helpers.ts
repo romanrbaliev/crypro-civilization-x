@@ -1,147 +1,78 @@
 
 /**
- * Форматирует число с заданной точностью
- * @param num Число для форматирования
- * @param digits Количество знаков после запятой
- * @returns Отформатированное число
+ * Форматирует число, добавляя разделители тысяч и ограничивая количество десятичных знаков
+ * @param value Число для форматирования
+ * @param decimals Количество десятичных знаков
+ * @returns Отформатированное число в виде строки
  */
-export const formatNumber = (num: number, digits: number = 0): string => {
-  if (isNaN(num)) return '0';
+export const formatNumber = (value: number, decimals: number = 2): string => {
+  if (value === undefined || value === null) return '0';
   
-  // Для больших чисел используем сокращенный формат
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
+  // Определяем множитель для округления
+  const multiplier = Math.pow(10, decimals);
   
-  // Преобразуем к строке с фиксированным количеством знаков
-  return num.toFixed(digits).replace('.', ',');
+  // Округляем число до указанного количества десятичных знаков
+  const roundedValue = Math.round(value * multiplier) / multiplier;
+  
+  // Форматируем число с разделителями групп разрядов
+  return new Intl.NumberFormat('ru-RU', { 
+    minimumFractionDigits: value < 0.01 && value > 0 ? 6 : Math.min(2, decimals),
+    maximumFractionDigits: decimals 
+  }).format(roundedValue);
 };
 
 /**
- * Проверяет, хватает ли ресурсов для определенной стоимости
- * @param resources Текущие ресурсы
- * @param cost Требуемая стоимость
- * @returns true, если хватает ресурсов, иначе false
+ * Проверяет, достаточно ли ресурсов для покупки
+ * @param resources Объект с ресурсами
+ * @param cost Объект со стоимостью
+ * @returns true, если ресурсов достаточно, false в противном случае
  */
-export const canAfford = (
-  resources: { [key: string]: number | { value: number } },
-  cost: { [key: string]: number }
-): boolean => {
+export const canAfford = (resources: any, cost: {[key: string]: number}): boolean => {
   return Object.entries(cost).every(([resourceId, amount]) => {
     const resource = resources[resourceId];
-    const resourceValue = typeof resource === 'object' && resource !== null ? resource.value : resource;
-    return typeof resourceValue === 'number' && resourceValue >= Number(amount);
+    return resource && resource.value >= amount;
   });
 };
 
 /**
- * Добавляет ресурсы с проверкой максимума
- * @param current Текущее значение ресурса
- * @param amount Количество для добавления
- * @param max Максимальное значение ресурса
- * @returns Новое значение ресурса
- */
-export const addResource = (
-  current: number,
-  amount: number,
-  max: number
-): number => {
-  return Math.min(current + amount, max);
-};
-
-/**
- * Вычитает ресурсы с проверкой минимума
- * @param current Текущее значение ресурса
- * @param amount Количество для вычитания
- * @returns Новое значение ресурса
- */
-export const subtractResource = (
-  current: number,
-  amount: number
-): number => {
-  return Math.max(current - amount, 0);
-};
-
-/**
- * Получает множитель производства на основе коэффициентов
- * @param baseMultiplier Базовый множитель производства
- * @param boosts Дополнительные усиления
- * @returns Итоговый множитель производства
- */
-export const getProductionMultiplier = (
-  baseMultiplier: number,
-  boosts: number[]
-): number => {
-  return boosts.reduce((acc, boost) => acc * (1 + boost), baseMultiplier);
-};
-
-/**
- * Проверяет доступность Telegram WebApp
- * @returns true, если Telegram WebApp доступен
- */
-export const isTelegramWebAppAvailable = (): boolean => {
-  return typeof window !== 'undefined' && 
-    window.Telegram !== undefined && 
-    window.Telegram.WebApp !== undefined;
-};
-
-/**
- * Генерирует случайный реферальный код
- * @returns Строка с реферальным кодом
- */
-export const generateReferralCode = (): string => {
-  const length = 8;
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  
-  return result;
-};
-
-/**
- * Рассчитывает стоимость здания или исследования с учетом уровня
- * @param item Объект здания или исследования
+ * Вычисляет стоимость здания с учетом коэффициента умножения стоимости
+ * @param building Здание
  * @returns Объект с рассчитанной стоимостью
  */
-export const calculateCost = (item: any): { [key: string]: number } => {
-  const baseCost = item.cost || {};
-  const count = item.count || 0;
-  const scaleFactor = item.scaleFactor || 1.15;
+export const calculateCost = (building: any): {[key: string]: number} => {
+  const cost: {[key: string]: number} = {};
+  if (!building.cost) return cost;
   
-  const scaledCost: { [key: string]: number } = {};
-  
-  Object.entries(baseCost).forEach(([resourceId, baseAmount]) => {
-    // Преобразуем baseAmount к числу если это не число
-    const baseAmountNumber = typeof baseAmount === 'number' 
-      ? baseAmount 
-      : Number(baseAmount);
-    
-    // Используем формулу: baseCost * scaleFactor^count
-    scaledCost[resourceId] = Math.round(baseAmountNumber * Math.pow(scaleFactor, count));
+  Object.entries(building.cost).forEach(([resourceId, baseAmount]) => {
+    const multiplier = building.costMultiplier || 1.15;
+    cost[resourceId] = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
   });
-  
-  return scaledCost;
+  return cost;
 };
 
 /**
- * Рассчитывает время до достижения определенного количества ресурса
- * @param current Текущее количество ресурса
- * @param target Целевое количество ресурса
- * @param perSecond Производство ресурса в секунду
- * @returns Время в секундах или Infinity если производство <= 0
+ * Проверяет, доступно ли Telegram Web App API
+ */
+export const isTelegramWebAppAvailable = (): boolean => {
+  // @ts-ignore - Telegram Web App API
+  return window.Telegram && window.Telegram.WebApp ? true : false;
+};
+
+/**
+ * Генерирует реферальный код
+ */
+export const generateReferralCode = (): string => {
+  return Math.random().toString(36).substring(2, 10).toUpperCase();
+};
+
+/**
+ * Рассчитывает время, необходимое для достижения целевого значения ресурса
  */
 export const calculateTimeToReach = (
-  current: number,
-  target: number,
+  currentValue: number,
+  targetValue: number,
   perSecond: number
 ): number => {
   if (perSecond <= 0) return Infinity;
-  if (current >= target) return 0;
-  
-  return Math.ceil((target - current) / perSecond);
+  return Math.max(0, (targetValue - currentValue) / perSecond);
 };

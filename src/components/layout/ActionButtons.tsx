@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { Brain, DollarSign, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
@@ -69,10 +68,31 @@ const ActionButtons: React.FC = () => {
   
   // Проверка, достаточно ли знаний для обмена
   const canApplyKnowledge = state.resources.knowledge?.value >= 10;
+  const hasBitcoin = state.resources.bitcoin?.value > 0;
   
   return (
-    <div className="space-y-3 max-w-md mx-auto">
-      {/* Базовые действия снизу вверх */}
+    <div className="space-y-3">
+      {/* Обменять Bitcoin - показывается если есть майнер */}
+      {state.buildings.miner && state.buildings.miner.unlocked && (
+        <Button 
+          variant="outline"
+          className="w-full justify-center py-6 text-base"
+          disabled={!hasBitcoin}
+          onClick={handleExchangeBtc}
+        >
+          Обменять Bitcoin
+        </Button>
+      )}
+      
+      {/* Применить знания */}
+      <Button 
+        variant="default"
+        className="w-full justify-center py-6 text-base bg-gray-900 hover:bg-gray-800"
+        disabled={!canApplyKnowledge}
+        onClick={handleApplyKnowledge}
+      >
+        Применить знания
+      </Button>
       
       {/* Изучить крипту - всегда доступна */}
       <Button 
@@ -82,30 +102,6 @@ const ActionButtons: React.FC = () => {
       >
         Изучить крипту
       </Button>
-      
-      {/* Применить знания - появляется после разблокировки */}
-      {state.counters.knowledgeClicks && state.counters.knowledgeClicks.value >= 3 && (
-        <Button 
-          variant="default"
-          className="w-full justify-center py-6 text-base bg-gray-900 hover:bg-gray-800"
-          disabled={!canApplyKnowledge}
-          onClick={handleApplyKnowledge}
-        >
-          Применить знания
-        </Button>
-      )}
-      
-      {/* Обменять BTC - появляется после разблокировки майнера */}
-      {state.buildingUnlocked?.miner && (
-        <Button 
-          variant="default"
-          className="w-full justify-center py-6 text-base bg-orange-500 hover:bg-orange-600"
-          disabled={state.resources.bitcoin?.value <= 0}
-          onClick={handleExchangeBtc}
-        >
-          Обменять Bitcoin
-        </Button>
-      )}
     </div>
   );
 };
