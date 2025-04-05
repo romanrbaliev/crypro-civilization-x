@@ -1,9 +1,10 @@
+
 // Базовые типы игровых объектов
 export interface Resource {
   id: string;
   name: string;
   description: string; // Изменено с description?: string на description: string
-  type: string;
+  type: 'primary' | 'currency' | 'resource'; // Изменено с string на union type, соответствующий ResourceType из types/game.ts
   icon?: string;
   value: number;
   max: number;

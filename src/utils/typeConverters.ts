@@ -1,5 +1,5 @@
 
-import { GameState as TypesGameState, ReferralInfo as TypesReferralInfo } from '@/types/game';
+import { GameState as TypesGameState, ReferralInfo as TypesReferralInfo, ResourceType } from '@/types/game';
 import { GameState as ContextGameState, ReferralInfo as ContextReferralInfo } from '@/context/types';
 
 /**
@@ -25,6 +25,31 @@ export function convertGameState<T extends TypesGameState | ContextGameState>(st
     state = {
       ...state,
       referrals: processedReferrals
+    };
+  }
+  
+  // Преобразуем типы ресурсов, если необходимо
+  if (state && state.resources) {
+    const resources = { ...state.resources };
+    
+    // Проходим по всем ресурсам
+    Object.keys(resources).forEach(key => {
+      const resource = resources[key];
+      if (resource && typeof resource.type === 'string') {
+        // Убедимся, что тип соответствует ожидаемым значениям ResourceType
+        if (['primary', 'currency', 'resource'].includes(resource.type)) {
+          // Тип уже в порядке
+        } else {
+          // Присваиваем подходящий тип по умолчанию
+          resource.type = 'resource' as ResourceType;
+        }
+      }
+    });
+    
+    // Обновляем ресурсы в состоянии
+    state = {
+      ...state,
+      resources
     };
   }
   

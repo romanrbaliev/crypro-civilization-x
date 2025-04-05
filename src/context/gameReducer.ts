@@ -1,63 +1,82 @@
-
 import { GameState, GameAction } from '../types/game';
 import { initialState } from './initialState';
 import { processApplyKnowledge, processApplyAllKnowledge } from './reducers/building/applyKnowledge';
 import { processUpdateResources } from './reducers/resourceUpdateReducer';
+import { convertGameState } from '@/utils/typeConverters';
 
 export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
   console.log('Получено действие:', action.type);
   
+  // Создаем пустой объект для результата
+  let result: GameState;
+  
   switch (action.type) {
     case 'INCREMENT_RESOURCE':
-      return incrementResource(state, action.payload);
+      result = incrementResource(state, action.payload);
+      break;
     
     case 'UNLOCK_RESOURCE':
-      return unlockResource(state, action.payload);
+      result = unlockResource(state, action.payload);
+      break;
     
     case 'PURCHASE_BUILDING':
-      return purchaseBuilding(state, action.payload);
+      result = purchaseBuilding(state, action.payload);
+      break;
       
     case 'SELL_BUILDING':
-      return sellBuilding(state, action.payload);
+      result = sellBuilding(state, action.payload);
+      break;
       
     case 'PURCHASE_UPGRADE':
-      return purchaseUpgrade(state, action.payload);
+      result = purchaseUpgrade(state, action.payload);
+      break;
       
     case 'APPLY_KNOWLEDGE':
-      return processApplyKnowledge(state);
+      result = processApplyKnowledge(state);
+      break;
       
     case 'APPLY_ALL_KNOWLEDGE':
-      return processApplyAllKnowledge(state);
+      result = processApplyAllKnowledge(state);
+      break;
       
     case 'UPDATE_RESOURCES':
-      return processUpdateResources(state, action.payload);
+      result = processUpdateResources(state, action.payload);
+      break;
       
     case 'INCREMENT_COUNTER':
-      return incrementCounter(state, action.payload);
+      result = incrementCounter(state, action.payload);
+      break;
       
     case 'START_GAME':
-      return {
+      result = {
         ...initialState,
         gameStarted: true,
         lastUpdate: Date.now()
       };
+      break;
       
     case 'LOAD_GAME':
-      return {
+      result = {
         ...action.payload,
         lastUpdate: Date.now()
       };
+      break;
       
     case 'RESET_GAME':
-      return {
+      result = {
         ...initialState,
         gameStarted: true,
         lastUpdate: Date.now()
       };
+      break;
       
     default:
-      return state;
+      result = state;
+      break;
   }
+  
+  // Преобразуем результат для обеспечения совместимости типов
+  return convertGameState<GameState>(result);
 };
 
 // Функция для увеличения ресурса
