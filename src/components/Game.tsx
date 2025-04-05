@@ -37,16 +37,22 @@ export function Game() {
     }
   }, []);
   
+  // Функция для добавления событий, которую передадим в ResearchContainer
+  const handleAddEvent = (message: string, type: string) => {
+    console.log("Game event:", message, type);
+    // В будущем здесь может быть логика добавления событий
+  };
+  
   return (
     <div className="container mx-auto p-4 flex flex-col md:flex-row gap-4">
       <div className="w-full md:w-2/3 space-y-4">
         <GameHeader />
         
-        <ActionButtons onAddEvent={() => {}} />
+        <ActionButtons onAddEvent={handleAddEvent} />
         
         <ResourceContainer />
         
-        {state.unlocks.research && <ResearchContainer />}
+        {state.unlocks.research && <ResearchContainer onAddEvent={handleAddEvent} />}
         
         <BuildingsContainer />
       </div>
