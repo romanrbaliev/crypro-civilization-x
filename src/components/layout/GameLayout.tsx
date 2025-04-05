@@ -1,10 +1,11 @@
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import GameHeader from './GameHeader';
 import ResourceSidebar from './ResourceSidebar';
 import ActionButtons from './ActionButtons';
 import EventLog from '../EventLog';
 import { useGame } from '@/context/hooks/useGame';
+import { BuildingOutline, Lightbulb } from 'lucide-react';
 
 interface GameLayoutProps {
   children: ReactNode;
@@ -12,6 +13,7 @@ interface GameLayoutProps {
 
 const GameLayout: React.FC<GameLayoutProps> = ({ children }) => {
   const { state } = useGame();
+  const [activeTab, setActiveTab] = useState('equipment');
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -29,20 +31,22 @@ const GameLayout: React.FC<GameLayoutProps> = ({ children }) => {
           
           {/* Вкладки (отображаются снизу вверх) */}
           <div className="border-t">
-            <div className="p-2">
-              <div className="py-2 border-b">
-                <button className="flex items-center w-full py-2 px-4 bg-blue-900 text-white rounded-md">
-                  <span className="mr-2">💻</span>
-                  <span className="text-xs">Оборудование</span>
-                </button>
+            <div className="p-0">
+              <div 
+                className={`py-3 px-4 border-b flex items-center ${activeTab === 'equipment' ? 'bg-gray-800 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                onClick={() => setActiveTab('equipment')}
+              >
+                <BuildingOutline className="mr-2 h-5 w-5" />
+                <span className="text-sm">Оборудование</span>
               </div>
               
               {state.upgrades.blockchainBasics && state.upgrades.blockchainBasics.unlocked && (
-                <div className="py-2 border-b">
-                  <button className="flex items-center w-full py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
-                    <span className="mr-2">💡</span>
-                    <span className="text-xs">Исследования</span>
-                  </button>
+                <div 
+                  className={`py-3 px-4 border-b flex items-center ${activeTab === 'research' ? 'bg-gray-800 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                  onClick={() => setActiveTab('research')}
+                >
+                  <Lightbulb className="mr-2 h-5 w-5" />
+                  <span className="text-sm">Исследования</span>
                 </div>
               )}
             </div>

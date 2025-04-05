@@ -2,143 +2,158 @@
 import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { formatNumber } from '@/utils/helpers';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const BuildingList: React.FC = () => {
   const { state, dispatch } = useGame();
-  const [expandedBuildings, setExpandedBuildings] = React.useState<Set<string>>(new Set());
   
-  // Фильтруем только разблокированные здания
-  const unlockedBuildings = Object.values(state.buildings).filter(building => building.unlocked);
+  // Фильтруем разблокированные здания
+  const unlockedBuildings = Object.values(state.buildings).filter(
+    building => building.unlocked
+  );
   
+  // Состояние для открытых/закрытых карточек
+  const [expandedBuildings, setExpandedBuildings] = React.useState<{[key: string]: boolean}>({});
+  
+  // Переключение состояния карточки
   const toggleBuilding = (buildingId: string) => {
-    const newExpanded = new Set(expandedBuildings);
-    if (newExpanded.has(buildingId)) {
-      newExpanded.delete(buildingId);
-    } else {
-      newExpanded.add(buildingId);
-    }
-    setExpandedBuildings(newExpanded);
+    setExpandedBuildings(prev => ({
+      ...prev,
+      [buildingId]: !prev[buildingId]
+    }));
   };
   
-  const purchaseBuilding = (buildingId: string) => {
-    dispatch({
-      type: 'PURCHASE_BUILDING',
-      payload: { buildingId }
-    });
+  // Покупка здания
+  const handleBuyBuilding = (buildingId: string) => {
+    dispatch({ type: 'PURCHASE_BUILDING', payload: { buildingId } });
   };
   
-  const sellBuilding = (buildingId: string) => {
-    dispatch({
-      type: 'SELL_BUILDING',
-      payload: { buildingId }
-    });
+  // Продажа здания
+  const handleSellBuilding = (buildingId: string) => {
+    dispatch({ type: 'SELL_BUILDING', payload: { buildingId } });
   };
   
-  // Проверяем, достаточно ли ресурсов для покупки здания
-  const canAfford = (building: any) => {
-    for (const [resourceId, cost] of Object.entries(building.cost)) {
+  // Проверка, может ли игрок купить здание
+  const canAffordBuilding = (building: any) => {
+    return Object.entries(building.cost).every(([resourceId, cost]) => {
       const resource = state.resources[resourceId];
-      if (!resource || resource.value < Number(cost)) {
-        return false;
-      }
-    }
-    return true;
+      const scaledCost = Number(cost) * Math.pow(building.costMultiplier, building.count);
+      return resource && resource.value >= scaledCost;
+    });
+  };
+  
+  // Получение стоимости здания с учетом коэффициента
+  const getBuildingCost = (building: any) => {
+    return Object.entries(building.cost).map(([resourceId, baseCost]) => {
+      const cost = Number(baseCost) * Math.pow(building.costMultiplier, building.count);
+      const resource = state.resources[resourceId];
+      const canAfford = resource && resource.value >= cost;
+      
+      return (
+        <div key={resourceId} className="flex justify-between items-center">
+          <span className="text-gray-600">{state.resources[resourceId]?.name}:</span>
+          <span className={canAfford ? "text-gray-600" : "text-red-500"}>
+            {formatNumber(cost, 0)}
+          </span>
+        </div>
+      );
+    });
   };
   
   return (
     <div className="space-y-4">
-      {unlockedBuildings.map(building => {
-        const isExpanded = expandedBuildings.has(building.id);
-        const affordable = canAfford(building);
-        
-        return (
-          <div key={building.id} className="border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-sm">
+      {unlockedBuildings.length === 0 ? (
+        <div className="text-center p-4 text-gray-500">
+          Нет доступных зданий
+        </div>
+      ) : (
+        unlockedBuildings.map(building => {
+          const isExpanded = expandedBuildings[building.id] ?? false;
+          
+          return (
             <div 
-              className="p-3 flex justify-between items-center cursor-pointer"
-              onClick={() => toggleBuilding(building.id)}
+              key={building.id} 
+              className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden border border-gray-200 dark:border-gray-700"
             >
-              <div className="flex-1">
+              {/* Заголовок карточки */}
+              <div 
+                className="p-4 cursor-pointer flex justify-between items-center"
+                onClick={() => toggleBuilding(building.id)}
+              >
                 <div className="flex items-center">
-                  <span className="text-sm font-medium">{building.name}</span>
-                  {building.count > 0 && (
-                    <span className="ml-2 text-gray-500 text-xs">×{building.count}</span>
-                  )}
+                  <h3 className="font-medium">
+                    {building.name} {building.count > 0 && <span className="text-gray-500">×{building.count}</span>}
+                  </h3>
+                </div>
+                <div>
+                  {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                 </div>
               </div>
-              <div className="text-gray-500">
-                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-            </div>
-            
-            {isExpanded && (
-              <div className="p-3 border-t bg-white dark:bg-gray-900">
-                <p className="text-gray-600 dark:text-gray-400 mb-3 text-xs">{building.description}</p>
-                
-                <div className="mb-3">
-                  <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">Стоимость:</div>
-                  <div className="space-y-1">
-                    {Object.entries(building.cost).map(([resourceId, cost]) => (
-                      <div key={resourceId} className="flex justify-between">
-                        <span className="text-xs">{state.resources[resourceId]?.name}</span>
-                        <span className={affordable ? 'text-xs' : 'text-xs text-red-500'}>
-                          {formatNumber(Number(cost), 0)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {Object.entries(building.production || {}).length > 0 && (
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">Производит:</div>
-                    {Object.entries(building.production || {}).map(([resourceId, amount]) => (
-                      <div key={resourceId} className="flex justify-between items-center">
-                        <span className="text-xs text-green-600 dark:text-green-400">{state.resources[resourceId]?.name}</span>
-                        <span className="text-xs text-green-600 dark:text-green-400">+{amount}/сек</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {Object.entries(building.consumption || {}).length > 0 && (
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">Потребляет:</div>
-                    {Object.entries(building.consumption || {}).map(([resourceId, amount]) => (
-                      <div key={resourceId} className="flex justify-between items-center">
-                        <span className="text-xs text-red-500 dark:text-red-400">{state.resources[resourceId]?.name}</span>
-                        <span className="text-xs text-red-500 dark:text-red-400">-{amount}/сек</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="default"
-                    className="text-xs"
-                    onClick={() => purchaseBuilding(building.id)}
-                    disabled={!affordable}
-                  >
-                    Купить
-                  </Button>
+              
+              {/* Развернутая информация */}
+              {isExpanded && (
+                <div className="px-4 pb-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 mb-4">{building.description}</p>
                   
-                  {building.count > 0 && (
+                  {/* Стоимость */}
+                  <div className="mb-4">
+                    <h4 className="font-medium mb-2">Стоимость:</h4>
+                    {getBuildingCost(building)}
+                  </div>
+                  
+                  {/* Производство */}
+                  {building.production && Object.keys(building.production).length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium mb-2">Производит:</h4>
+                      {Object.entries(building.production).map(([resourceId, amount]) => (
+                        <div key={resourceId} className="flex justify-between items-center">
+                          <span className="text-gray-600">{state.resources[resourceId]?.name}</span>
+                          <span className="text-green-500">+{amount}/сек</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Потребление */}
+                  {building.consumption && Object.keys(building.consumption).length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium mb-2">Потребляет:</h4>
+                      {Object.entries(building.consumption).map(([resourceId, amount]) => (
+                        <div key={resourceId} className="flex justify-between items-center">
+                          <span className="text-gray-600">{state.resources[resourceId]?.name}</span>
+                          <span className="text-red-500">-{amount}/сек</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Кнопки действий */}
+                  <div className="grid grid-cols-2 gap-2 mt-4">
                     <Button
+                      onClick={() => handleBuyBuilding(building.id)}
+                      disabled={!canAffordBuilding(building)}
+                      className="w-full"
                       variant="outline"
-                      className="text-xs"
-                      onClick={() => sellBuilding(building.id)}
+                    >
+                      Купить
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleSellBuilding(building.id)}
+                      disabled={building.count <= 0}
+                      className="w-full"
+                      variant="outline"
                     >
                       Продать
                     </Button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };

@@ -43,10 +43,10 @@ const ResourceSidebar: React.FC = () => {
       {unlockedResources.map(resource => (
         <div key={resource.id} className="py-2 border-b">
           <div className="flex justify-between items-center mb-1">
-            <span className={`${resourceColors[resource.id]?.name || 'text-black dark:text-white'} text-xs`}>
+            <span className={`${resourceColors[resource.id]?.name || 'text-black dark:text-white'} text-base`}>
               {resource.name}
             </span>
-            <span className={`${resourceColors[resource.id]?.value || 'text-black dark:text-white'} text-xs`}>
+            <span className={`${resourceColors[resource.id]?.value || 'text-black dark:text-white'} text-base`}>
               {formatNumber(resource.value, 2)} / {formatNumber(resource.max, 0)}
             </span>
           </div>

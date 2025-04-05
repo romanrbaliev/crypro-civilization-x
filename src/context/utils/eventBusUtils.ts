@@ -1,57 +1,45 @@
 
-import { toast } from '@/hooks/use-toast';
-import { ToastType } from '@/components/ui/toast';
-
-/**
- * Безопасно отправляет игровое событие для отображения уведомления
- * @param message Сообщение события
- * @param variant Тип события (success, warning, error, info, default)
- */
+// Функция для безопасной отправки игрового события
 export const safeDispatchGameEvent = (
-  message: string, 
-  variant: "success" | "warning" | "error" | "default" | "info" = "default"
-): void => {
-  if (!message) return;
-  
+  message: string,
+  type: 'success' | 'error' | 'warning' | 'info' = 'info'
+) => {
   try {
-    // Преобразуем variant в допустимый тип ToastType
-    let toastVariant: ToastType = variant as ToastType;
-    
-    // Специальная обработка для info и error
-    if (variant === "info") {
-      toastVariant = "default";
-    } else if (variant === "error") {
-      toastVariant = "destructive";
-    }
-    
-    // Отображаем уведомление
-    toast({
-      title: getTitle(variant),
-      description: message,
-      variant: toastVariant,
-      duration: 3000
+    // Создаем событие для глобального слушателя
+    const event = new CustomEvent('game-event', {
+      detail: {
+        message,
+        type,
+        timestamp: Date.now()
+      }
     });
     
-    // Также выводим в консоль
-    const consoleMethod = 
-      variant === "error" ? console.error :
-      variant === "warning" ? console.warn :
-      console.log;
-      
-    consoleMethod(`[GameEvent] ${message}`);
+    // Отправляем событие
+    window.dispatchEvent(event);
     
+    // Также выводим в консоль для отладки
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    
+    return true;
   } catch (error) {
-    console.error("Ошибка при отправке игрового события:", error);
+    console.error('Ошибка при отправке события:', error);
+    return false;
   }
 };
 
-// Вспомогательная функция для получения заголовка в зависимости от типа события
-function getTitle(variant: string): string {
-  switch (variant) {
-    case "success": return "Успех!";
-    case "warning": return "Внимание!";
-    case "error": return "Ошибка!";
-    case "info": return "Информация";
-    default: return "Уведомление";
-  }
-}
+// Функция для прослушивания игровых событий
+export const setupGameEventListener = (
+  callback: (message: string, type: string, timestamp: number) => void
+) => {
+  const listener = (event: any) => {
+    const { message, type, timestamp } = event.detail;
+    callback(message, type, timestamp);
+  };
+  
+  window.addEventListener('game-event', listener);
+  
+  // Возвращаем функцию для удаления слушателя
+  return () => {
+    window.removeEventListener('game-event', listener);
+  };
+};

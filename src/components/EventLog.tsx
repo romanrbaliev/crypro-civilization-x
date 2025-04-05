@@ -1,53 +1,81 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
+import { setupGameEventListener } from '@/context/utils/eventBusUtils';
 
 const EventLog: React.FC = () => {
   const { state } = useGame();
-  const [messages, setMessages] = useState<string[]>([
-    "Добро пожаловать в Crypto Civilization!",
-    "Нажмите 'Изучить крипту' чтобы начать свой путь."
-  ]);
+  const [events, setEvents] = useState<Array<{
+    id: string;
+    message: string;
+    type: string;
+    timestamp: number;
+  }>>([]);
   
-  // Добавление новых сообщений при появлении разблокировок
+  // Инициализация событий из состояния
   useEffect(() => {
-    const handleUnlockEvent = (event: CustomEvent) => {
-      const { itemId } = event.detail;
+    if (state.eventMessages) {
+      const initialEvents = Object.entries(state.eventMessages).map(([id, data]: [string, any]) => ({
+        id,
+        message: data.text || data.message || '',
+        type: data.type || 'info',
+        timestamp: data.timestamp || Date.now()
+      }));
       
-      if (itemId === 'usdt') {
-        addMessage("Вы разблокировали USDT! Теперь вы можете применять знания для получения криптовалюты.");
-      } else if (itemId === 'practice') {
-        addMessage("Разблокировано здание: Практика. Оно автоматически генерирует знания.");
-      } else if (itemId === 'generator') {
-        addMessage("Разблокировано здание: Генератор. Производит электричество для ваших устройств.");
-      } else if (itemId === 'research') {
-        addMessage("Разблокированы исследования! Теперь вы можете развивать технологии.");
-      } else if (itemId === 'bitcoin') {
-        addMessage("Вы открыли Bitcoin! Майнинг теперь доступен.");
-      }
-    };
+      setEvents(initialEvents.sort((a, b) => b.timestamp - a.timestamp).slice(0, 15));
+    }
+  }, [state.eventMessages]);
+  
+  // Настраиваем слушатель для новых событий
+  useEffect(() => {
+    const removeListener = setupGameEventListener((message, type, timestamp) => {
+      // Добавляем новое событие в начало списка
+      setEvents(prevEvents => [{
+        id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        message,
+        type,
+        timestamp
+      }, ...prevEvents].slice(0, 15)); // Оставляем только последние 15 событий
+    });
     
-    window.addEventListener('unlock-event', handleUnlockEvent as EventListener);
-    
-    return () => {
-      window.removeEventListener('unlock-event', handleUnlockEvent as EventListener);
-    };
+    return removeListener;
   }, []);
   
-  // Функция добавления нового сообщения
-  const addMessage = (message: string) => {
-    setMessages(prev => [message, ...prev.slice(0, 9)]);
+  // Функция для форматирования времени
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+  };
+  
+  // Определяем цвет текста в зависимости от типа сообщения
+  const getMessageColor = (type: string) => {
+    switch (type) {
+      case 'success':
+        return 'text-green-600 dark:text-green-400';
+      case 'error':
+        return 'text-red-600 dark:text-red-400';
+      case 'warning':
+        return 'text-yellow-600 dark:text-yellow-400';
+      case 'info':
+      default:
+        return 'text-blue-600 dark:text-blue-400';
+    }
   };
   
   return (
-    <div className="h-16 overflow-y-auto">
-      <div className="space-y-1 p-1">
-        {messages.map((message, index) => (
-          <div key={index} className="text-sm text-gray-600">
-            {message}
+    <div className="space-y-1 event-log">
+      {events.length === 0 ? (
+        <div className="text-gray-500 text-xs text-center py-2">
+          Нет событий
+        </div>
+      ) : (
+        events.map((event) => (
+          <div key={event.id} className="flex text-xs event-item">
+            <span className="text-gray-500 mr-2 event-time">{formatTime(event.timestamp)}</span>
+            <span className={getMessageColor(event.type)}>{event.message}</span>
           </div>
-        ))}
-      </div>
+        ))
+      )}
     </div>
   );
 };
