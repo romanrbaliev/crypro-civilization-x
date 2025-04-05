@@ -1,8 +1,9 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./components/UpgradeItem";
 import { Beaker } from "lucide-react";
+import { useUnlockStatus } from "@/systems/unlock/hooks/useUnlockManager";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -11,21 +12,8 @@ interface ResearchTabProps {
 const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   
-  // Проверяем состояние флага research в unlocks
-  const researchUnlocked = state.unlocks.research === true;
-  
-  // Определяем базовое исследование - возможны разные ID в разных системах
-  const isInitialResearch = (upgradeId: string) => {
-    return upgradeId === 'basicBlockchain' || 
-           upgradeId === 'blockchain_basics' || 
-           upgradeId === 'blockchainBasics';
-  };
-  
-  // Проверяем, куплены ли "Основы блокчейна"
-  const basicBlockchainPurchased = Object.values(state.upgrades)
-    .some(upgrade => 
-      isInitialResearch(upgrade.id) && upgrade.purchased
-    );
+  // Используем новую систему разблокировок
+  const researchUnlocked = useUnlockStatus('research');
   
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)
@@ -34,33 +22,6 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Купленные исследования
   const purchasedUpgrades = Object.values(state.upgrades)
     .filter(upgrade => upgrade.purchased);
-  
-  // Добавляем проверку и логирование для отладки
-  useEffect(() => {
-    console.log("ResearchTab: Вкладка исследований разблокирована:", researchUnlocked);
-    console.log("ResearchTab: Доступные исследования:", unlockedUpgrades.map(u => u.id));
-    console.log("ResearchTab: Купленные исследования:", purchasedUpgrades.map(u => u.id));
-    
-    // Проверяем все исследования в state
-    const allResearchIds = Object.keys(state.upgrades);
-    console.log("ResearchTab: Все исследования в state:", allResearchIds);
-    
-    // Проверяем конкретно "Основы блокчейна"
-    const blockchainBasicsUpgrades = Object.values(state.upgrades)
-      .filter(upgrade => isInitialResearch(upgrade.id));
-    
-    console.log("ResearchTab: Исследования 'Основы блокчейна':", 
-      blockchainBasicsUpgrades.map(u => 
-        `${u.id} (unlocked=${u.unlocked}, purchased=${u.purchased})`
-      )
-    );
-    
-    // Если исследований нет, но вкладка разблокирована, выполняем проверку разблокировок
-    if (researchUnlocked && unlockedUpgrades.length === 0 && purchasedUpgrades.length === 0) {
-      console.log("ResearchTab: Нет исследований, хотя вкладка разблокирована. Принудительная проверка разблокировок...");
-      dispatch({ type: "FORCE_CHECK_UNLOCKS" });
-    }
-  }, [state.upgrades, state.unlocks.research, dispatch]);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {
@@ -84,12 +45,6 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
             Исследования пока недоступны.<br />
             Продолжайте развиваться для открытия новых технологий.
           </p>
-          <button 
-            onClick={() => dispatch({ type: "FORCE_CHECK_UNLOCKS" })}
-            className="mt-3 text-xs text-blue-500 underline"
-          >
-            Проверить доступные исследования
-          </button>
         </div>
       ) : (
         <>
