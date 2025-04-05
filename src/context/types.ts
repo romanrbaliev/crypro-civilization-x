@@ -24,7 +24,7 @@ export interface Building {
   count: number;
   unlocked: boolean;
   baseCost: Record<string, number>;
-  cost: Record<string, number>; // Добавляем для обратной совместимости
+  cost: Record<string, number>; 
   costMultiplier: number;
   production: Record<string, number>;
   consumption?: Record<string, number>;
@@ -32,8 +32,8 @@ export interface Building {
   maxCount?: number;
   requirements?: Record<string, number>;
   resourceProduction?: Record<string, number>;
-  productionBoost?: Record<string, number>; // Добавляем для обратной совместимости
-  type?: string; // Добавляем для обратной совместимости
+  productionBoost?: Record<string, number>;
+  type?: string;
 }
 
 export interface Upgrade {
@@ -45,12 +45,12 @@ export interface Upgrade {
   unlocked: boolean;
   type: string;
   effects: any;
-  effect?: any; // Альтернативное название для effects
-  category?: string; // Добавляем для TechTree
-  tier?: number; // Добавляем для TechTree
-  specialization?: string; // Добавляем для специализации
-  unlockCondition?: Record<string, any>; // Условия разблокировки
-  requiredUpgrades?: string[]; // Требуемые исследования
+  effect?: any;
+  category?: string;
+  tier?: number;
+  specialization?: string;
+  unlockCondition?: Record<string, any>;
+  requiredUpgrades?: string[];
 }
 
 // Интерфейс для майнинга параметров
@@ -63,7 +63,8 @@ export interface MiningParams {
   exchangeCommission?: number;
   miningEfficiency?: number;
   energyEfficiency?: number;
-  networkDifficulty?: number; // Добавлено для совместимости
+  networkDifficulty?: number;
+  volatility?: number;
 }
 
 export interface GameState {
