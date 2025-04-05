@@ -5,7 +5,7 @@ import {
   TranslationValue,
   localeNames
 } from '@/i18n';
-import useI18n from '@/hooks/useI18n';
+import { useI18n } from '@/hooks/useI18n';
 
 // Тип контекста для i18n
 interface I18nContextType {

@@ -1,4 +1,3 @@
-
 // Базовые типы игровых объектов
 export interface Resource {
   id: string;
@@ -73,10 +72,10 @@ export interface SpecializationSynergy {
   name: string;
   description: string;
   active: boolean;
-  effects: { [key: string]: number };
-  requirement?: { [key: string]: number };
   requiredCategories?: string[];
-  bonus?: number;
+  bonus?: {
+    [key: string]: number;
+  };
 }
 
 // Параметры майнинга

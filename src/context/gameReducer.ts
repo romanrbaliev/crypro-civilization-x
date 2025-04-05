@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -8,8 +7,7 @@ import { UnlockManager } from '@/utils/unifiedUnlockSystem';
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
 import { 
   processPurchaseBuilding, 
-  processSellBuilding,
-  processChooseSpecialization as processChooseSpecializationFromBuilding
+  processSellBuilding
 } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { 
@@ -38,6 +36,9 @@ import {
   initializeSynergies,
   synergyReducer 
 } from './reducers/synergyReducer';
+
+// Импортируем отдельно обработчик специализаций
+import { processChooseSpecialization as processChooseSpecializationFromBuilding } from './reducers/building/chooseSpecialization';
 
 // Импортируем обработчики для реферальной системы
 import {
@@ -200,10 +201,7 @@ function handleAction(state: GameState, action: GameAction): GameState {
 
 // Вспомогательные функции для обработки специализаций
 function processChooseSpecialization(state: GameState, payload: { roleId: string }): GameState {
-  return {
-    ...state,
-    specialization: payload.roleId
-  };
+  return processChooseSpecializationFromBuilding(state, payload);
 }
 
 // Вспомогательная функция для проверки состояния оборудования

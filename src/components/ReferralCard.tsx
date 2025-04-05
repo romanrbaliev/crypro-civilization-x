@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Card, 
@@ -87,12 +86,13 @@ const ReferralCard: React.FC<ReferralCardProps> = ({
         dispatch({
           type: "ADD_REFERRAL",
           payload: { 
-            referral: { 
-              ...referral, 
-              hired: true, 
-              assignedBuildingId: activeHelper.buildingId 
-            } 
-          }
+            id: referral.id,
+            username: referral.username,
+            activated: true,
+            hired: true,
+            joinedAt: referral.joinedAt,
+            assignedBuildingId: activeHelper.buildingId
+          } 
         });
       }
       

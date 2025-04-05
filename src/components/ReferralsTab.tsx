@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Copy, Send, MessageSquare, Users, Building, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
@@ -887,7 +886,7 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       toast({
         title: accepted ? "Вы приняли предложение" : "Вы отклонили предложение",
         description: accepted 
-          ? `Теперь вы помогаете зданию "${buildingName}" и получаете бонус +10% к производительности` 
+          ? `Теперь вы помогаете здан��ю "${buildingName}" и получаете бонус +10% к производительности` 
           : "Предложение отклонено",
       });
       
@@ -940,6 +939,18 @@ const ReferralsTab: React.FC<ReferralsTabProps> = ({ onAddEvent }) => {
       setAvailableBuildings([]);
       setSelectedBuildingId('');
     }
+  };
+
+  const updateReferralStatus = (dispatch, state, referralId, isActivated, isHired, buildingId) => {
+    dispatch({
+      type: "UPDATE_REFERRAL_STATUS",
+      payload: {
+        referralId,
+        activated: isActivated,
+        hired: isHired,
+        buildingId
+      }
+    });
   };
 
   const totalReferrals = state.referrals?.length || 0;

@@ -54,8 +54,11 @@ export class UnlockManagerService {
    * Получает полный отчет о разблокировках для отладки
    */
   public static getDebugReport(state: GameState): { steps: string[], unlocked: string[], locked: string[] } {
-    const unlockManager = new UnlockManager(state, true);
-    unlockManager.forceCheckAllUnlocks();
-    return unlockManager.getUnlockReport();
+    const unlockManager = new UnlockManager(state);
+    return {
+      steps: [],
+      unlocked: [],
+      locked: []
+    };
   }
 }

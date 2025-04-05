@@ -12,14 +12,16 @@ export const useReferralEvents = () => {
   useEffect(() => {
     // Обработчик события обновления статуса реферала
     const handleReferralStatusUpdate = (event: CustomEvent) => {
-      const { referralId, activated } = event.detail;
+      const { referralId, status } = event.detail;
       
       // Диспатчим действие обновления статуса реферала
       dispatch({
         type: 'UPDATE_REFERRAL_STATUS',
         payload: {
           referralId,
-          activated
+          activated: status === true,
+          hired: false,
+          buildingId: null
         }
       });
     };

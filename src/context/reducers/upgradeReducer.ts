@@ -91,7 +91,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
         max: newMax
       };
       
-      console.log(`Максимум знаний установлен на ${newMax}`);
+      console.log(`Макс��мум знаний установлен на ${newMax}`);
     }
     
     // 2. ИСПРАВЛЕНИЕ: Не изменяем perSecond и production здесь, 
@@ -281,7 +281,7 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
   if (actualUpgradeId === 'energyEfficientComponents') {
     console.log("Применяем эффекты 'Энергоэффективные компоненты'");
     
-    // Снижаем потребление электричества на 10%
+    // Снижаем пот��ебление электричества на 10%
     if (newState.miningParams) {
       newState.miningParams = {
         ...newState.miningParams,
@@ -375,6 +375,21 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
   
   // Логируем покупку
   console.log(`Куплено улучшение: ${upgrade.name}`);
+  
+  return newState;
+};
+
+const processUpgradeEffects = (state, upgrade) => {
+  const newState = { ...state };
+  
+  // В местах, где было использо��ание boolean, заменяем на number
+  if (upgrade.id === 'autoClick') {
+    newState.features.autoClick = 1; // Вместо true используем 1
+  }
+  
+  if (upgrade.id === 'autoExchange') {
+    newState.features.autoExchange = 1; // Вместо true используем 1
+  }
   
   return newState;
 };

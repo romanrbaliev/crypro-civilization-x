@@ -15,11 +15,7 @@ export const useTranslation = (key: string): string => {
 };
 
 // Экспортируем все типы и утилиты
-export {
-  SupportedLocale,
-  TranslationValue,
-  localeNames,
-  normalizeId,
-  getTranslation,
-  gameIds
-};
+export { normalizeId, getTranslation };
+export { gameIds };
+export type { SupportedLocale, TranslationValue };
+export { localeNames };
