@@ -40,7 +40,7 @@ const BuildingList: React.FC = () => {
   const canAfford = (building: any) => {
     for (const [resourceId, cost] of Object.entries(building.cost)) {
       const resource = state.resources[resourceId];
-      if (!resource || resource.value < cost) {
+      if (!resource || resource.value < Number(cost)) {
         return false;
       }
     }
@@ -82,7 +82,7 @@ const BuildingList: React.FC = () => {
                     <span className={affordable ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400'}>
                       {Object.entries(building.cost).map(([resourceId, cost]) => (
                         <span key={resourceId} className="ml-2">
-                          {formatNumber(cost as number, 0)} {state.resources[resourceId]?.name}
+                          {formatNumber(Number(cost), 0)} {state.resources[resourceId]?.name}
                         </span>
                       ))}
                     </span>
