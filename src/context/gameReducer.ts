@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -5,7 +6,6 @@ import { checkAllUnlocks } from '@/utils/unlockManager';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
 
 // Импорт редьюсеров для разных типов действий
-import { processResourceProduction } from './reducers/resourceProduction';
 import { 
   processLearnCrypto, 
   processApplyKnowledge, 
@@ -13,11 +13,10 @@ import {
   processExchangeBitcoin,
   processDebugAddResources
 } from './reducers/actionsReducer';
-import { processBuyBuilding } from './reducers/building';
+import { processBuildingPurchase } from './reducers/building';
 import { processResearchUpgrade } from './reducers/upgradeReducer';
 
 // Импорт вспомогательных функций
-import { getTimeElapsed } from '@/utils/timeUtils';
 import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
 
 // Основной редьюсер для обработки всех действий игры
@@ -62,7 +61,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'BUY_BUILDING':
       // Обрабатываем покупку здания
-      return processBuyBuilding(newState, action.payload);
+      return processBuildingPurchase(newState, action.payload);
     
     case 'RESEARCH_UPGRADE':
       return processResearchUpgrade(newState, action.payload);
