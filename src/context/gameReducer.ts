@@ -20,6 +20,33 @@ import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 // Импорт вспомогательных функций
 import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
 
+// Функция для инкрементирования счетчика
+const processIncrementCounter = (state: GameState, payload: { counterId: string, value: number }): GameState => {
+  const { counterId, value } = payload;
+  
+  // Создаем новый объект для counters
+  const counters = { ...state.counters };
+  
+  // Проверяем, существует ли счетчик
+  if (!counters[counterId]) {
+    counters[counterId] = { value: 0 };
+  }
+  
+  // Инкрементируем счетчик
+  if (typeof counters[counterId] === 'number') {
+    counters[counterId] = (counters[counterId] as number) + value;
+  } else {
+    const counter = { ...(counters[counterId] as object) } as { value: number };
+    counter.value = (counter.value || 0) + value;
+    counters[counterId] = counter;
+  }
+  
+  return {
+    ...state,
+    counters
+  };
+};
+
 // Основной редьюсер для обработки всех действий игры
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
   // Добавляем логирование действий для отладки
@@ -48,8 +75,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(newState);
     
     case 'INCREMENT_RESOURCE':
-      // Используем новую функцию для инкремента ресурсов
+      // Используем функцию для инкремента ресурсов
       return checkAllUnlocks(processIncrementResource(newState, action.payload));
+    
+    case 'INCREMENT_COUNTER':
+      // Обрабатываем инкремент счетчика
+      return checkAllUnlocks(processIncrementCounter(newState, action.payload));
     
     case 'LEARN_CRYPTO':
       // Обрабатываем нажатие на кнопку Изучить крипту

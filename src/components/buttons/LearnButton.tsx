@@ -13,8 +13,23 @@ const LearnButton: React.FC<LearnButtonProps> = ({ onAction }) => {
   const { t } = useTranslation();
   
   const handleClick = () => {
-    // Используем LEARN_CRYPTO для изучения, а не INCREMENT_RESOURCE
-    dispatch({ type: 'LEARN_CRYPTO' });
+    // Используем INCREMENT_RESOURCE для добавления знаний
+    dispatch({ 
+      type: 'INCREMENT_RESOURCE', 
+      payload: { 
+        resourceId: 'knowledge', 
+        amount: 1 
+      } 
+    });
+    
+    // Важно: обязательно увеличиваем счетчик кликов для разблокировки
+    dispatch({
+      type: 'INCREMENT_COUNTER',
+      payload: { 
+        counterId: 'knowledgeClicks', 
+        value: 1 
+      }
+    });
     
     if (onAction) {
       onAction();

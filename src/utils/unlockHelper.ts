@@ -101,8 +101,10 @@ export const getUnlocksFromState = (state: GameState): Record<string, boolean> =
       ? state.counters.knowledgeClicks
       : (state.counters.knowledgeClicks.value || 0);
     
+    // Если пользователь кликнул 3 и более раз, разблокируем кнопку "Применить знания"
     if (clicksValue >= 3) {
       unlocks.applyKnowledge = true;
+      console.log('Разблокирована кнопка "Применить знания"! Количество кликов:', clicksValue);
     }
   }
 
