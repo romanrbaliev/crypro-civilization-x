@@ -571,7 +571,10 @@ export const checkSpecialUnlocks = (state: GameState): GameState => {
   const newState = { ...state };
   
   // Проверяем разблокировку вкладки Equipment для обратной совместимости
-  const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
+  const hasUnlockedBuildings = Object.values(state.buildings).some(building => 
+    building && typeof building === 'object' && 'unlocked' in building && building.unlocked === true
+  );
+  
   if (hasUnlockedBuildings && !state.unlocks.equipmentTab) {
     console.log(`📊 UnlockManager: Разблокировка вкладки Equipment (для совместимости)`);
     newState.unlocks.equipmentTab = true;
@@ -596,17 +599,24 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
   let newState = JSON.parse(JSON.stringify(state));
   
   // Сбрасываем флаги разблокировок для ресурсов, зданий и исследований
-  for (const resource of Object.values(newState.resources)) {
-    resource.unlocked = false;
-  }
+  // Используем правильное приведение типов для каждого элемента
+  Object.values(newState.resources).forEach(resource => {
+    if (resource && typeof resource === 'object' && 'unlocked' in resource) {
+      resource.unlocked = false;
+    }
+  });
   
-  for (const building of Object.values(newState.buildings)) {
-    building.unlocked = false;
-  }
+  Object.values(newState.buildings).forEach(building => {
+    if (building && typeof building === 'object' && 'unlocked' in building) {
+      building.unlocked = false;
+    }
+  });
   
-  for (const upgrade of Object.values(newState.upgrades)) {
-    upgrade.unlocked = false;
-  }
+  Object.values(newState.upgrades).forEach(upgrade => {
+    if (upgrade && typeof upgrade === 'object' && 'unlocked' in upgrade) {
+      upgrade.unlocked = false;
+    }
+  });
   
   // Сбрасываем общие флаги разблокировок
   newState.unlocks = {
