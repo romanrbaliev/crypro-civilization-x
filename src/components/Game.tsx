@@ -10,7 +10,7 @@ import { useGameLoader } from '@/hooks/useGameLoader';
 import { useGameSaveEvents } from '@/hooks/useGameSaveEvents';
 import { useUnlockChecker } from '@/hooks/useUnlockChecker';
 import { useGameStateUpdateService } from '@/hooks/useGameStateUpdateService';
-import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
+import { Building, Lightbulb, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
 import EquipmentTab from "@/components/EquipmentTab";
@@ -20,11 +20,8 @@ import { SpecializationTab } from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
-import LanguageSwitch from "@/components/LanguageSwitch";
 import { useTranslation } from "@/i18n";
-import { toast } from "@/components/ui/use-toast";
 import { getUnlocksFromState } from '@/utils/unlockHelper';
-import UnlocksDebugger from '@/components/UnlocksDebugger';
 
 const Game: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -230,10 +227,6 @@ const Game: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <Header prestigePoints={state.prestigePoints || 0} />
-      
-      <div className="p-2">
-        <UnlocksDebugger />
-      </div>
       
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
