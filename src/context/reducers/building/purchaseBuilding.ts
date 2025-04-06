@@ -3,13 +3,14 @@ import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { processPurchase } from '../purchaseSystem';
+import { PurchasableType } from '@/types/purchasable';
 
 // Обертка для совместимости с новой системой покупок
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
   // Конвертируем старый формат в новый
   const newPayload = {
     itemId: payload.buildingId,
-    itemType: 'building'
+    itemType: 'building' as PurchasableType
   };
   
   // Используем новую унифицированную функцию
