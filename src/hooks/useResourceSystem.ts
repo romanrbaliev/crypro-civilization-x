@@ -29,12 +29,16 @@ export const useResourceSystem = () => {
       // Обновляем состояние через диспетчер
       dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
       
-      // Выводим отладочную информацию
-      console.log(`Ресурсы обновлены после ${deltaTime}мс`, 
-        Object.entries(updatedState.resources)
-          .filter(([_, r]) => r.unlocked)
-          .map(([id, r]) => `${id}: ${r.value?.toFixed(2)} (+${r.perSecond?.toFixed(2)}/сек)`)
-      );
+      // Периодически выводим отладочную информацию (каждые ~10 обновлений)
+      if (Math.random() < 0.1) {
+        const logData = Object.entries(updatedState.resources)
+          .filter(([_, r]) => r.unlocked && (r.perSecond || 0) > 0)
+          .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
+        
+        if (logData.length > 0) {
+          console.log(`[ResourceUpdate] Ресурсы обновлены (Δt=${deltaTime}мс):`, logData);
+        }
+      }
     }
   }, [state, dispatch, resourceSystem]);
   

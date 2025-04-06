@@ -99,25 +99,28 @@ export class ResourceSystem {
       // Пропускаем не построенные здания
       if (!building.count || building.count <= 0) continue;
       
-      // Получаем бонусы max ресурсов для здания, если они существуют
-      const maxResourcesBonus = building.maxResourcesBonus as Record<string, number> | undefined;
-      
-      if (maxResourcesBonus) {
-        for (const resourceId in maxResourcesBonus) {
-          if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-            // Текущий максимум ресурса
-            const resource = { ...newState.resources[resourceId] };
-            const currentMax = resource.max || baseMaxValues[resourceId] || 0;
+      // Получаем бонусы max ресурсов для здания, если они существуют в эффектах
+      if (building.effects) {
+        for (const effectKey in building.effects) {
+          // Проверяем, относится ли эффект к максимуму ресурса
+          if (effectKey.includes('max') && effectKey.includes('Boost')) {
+            const resourceId = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
             
-            // Добавляем бонус от здания, умноженный на количество зданий
-            const buildingBonus = maxResourcesBonus[resourceId] * building.count;
-            const newMax = currentMax + buildingBonus;
-            
-            // Обновляем максимальное значение
-            newState.resources[resourceId] = {
-              ...resource,
-              max: newMax
-            };
+            if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
+              // Текущий максимум ресурса
+              const resource = { ...newState.resources[resourceId] };
+              const currentMax = resource.max || baseMaxValues[resourceId] || 0;
+              
+              // Добавляем бонус от здания, умноженный на количество зданий
+              const buildingBonus = Number(building.effects[effectKey]) * building.count;
+              const newMax = currentMax + buildingBonus;
+              
+              // Обновляем максимальное значение
+              newState.resources[resourceId] = {
+                ...resource,
+                max: newMax
+              };
+            }
           }
         }
       }
@@ -130,32 +133,36 @@ export class ResourceSystem {
       // Пропускаем не приобретенные улучшения
       if (!upgrade.purchased) continue;
       
-      // Получаем бонусы max ресурсов для улучшения, если они существуют
-      const maxResourcesBonus = upgrade.maxResourcesBonus as Record<string, number> | undefined;
-      
-      if (maxResourcesBonus) {
-        for (const resourceId in maxResourcesBonus) {
-          if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-            // Текущий максимум ресурса
-            const resource = { ...newState.resources[resourceId] };
-            const currentMax = resource.max || baseMaxValues[resourceId] || 0;
+      // Получаем бонусы max ресурсов для улучшения, если они существуют в эффектах
+      if (upgrade.effects) {
+        for (const effectKey in upgrade.effects) {
+          // Проверяем, относится ли эффект к максимуму ресурса
+          if (effectKey.includes('max') && effectKey.includes('Boost')) {
+            const resourceId = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
             
-            // Рассчитываем новый максимум
-            let newMax: number;
-            
-            // Если бонус процентный (больше 1)
-            if (maxResourcesBonus[resourceId] > 1) {
-              newMax = currentMax * maxResourcesBonus[resourceId];
-            } else {
-              // Иначе считаем как абсолютное значение
-              newMax = currentMax + maxResourcesBonus[resourceId];
+            if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
+              // Текущий максимум ресурса
+              const resource = { ...newState.resources[resourceId] };
+              const currentMax = resource.max || baseMaxValues[resourceId] || 0;
+              
+              // Рассчитываем новый максимум
+              let newMax: number;
+              const effectValue = Number(upgrade.effects[effectKey]);
+              
+              // Если бонус процентный (больше 1)
+              if (effectValue > 1) {
+                newMax = currentMax * effectValue;
+              } else {
+                // Иначе считаем как абсолютное значение
+                newMax = currentMax + effectValue;
+              }
+              
+              // Обновляем максимальное значение
+              newState.resources[resourceId] = {
+                ...resource,
+                max: newMax
+              };
             }
-            
-            // Обновляем максимальное значение
-            newState.resources[resourceId] = {
-              ...resource,
-              max: newMax
-            };
           }
         }
       }
