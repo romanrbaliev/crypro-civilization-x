@@ -1,3 +1,4 @@
+
 import { GameState, Resource } from '@/context/types';
 import { ResourceEvent, ResourceEventType, ResourceMetrics } from '@/types/resources';
 import { ResourceCalculator } from '@/services/ResourceCalculator';
@@ -75,10 +76,20 @@ export class ResourceSystem {
       const netProduction = production - consumption;
       const netChange = netProduction * deltaSeconds;
       
+      // ВАЖНОЕ ИСПРАВЛЕНИЕ: Проверяем, что netProduction не undefined и не NaN
+      if (isNaN(netProduction) || netProduction === undefined) {
+        console.error(`ResourceSystem: Ошибка расчета netProduction для ${resourceId}, установлено в 0`);
+        resources[resourceId] = {
+          ...resource,
+          perSecond: 0
+        };
+        continue;
+      }
+      
       // Обновляем значение ресурса
       if (netChange !== 0) {
         // Текущее значение ресурса
-        const currentValue = resource.value;
+        const currentValue = resource.value || 0;
         
         // Рассчитываем новое значение
         let newValue = currentValue + netChange;
@@ -90,6 +101,12 @@ export class ResourceSystem {
         
         // Не допускаем отрицательных значений
         newValue = Math.max(0, newValue);
+        
+        // ИСПРАВЛЕНИЕ: Проверяем, что newValue не undefined и не NaN
+        if (isNaN(newValue) || newValue === undefined) {
+          console.error(`ResourceSystem: Ошибка расчета newValue для ${resourceId}, оставляем текущее значение`);
+          newValue = currentValue;
+        }
         
         // Обновляем ресурс
         resources[resourceId] = {

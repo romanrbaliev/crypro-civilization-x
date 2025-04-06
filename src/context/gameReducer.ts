@@ -109,16 +109,20 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (deltaTime > 0) {
         console.log(`TICK: Обновление ресурсов за ${deltaTime}ms`);
         
-        // Обновляем ресурсы
-        newState = resourceSystem.updateResources(newState, deltaTime);
+        // ИЗМЕНЕНО: Вместо прямого вызова updateResources используем ResourceSystem
+        // Также важно убрать дублирование логики между хуком и редьюсером
+        if (action.payload?.skipResourceUpdate !== true) {
+          newState = resourceSystem.updateResources(newState, deltaTime);
+          console.log(`TICK: Обновлены ресурсы, прошло ${deltaTime}ms`);
+        } else {
+          console.log(`TICK: Пропускаем обновление ресурсов, так как skipResourceUpdate = true`);
+        }
         
         // Обновляем lastUpdate
         newState = { ...newState, lastUpdate: currentTime };
         
         // Проверяем разблокировки после обновления ресурсов
         newState = checkAllUnlocks(newState);
-        
-        console.log(`TICK: Обновлены ресурсы, прошло ${deltaTime}ms`);
       } else {
         console.log(`TICK: Пропускаем обновление, прошло ${deltaTime}ms`);
       }

@@ -30,15 +30,20 @@ export const useGameStateUpdateService = () => {
         console.log(`Тик #${tickCountRef.current}: Обновление состояния игры, прошло ${cappedDeltaTime}ms`);
       }
       
-      // Обновляем ресурсы с учетом прошедшего времени
-      updateResources(cappedDeltaTime);
-      
-      // Обновляем lastUpdate
-      dispatch({ type: 'TICK', payload: { currentTime } });
+      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Не обновляем ресурсы здесь напрямую, а передаем управление редьюсеру
+      // Это устраняет дублирование обновления ресурсов между useGameStateUpdateService и gameReducer
+      // Используем skipResourceUpdate: false, чтобы указать, что ресурсы должны обновляться в редьюсере
+      dispatch({ 
+        type: 'TICK', 
+        payload: { 
+          currentTime,
+          skipResourceUpdate: false 
+        } 
+      });
       
       lastTickTimeRef.current = currentTime;
     }
-  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch, updateResources]);
+  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch]);
   
   // Инициализация игрового состояния при первой загрузке
   useEffect(() => {

@@ -21,12 +21,16 @@ export const useResourceSystem = () => {
     
     console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
     
-    // Применяем обновление ресурсов через ResourceSystem
-    const updatedState = resourceSystem.updateResources(state, deltaTime);
-    
-    // Отправляем обновленное состояние в редьюсер
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
-  }, [state, dispatch, resourceSystem]);
+    // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Вместо обновления ресурсов здесь, отправляем действие TICK
+    // Это предотвращает дублирование обновления ресурсов между системами
+    dispatch({ 
+      type: 'TICK', 
+      payload: { 
+        currentTime: Date.now(), 
+        skipResourceUpdate: false 
+      } 
+    });
+  }, [dispatch]);
   
   /**
    * Проверяет, достаточно ли ресурсов для покупки
