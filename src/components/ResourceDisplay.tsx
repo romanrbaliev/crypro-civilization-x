@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, memo } from "react";
 import { Resource } from "@/context/types";
 import { useResourceAnimation } from "@/hooks/useResourceAnimation";
 import { useResourceSystem } from "@/hooks/useResourceSystem";
@@ -10,7 +10,8 @@ interface ResourceDisplayProps {
   formattedPerSecond?: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ 
+// Используем memo для предотвращения лишних перерисовок
+const ResourceDisplay: React.FC<ResourceDisplayProps> = memo(({ 
   resource, 
   formattedValue: propFormattedValue, 
   formattedPerSecond: propFormattedPerSecond 
@@ -23,12 +24,13 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   // Используем хук анимации для плавного обновления отображаемого значения
   // Проверяем, что значение определено перед передачей его в хук
   const safeValue = value !== null && value !== undefined ? value : 0;
-  const animatedValue = useResourceAnimation(safeValue, id);
+  // Отключаем анимацию, если значение передано напрямую в пропсах
+  const animatedValue = propFormattedValue ? safeValue : useResourceAnimation(safeValue, id);
   
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
-  // Форматирование значений с учетом типа ресурса
+  // Форматирование значений с учетом типа ресурса если не передано через пропсы
   const formattedValue = propFormattedValue || formatValue(animatedValue, id);
   
   // Форматируем максимальное значение всегда без десятичных знаков
@@ -94,6 +96,9 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
       )}
     </div>
   );
-};
+});
+
+// Добавляем отображаемое имя для отладки
+ResourceDisplay.displayName = "ResourceDisplay";
 
 export default ResourceDisplay;
