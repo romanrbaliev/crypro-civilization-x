@@ -21,12 +21,15 @@ export const useResourceSystem = () => {
     
     console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
     
-    // Применяем обновление ресурсов через ResourceSystem
-    const updatedState = resourceSystem.updateResources(state, deltaTime);
-    
-    // Отправляем обновленное состояние в редьюсер
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
-  }, [state, dispatch, resourceSystem]);
+    // Применяем обновление ресурсов через TICK действие
+    dispatch({ 
+      type: 'TICK', 
+      payload: { 
+        currentTime: Date.now(),
+        deltaTime: deltaTime
+      } 
+    });
+  }, [dispatch]);
   
   /**
    * Проверяет, достаточно ли ресурсов для покупки
@@ -51,11 +54,9 @@ export const useResourceSystem = () => {
    */
   const updateResourceMaxValues = useCallback(() => {
     // Обновляем максимальные значения ресурсов через ResourceSystem
-    const updatedState = resourceSystem.updateResourceMaxValues(state);
-    
-    // Отправляем обновленное состояние в редьюсер
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
-  }, [state, dispatch, resourceSystem]);
+    console.log("useResourceSystem: Обновление максимальных значений ресурсов");
+    dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+  }, [dispatch]);
   
   /**
    * Форматирует стоимость
@@ -97,7 +98,14 @@ export const useResourceSystem = () => {
     
     // Принудительно пересчитываем производство
     dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-  }, [dispatch]);
+    
+    // Для отладки выводим состояние ключевых ресурсов
+    console.log("useResourceSystem: Состояние после пересчета:", {
+      knowledge: state.resources.knowledge?.perSecond,
+      usdt: state.resources.usdt?.perSecond,
+      electricity: state.resources.electricity?.perSecond
+    });
+  }, [dispatch, state.resources]);
   
   /**
    * Разблокирует ресурс
@@ -120,7 +128,7 @@ export const useResourceSystem = () => {
     incrementResource,
     unlockResource,
     recalculateAllProduction,
-    resourceSystem, // Экспортируем сам класс для сложных операций
-    resourceFormatter // Экспортируем форматтер для сложных операций
+    resourceSystem,
+    resourceFormatter
   };
 };

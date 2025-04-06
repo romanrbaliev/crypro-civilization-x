@@ -9,9 +9,12 @@ export const useGameStateUpdateService = () => {
   const { updateResources, recalculateAllProduction } = useResourceSystem();
   const unlockService = new UnlockService();
   const lastTickTimeRef = useRef<number>(Date.now());
+  const lastRecalculationRef = useRef<number>(Date.now());
   
+  // Функция для обновления игрового состояния (тик)
   const updateGameState = useCallback(() => {
     if (!isPageVisible || !state.gameStarted) {
+      console.log("Игра не запущена или вкладка не активна, пропускаем тик");
       return;
     }
     
@@ -25,22 +28,41 @@ export const useGameStateUpdateService = () => {
     if (cappedDeltaTime > 0) {
       console.log(`Обновление состояния игры: прошло ${cappedDeltaTime}ms`);
       
-      // Обновляем ресурсы с учетом прошедшего времени
-      updateResources(cappedDeltaTime);
+      // Отправляем действие TICK для обновления ресурсов
+      dispatch({ 
+        type: 'TICK', 
+        payload: { 
+          currentTime,
+          deltaTime: cappedDeltaTime 
+        } 
+      });
       
-      // Обновляем lastUpdate
-      dispatch({ type: 'TICK', payload: { currentTime } });
-      
-      console.log(`Тик игры: прошло ${cappedDeltaTime}ms, lastUpdate обновлен`);
       lastTickTimeRef.current = currentTime;
     }
-  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch, updateResources]);
+  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch]);
+  
+  // Принудительно пересчитываем производство каждые 5 секунд
+  // для обеспечения синхронизации даже если случаются ошибки
+  const forceRecalculateProduction = useCallback(() => {
+    if (!isPageVisible || !state.gameStarted) return;
+    
+    const currentTime = Date.now();
+    const timeSinceLastRecalculation = currentTime - lastRecalculationRef.current;
+    
+    // Пересчитываем производство каждые 5 секунд для надежности
+    if (timeSinceLastRecalculation > 5000) {
+      console.log("Принудительный пересчет производства ресурсов по таймеру");
+      recalculateAllProduction();
+      lastRecalculationRef.current = currentTime;
+    }
+  }, [isPageVisible, state.gameStarted, recalculateAllProduction]);
   
   // Инициализация игрового состояния при первой загрузке
   useEffect(() => {
     if (state.gameStarted) {
       console.log("Инициализация игрового состояния при первой загрузке");
       recalculateAllProduction();
+      lastRecalculationRef.current = Date.now();
     }
   }, [state.gameStarted, recalculateAllProduction]);
   
@@ -55,21 +77,28 @@ export const useGameStateUpdateService = () => {
       }
     }, 5000);
     
+    // Запускаем таймер для принудительного пересчета производства
+    const recalculateInterval = setInterval(forceRecalculateProduction, 2500);
+    
     // Очистка таймеров при размонтировании
     return () => {
       clearInterval(updateInterval);
       clearInterval(unlockCheckInterval);
+      clearInterval(recalculateInterval);
     };
-  }, [updateGameState, isPageVisible, state.gameStarted, dispatch]);
+  }, [updateGameState, forceRecalculateProduction, isPageVisible, state.gameStarted, dispatch]);
   
   // Эффект для принудительного обновления производства при изменении зданий
   useEffect(() => {
     const buildingCounts = Object.values(state.buildings).map(b => b.count).join(',');
+    
+    // Если изменились количества зданий, пересчитываем производство
     if (buildingCounts !== '0,0,0,0,0,0,0,0,0,0') {
       console.log("Изменились количества зданий, пересчитываем производство");
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+      recalculateAllProduction();
+      lastRecalculationRef.current = Date.now();
     }
-  }, [Object.values(state.buildings).map(b => b.count).join(','), dispatch]);
+  }, [Object.values(state.buildings).map(b => b.count).join(','), recalculateAllProduction]);
   
   return null;
 };

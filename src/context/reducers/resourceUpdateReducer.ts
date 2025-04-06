@@ -16,6 +16,12 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
   
   // Обновляем ресурсы, используя ResourceSystem
   const updatedState = resourceSystem.updateResources(state, deltaTime);
+  console.log("resourceUpdateReducer: Ресурсы обновлены");
+  
+  // Логируем изменения основных ресурсов
+  const knowledge = updatedState.resources.knowledge;
+  const usdt = updatedState.resources.usdt;
+  console.log(`После обновления: knowledge=${knowledge.value.toFixed(2)}/${knowledge.max} (${knowledge.perSecond}/сек), USDT=${usdt.value.toFixed(2)}`);
   
   // Возвращаем обновленное состояние
   return updatedState;

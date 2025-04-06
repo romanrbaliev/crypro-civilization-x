@@ -18,7 +18,7 @@ export function processPurchase(
   payload: { itemId: string, itemType: PurchasableType }
 ): GameState {
   const { itemId, itemType } = payload;
-  console.log(`Обработка покупки ${itemType} с ID ${itemId}`);
+  console.log(`processPurchase: Обработка покупки ${itemType} с ID ${itemId}`);
 
   // Определение типа покупаемого элемента
   let item;
@@ -91,7 +91,7 @@ export function processPurchase(
       params: { name: item.name }
     });
     
-    console.log(`Куплено здание ${item.name}. Обновляем производство...`);
+    console.log(`processPurchase: Куплено здание ${item.name}. Обновляем производство...`);
 
   } else if (itemType === 'upgrade' || itemType === 'research') {
     // Отмечаем улучшение как купленное
@@ -112,17 +112,25 @@ export function processPurchase(
       params: { name: item.name }
     });
     
-    console.log(`Исследование ${item.name} завершено. Обновляем эффекты...`);
+    console.log(`processPurchase: Исследование ${item.name} завершено. Обновляем эффекты...`);
   }
 
   // Пересчитываем максимальные значения ресурсов
   updatedState = resourceSystem.updateResourceMaxValues(updatedState);
 
   // Принудительно обновляем всю информацию о производстве ресурсов
-  console.log("Принудительный пересчет производства после покупки");
+  console.log("processPurchase: Принудительный пересчет производства после покупки");
   updatedState = resourceSystem.recalculateAllResourceProduction(updatedState);
   
-  console.log("После покупки: пересчитываем все unlock-и");
+  // Проверяем состояние производства после покупки
+  for (const resourceId in updatedState.resources) {
+    const resource = updatedState.resources[resourceId];
+    if (resource.unlocked) {
+      console.log(`processPurchase: После покупки - Ресурс ${resourceId}: производство ${resource.production || 0}/сек, потребление ${resource.consumption || 0}/сек, итого ${resource.perSecond || 0}/сек`);
+    }
+  }
+  
+  console.log("processPurchase: После покупки - пересчитываем все unlock-и");
   
   // Проверяем и обновляем все разблокировки
   return checkAllUnlocks(updatedState);
