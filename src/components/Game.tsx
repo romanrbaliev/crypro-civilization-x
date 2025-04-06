@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +34,7 @@ const Game: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>('Загрузка...');
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
+  const [resourceUpdateCounter, setResourceUpdateCounter] = useState(0); // Счетчик для обновления ресурсов
   
   const { 
     loadedState, 
@@ -81,20 +83,31 @@ const Game: React.FC = () => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
   
+  // Снижаем частоту обновления отображения ресурсов наполовину (решение проблемы 3)
   useEffect(() => {
-    console.log("Текущие разблокированные элементы:", 
-      Object.entries(state.resources)
-        .filter(([_, v]) => v.unlocked)
-        .map(([k]) => `ресурс ${k}`).join(', ') + ", " +
-      Object.entries(state.buildings)
-        .filter(([_, v]) => v.unlocked)
-        .map(([k]) => `здание ${k}`).join(', ') + ", " +
-      Object.entries(state.upgrades)
-        .filter(([_, v]) => v.unlocked || v.purchased)
-        .map(([k]) => `исследование ${k}`).join(', ')
-    );
-    console.log("Вкладка исследований разблокирована:", hasUnlockedResearch);
-  }, [state.resources, state.buildings, state.upgrades, hasUnlockedResearch]);
+    const updateInterval = setInterval(() => {
+      setResourceUpdateCounter(prev => prev + 1);
+    }, 1000); // Обновляем раз в секунду вместо каждые 500мс
+    
+    return () => clearInterval(updateInterval);
+  }, []);
+  
+  useEffect(() => {
+    if (Math.random() < 0.1) { // Уменьшаем частоту логирования до 10%
+      console.log("Текущие разблокированные элементы:", 
+        Object.entries(state.resources)
+          .filter(([_, v]) => v.unlocked)
+          .map(([k]) => `ресурс ${k}`).join(', ') + ", " +
+        Object.entries(state.buildings)
+          .filter(([_, v]) => v.unlocked)
+          .map(([k]) => `здание ${k}`).join(', ') + ", " +
+        Object.entries(state.upgrades)
+          .filter(([_, v]) => v.unlocked || v.purchased)
+          .map(([k]) => `исследование ${k}`).join(', ')
+      );
+      console.log("Вкладка исследований разблокирована:", hasUnlockedResearch);
+    }
+  }, [state.resources, state.buildings, state.upgrades, hasUnlockedResearch, resourceUpdateCounter]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
@@ -153,13 +166,6 @@ const Game: React.FC = () => {
     } else if (hasUnlockedReferrals) {
       setSelectedTab("referrals");
     }
-    
-    console.log("Обновление выбранной вкладки:", {
-      hasUnlockedBuildings,
-      hasUnlockedResearch,
-      hasUnlockedReferrals,
-      selectedTab
-    });
   }, [hasUnlockedBuildings, hasUnlockedResearch, hasUnlockedReferrals]);
   
   const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
@@ -203,7 +209,7 @@ const Game: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={unlockedResources} />
+            <ResourceList resources={unlockedResources} updateCounter={resourceUpdateCounter} />
           </div>
           
           <div className="border-t mt-auto">

@@ -10,10 +10,11 @@ import { useResourceSystem } from "@/hooks/useResourceSystem";
 
 interface ResourceListProps {
   resources: Resource[];
+  updateCounter?: number; // Добавляем счетчик обновлений
 }
 
 // Используем memo для предотвращения лишних перерисовок
-const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
+const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCounter }) => {
   const { dispatch, state } = useGame();
   const { formatValue } = useResourceSystem();
   
@@ -88,6 +89,20 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
       )}
     </div>
   );
+}, (prevProps, nextProps) => {
+  // Проверяем, изменился ли счетчик обновлений
+  if (prevProps.updateCounter !== nextProps.updateCounter) {
+    return false; // Обновляем компонент, если счетчик изменился
+  }
+  
+  // Проверяем, изменились ли ресурсы по существу
+  if (prevProps.resources.length !== nextProps.resources.length) {
+    return false; // Обновляем, если количество ресурсов изменилось
+  }
+  
+  // Другие проверки можно добавить по необходимости
+  
+  return true; // Не обновляем компонент, если существенных изменений нет
 });
 
 // Добавляем отображаемое имя для отладки

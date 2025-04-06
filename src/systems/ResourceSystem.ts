@@ -14,7 +14,7 @@ export class ResourceSystem {
   public updateResources(state: GameState, deltaTime: number): GameState {
     // Проверяем, что deltaTime имеет положительное значение
     if (deltaTime <= 0) {
-      console.log(`[ResourceSystem] Пропуск обновления: deltaTime=${deltaTime}мс`);
+      // console.log(`[ResourceSystem] Пропуск обновления: deltaTime=${deltaTime}мс`);
       return state;
     }
 
@@ -24,8 +24,10 @@ export class ResourceSystem {
       resources: JSON.parse(JSON.stringify(state.resources))
     };
     
-    // Отладочная информация
-    console.log(`[ResourceSystem] Обновление ресурсов: deltaTime=${deltaTime}мс`);
+    // Отладочная информация (уменьшаем частоту логирования)
+    if (Math.random() < 0.05) {
+      console.log(`[ResourceSystem] Обновление ресурсов: deltaTime=${deltaTime}мс`);
+    }
     
     // Проверяем все ресурсы и обновляем их значения
     for (const resourceId in newState.resources) {
@@ -58,8 +60,8 @@ export class ResourceSystem {
           newValue = Math.min(newValue, resource.max);
         }
         
-        // Отладочная информация для мониторинга изменений ресурсов
-        if (Math.abs(increment) > 0.001) {
+        // Отладочная информация для мониторинга изменений ресурсов (уменьшаем частоту логирования)
+        if (Math.abs(increment) > 0.001 && Math.random() < 0.05) {
           console.log(`[ResourceDebug] ${resourceId}: ${currentValue.toFixed(4)} -> ${newValue.toFixed(4)}, прирост: ${increment.toFixed(4)}, perSecond: ${perSecond.toFixed(4)}`);
         }
         
@@ -132,6 +134,15 @@ export class ResourceSystem {
               newState.resources[resourceId] = resource;
             }
           }
+          
+          // Проверяем прямые эффекты для knowledge (решение проблемы 2)
+          if (effectKey === 'knowledgeMaxBoost' && newState.resources.knowledge && newState.resources.knowledge.unlocked) {
+            const resource = { ...newState.resources.knowledge };
+            const buildingBonus = Number(building.effects[effectKey]) * building.count;
+            
+            resource.max += buildingBonus;
+            newState.resources.knowledge = resource;
+          }
         }
       }
     }
@@ -167,6 +178,22 @@ export class ResourceSystem {
               // Обновляем ресурс в состоянии
               newState.resources[resourceId] = resource;
             }
+          }
+          
+          // Явная проверка для максимума знаний (решение проблемы 2)
+          if (effectKey === 'knowledgeMaxBoost' && newState.resources.knowledge && newState.resources.knowledge.unlocked) {
+            const resource = { ...newState.resources.knowledge };
+            const effectValue = Number(upgrade.effects[effectKey]);
+            
+            // Если эффект процентный (>= 1.0)
+            if (effectValue >= 1.0) {
+              resource.max = Math.floor(resource.max * effectValue);
+            } else {
+              // Абсолютное значение
+              resource.max += effectValue;
+            }
+            
+            newState.resources.knowledge = resource;
           }
         }
       }
