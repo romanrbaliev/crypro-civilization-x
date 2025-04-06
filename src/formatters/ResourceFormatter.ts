@@ -60,8 +60,8 @@ export class ResourceFormatter {
     if (value === Infinity) return "∞";
     if (isNaN(value)) return "0";
     
-    // Используем локальный getResourceFormat вместо обращения к this.getResourceFormat
-    const format = this.getResourceFormat(resourceId); 
+    // Получаем формат из локального метода класса
+    const format = this.getResourceFormat(resourceId);
     
     if (Math.abs(value) < format.minValue) return "0";
     
@@ -87,10 +87,12 @@ export class ResourceFormatter {
    * @returns Конфигурация форматирования
    */
   public getResourceFormat(resourceId: string): ResourceFormatConfig {
-    // Защищаемся от undefined
+    // Предотвращаем использование undefined
     if (!this.formatConfigs) {
       return getResourceFormatUtil(resourceId);
     }
+    
+    // Возвращаем конфигурацию форматирования для ресурса или конфигурацию по умолчанию
     return this.formatConfigs[resourceId] || this.formatConfigs.default || getResourceFormatUtil(resourceId);
   }
 

@@ -11,9 +11,18 @@ export interface GameEventDetail {
 }
 
 /**
+ * Интерфейс для расширенных деталей события с поддержкой i18n
+ */
+export interface GameEventI18nDetail {
+  messageKey: string;
+  type: 'info' | 'success' | 'error' | 'warning';
+  params?: Record<string, any>;
+}
+
+/**
  * Класс шины событий игры
  */
-class GameEventBus extends EventTarget {
+export class GameEventBus extends EventTarget {
   /**
    * Инициализирует шину событий
    */
@@ -26,7 +35,7 @@ class GameEventBus extends EventTarget {
    * Отправляет игровое событие
    * @param detail Детали события
    */
-  dispatchGameEvent(detail: GameEventDetail): void {
+  dispatchGameEvent(detail: GameEventDetail | GameEventI18nDetail): void {
     const event = new CustomEvent('game-event', { detail });
     this.dispatchEvent(event);
   }
@@ -35,7 +44,7 @@ class GameEventBus extends EventTarget {
    * Отправляет детальное игровое событие
    * @param detail Детали события
    */
-  dispatchDetailEvent(detail: GameEventDetail): void {
+  dispatchDetailEvent(detail: GameEventDetail | GameEventI18nDetail): void {
     const event = new CustomEvent('game-event-detail', { detail });
     this.dispatchEvent(event);
   }
@@ -45,32 +54,76 @@ class GameEventBus extends EventTarget {
 export const gameEventBus = new GameEventBus();
 
 /**
+ * Проверяет существование шины событий и создает ее при необходимости
+ */
+export const ensureGameEventBus = (): GameEventBus => {
+  if (typeof window !== 'undefined') {
+    if (!window.gameEventBus) {
+      window.gameEventBus = gameEventBus;
+      console.log('✅ Шина событий игры создана и подключена к window');
+    }
+    return window.gameEventBus;
+  }
+  return gameEventBus;
+};
+
+/**
  * Отправляет игровое событие с проверкой состояния
  */
-export const safeDispatchGameEvent = (message: string, type: GameEventDetail['type'] = 'info'): void => {
+export const safeDispatchGameEvent = (
+  detail: string | GameEventDetail | GameEventI18nDetail,
+  type: GameEventDetail['type'] = 'info'
+): void => {
+  let eventDetail: GameEventDetail | GameEventI18nDetail;
+  
+  // Преобразуем строку в объект события, если необходимо
+  if (typeof detail === 'string') {
+    eventDetail = { message: detail, type };
+  } else {
+    eventDetail = detail;
+  }
+  
   if (typeof window !== 'undefined' && window.gameEventBus) {
-    window.gameEventBus.dispatchGameEvent({ message, type });
+    window.gameEventBus.dispatchGameEvent(eventDetail);
   } else if (typeof window !== 'undefined') {
     // Если шина событий не определена в window, используем глобальную
-    gameEventBus.dispatchGameEvent({ message, type });
+    gameEventBus.dispatchGameEvent(eventDetail);
   } else {
     // Для серверного рендеринга
-    console.log(`[GameEvent] ${type.toUpperCase()}: ${message}`);
+    const message = 'messageKey' in eventDetail ? 
+      `[GameEvent] ${eventDetail.type.toUpperCase()}: ${eventDetail.messageKey}` :
+      `[GameEvent] ${eventDetail.type.toUpperCase()}: ${(eventDetail as GameEventDetail).message}`;
+    console.log(message);
   }
 };
 
 /**
  * Отправляет детальное игровое событие с проверкой состояния
  */
-export const safeDispatchDetailEvent = (message: string, type: GameEventDetail['type'] = 'info'): void => {
+export const safeDispatchDetailEvent = (
+  detail: string | GameEventDetail | GameEventI18nDetail,
+  type: GameEventDetail['type'] = 'info'
+): void => {
+  let eventDetail: GameEventDetail | GameEventI18nDetail;
+  
+  // Преобразуем строку в объект события, если необходимо
+  if (typeof detail === 'string') {
+    eventDetail = { message: detail, type };
+  } else {
+    eventDetail = detail;
+  }
+  
   if (typeof window !== 'undefined' && window.gameEventBus) {
-    window.gameEventBus.dispatchDetailEvent({ message, type });
+    window.gameEventBus.dispatchDetailEvent(eventDetail);
   } else if (typeof window !== 'undefined') {
     // Если шина событий не определена в window, используем глобальную
-    gameEventBus.dispatchDetailEvent({ message, type });
+    gameEventBus.dispatchDetailEvent(eventDetail);
   } else {
     // Для серверного рендеринга
-    console.log(`[GameDetailEvent] ${type.toUpperCase()}: ${message}`);
+    const message = 'messageKey' in eventDetail ? 
+      `[GameDetailEvent] ${eventDetail.type.toUpperCase()}: ${eventDetail.messageKey}` :
+      `[GameDetailEvent] ${eventDetail.type.toUpperCase()}: ${(eventDetail as GameEventDetail).message}`;
+    console.log(message);
   }
 };
 
