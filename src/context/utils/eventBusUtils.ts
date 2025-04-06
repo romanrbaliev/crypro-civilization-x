@@ -62,12 +62,12 @@ export const safeDispatchGameEvent = (
     const eventType = detail.type || 'info';
     
     // Отправляем событие через шину событий
-    window.gameEventBus.dispatchEvent(new CustomEvent('game-event', { 
+    window.gameEventBus?.dispatchEvent(new CustomEvent('game-event', { 
       detail: { message: detail.message, type: eventType } 
     }));
     
     // Для более подробных сообщений
-    window.gameEventBus.dispatchEvent(new CustomEvent('game-event-detail', { 
+    window.gameEventBus?.dispatchEvent(new CustomEvent('game-event-detail', { 
       detail: { 
         ...detail,
         message: detail.message

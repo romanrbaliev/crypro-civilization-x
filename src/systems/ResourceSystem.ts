@@ -70,10 +70,13 @@ export class ResourceSystem {
       const building = newState.buildings[buildingId];
       
       if (building.count > 0 && building.effects && building.effects.maxResources) {
-        for (const [resourceId, bonus] of Object.entries(building.effects.maxResources as Record<string, number>)) {
+        // Используем приведение типов для безопасного доступа к maxResources
+        const maxResourcesEffect = building.effects.maxResources as Record<string, number>;
+        
+        for (const [resourceId, bonus] of Object.entries(maxResourcesEffect)) {
           if (resources[resourceId]) {
             const currentMax = baseMaxValues[resourceId] || 0;
-            baseMaxValues[resourceId] = currentMax + bonus * building.count;
+            baseMaxValues[resourceId] = currentMax + (bonus as number) * building.count;
           }
         }
       }
@@ -84,7 +87,9 @@ export class ResourceSystem {
       const upgrade = newState.upgrades[upgradeId];
       
       if (upgrade.purchased && upgrade.effects && upgrade.effects.maxResources) {
-        for (const [resourceId, bonus] of Object.entries(upgrade.effects.maxResources as Record<string, number>)) {
+        const maxResourcesEffect = upgrade.effects.maxResources as Record<string, number>;
+        
+        for (const [resourceId, bonus] of Object.entries(maxResourcesEffect)) {
           if (resources[resourceId]) {
             // Применяем процентный бонус
             const baseMax = baseMaxValues[resourceId] || 0;
@@ -176,8 +181,7 @@ export class ResourceSystem {
     // Обновляем состояние
     newState.resources = resources;
     
-    // Проверяем разблокировки после увеличения ресурса
-    return checkAllUnlocks(newState);
+    return newState;
   }
 
   /**
@@ -218,8 +222,7 @@ export class ResourceSystem {
       params: { name: resource.name }
     });
     
-    // Проверяем другие разблокировки
-    return checkAllUnlocks(newState);
+    return newState;
   }
 
   /**

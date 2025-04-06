@@ -1,20 +1,20 @@
 
-import { GameState } from '@/context/types';
-import { ResourceSystem } from '@/systems/ResourceSystem';
+import { GameState } from "@/context/types";
+import { ResourceSystem } from "@/systems/ResourceSystem";
 
-// Создаем статический экземпляр для использования вне компонентов
+// Создаем новый экземпляр системы ресурсов
 const resourceSystem = new ResourceSystem();
 
 /**
- * Проверяет, достаточно ли ресурсов для покупки
+ * Проверяет, может ли игрок позволить себе покупку
  */
-export function checkAffordability(state: GameState, cost: Record<string, number>): boolean {
+export const checkAffordability = (state: GameState, cost: Record<string, number>): boolean => {
   return resourceSystem.checkAffordability(state, cost);
-}
+};
 
 /**
- * Возвращает список недостающих ресурсов
+ * Получает информацию о недостающих ресурсах
  */
-export function getMissingResources(state: GameState, cost: Record<string, number>): Record<string, number> {
+export const getMissingResources = (state: GameState, cost: Record<string, number>): Record<string, number> => {
   return resourceSystem.getMissingResources(state, cost);
-}
+};
