@@ -8,6 +8,9 @@ export const useGameStateUpdateService = () => {
   const { updateResources, recalculateAllProduction } = useResourceSystem();
   const lastTickTimeRef = useRef<number>(Date.now());
   
+  // Добавляем счетчик тиков для отладки
+  const tickCountRef = useRef<number>(0);
+  
   const updateGameState = useCallback(() => {
     if (!isPageVisible || !state.gameStarted) {
       return;
@@ -21,7 +24,11 @@ export const useGameStateUpdateService = () => {
     const cappedDeltaTime = Math.min(deltaTime, 60000);
     
     if (cappedDeltaTime > 0) {
-      console.log(`Обновление состояния игры: прошло ${cappedDeltaTime}ms`);
+      // Увеличиваем счетчик тиков и выводим лог каждые 10 тиков
+      tickCountRef.current += 1;
+      if (tickCountRef.current % 10 === 0) {
+        console.log(`Тик #${tickCountRef.current}: Обновление состояния игры, прошло ${cappedDeltaTime}ms`);
+      }
       
       // Обновляем ресурсы с учетом прошедшего времени
       updateResources(cappedDeltaTime);
@@ -29,7 +36,6 @@ export const useGameStateUpdateService = () => {
       // Обновляем lastUpdate
       dispatch({ type: 'TICK', payload: { currentTime } });
       
-      console.log(`Тик игры: прошло ${cappedDeltaTime}ms, lastUpdate обновлен`);
       lastTickTimeRef.current = currentTime;
     }
   }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch, updateResources]);
@@ -38,11 +44,22 @@ export const useGameStateUpdateService = () => {
   useEffect(() => {
     if (state.gameStarted) {
       console.log("Инициализация игрового состояния при первой загрузке");
+      
+      // Принудительно пересчитываем производство при запуске
       recalculateAllProduction();
+      
+      // Добавляем дополнительную проверку после небольшой задержки
+      setTimeout(() => {
+        console.log("Принудительный пересчет производства после инициализации");
+        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+      }, 500);
     }
-  }, [state.gameStarted, recalculateAllProduction]);
+  }, [state.gameStarted, recalculateAllProduction, dispatch]);
   
+  // Главный эффект для обновления игры
   useEffect(() => {
+    console.log("Запуск системы обновления ресурсов");
+    
     // Запускаем таймер для обновления ресурсов каждые 100ms для более плавного обновления
     const updateInterval = setInterval(updateGameState, 100);
     
@@ -53,10 +70,19 @@ export const useGameStateUpdateService = () => {
       }
     }, 5000);
     
+    // Запускаем таймер для принудительного обновления ресурсов каждые 3 секунды
+    const forceUpdateInterval = setInterval(() => {
+      if (isPageVisible && state.gameStarted) {
+        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+        console.log("Принудительное обновление производства ресурсов");
+      }
+    }, 3000);
+    
     // Очистка таймеров при размонтировании
     return () => {
       clearInterval(updateInterval);
       clearInterval(unlockCheckInterval);
+      clearInterval(forceUpdateInterval);
     };
   }, [updateGameState, isPageVisible, state.gameStarted, dispatch]);
   

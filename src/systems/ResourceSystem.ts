@@ -34,8 +34,15 @@ export class ResourceSystem {
     let newState = { ...state };
     const resources = { ...state.resources };
     
-    // Рассчитываем метрики для всех ресурсов
-    const metrics = this.calculator.calculateResourceMetrics(state);
+    // Проверяем, какие ресурсы закончились
+    const resourcesExhausted: string[] = [];
+    for (const resourceId in resources) {
+      const resource = resources[resourceId];
+      if (resource.unlocked && resource.value <= 0 && (resource.consumption || 0) > 0) {
+        resourcesExhausted.push(resourceId);
+        console.log(`ResourceSystem: Ресурс ${resourceId} закончился`);
+      }
+    }
     
     // Обновляем каждый ресурс
     for (const resourceId in resources) {
@@ -43,20 +50,32 @@ export class ResourceSystem {
       
       // Пропускаем неразблокированные ресурсы
       if (!resource.unlocked) {
-        console.log(`Ресурс ${resourceId} не разблокирован, пропускаем...`);
         continue;
       }
       
-      // Получаем метрики для текущего ресурса
-      const resourceMetrics = metrics[resourceId];
+      // Вычисляем чистое производство (с учетом потребления)
+      let production = resource.production || 0;
+      let consumption = resource.consumption || 0;
       
-      if (!resourceMetrics) {
-        continue;
+      // Если ресурсы для производства закончились, уменьшаем производство
+      const consumptionBlocked = resourcesExhausted.some(id => {
+        // Проверяем, зависит ли производство этого ресурса от истощенных ресурсов
+        const dependsOn = (resourceId === 'computingPower' && id === 'electricity') ||
+                         (resourceId === 'bitcoin' && (id === 'electricity' || id === 'computingPower'));
+        return dependsOn;
+      });
+      
+      if (consumptionBlocked) {
+        production = 0;
+        consumption = 0;
+        console.log(`ResourceSystem: Производство ${resourceId} приостановлено из-за нехватки ресурсов`);
       }
       
-      // Получаем чистое изменение ресурса (производство - потребление)
-      const netChange = resourceMetrics.netProduction * deltaSeconds;
+      // Рассчитываем чистое изменение за дельту времени
+      const netProduction = production - consumption;
+      const netChange = netProduction * deltaSeconds;
       
+      // Обновляем значение ресурса
       if (netChange !== 0) {
         // Текущее значение ресурса
         const currentValue = resource.value;
@@ -72,32 +91,24 @@ export class ResourceSystem {
         // Не допускаем отрицательных значений
         newValue = Math.max(0, newValue);
         
-        // Логируем изменение только если оно значительное
-        if (Math.abs(newValue - currentValue) > 0.001) {
-          console.log(`Ресурс ${resourceId}: ${currentValue.toFixed(4)} -> ${newValue.toFixed(4)} (изменение: ${netChange.toFixed(4)}, продукция: ${resourceMetrics.finalProduction.toFixed(2)}/сек, потребление: ${resourceMetrics.finalConsumption.toFixed(2)}/сек)`);
-        }
-        
-        // Создаем событие обновления ресурса
-        const event: ResourceEvent = {
-          type: ResourceEventType.RESOURCE_UPDATED,
-          resourceId,
-          oldValue: currentValue,
-          newValue,
-          delta: netChange,
-          timestamp: Date.now()
-        };
-        
         // Обновляем ресурс
         resources[resourceId] = {
           ...resource,
           value: newValue,
-          production: resourceMetrics.finalProduction,
-          consumption: resourceMetrics.finalConsumption,
-          perSecond: resourceMetrics.netProduction
+          production: production,
+          consumption: consumption,
+          perSecond: netProduction
         };
         
-        // Отправляем событие в шину событий
-        safeDispatchGameEvent(`Ресурс ${resourceId} обновлен: ${currentValue.toFixed(2)} -> ${newValue.toFixed(2)}`);
+        // Логируем изменение, только если оно значительное
+        if (Math.abs(newValue - currentValue) > 0.001) {
+          console.log(`ResourceSystem: Ресурс ${resourceId}: ${currentValue.toFixed(4)} -> ${newValue.toFixed(4)} (изменение: ${netChange.toFixed(4)}/сек)`);
+        }
+        
+        // Отправляем событие в шину событий только при значительных изменениях
+        if (Math.abs(newValue - currentValue) > 0.01) {
+          safeDispatchGameEvent(`Ресурс ${resourceId} обновлен: ${currentValue.toFixed(2)} -> ${newValue.toFixed(2)}`);
+        }
       }
     }
     
