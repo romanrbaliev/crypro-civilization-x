@@ -1,6 +1,6 @@
 
 import { GameState } from '../../types';
-import { updateResourceMaxValues } from '@/utils/resourceUtils';
+import { updateResourceMaxValues } from '../../utils/resourceUtils';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
 
 // Обработка продажи здания
