@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -117,7 +116,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Обновляем производство и потребление
         newState = resourceSystem.updateProductionConsumption(newState);
         
-        // Затем обновляем значения ресурсов
+        // Затем обновляем значения ресурсов - самый важный шаг!
         newState = resourceSystem.updateResources(newState, deltaTime);
         
         // Обновляем lastUpdate
@@ -126,6 +125,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Добавляем отладку
         if (Math.random() < 0.01) {
           console.log(`[GameReducer:TICK] Прошло ${deltaTime}мс, обновление ресурсов выполнено`);
+          
+          // Выводим текущие значения ресурсов
+          const resourceValues = Object.entries(newState.resources)
+            .filter(([_, r]) => r.unlocked)
+            .map(([id, r]) => `${id}: ${r.value?.toFixed(2) || '0'} (+${r.perSecond?.toFixed(2) || '0'}/сек)`);
+          
+          if (resourceValues.length > 0) {
+            console.log(`[GameReducer:TICK] Ресурсы после обновления:`, resourceValues);
+          }
         }
       }
       
@@ -209,6 +217,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Если пришло обновленное состояние, используем его
       if (action.payload) {
         console.log("[FORCE_RESOURCE_UPDATE] Обновляем состояние из payload");
+        
+        // Выводим отладочную информацию о ресурсах
+        const resourceInfo = Object.entries(action.payload.resources)
+          .filter(([_, r]) => r.unlocked)
+          .map(([id, r]) => `${id}: ${r.value?.toFixed(2) || '0'} (+${r.perSecond?.toFixed(2) || '0'}/сек)`);
+        
+        if (resourceInfo.length > 0) {
+          console.log(`[FORCE_RESOURCE_UPDATE] Ресурсы после обновления:`, resourceInfo);
+        }
+        
         return checkAllUnlocks(action.payload);
       }
       

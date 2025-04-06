@@ -1,3 +1,4 @@
+
 import { GameState, Resource, Building, Upgrade, ResourceType } from '@/context/types';
 
 /**
@@ -11,23 +12,37 @@ export class ResourceSystem {
    * @returns Обновленное состояние
    */
   public updateResources(state: GameState, deltaTime: number): GameState {
+    // Проверяем, что deltaTime имеет положительное значение
+    if (deltaTime <= 0) {
+      console.log(`[ResourceSystem] Пропуск обновления: deltaTime=${deltaTime}мс`);
+      return state;
+    }
+
     // Создаем глубокую копию состояния для безопасного обновления
     const newState = {
       ...state,
-      resources: { ...state.resources }
+      resources: JSON.parse(JSON.stringify(state.resources))
     };
+    
+    // Отладочная информация
+    console.log(`[ResourceSystem] Обновление ресурсов: deltaTime=${deltaTime}мс`);
     
     // Проверяем все ресурсы и обновляем их значения
     for (const resourceId in newState.resources) {
       if (newState.resources.hasOwnProperty(resourceId)) {
-        const resource = { ...newState.resources[resourceId] };
+        const resource = newState.resources[resourceId];
         
         // Пропускаем не разблокированные ресурсы
         if (!resource.unlocked) continue;
         
         // Получаем текущие значения или устанавливаем 0, если не определены
-        const currentValue = resource.value ?? 0;
-        const perSecond = resource.perSecond ?? 0;
+        const currentValue = resource.value !== undefined && resource.value !== null 
+          ? resource.value 
+          : 0;
+        
+        const perSecond = resource.perSecond !== undefined && resource.perSecond !== null 
+          ? resource.perSecond 
+          : 0;
         
         // Пропускаем ресурсы без производства/потребления
         if (perSecond === 0) continue;
@@ -45,7 +60,7 @@ export class ResourceSystem {
         
         // Отладочная информация для мониторинга изменений ресурсов
         if (Math.abs(increment) > 0.001) {
-          console.log(`[ResourceDebug] Обновление ${resourceId}: ${currentValue.toFixed(4)} -> ${newValue.toFixed(4)}, прирост: ${increment.toFixed(4)}, perSecond: ${perSecond.toFixed(4)}`);
+          console.log(`[ResourceDebug] ${resourceId}: ${currentValue.toFixed(4)} -> ${newValue.toFixed(4)}, прирост: ${increment.toFixed(4)}, perSecond: ${perSecond.toFixed(4)}`);
         }
         
         // Обновляем значение ресурса в состоянии

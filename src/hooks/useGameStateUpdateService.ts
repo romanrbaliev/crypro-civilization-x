@@ -15,31 +15,34 @@ export const useGameStateUpdateService = () => {
   const { updateResources } = useResourceSystem();
   const unlockService = new UnlockService();
   const lastUpdateTimeRef = useRef<number>(Date.now());
+  const frameCountRef = useRef<number>(0);
   
   /**
    * Обновляет игровое состояние с учетом прошедшего времени
    */
   const updateGameState = useCallback(() => {
+    frameCountRef.current += 1;
+    
     if (isPageVisible && state.gameStarted) {
       const currentTime = Date.now();
       const deltaTime = currentTime - lastUpdateTimeRef.current;
       
-      // Обновляем ресурсы с учетом прошедшего времени
-      // Ранее здесь был порог 50мс, который не позволял обновлять ресурсы достаточно часто
+      // Всегда обновляем ресурсы, даже если прошло мало времени
+      // Это устраняет проблему с неплавным обновлением ресурсов
       updateResources(deltaTime);
       lastUpdateTimeRef.current = currentTime;
       
       // Обновляем lastUpdate в состоянии
       dispatch({ type: 'TICK', payload: { currentTime } });
       
-      // Отладочная информация
-      if (Math.random() < 0.01) { // 1% шанс вывода в консоль
-        console.log(`[GameUpdate] Прошло ${deltaTime}мс. Ресурсы обновлены.`);
+      // Отладочная информация - примерно каждые 3 секунды
+      if (frameCountRef.current % 100 === 0) {
+        console.log(`[GameUpdate] Кадр #${frameCountRef.current}, Δt=${deltaTime}мс`);
         
         // Дополнительная отладочная информация о ресурсах
         const activeResources = Object.entries(state.resources)
           .filter(([_, res]) => res.unlocked && res.perSecond !== 0)
-          .map(([id, res]) => `${id}: ${res.value.toFixed(2)}/${res.max || '∞'} (${res.perSecond.toFixed(2)}/сек)`);
+          .map(([id, res]) => `${id}: ${res.value?.toFixed(2) || 0}/${res.max || '∞'} (${res.perSecond?.toFixed(2) || 0}/сек)`);
         
         if (activeResources.length > 0) {
           console.log('[ResourceDebug] Активные ресурсы:', activeResources);
@@ -61,21 +64,25 @@ export const useGameStateUpdateService = () => {
   useEffect(() => {
     if (!state.gameStarted) return;
     
-    // Запускаем таймер для обновления ресурсов каждые 100 миллисекунд
-    // Уменьшаем интервал для более плавного обновления
-    const updateInterval = setInterval(updateGameState, 33);
+    // Запускаем интервал анимации для более плавного обновления
+    let animationFrameId: number;
+    
+    const updateFrame = () => {
+      updateGameState();
+      animationFrameId = requestAnimationFrame(updateFrame);
+    };
+    
+    animationFrameId = requestAnimationFrame(updateFrame);
     
     // Запускаем таймер для проверки разблокировок каждые 5 секунд
     const unlockCheckInterval = setInterval(checkUnlocks, 5000);
     
     // Логируем информацию о запуске системы обновления
-    console.log(`🔄 Система обновления игрового состояния запущена. 
-      Интервал обновления: 33мс, 
-      Интервал проверки разблокировок: 5000мс`);
+    console.log(`🔄 Система обновления игрового состояния запущена в режиме requestAnimationFrame`);
     
     // Очистка таймеров при размонтировании
     return () => {
-      clearInterval(updateInterval);
+      cancelAnimationFrame(animationFrameId);
       clearInterval(unlockCheckInterval);
       console.log('🛑 Система обновления игрового состояния остановлена');
     };

@@ -18,6 +18,7 @@ export function processPurchase(
   payload: { itemId: string, itemType: PurchasableType }
 ): GameState {
   const { itemId, itemType } = payload;
+  console.log(`[Purchase] Обработка покупки: ${itemType} - ${itemId}`);
 
   // Определение типа покупаемого элемента
   let item;
@@ -51,11 +52,14 @@ export function processPurchase(
   // Проверка наличия ресурсов для покупки
   if (!resourceSystem.checkAffordability(state, item.cost)) {
     console.log(`Недостаточно ресурсов для покупки ${item.name}`);
+    console.log(`Текущие ресурсы:`, Object.entries(state.resources)
+      .filter(([id]) => Object.keys(item.cost).includes(id))
+      .map(([id, r]) => `${id}: ${r.value} (требуется: ${item.cost[id]})`));
     return state;
   }
 
   // Создаем копию состояния для модификации
-  let updatedState = { ...state };
+  let updatedState = JSON.parse(JSON.stringify(state));
 
   // Списываем ресурсы
   for (const [resourceId, amount] of Object.entries(item.cost)) {
@@ -113,8 +117,9 @@ export function processPurchase(
     });
   }
 
-  // Обновляем производство и потребление ресурсов
   console.log(`[Purchase] Обновляем производство и потребление после покупки ${item.name}`);
+  
+  // Обновляем производство и потребление ресурсов
   updatedState = resourceSystem.updateProductionConsumption(updatedState);
   
   // Пересчитываем максимальные значения ресурсов
@@ -132,6 +137,13 @@ export function processPurchase(
     Object.entries(updatedState.resources)
       .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
       .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
+  );
+  
+  // Выводим текущие значения ресурсов
+  console.log(`[ResourceDebug] Текущие значения ресурсов после покупки:`, 
+    Object.entries(updatedState.resources)
+      .filter(([_, r]) => r.unlocked)
+      .map(([id, r]) => `${id}: ${r.value.toFixed(2)}/${r.max || '∞'} (${r.perSecond.toFixed(2)}/сек)`)
   );
 
   return updatedState;

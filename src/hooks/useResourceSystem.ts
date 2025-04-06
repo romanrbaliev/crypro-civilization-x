@@ -1,3 +1,4 @@
+
 import { useCallback, useMemo } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
@@ -17,6 +18,12 @@ export const useResourceSystem = () => {
    * @param deltaTime Прошедшее время в миллисекундах
    */
   const updateResources = useCallback((deltaTime: number) => {
+    // Важная проверка: пропускаем отрицательное время (может случиться из-за ошибок в Date.now())
+    if (deltaTime < 0) {
+      console.warn(`[ResourceSystem] Попытка обновления с отрицательным временем: ${deltaTime}мс`);
+      return;
+    }
+    
     // Шаг 1: Обновляем производство и потребление
     let updatedState = resourceSystem.updateProductionConsumption(state);
     
@@ -26,14 +33,11 @@ export const useResourceSystem = () => {
     // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
     updatedState = resourceSystem.updateResources(updatedState, deltaTime);
     
-    // Важно: всегда отправляем обновление состояния, даже при маленьких изменениях
-    // Удаляем проверку hasChanges, которая блокировала обновления
-    
     // Обновляем состояние через диспетчер
     dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
     
     // Периодически выводим отладочную информацию
-    if (Math.random() < 0.05) {
+    if (Math.random() < 0.01) { // 1% шанс вывода в консоль
       const logData = Object.entries(updatedState.resources)
         .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
         .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
@@ -127,10 +131,23 @@ export const useResourceSystem = () => {
   
   return {
     updateResources,
-    canAfford,
-    getMissingResources,
-    updateResourceMaxValues,
-    formatCost,
+    canAfford: useCallback((cost: Record<string, number>): boolean => {
+      return resourceSystem.checkAffordability(state, cost);
+    }, [state, resourceSystem]),
+    
+    getMissingResources: useCallback((cost: Record<string, number>): Record<string, number> => {
+      return resourceSystem.getMissingResources(state, cost);
+    }, [state, resourceSystem]),
+    
+    updateResourceMaxValues: useCallback(() => {
+      const updatedState = resourceSystem.updateResourceMaxValues(state);
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+    }, [state, dispatch, resourceSystem]),
+    
+    formatCost: useCallback((cost: any, language: string = 'ru'): string => {
+      return resourceFormatter.formatCost(cost, language);
+    }, [resourceFormatter]),
+    
     formatValue,
     incrementResource,
     unlockResource,
