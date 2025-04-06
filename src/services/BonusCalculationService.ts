@@ -15,16 +15,16 @@ export class BonusCalculationService {
     // Применяем бонусы от исследований
     for (const upgradeId in state.upgrades) {
       const upgrade = state.upgrades[upgradeId];
-      if (upgrade.purchased && upgrade.productionBonus) {
-        for (const [resourceId, bonusValue] of Object.entries(upgrade.productionBonus)) {
+      if (upgrade.purchased && upgrade.effects && upgrade.effects.productionBoost) {
+        for (const [resourceId, bonusValue] of Object.entries(upgrade.effects.productionBoost)) {
           bonuses[resourceId] = (bonuses[resourceId] || 1.0) * (1 + Number(bonusValue) / 100);
         }
       }
     }
     
     // Учитываем специализацию игрока, если она выбрана
-    if (state.playerSpecialization) {
-      const specialization = state.specializations?.[state.playerSpecialization];
+    if (state.specialization) {
+      const specialization = state.specializations?.[state.specialization];
       if (specialization?.resourceBonuses) {
         for (const [resourceId, bonusValue] of Object.entries(specialization.resourceBonuses)) {
           bonuses[resourceId] = (bonuses[resourceId] || 1.0) * (1 + Number(bonusValue) / 100);

@@ -16,7 +16,7 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
   };
   
   // Используем новую унифицированную функцию
-  return processPurchase(state, newPayload);
+  return processPurchase(state, newPayload, { calculateMaxValues: true });
 };
 
 export const processSellBuilding = (state: GameState, payload: { buildingId: string }): GameState => {

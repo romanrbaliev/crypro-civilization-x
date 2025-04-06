@@ -16,8 +16,11 @@ export const calculateProductionRate = (state: GameState, resourceId: string): n
   // Применение бонусов от исследований
   for (const upgradeId in state.upgrades) {
     const upgrade = state.upgrades[upgradeId];
-    if (upgrade.purchased && upgrade.productionMultiplier && upgrade.productionMultiplier[resourceId]) {
-      productionRate *= 1 + (upgrade.productionMultiplier[resourceId] / 100);
+    if (upgrade.purchased && upgrade.effects) {
+      // Используем effects вместо productionMultiplier
+      if (upgrade.effects.productionBoost && upgrade.effects.productionBoost[resourceId]) {
+        productionRate *= 1 + (upgrade.effects.productionBoost[resourceId] / 100);
+      }
     }
   }
   
@@ -39,8 +42,11 @@ export const calculateConsumptionRate = (state: GameState, resourceId: string): 
   // Применение бонусов от исследований
   for (const upgradeId in state.upgrades) {
     const upgrade = state.upgrades[upgradeId];
-    if (upgrade.purchased && upgrade.consumptionMultiplier && upgrade.consumptionMultiplier[resourceId]) {
-      consumptionRate *= 1 - (upgrade.consumptionMultiplier[resourceId] / 100);
+    if (upgrade.purchased && upgrade.effects) {
+      // Используем effects вместо consumptionMultiplier
+      if (upgrade.effects.consumptionReduction && upgrade.effects.consumptionReduction[resourceId]) {
+        consumptionRate *= 1 - (upgrade.effects.consumptionReduction[resourceId] / 100);
+      }
     }
   }
   

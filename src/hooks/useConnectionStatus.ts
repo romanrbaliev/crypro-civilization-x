@@ -4,6 +4,14 @@ import { checkSupabaseConnection, createSavesTableIfNotExists } from '@/api/game
 import { ERROR_NOTIFICATION_THROTTLE } from '@/api/apiTypes';
 import { toast } from '@/hooks/use-toast';
 
+// Расширяем типы для Window для свойства __cloudflareRetryCount
+declare global {
+  interface Window {
+    __cloudflareRetryCount?: number;
+    __lastLoadErrorTime?: number;
+  }
+}
+
 export const useConnectionStatus = () => {
   const [hasConnection, setHasConnection] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);

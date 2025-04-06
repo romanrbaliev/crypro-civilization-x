@@ -23,11 +23,21 @@ export const useResourceManager = () => {
   const applyKnowledge = useCallback(() => {
     dispatch({ type: 'APPLY_KNOWLEDGE' });
   }, [dispatch]);
+
+  // Функция для обновления ресурсов - добавляем для исправления ошибки в useGameUpdater.ts
+  const updateResources = useCallback(() => {
+    const currentTime = Date.now();
+    dispatch({ 
+      type: 'TICK', 
+      payload: { currentTime } 
+    });
+  }, [dispatch]);
   
   return {
     resources: state.resources,
     recalculateProduction,
     addResource,
-    applyKnowledge
+    applyKnowledge,
+    updateResources
   };
 };

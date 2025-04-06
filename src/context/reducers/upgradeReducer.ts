@@ -12,6 +12,6 @@ export const processPurchaseUpgrade = (state: GameState, payload: { upgradeId: s
     quantity: 1
   };
   
-  // Используем новую унифицированную функцию
-  return processPurchase(state, newPayload);
+  // Используем новую унифицированную функцию с дополнительными параметрами
+  return processPurchase(state, newPayload, { calculateMaxValues: true });
 };
