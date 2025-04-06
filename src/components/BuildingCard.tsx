@@ -20,17 +20,24 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onS
   
   // Оборачиваем форматирование стоимости в useEffect, чтобы гарантировать его выполнение
   useEffect(() => {
-    if (cost && Object.keys(cost).length > 0) {
-      const costText = formatCost(cost, language);
-      setFormattedCostText(costText || "");
-      
-      if (!costText) {
-        console.warn(`[BuildingCard] Не удалось отформатировать стоимость для здания ${id}:`, cost);
+    // Используем setTimeout для гарантированного выполнения форматирования после рендеринга
+    const formatCostWithRetry = () => {
+      if (cost && Object.keys(cost).length > 0) {
+        const costText = formatCost(cost, language);
+        if (costText) {
+          setFormattedCostText(costText);
+        } else {
+          console.warn(`[BuildingCard] Не удалось отформатировать стоимость для здания ${id}:`, cost);
+          // Повторяем попытку через 100мс если форматирование не удалось
+          setTimeout(formatCostWithRetry, 100);
+        }
+      } else {
+        console.warn(`[BuildingCard] Стоимость для здания ${id} не определена:`, cost);
+        setFormattedCostText("Стоимость не определена");
       }
-    } else {
-      console.warn(`[BuildingCard] Стоимость для здания ${id} не определена:`, cost);
-      setFormattedCostText("Стоимость...");
-    }
+    };
+    
+    formatCostWithRetry();
   }, [cost, id, language]);
   
   // Определение иконки для здания

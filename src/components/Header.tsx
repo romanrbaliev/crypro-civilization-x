@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
   const [debugDialogOpen, setDebugDialogOpen] = useState(false);
   const { state } = useGame();
   const [debugInfo, setDebugInfo] = useState({
-    resources: [] as Array<{id: string, value: number, max: string|number, perSecond: number}>,
+    resources: [] as Array<{id: string, value: number, max: string|number, perSecond: number, production: number, consumption: number}>,
     buildings: [] as Array<{id: string, count: number, production: any, consumption: any}>,
     lastUpdate: 0,
     productionFlow: [] as string[]
@@ -179,6 +179,8 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
       .map(([id, building]) => ({
         id,
         count: building.count,
+        production: building.production || 'нет',
+        consumption: building.consumption || 'нет',
         cost: building.cost,
         effects: building.effects || 'нет эффектов'
       }));
