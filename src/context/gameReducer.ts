@@ -142,6 +142,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
       return checkAllUnlocks(processPurchaseUpgrade(newState, action.payload));
+      
+    // Новое унифицированное действие покупки
+    case 'PURCHASE_ITEM':
+      // Используем унифицированную функцию покупки
+      return processPurchase(newState, action.payload);
     
     case 'LOAD_GAME':
       newState = { ...newState, ...action.payload };

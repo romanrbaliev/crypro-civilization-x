@@ -5,4 +5,3 @@ export {
   processSellBuilding,
   processChooseSpecialization 
 } from './purchaseBuilding';
-
