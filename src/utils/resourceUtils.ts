@@ -32,15 +32,20 @@ export function updateResourceMaxValues(state: GameState): GameState {
   for (const buildingId in state.buildings) {
     const building = state.buildings[buildingId];
     
-    if (building.count > 0 && building.maxResourceEffects) {
-      for (const [resourceId, effect] of Object.entries(building.maxResourceEffects)) {
-        const resource = newResources[resourceId];
-        if (resource) {
-          const effectValue = typeof effect === 'number' 
-            ? effect * building.count 
-            : 0;
-          
-          resource.max = (resource.max || 0) + effectValue;
+    if (building.count > 0 && building.effects) {
+      // Проверяем эффекты максимальных значений ресурсов
+      for (const resourceId in newResources) {
+        const maxEffectKey = `max${resourceId.charAt(0).toUpperCase() + resourceId.slice(1)}Boost`;
+        
+        if (building.effects[maxEffectKey]) {
+          const resource = newResources[resourceId];
+          if (resource) {
+            const effectValue = typeof building.effects[maxEffectKey] === 'number' 
+              ? building.effects[maxEffectKey] * building.count 
+              : 0;
+            
+            resource.max = (resource.max || 0) + effectValue;
+          }
         }
       }
     }
