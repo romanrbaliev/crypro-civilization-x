@@ -94,8 +94,8 @@ export const debugResourceEffects = (state: GameState): Record<string, any> => {
   // Проходим по всем ресурсам и получаем текущие бонусы
   Object.entries(state.resources).forEach(([resourceId, resource]) => {
     effectReport[resourceId] = {
-      base: resource.baseGain || 0,
-      current: resource.currentGain || 0,
+      base: resource.baseProduction || 0,
+      current: resource.production || 0,
       max: resource.max || 0,
       modifiers: []
     };
