@@ -1,5 +1,6 @@
 
 import { useTranslation } from "@/i18n";
+import { createGameEventBus } from "./gameEvents";
 
 export type GameEventType = "info" | "success" | "warning" | "error";
 
@@ -9,6 +10,14 @@ interface GameEventData {
   type: GameEventType;
   params?: Record<string, string | number>;
 }
+
+// Функция для инициализации шины событий
+export const ensureGameEventBus = (): void => {
+  if (typeof window !== 'undefined' && !window.gameEventBus) {
+    createGameEventBus();
+    console.log('✅ Шина событий игры инициализирована через ensureGameEventBus');
+  }
+};
 
 // Функция для отправки событий с переводом и параметрами
 export const safeDispatchGameEvent = (
