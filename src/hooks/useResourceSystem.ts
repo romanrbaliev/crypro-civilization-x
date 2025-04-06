@@ -27,7 +27,8 @@ export const useResourceSystem = () => {
       type: 'TICK', 
       payload: { 
         currentTime: Date.now(), 
-        skipResourceUpdate: false 
+        skipResourceUpdate: false,
+        debug: true // Добавляем флаг для детального логирования
       } 
     });
   }, [dispatch]);
@@ -118,6 +119,7 @@ export const useResourceSystem = () => {
    * Применяет знания (конвертирует в USDT)
    */
   const applyKnowledge = useCallback(() => {
+    console.log("Применение знаний...");
     dispatch({ type: 'APPLY_KNOWLEDGE' });
   }, [dispatch]);
   
@@ -125,6 +127,7 @@ export const useResourceSystem = () => {
    * Применяет все доступные знания
    */
   const applyAllKnowledge = useCallback(() => {
+    console.log("Применение всех знаний...");
     dispatch({ type: 'APPLY_ALL_KNOWLEDGE' });
   }, [dispatch]);
   
@@ -134,6 +137,43 @@ export const useResourceSystem = () => {
   const exchangeBitcoin = useCallback(() => {
     dispatch({ type: 'EXCHANGE_BTC' });
   }, [dispatch]);
+  
+  /**
+   * Получает диагностическую информацию о ресурсе
+   * @param resourceId ID ресурса
+   * @returns Объект с диагностической информацией
+   */
+  const getResourceDiagnostics = useCallback((resourceId: string) => {
+    const resource = state.resources[resourceId];
+    if (!resource) return null;
+    
+    // Производство от зданий
+    const buildingProduction = Object.values(state.buildings)
+      .filter(b => b.count > 0 && b.production && b.production[resourceId])
+      .map(b => ({
+        name: b.name,
+        count: b.count,
+        production: b.production[resourceId] * b.count
+      }));
+    
+    // Бонусы от улучшений
+    const upgradeBonuses = Object.values(state.upgrades)
+      .filter(u => u.purchased && u.effects)
+      .map(u => ({
+        name: u.name,
+        effects: u.effects
+      }));
+    
+    return {
+      resource,
+      baseProduction: resource.baseProduction || 0,
+      currentProduction: resource.production || 0,
+      perSecond: resource.perSecond || 0,
+      buildingProduction,
+      upgradeBonuses,
+      max: resource.max || 0
+    };
+  }, [state.resources, state.buildings, state.upgrades]);
   
   return {
     updateResources,
@@ -148,7 +188,8 @@ export const useResourceSystem = () => {
     applyKnowledge,
     applyAllKnowledge,
     exchangeBitcoin,
-    resourceSystem, // Экспортируем сам класс для сложных операций
-    resourceFormatter // Экспортируем форматтер для сложных операций
+    getResourceDiagnostics, // Новая функция для диагностики
+    resourceSystem,
+    resourceFormatter
   };
 };

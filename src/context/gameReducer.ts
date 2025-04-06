@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -109,11 +108,33 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (deltaTime > 0) {
         console.log(`TICK: Обновление ресурсов за ${deltaTime}ms`);
         
+        // Расширенное логирование для отладки производства знаний
+        const debugMode = action.payload?.debug === true;
+        
+        if (debugMode) {
+          const knowledgeBefore = newState.resources.knowledge?.value || 0;
+          const knowledgeProduction = newState.resources.knowledge?.perSecond || 0;
+          
+          console.log(`TICK: Знания до обновления: ${knowledgeBefore}, производство: ${knowledgeProduction}/сек`);
+          
+          // Проверяем количество практик
+          const practiceCount = newState.buildings.practice?.count || 0;
+          if (practiceCount > 0) {
+            console.log(`TICK: Количество практик: ${practiceCount}, базовое производство от практик: ${practiceCount * 1}/сек`);
+          }
+        }
+        
         // ИЗМЕНЕНО: Вместо прямого вызова updateResources используем ResourceSystem
         // Также важно убрать дублирование логики между хуком и редьюсером
         if (action.payload?.skipResourceUpdate !== true) {
           newState = resourceSystem.updateResources(newState, deltaTime);
           console.log(`TICK: Обновлены ресурсы, прошло ${deltaTime}ms`);
+          
+          // Дополнительное логирование после обновления
+          if (debugMode) {
+            const knowledgeAfter = newState.resources.knowledge?.value || 0;
+            console.log(`TICK: Знания после обновления: ${knowledgeAfter}`);
+          }
         } else {
           console.log(`TICK: Пропускаем обновление ресурсов, так как skipResourceUpdate = true`);
         }
@@ -151,8 +172,25 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Обрабатываем покупку здания и проверяем разблокировки
       console.log("Обработка BUY_BUILDING...");
       const buildingState = processPurchaseBuilding(newState, action.payload);
+      
+      // Дополнительное логирование при покупке практики
+      if (action.payload.buildingId === 'practice') {
+        const practiceCount = buildingState.buildings.practice?.count || 0;
+        const knowledgeProduction = buildingState.resources.knowledge?.perSecond || 0;
+        
+        console.log(`Куплена практика (${practiceCount}). Текущее производство знаний: ${knowledgeProduction}/сек`);
+        console.log(`Ожидаемое производство от практик: ${practiceCount * 1}/сек`);
+      }
+      
       // После покупки здания пересчитываем производство
       const updatedBuildingState = resourceSystem.recalculateAllResourceProduction(buildingState);
+      
+      // Еще одно логирование после пересчета
+      if (action.payload.buildingId === 'practice') {
+        const knowledgeProduction = updatedBuildingState.resources.knowledge?.perSecond || 0;
+        console.log(`Производство знаний после пересчета: ${knowledgeProduction}/сек`);
+      }
+      
       return checkAllUnlocks(updatedBuildingState);
     
     case 'SELL_BUILDING':
@@ -200,6 +238,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'FORCE_RESOURCE_UPDATE':
       // Принудительно пересчитываем все значения и проверяем разблокировки
       console.log("FORCE_RESOURCE_UPDATE: Принудительное обновление производства ресурсов");
+      
+      // Логирование для отладки производства знаний
+      const knowledgeBeforeUpdate = newState.resources.knowledge?.value || 0;
+      const knowledgeProductionBeforeUpdate = newState.resources.knowledge?.perSecond || 0;
+      console.log(`FORCE_RESOURCE_UPDATE: Знания до пересчета: ${knowledgeBeforeUpdate}, производство: ${knowledgeProductionBeforeUpdate}/сек`);
+      
       if (action.payload) {
         // Если передано новое состояние, используем его
         newState = action.payload;
@@ -207,6 +251,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Иначе пересчитываем производство
         newState = resourceSystem.recalculateAllResourceProduction(newState);
       }
+      
+      // Логирование после пересчета
+      const knowledgeAfterUpdate = newState.resources.knowledge?.value || 0;
+      const knowledgeProductionAfterUpdate = newState.resources.knowledge?.perSecond || 0;
+      console.log(`FORCE_RESOURCE_UPDATE: Знания после пересчета: ${knowledgeAfterUpdate}, производство: ${knowledgeProductionAfterUpdate}/сек`);
+      
       return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BitcoinIcon, ArrowLeft, Trophy, Settings, RefreshCcw } from "lucide-react";
+import { BitcoinIcon, ArrowLeft, Trophy, Settings, RefreshCcw, BookOpen } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { resetAllGameData } from "@/context/utils/gameStorage";
 import { toast } from "@/hooks/use-toast";
+import KnowledgeProductionMonitor from "./KnowledgeProductionMonitor";
 
 interface HeaderProps {
   prestigePoints: number;
@@ -32,6 +33,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
   const navigate = useNavigate();
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
+  const [knowledgeMonitorOpen, setKnowledgeMonitorOpen] = useState(false);
 
   const handleResetAll = async () => {
     try {
@@ -69,6 +71,17 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Новая кнопка для мониторинга производства знаний */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs flex items-center px-2"
+            onClick={() => setKnowledgeMonitorOpen(true)}
+          >
+            <BookOpen className="h-4 w-4 mr-1" />
+            Производство знаний
+          </Button>
+          
           {prestigePoints > 0 && (
             <div className="flex items-center space-x-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full">
               <Trophy className="h-4 w-4" />
@@ -141,6 +154,12 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Компонент монитора производства знаний */}
+      <KnowledgeProductionMonitor 
+        open={knowledgeMonitorOpen} 
+        onOpenChange={setKnowledgeMonitorOpen} 
+      />
     </header>
   );
 };
