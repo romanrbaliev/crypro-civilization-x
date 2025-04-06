@@ -163,6 +163,7 @@ export class ResourceSystem {
    * Обновляет производство ресурсов на основе зданий
    */
   updateResourceProduction(state: GameState): GameState {
+    console.log("Обновление производства ресурсов на основе зданий");
     const resources = { ...state.resources };
     
     // Сначала обнуляем всё производство для каждого ресурса
@@ -191,6 +192,8 @@ export class ResourceSystem {
               ...resources[resourceId],
               production: currentProduction + buildingProduction
             };
+            
+            console.log(`Здание ${buildingId} производит ${resourceId}: ${buildingProduction} в секунду`);
           }
         }
       }
@@ -206,8 +209,21 @@ export class ResourceSystem {
               ...resources[resourceId],
               consumption: currentConsumption + buildingConsumption
             };
+            
+            console.log(`Здание ${buildingId} потребляет ${resourceId}: ${buildingConsumption} в секунду`);
           }
         }
+      }
+    }
+    
+    // Рассчитываем perSecond для каждого ресурса
+    for (const resourceId in resources) {
+      const resource = resources[resourceId];
+      if (resource.unlocked) {
+        resources[resourceId] = {
+          ...resource,
+          perSecond: (resource.production || 0) - (resource.consumption || 0)
+        };
       }
     }
     

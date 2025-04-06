@@ -80,26 +80,6 @@ export function processPurchase(
       cost: newCost
     };
 
-    // Обновляем производство ресурсов
-    if (item.production) {
-      const productionMultiplier = 1; // Базовый множитель
-      
-      for (const [resourceId, amount] of Object.entries(item.production)) {
-        if (updatedState.resources[resourceId]) {
-          // Правильно устанавливаем production для ресурса
-          const currentProduction = updatedState.resources[resourceId].production || 0;
-          const additionalProduction = Number(amount) * productionMultiplier;
-          
-          updatedState.resources[resourceId] = {
-            ...updatedState.resources[resourceId],
-            production: currentProduction + additionalProduction
-          };
-          
-          console.log(`Обновлено производство ${resourceId}: ${currentProduction} -> ${currentProduction + additionalProduction}`);
-        }
-      }
-    }
-
     // Обновляем счетчики для определенных зданий
     updateBuildingCounters(updatedState, itemId);
 
@@ -109,6 +89,8 @@ export function processPurchase(
       type: 'success',
       params: { name: item.name }
     });
+    
+    console.log(`Куплено здание ${item.name}. Обновляем производство...`);
 
   } else if (itemType === 'upgrade' || itemType === 'research') {
     // Отмечаем улучшение как купленное
@@ -128,6 +110,8 @@ export function processPurchase(
       type: 'success',
       params: { name: item.name }
     });
+    
+    console.log(`Исследование ${item.name} завершено. Обновляем эффекты...`);
   }
 
   // Пересчитываем максимальные значения ресурсов
@@ -135,7 +119,9 @@ export function processPurchase(
 
   // Принудительно обновляем всю информацию о производстве ресурсов
   updatedState = resourceSystem.recalculateAllResourceProduction(updatedState);
-
+  
+  console.log("После покупки: пересчитываем все unlock-и");
+  
   // Проверяем и обновляем все разблокировки
   return checkAllUnlocks(updatedState);
 }
