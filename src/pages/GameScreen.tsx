@@ -1,35 +1,38 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useGame } from "@/context/hooks/useGame";
-import { useNavigate } from "react-router-dom";
-import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
+import { Building, Lightbulb, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
-import Header from "@/components/Header";
-import EquipmentTab from "@/components/EquipmentTab";
-import ResearchTab from "@/components/ResearchTab";
-import ReferralsTab from "@/components/ReferralsTab";
-import { SpecializationTab } from "@/components/SpecializationTab";
 import ResourceList from "@/components/ResourceList";
 import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import { useTranslation } from "@/i18n";
 import { toast } from "@/components/ui/use-toast";
+import { checkSupabaseConnection } from '@/api/connectionUtils';
+import { useGameLoader } from '@/hooks/useGameLoader';
+import { useGameSaveEvents } from '@/hooks/useGameSaveEvents';
+import { useUnlockChecker } from '@/hooks/useUnlockChecker';
+import { useGameStateUpdateService } from '@/hooks/useGameStateUpdateService';
+import EquipmentTab from "@/components/EquipmentTab";
+import ResearchTab from "@/components/ResearchTab";
+import ReferralsTab from "@/components/ReferralsTab";
+import { SpecializationTab } from "@/components/SpecializationTab";
+import LoadingScreen from '@/components/LoadingScreen';
+import ErrorScreen from '@/components/ErrorScreen';
 import { 
   Dialog, DialogTrigger, DialogContent, DialogHeader, 
   DialogTitle, DialogDescription, DialogFooter 
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { clearAllSavedDataForAllUsers } from "@/api/adminService";
+import { getUnlocksFromState } from '@/utils/unlockHelper';
+import { Settings } from "lucide-react";
 import {
   Sheet, SheetTrigger, SheetContent, SheetHeader,
   SheetTitle, SheetDescription
 } from "@/components/ui/sheet";
-import {
-  Tabs, TabsList, TabsTrigger, TabsContent
-} from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { clearAllSavedDataForAllUsers } from "@/api/adminService";
-import { getUnlocksFromState } from '@/utils/unlockHelper';
 
 // Функция для сброса данных игры
 const resetAllGameData = async () => {
@@ -39,10 +42,55 @@ const resetAllGameData = async () => {
 const GameScreen = () => {
   const { state, dispatch } = useGame();
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [hasConnection, setHasConnection] = useState<boolean>(true);
+  const [loadingMessage, setLoadingMessage] = useState<string>('Загрузка...');
+  
+  // Используем хук для загрузки игры
+  const { 
+    loadedState, 
+    isLoading, 
+    gameInitialized, 
+    setGameInitialized 
+  } = useGameLoader(hasConnection, setLoadingMessage);
+  
+  // Используем хук для автоматического обновления игрового состояния
+  useGameStateUpdateService();
+  
+  // Используем хук для автоматической проверки разблокировок
+  useUnlockChecker();
+  
+  // Проверяем соединение с сервером
+  useEffect(() => {
+    const checkConnection = async () => {
+      const connected = await checkSupabaseConnection();
+      setHasConnection(connected);
+    };
+    
+    checkConnection();
+    
+    // Периодически проверяем соединение
+    const intervalId = setInterval(checkConnection, 30000);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+  
+  // Загружаем сохраненное состояние
+  useEffect(() => {
+    if (loadedState) {
+      dispatch({ type: 'LOAD_GAME', payload: loadedState });
+    } else if (gameInitialized && !isLoading) {
+      // Если нет сохранения, запускаем новую игру
+      dispatch({ type: 'START_GAME' });
+    }
+  }, [loadedState, dispatch, gameInitialized, isLoading]);
+  
+  // Настраиваем автосохранение
+  useGameSaveEvents(state, isLoading, hasConnection, gameInitialized);
   
   // Получаем объект unlocks из состояния для обратной совместимости
   const unlocks = state.unlocks || getUnlocksFromState(state);
@@ -179,6 +227,23 @@ const GameScreen = () => {
     );
   };
   
+  // Если игра загружается, показываем экран загрузки
+  if (isLoading) {
+    return <LoadingScreen message={loadingMessage} />;
+  }
+  
+  // Если возникла ошибка загрузки, показываем экран ошибки
+  if (!hasConnection && !gameInitialized) {
+    return (
+      <ErrorScreen 
+        title="Ошибка соединения" 
+        description="Не удалось подключиться к серверу. Проверьте ваше соединение с интернетом."
+        onRetry={() => window.location.reload()}
+        errorType="connection"
+      />
+    );
+  }
+  
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
@@ -239,7 +304,6 @@ const GameScreen = () => {
                       className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
                       onClick={() => setResetConfirmOpen(true)}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
                       {t('settings.resetProgress')}
                     </Button>
                   </div>
