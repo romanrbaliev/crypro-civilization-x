@@ -1,4 +1,3 @@
-
 import { GameState, Resource, Building, Upgrade, ResourceType } from '@/context/types';
 
 /**
@@ -42,6 +41,11 @@ export class ResourceSystem {
         // Если есть максимальное значение, ограничиваем им
         if (resource.max !== undefined && resource.max !== null && resource.max !== Infinity) {
           newValue = Math.min(newValue, resource.max);
+        }
+        
+        // Отладочная информация для мониторинга изменений ресурсов
+        if (Math.abs(increment) > 0.001) {
+          console.log(`[ResourceDebug] Обновление ${resourceId}: ${currentValue.toFixed(4)} -> ${newValue.toFixed(4)}, прирост: ${increment.toFixed(4)}, perSecond: ${perSecond.toFixed(4)}`);
         }
         
         // Обновляем значение ресурса в состоянии
@@ -311,6 +315,9 @@ export class ResourceSystem {
               const production = newState.resources[resourceId].production || 0;
               const buildingProduction = Number(building.production[resourceId]) * building.count;
               
+              // Добавляем отладочную информацию
+              console.log(`[Production] Здание ${buildingId} (${building.count}x) производит ${buildingProduction.toFixed(2)} ${resourceId}`);
+              
               newState.resources[resourceId] = {
                 ...newState.resources[resourceId],
                 production: production + buildingProduction
@@ -325,6 +332,9 @@ export class ResourceSystem {
             if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
               const consumption = newState.resources[resourceId].consumption || 0;
               const buildingConsumption = Number(building.consumption[resourceId]) * building.count;
+              
+              // Добавляем отладочную информацию
+              console.log(`[Consumption] Здание ${buildingId} (${building.count}x) потребляет ${buildingConsumption.toFixed(2)} ${resourceId}`);
               
               newState.resources[resourceId] = {
                 ...newState.resources[resourceId],
@@ -342,10 +352,14 @@ export class ResourceSystem {
         const resource = newState.resources[resourceId];
         const production = resource.production || 0;
         const consumption = resource.consumption || 0;
+        const perSecond = production - consumption;
+        
+        // Добавляем отладочную информацию о скорости производства
+        console.log(`[perSecond] Ресурс ${resourceId}: +${production.toFixed(2)}/сек, -${consumption.toFixed(2)}/сек = ${perSecond.toFixed(2)}/сек`);
         
         newState.resources[resourceId] = {
           ...resource,
-          perSecond: production - consumption
+          perSecond: perSecond
         };
       }
     }

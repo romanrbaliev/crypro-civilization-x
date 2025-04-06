@@ -90,6 +90,8 @@ export function processPurchase(
       params: { name: item.name }
     });
 
+    console.log(`[Purchase] Здание ${item.name} успешно куплено, новое количество: ${updatedState.buildings[itemId].count}`);
+
   } else if (itemType === 'upgrade' || itemType === 'research') {
     // Отмечаем улучшение как купленное
     updatedState.upgrades[itemId] = {
@@ -100,6 +102,7 @@ export function processPurchase(
     // Применяем эффекты от улучшения
     if (item.effects) {
       updatedState = EffectsManager.applyEffects(updatedState, item.effects);
+      console.log(`[Purchase] Применены эффекты улучшения ${item.name}:`, item.effects);
     }
 
     // Отправляем уведомление
@@ -111,6 +114,7 @@ export function processPurchase(
   }
 
   // Обновляем производство и потребление ресурсов
+  console.log(`[Purchase] Обновляем производство и потребление после покупки ${item.name}`);
   updatedState = resourceSystem.updateProductionConsumption(updatedState);
   
   // Пересчитываем максимальные значения ресурсов
@@ -118,6 +122,9 @@ export function processPurchase(
 
   // Немедленно проверяем и обновляем все разблокировки
   updatedState = checkAllUnlocks(updatedState);
+
+  // Принудительно обновляем значения ресурсов (для мгновенного эффекта)
+  updatedState = resourceSystem.updateResources(updatedState, 0);
 
   // Выводим отладочную информацию
   console.log(`[Purchase] ${item.name} успешно приобретено.`);

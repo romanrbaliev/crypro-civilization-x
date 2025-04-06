@@ -1,4 +1,3 @@
-
 import { useCallback, useMemo } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
@@ -27,24 +26,20 @@ export const useResourceSystem = () => {
     // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
     updatedState = resourceSystem.updateResources(updatedState, deltaTime);
     
-    // Отправляем событие только если есть фактические изменения в ресурсах
-    const hasChanges = Object.keys(updatedState.resources).some(
-      resId => updatedState.resources[resId].value !== state.resources[resId].value
-    );
+    // Важно: всегда отправляем обновление состояния, даже при маленьких изменениях
+    // Удаляем проверку hasChanges, которая блокировала обновления
     
-    if (hasChanges) {
-      // Обновляем состояние через диспетчер
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+    // Обновляем состояние через диспетчер
+    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+    
+    // Периодически выводим отладочную информацию
+    if (Math.random() < 0.05) {
+      const logData = Object.entries(updatedState.resources)
+        .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
+        .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
       
-      // Периодически выводим отладочную информацию
-      if (Math.random() < 0.05) {
-        const logData = Object.entries(updatedState.resources)
-          .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
-          .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
-        
-        if (logData.length > 0) {
-          console.log(`[ResourceUpdate] Ресурсы обновлены (Δt=${deltaTime}мс):`, logData);
-        }
+      if (logData.length > 0) {
+        console.log(`[ResourceUpdate] Ресурсы обновлены (Δt=${deltaTime}мс):`, logData);
       }
     }
   }, [state, dispatch, resourceSystem]);

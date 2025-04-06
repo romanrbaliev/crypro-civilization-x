@@ -24,27 +24,25 @@ export const useGameStateUpdateService = () => {
       const currentTime = Date.now();
       const deltaTime = currentTime - lastUpdateTimeRef.current;
       
-      // Обновляем ресурсы с учетом прошедшего времени, только если прошло не менее 50мс
-      if (deltaTime >= 50) {
-        // Обновляем ресурсы через ResourceSystem
-        updateResources(deltaTime);
-        lastUpdateTimeRef.current = currentTime;
+      // Обновляем ресурсы с учетом прошедшего времени
+      // Ранее здесь был порог 50мс, который не позволял обновлять ресурсы достаточно часто
+      updateResources(deltaTime);
+      lastUpdateTimeRef.current = currentTime;
+      
+      // Обновляем lastUpdate в состоянии
+      dispatch({ type: 'TICK', payload: { currentTime } });
+      
+      // Отладочная информация
+      if (Math.random() < 0.01) { // 1% шанс вывода в консоль
+        console.log(`[GameUpdate] Прошло ${deltaTime}мс. Ресурсы обновлены.`);
         
-        // Обновляем lastUpdate в состоянии
-        dispatch({ type: 'TICK', payload: { currentTime } });
+        // Дополнительная отладочная информация о ресурсах
+        const activeResources = Object.entries(state.resources)
+          .filter(([_, res]) => res.unlocked && res.perSecond !== 0)
+          .map(([id, res]) => `${id}: ${res.value.toFixed(2)}/${res.max || '∞'} (${res.perSecond.toFixed(2)}/сек)`);
         
-        // Отладочная информация
-        if (Math.random() < 0.01) { // 1% шанс вывода в консоль
-          console.log(`[GameUpdate] Прошло ${deltaTime}мс. Ресурсы обновлены.`);
-          
-          // Дополнительная отладочная информация о ресурсах
-          const activeResources = Object.entries(state.resources)
-            .filter(([_, res]) => res.unlocked && res.perSecond !== 0)
-            .map(([id, res]) => `${id}: ${res.value.toFixed(2)}/${res.max || '∞'} (${res.perSecond.toFixed(2)}/сек)`);
-          
-          if (activeResources.length > 0) {
-            console.log('[ResourceDebug] Активные ресурсы:', activeResources);
-          }
+        if (activeResources.length > 0) {
+          console.log('[ResourceDebug] Активные ресурсы:', activeResources);
         }
       }
     }
@@ -64,14 +62,15 @@ export const useGameStateUpdateService = () => {
     if (!state.gameStarted) return;
     
     // Запускаем таймер для обновления ресурсов каждые 100 миллисекунд
-    const updateInterval = setInterval(updateGameState, 100);
+    // Уменьшаем интервал для более плавного обновления
+    const updateInterval = setInterval(updateGameState, 33);
     
     // Запускаем таймер для проверки разблокировок каждые 5 секунд
     const unlockCheckInterval = setInterval(checkUnlocks, 5000);
     
     // Логируем информацию о запуске системы обновления
     console.log(`🔄 Система обновления игрового состояния запущена. 
-      Интервал обновления: 100мс, 
+      Интервал обновления: 33мс, 
       Интервал проверки разблокировок: 5000мс`);
     
     // Очистка таймеров при размонтировании

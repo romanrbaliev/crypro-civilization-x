@@ -113,10 +113,21 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const deltaTime = currentTime - newState.lastUpdate;
       
       // Обновляем ресурсы через ResourceSystem
-      newState = resourceSystem.updateResources(newState, deltaTime);
-      
-      // Обновляем lastUpdate
-      newState = { ...newState, lastUpdate: currentTime };
+      if (deltaTime > 0) {
+        // Обновляем производство и потребление
+        newState = resourceSystem.updateProductionConsumption(newState);
+        
+        // Затем обновляем значения ресурсов
+        newState = resourceSystem.updateResources(newState, deltaTime);
+        
+        // Обновляем lastUpdate
+        newState = { ...newState, lastUpdate: currentTime };
+        
+        // Добавляем отладку
+        if (Math.random() < 0.01) {
+          console.log(`[GameReducer:TICK] Прошло ${deltaTime}мс, обновление ресурсов выполнено`);
+        }
+      }
       
       // Проверяем разблокировки
       return checkAllUnlocks(newState);
@@ -145,13 +156,22 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         itemId: action.payload.buildingId,
         itemType: 'building' as PurchasableType
       };
-      return processPurchase(newState, buildingPayload);
+      const stateAfterPurchase = processPurchase(newState, buildingPayload);
+      
+      // Выводим дополнительную отладку о производстве
+      console.log('[BUY_BUILDING] Обновление производства после покупки здания:', 
+        Object.entries(stateAfterPurchase.resources)
+          .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
+          .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
+      );
+      
+      return stateAfterPurchase;
     
     case 'SELL_BUILDING':
       // Обрабатываем продажу здания, проверяем разблокировки и пересчитываем производство
       newState = processSellBuilding(newState, action.payload);
       // Обновляем ресурсы через ResourceSystem
-      return resourceSystem.updateResources(newState, 0);
+      return resourceSystem.updateProductionConsumption(resourceSystem.updateResources(newState, 0));
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
@@ -188,10 +208,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'FORCE_RESOURCE_UPDATE':
       // Если пришло обновленное состояние, используем его
       if (action.payload) {
+        console.log("[FORCE_RESOURCE_UPDATE] Обновляем состояние из payload");
         return checkAllUnlocks(action.payload);
       }
       
       // Иначе пересчитываем производство, максимумы и обновляем ресурсы
+      console.log("[FORCE_RESOURCE_UPDATE] Пересчитываем все ресурсы");
       newState = resourceSystem.updateProductionConsumption(newState);
       newState = resourceSystem.updateResourceMaxValues(newState);
       newState = resourceSystem.updateResources(newState, 0);
