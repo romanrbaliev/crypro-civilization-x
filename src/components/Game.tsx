@@ -85,7 +85,14 @@ const Game: React.FC = () => {
   
   // Если возникла ошибка загрузки, показываем экран ошибки
   if (!hasConnection && !gameInitialized) {
-    return <ErrorScreen errorType="connection" retryAction={() => window.location.reload()} />;
+    return (
+      <ErrorScreen 
+        title="Ошибка соединения" 
+        description="Не удалось подключиться к серверу. Проверьте ваше соединение с интернетом."
+        onRetry={() => window.location.reload()}
+        errorType="connection"
+      />
+    );
   }
   
   // Показываем игровой экран

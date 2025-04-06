@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -19,6 +18,41 @@ export const checkAllUnlocks = (state: GameState): GameState => {
   newState = checkBuildingUnlocks(newState);
   newState = checkUpgradeUnlocks(newState);
   newState = checkActionUnlocks(newState);
+  newState = checkSpecialUnlocks(newState);
+  
+  return newState;
+};
+
+// Проверяет специальные разблокировки, зависящие от счетчиков и других условий
+export const checkSpecialUnlocks = (state: GameState): GameState => {
+  // Создаем копию состояния для модификации
+  const newState = { ...state };
+  
+  // Проверка на разблокировку вкладок
+  
+  // 1. Проверка разблокировки вкладки Equipment (есть разблокированные здания)
+  const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
+  if (hasUnlockedBuildings && !newState.unlocks.equipmentTab) {
+    newState.unlocks.equipmentTab = true;
+  }
+  
+  // 2. Проверка разблокировки вкладки Research (есть исследования)
+  if (state.unlocks.research && !newState.unlocks.researchTab) {
+    newState.unlocks.researchTab = true;
+  }
+  
+  // 3. Проверка разблокировки вкладки Specialization
+  if ((state.player && state.player.specialization) || state.unlocks.specialization) {
+    newState.unlocks.specialization = true;
+  }
+  
+  // 4. Проверка разблокировки вкладки Referrals
+  if (state.upgrades.cryptoCommunity && 
+      state.upgrades.cryptoCommunity.purchased && 
+      !state.unlocks.referrals) {
+    newState.unlocks.referrals = true;
+    safeDispatchGameEvent('Разблокирована вкладка: Рефералы', 'info');
+  }
   
   return newState;
 };

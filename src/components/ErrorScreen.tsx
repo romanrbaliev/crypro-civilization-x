@@ -3,17 +3,19 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 
 interface ErrorScreenProps {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   onRetry?: () => void;
   onReload?: () => void;
+  errorType?: string; // Добавляем поддержку для errorType
 }
 
 const ErrorScreen: React.FC<ErrorScreenProps> = ({ 
-  title, 
-  description, 
+  title = "Произошла ошибка", 
+  description = "Не удалось загрузить приложение. Пожалуйста, попробуйте снова.", 
   onRetry, 
-  onReload = () => window.location.reload() 
+  onReload = () => window.location.reload(),
+  errorType // Новое свойство 
 }) => {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">

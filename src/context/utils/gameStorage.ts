@@ -51,3 +51,24 @@ export const resetGameState = (): GameState => {
   localStorage.removeItem('gameState');
   return { ...initialState };
 };
+
+/**
+ * Сбрасывает все данные игры
+ */
+export const resetAllGameData = async (): Promise<boolean> => {
+  try {
+    // Удаляем данные из localStorage
+    localStorage.removeItem('gameState');
+    
+    // Импортируем функцию из api/gameStorage для сброса данных на сервере
+    const { resetAllGameData: resetServerData } = await import('../../api/gameStorage');
+    
+    // Сбрасываем данные на сервере
+    await resetServerData();
+    
+    return true;
+  } catch (error) {
+    console.error("Ошибка при сбросе данных игры:", error);
+    return false;
+  }
+};
