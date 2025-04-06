@@ -4,5 +4,4 @@ export {
   processPurchaseBuilding, 
   processSellBuilding,
   processChooseSpecialization 
-} from './purchaseBuilding';
-
+} from '../building';

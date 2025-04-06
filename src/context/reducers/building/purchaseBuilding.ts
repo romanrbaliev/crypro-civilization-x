@@ -1,6 +1,7 @@
 
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
   const { buildingId } = payload;
@@ -8,12 +9,6 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
   
   if (!building) {
     console.error(`Building with id ${buildingId} not found`);
-    return state;
-  }
-  
-  // Проверяем, что здание разблокировано
-  if (!building.unlocked) {
-    console.error(`Building ${buildingId} is not unlocked`);
     return state;
   }
   
@@ -94,94 +89,13 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     };
   }
   
-  // Отправляем событие о покупке здания
+  // Отправляем событие о покупке здания с учетом языка и используем формат перевода
   safeDispatchGameEvent({
     messageKey: 'event.buildingPurchased',
     type: 'success',
     params: { name: building.name }
   });
   
-  return newState;
-};
-
-export const processSellBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
-  const { buildingId } = payload;
-  const building = state.buildings[buildingId];
-  
-  if (!building || building.count <= 0) {
-    console.error(`Cannot sell building ${buildingId} - none available`);
-    return state;
-  }
-  
-  // Создаем копию состояния для модификации
-  const newState = { ...state };
-  
-  // Возвращаем 50% стоимости здания
-  for (const [resourceId, amount] of Object.entries(building.cost)) {
-    const refundAmount = Math.floor(Number(amount) * 0.5);
-    if (newState.resources[resourceId]) {
-      const currentValue = newState.resources[resourceId].value;
-      const maxValue = newState.resources[resourceId].max || Infinity;
-      
-      newState.resources[resourceId] = {
-        ...newState.resources[resourceId],
-        value: Math.min(currentValue + refundAmount, maxValue)
-      };
-    }
-  }
-  
-  // Рассчитываем предыдущую стоимость здания
-  const prevCost = {...building.cost};
-  for (const [resourceId, amount] of Object.entries(building.cost)) {
-    prevCost[resourceId] = Math.floor(Number(amount) / building.costMultiplier);
-  }
-  
-  // Обновляем здание
-  newState.buildings[buildingId] = {
-    ...building,
-    count: building.count - 1,
-    cost: prevCost
-  };
-  
-  // Обновляем производство ресурсов
-  if (building.production) {
-    for (const [resourceId, amount] of Object.entries(building.production)) {
-      if (newState.resources[resourceId]) {
-        newState.resources[resourceId] = {
-          ...newState.resources[resourceId],
-          production: Math.max(
-            0, 
-            (newState.resources[resourceId].production || 0) - Number(amount)
-          )
-        };
-      }
-    }
-  }
-  
-  // Отправляем событие о продаже здания
-  safeDispatchGameEvent({
-    messageKey: 'event.buildingSold',
-    type: 'info',
-    params: { name: building.name }
-  });
-  
-  return newState;
-};
-
-export const processChooseSpecialization = (
-  state: GameState, 
-  payload: { specializationType: string }
-): GameState => {
-  // Текущая реализация
-  return {
-    ...state,
-    player: {
-      ...state.player,
-      specialization: payload.specializationType
-    },
-    unlocks: {
-      ...state.unlocks,
-      specialization: true
-    }
-  };
+  // Проверяем и обновляем все разблокировки после покупки
+  return checkAllUnlocks(newState);
 };
