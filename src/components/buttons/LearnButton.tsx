@@ -1,31 +1,33 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { useGame } from '@/context/hooks/useGame';
+import { useTranslation } from '@/i18n';
 
 interface LearnButtonProps {
-  onClick: () => void;
-  disabled?: boolean;
-  className?: string;
-  shouldHide?: boolean;
+  onAction?: () => void;
 }
 
-export const LearnButton: React.FC<LearnButtonProps> = ({ 
-  onClick, 
-  disabled = false,
-  className = "",
-  shouldHide = false
-}) => {
-  // Если shouldHide = true, не рендерим кнопку вообще
-  if (shouldHide) return null;
+const LearnButton: React.FC<LearnButtonProps> = ({ onAction }) => {
+  const { dispatch } = useGame();
+  const { t } = useTranslation();
+  
+  const handleClick = () => {
+    // Используем LEARN_CRYPTO для изучения, а не INCREMENT_RESOURCE
+    dispatch({ type: 'LEARN_CRYPTO' });
+    
+    if (onAction) {
+      onAction();
+    }
+  };
   
   return (
     <Button
-      onClick={onClick}
-      className={`w-full ${className}`}
-      disabled={disabled}
-      size="sm"
+      onClick={handleClick}
+      variant="default"
+      className="w-full"
     >
-      Изучать знания
+      {t('actions.learnCrypto')}
     </Button>
   );
 };

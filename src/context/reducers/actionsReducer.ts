@@ -1,376 +1,244 @@
 import { GameState } from '../types';
-import { checkAllUnlocks } from '@/utils/unlockManager';
-import { calculateCost, canAffordCost, deductResources } from '@/utils/helpers';
 
-// Обработчик для действия "Изучить крипту"
+/**
+ * Обработчик для добавления указанного количества ресурса
+ */
+export const processIncrementResource = (state: GameState, payload: { resourceId: string, amount: number }): GameState => {
+  const { resourceId, amount } = payload;
+  
+  if (!state.resources[resourceId]) {
+    console.error(`Resource ${resourceId} not found`);
+    return state;
+  }
+  
+  // Получаем текущее и максимальное значения ресурса
+  const currentValue = state.resources[resourceId].value || 0;
+  const maxValue = state.resources[resourceId].max || Infinity;
+  
+  // Учитываем ограничение максимального значения
+  const newValue = Math.min(currentValue + amount, maxValue);
+  
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      [resourceId]: {
+        ...state.resources[resourceId],
+        value: newValue
+      }
+    }
+  };
+};
+import { Resource } from "@/context/types";
+
+// Функция для обработки изучения крипты
 export const processLearnCrypto = (state: GameState): GameState => {
-  // Используем копию состояния для модификации
-  let updatedState = { ...state };
-  
-  // Увеличиваем счетчик нажатий на кнопку "Изучить"
-  updatedState.counters.knowledgeClicks = {
-    id: 'knowledgeClicks',
-    value: (updatedState.counters.knowledgeClicks?.value || 0) + 1
-  };
-  
-  // Получаем текущие знания
-  const knowledge = updatedState.resources.knowledge;
-  
-  // Увеличиваем знания на 1
-  const updatedKnowledge = {
-    ...knowledge,
-    value: Math.min(knowledge.value + 1, knowledge.max),
-  };
-  
-  // Обновляем статистику
-  const updatedStats = {
-    ...state.stats,
-    totalKnowledgeGained: (state.stats?.totalKnowledgeGained || 0) + 1,
-    totalClicks: (state.stats?.totalClicks || 0) + 1
-  };
-  
-  // Возвращаем обновленное состояние
-  updatedState = {
-    ...updatedState,
-    resources: {
-      ...updatedState.resources,
-      knowledge: updatedKnowledge,
+  const knowledge = state.resources.knowledge;
+  const usdt = state.resources.usdt;
+
+  if (!knowledge || !usdt) {
+    console.error("Отсутствуют ресурсы knowledge или usdt");
+    return state;
+  }
+
+  // Проверяем, достаточно ли знаний для изучения крипты
+  if (knowledge.value < 1) {
+    console.log("Недостаточно знаний для изучения крипты");
+    return state;
+  }
+
+  // Вычисляем, сколько можно добавить USDT (не больше max)
+  const amountToAdd = Math.min(1, (usdt.max || 0) - (usdt.value || 0));
+
+  // Если max не установлен или уже достигнут, ничего не делаем
+  if (usdt.max === undefined || usdt.value >= usdt.max) {
+    console.log("Максимальное значение USDT уже достигнуто");
+    return state;
+  }
+
+  // Создаем новый объект resources, чтобы избежать мутации state
+  const newResources = {
+    ...state.resources,
+    knowledge: {
+      ...knowledge,
+      value: knowledge.value - 1 // Уменьшаем знания на 1
     },
-    stats: updatedStats
+    usdt: {
+      ...usdt,
+      value: usdt.value + amountToAdd // Увеличиваем USDT на вычисленную величину
+    }
   };
-  
-  // Проверяем разблокировки
-  return checkAllUnlocks(updatedState);
+
+  // Возвращаем новый state с обновленными ресурсами
+  return {
+    ...state,
+    resources: newResources
+  };
 };
 
-// Обработчик для применения знаний (обмен знаний на USDT)
+// Функция для применения знаний
 export const processApplyKnowledge = (state: GameState): GameState => {
-  // Получаем текущие знания и USDT
   const knowledge = state.resources.knowledge;
-  const usdt = state.resources.usdt;
-  
-  // Рассчитываем, сколько знаний обменять
-  const exchangeRate = 10; // 10 знаний = 1 USDT базовый курс
-  const efficiencyBoost = state.effects?.knowledgeEfficiencyBoost || 0;
-  const actualRate = exchangeRate / (1 + efficiencyBoost);
-  
-  // Сколько знаний можно обменять (кратно actualRate)
-  const exchangeableKnowledge = Math.floor(knowledge.value / actualRate) * actualRate;
-  
-  // Если не хватает знаний для обмена, возвращаем текущее состояние
-  if (exchangeableKnowledge < actualRate) {
+  const electricity = state.resources.electricity;
+
+  if (!knowledge || !electricity) {
+    console.error("Отсутствуют ресурсы knowledge или electricity");
     return state;
   }
-  
-  // Рассчитываем, сколько USDT получим
-  const usdtGained = Math.floor(exchangeableKnowledge / actualRate);
-  
-  // Обновляем статистику
-  const updatedStats = {
-    ...state.stats,
-    totalUsdtGained: (state.stats?.totalUsdtGained || 0) + usdtGained
-  };
-  
-  // Инкрементируем счетчик обменов
-  let updatedState = { ...state };
-  updatedState.counters.applyKnowledge = {
-    id: 'applyKnowledge',
-    value: (updatedState.counters.applyKnowledge?.value || 0) + 1
-  };
-  
-  // Проверяем, нужно ли разблокировать здание "Практика"
-  let shouldUnlockPractice = false;
-  if (updatedState.counters.applyKnowledge.value >= 2 && !updatedState.buildings.practice.unlocked) {
-    shouldUnlockPractice = true;
+
+  // Проверяем, достаточно ли знаний для применения
+  if (knowledge.value < 1) {
+    console.log("Недостаточно знаний для применения");
+    return state;
   }
-  
-  // Возвращаем обновленное состояние
-  updatedState = {
-    ...updatedState,
-    resources: {
-      ...updatedState.resources,
-      knowledge: {
-        ...knowledge,
-        value: knowledge.value - exchangeableKnowledge
-      },
-      usdt: {
-        ...usdt,
-        value: Math.min(usdt.value + usdtGained, usdt.max)
-      }
-    },
-    buildings: {
-      ...updatedState.buildings,
-      ...(shouldUnlockPractice && {
-        practice: {
-          ...updatedState.buildings.practice,
-          unlocked: true
-        }
-      })
-    },
-    stats: updatedStats
+
+  // Увеличиваем производство electricity на 0.1
+  const newElectricity = {
+    ...electricity,
+    production: electricity.production + 0.1
   };
-  
-  return updatedState;
+
+  // Уменьшаем знания на 1
+  const newKnowledge = {
+    ...knowledge,
+    value: knowledge.value - 1
+  };
+
+  // Создаем новый объект resources, чтобы избежать мутации state
+  const newResources = {
+    ...state.resources,
+    electricity: newElectricity,
+    knowledge: newKnowledge
+  };
+
+  // Возвращаем новый state с обновленными ресурсами
+  return {
+    ...state,
+    resources: newResources
+  };
 };
 
-// Обработчик для применения всех знаний (обмен всех знаний на USDT)
+// Функция для применения всех знаний
 export const processApplyAllKnowledge = (state: GameState): GameState => {
-  // Получаем текущие знания и USDT
   const knowledge = state.resources.knowledge;
-  const usdt = state.resources.usdt;
-  
-  // Рассчитываем, сколько знаний обменять
-  const exchangeRate = 10; // 10 знаний = 1 USDT базовый курс
-  const efficiencyBoost = state.effects?.knowledgeEfficiencyBoost || 0;
-  const actualRate = exchangeRate / (1 + efficiencyBoost);
-  
-  // Сколько знаний можно обменять (кратно actualRate)
-  const exchangeableKnowledge = Math.floor(knowledge.value / actualRate) * actualRate;
-  
-  // Если не хватает знаний для обмена, возвращаем текущее состояние
-  if (exchangeableKnowledge < actualRate) {
+  const electricity = state.resources.electricity;
+
+  if (!knowledge || !electricity) {
+    console.error("Отсутствуют ресурсы knowledge или electricity");
     return state;
   }
-  
-  // Рассчитываем, сколько USDT получим
-  const usdtGained = Math.floor(exchangeableKnowledge / actualRate);
-  
-  // Обновляем статистику
-  const updatedStats = {
-    ...state.stats,
-    totalUsdtGained: (state.stats?.totalUsdtGained || 0) + usdtGained
-  };
-  
-  // Инкрементируем счетчик обменов
-  let updatedState = { ...state };
-  updatedState.counters.applyKnowledge = {
-    id: 'applyKnowledge',
-    value: (updatedState.counters.applyKnowledge?.value || 0) + 1
-  };
-  
-  // Проверяем, нужно ли разблокировать здание "Практика"
-  let shouldUnlockPractice = false;
-  if (updatedState.counters.applyKnowledge.value >= 2 && !updatedState.buildings.practice.unlocked) {
-    shouldUnlockPractice = true;
+
+  // Проверяем, достаточно ли знаний для применения
+  if (knowledge.value < 10) {
+    console.log("Недостаточно знаний для применения");
+    return state;
   }
-  
-  // Возвращаем обновленное состояние
-  updatedState = {
-    ...updatedState,
-    resources: {
-      ...updatedState.resources,
-      knowledge: {
-        ...knowledge,
-        value: knowledge.value - exchangeableKnowledge
-      },
-      usdt: {
-        ...usdt,
-        value: Math.min(usdt.value + usdtGained, usdt.max)
-      }
-    },
-    buildings: {
-      ...updatedState.buildings,
-      ...(shouldUnlockPractice && {
-        practice: {
-          ...updatedState.buildings.practice,
-          unlocked: true
-        }
-      })
-    },
-    stats: updatedStats
+
+  // Увеличиваем производство electricity на 1
+  const newElectricity = {
+    ...electricity,
+    production: electricity.production + 1
   };
-  
-  return updatedState;
+
+  // Уменьшаем знания на 10
+  const newKnowledge = {
+    ...knowledge,
+    value: knowledge.value - 10
+  };
+
+  // Создаем новый объект resources, чтобы избежать мутации state
+  const newResources = {
+    ...state.resources,
+    electricity: newElectricity,
+    knowledge: newKnowledge
+  };
+
+  // Возвращаем новый state с обновленными ресурсами
+  return {
+    ...state,
+    resources: newResources
+  };
 };
 
-// Обработчик для добычи вычислительной мощности
-export const processMiningPower = (state: GameState): GameState => {
-  return state; // Заглушка
-};
-
-// Обработчик для обмена BTC на USDT
+// Функция для обмена Bitcoin на USDT
 export const processExchangeBitcoin = (state: GameState): GameState => {
-  return state; // Заглушка
-};
+  const bitcoin = state.resources.bitcoin;
+  const usdt = state.resources.usdt;
 
-// Обработчик для покупки практики
-export const processPracticePurchase = (state: GameState): GameState => {
-  return state; // Заглушка
-};
-
-// Разблокировка здания
-export const processUnlockBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
-  const { buildingId } = payload;
-  
-  return {
-    ...state,
-    buildings: {
-      ...state.buildings,
-      [buildingId]: {
-        ...state.buildings[buildingId],
-        unlocked: true
-      }
-    }
-  };
-};
-
-// Исследование апгрейда
-export const processResearchUpgrade = (state: GameState, payload: { upgradeId: string }): GameState => {
-  const { upgradeId } = payload;
-  const upgrade = state.upgrades[upgradeId];
-  
-  // Проверка наличия исследования и отсутствия его покупки
-  if (!upgrade || upgrade.purchased) {
+  if (!bitcoin || !usdt) {
+    console.error("Отсутствуют ресурсы bitcoin или usdt");
     return state;
   }
-  
-  // Проверка наличия ресурсов для исследования
-  for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
-    if (state.resources[resourceId].value < Number(amount)) {
-      return state;
-    }
+
+  // Проверяем, достаточно ли Bitcoin для обмена
+  if (bitcoin.value < 1) {
+    console.log("Недостаточно Bitcoin для обмена");
+    return state;
   }
-  
-  // Обновление исследований
-  const research = state.research || {};
-  
-  // Обновляем состояние ресурсов
-  const updatedResources = { ...state.resources };
-  for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
-    updatedResources[resourceId] = {
-      ...updatedResources[resourceId],
-      value: updatedResources[resourceId].value - Number(amount)
-    };
+
+  // Вычисляем, сколько можно добавить USDT (не больше max)
+  const amountToAdd = Math.min(100, (usdt.max || 0) - (usdt.value || 0));
+
+  // Если max не установлен или уже достигнут, ничего не делаем
+  if (usdt.max === undefined || usdt.value >= usdt.max) {
+    console.log("Максимальное значение USDT уже достигнуто");
+    return state;
   }
-  
+
+  // Уменьшаем Bitcoin на 1
+  const newBitcoin = {
+    ...bitcoin,
+    value: bitcoin.value - 1
+  };
+
+  // Увеличиваем USDT на 100
+  const newUsdt = {
+    ...usdt,
+    value: usdt.value + amountToAdd
+  };
+
+  // Создаем новый объект resources, чтобы избежать мутации state
+  const newResources = {
+    ...state.resources,
+    bitcoin: newBitcoin,
+    usdt: newUsdt
+  };
+
+  // Возвращаем новый state с обновленными ресурсами
   return {
     ...state,
-    resources: updatedResources,
-    upgrades: {
-      ...state.upgrades,
-      [upgradeId]: {
-        ...upgrade,
-        purchased: true
-      }
-    },
-    research: {
-      ...research,
-      [upgradeId]: {
-        researched: true,
-        cost: upgrade.cost
-      }
-    }
+    resources: newResources
   };
 };
 
-// Разблокировка исследований
-export const processUnlockResearch = (state: GameState): GameState => {
-  // Вместо обновления state.unlocks.research мы должны
-  // обновить статус разблокировки в каждом апгрейде
-  const upgrades = { ...state.upgrades };
-  
-  // Разблокируем основное исследование
-  if (upgrades.blockchainBasics) {
-    upgrades.blockchainBasics.unlocked = true;
+// Функция для отладки: добавление ресурсов
+export const processDebugAddResources = (state: GameState, payload: { resourceId: string; amount: number }): GameState => {
+  const { resourceId, amount } = payload;
+  const resource = state.resources[resourceId];
+
+  if (!resource) {
+    console.error(`Ресурс ${resourceId} не найден`);
+    return state;
   }
-  
+
+  // Увеличиваем значение ресурса на указанное количество
+  const newResourceValue = Math.min(resource.value + amount, resource.max || Infinity);
+
+  // Создаем новый объект ресурса
+  const newResource = {
+    ...resource,
+    value: newResourceValue
+  };
+
+  // Создаем новый объект resources, чтобы избежать мутации state
+  const newResources = {
+    ...state.resources,
+    [resourceId]: newResource
+  };
+
+  // Возвращаем новый state с обновленными ресурсами
   return {
     ...state,
-    upgrades
+    resources: newResources
   };
-};
-
-// Разблокировка обмена Bitcoin
-export const processUnlockBitcoinExchange = (state: GameState): GameState => {
-  return {
-    ...state
-  };
-};
-
-// Добавление ресурсов для отладки
-export const processDebugAddResources = (state: GameState, payload: { resources: Record<string, number> }): GameState => {
-  const { resources } = payload;
-  const updatedResources = { ...state.resources };
-  
-  for (const [resourceId, amount] of Object.entries(resources)) {
-    if (updatedResources[resourceId]) {
-      updatedResources[resourceId] = {
-        ...updatedResources[resourceId],
-        value: Math.min(
-          updatedResources[resourceId].value + amount,
-          updatedResources[resourceId].max
-        )
-      };
-    }
-  }
-  
-  return {
-    ...state,
-    resources: updatedResources
-  };
-};
-
-// Разблокировка здания "Практика"
-export const processUnlockBuildingPractice = (state: GameState): GameState => {
-  return {
-    ...state,
-    buildings: {
-      ...state.buildings,
-      practice: {
-        ...state.buildings.practice,
-        unlocked: true
-      }
-    },
-    player: {
-      ...state.player,
-      specialization: state.player?.specialization || null
-    }
-  };
-};
-
-// Разблокировка здания "Генератор"
-export const processUnlockBuildingGenerator = (state: GameState): GameState => {
-  return {
-    ...state,
-    buildings: {
-      ...state.buildings,
-      generator: {
-        ...state.buildings.generator,
-        unlocked: true
-      }
-    },
-    research: {
-      ...state.research,
-      basicBlockchain: {
-        ...state.research?.basicBlockchain,
-        researched: state.research?.basicBlockchain?.researched || false,
-        cost: state.research?.basicBlockchain?.cost || { knowledge: 100 }
-      },
-      walletSecurity: {
-        ...state.research?.walletSecurity,
-        researched: state.research?.walletSecurity?.researched || false,
-        cost: state.research?.walletSecurity?.cost || { knowledge: 175 }
-      },
-      cryptoCurrencyBasics: {
-        ...state.research?.cryptoCurrencyBasics,
-        researched: state.research?.cryptoCurrencyBasics?.researched || false,
-        cost: state.research?.cryptoCurrencyBasics?.cost || { knowledge: 200 }
-      },
-      algorithmOptimization: {
-        ...state.research?.algorithmOptimization,
-        researched: state.research?.algorithmOptimization?.researched || false,
-        cost: state.research?.algorithmOptimization?.cost || { knowledge: 150, usdt: 100 }
-      }
-    }
-  };
-};
-
-export const checkBuildingUnlocks = (buildingId: { buildingId: string }) => {
-  // Заглушка для функции
-  return buildingId;
-};
-
-export const checkUnlocks = () => {
-  // Заглушка для функции
-  return null;
 };

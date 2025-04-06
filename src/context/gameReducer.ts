@@ -11,9 +11,10 @@ import {
   processApplyKnowledge, 
   processApplyAllKnowledge,
   processExchangeBitcoin,
-  processDebugAddResources
+  processDebugAddResources,
+  processIncrementResource
 } from './reducers/actionsReducer';
-import { processBuildingPurchase, processSellBuilding } from './reducers/building';
+import { processPurchaseBuilding, processSellBuilding } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 
 // Импорт вспомогательных функций
@@ -47,7 +48,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(newState);
     
     case 'INCREMENT_RESOURCE':
-      // Обрабатываем увеличение ресурса и проверяем разблокировки
+      // Используем новую функцию для инкремента ресурсов
+      return checkAllUnlocks(processIncrementResource(newState, action.payload));
+    
+    case 'LEARN_CRYPTO':
+      // Обрабатываем нажатие на кнопку Изучить крипту
       return checkAllUnlocks(processLearnCrypto(newState));
     
     case 'APPLY_KNOWLEDGE':
@@ -62,7 +67,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'BUY_BUILDING':
       // Обрабатываем покупку здания и проверяем разблокировки
-      return checkAllUnlocks(processBuildingPurchase(newState, action.payload));
+      return checkAllUnlocks(processPurchaseBuilding(newState, action.payload));
     
     case 'SELL_BUILDING':
       // Обрабатываем продажу здания
