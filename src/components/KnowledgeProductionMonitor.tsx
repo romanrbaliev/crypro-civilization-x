@@ -69,6 +69,9 @@ const KnowledgeProductionMonitor: React.FC<{
   const startValueAnimation = (startVal: number, targetVal: number) => {
     if (startVal === targetVal) return;
     
+    // Логируем начало анимации
+    addLog(`Начата анимация изменения значения: ${formatValue(startVal, 'knowledge')} → ${formatValue(targetVal, 'knowledge')}`, 'animation');
+    
     // Останавливаем предыдущую анимацию, если она запущена
     if (animatorRef.current) {
       animatorRef.current.stop();
@@ -109,7 +112,6 @@ const KnowledgeProductionMonitor: React.FC<{
     
     // Запускаем аниматор
     animatorRef.current.start();
-    addLog(`Начата анимация изменения значения: ${formatValue(startVal, 'knowledge')} → ${formatValue(targetVal, 'knowledge')}`, 'animation');
   };
   
   // Отслеживаем изменение количества практик
@@ -122,65 +124,66 @@ const KnowledgeProductionMonitor: React.FC<{
     }
   }, [state.buildings.practice?.count]);
   
-  // Отслеживаем текущее производство знаний
+  // Эффект инициализации - выполняется при открытии монитора или изменении ресурса knowledge
   useEffect(() => {
+    if (!open) return;
+    
     const knowledge = state.resources.knowledge;
+    if (!knowledge || !knowledge.unlocked) return;
     
-    if (!open || !knowledge || !knowledge.unlocked) return;
+    // Получаем текущее значение при открытии монитора
+    const currentKnowledgeValue = knowledge.value || 0;
     
-    // Начальная запись текущего состояния
-    if (open) {
-      const currentKnowledgeValue = knowledge.value || 0;
+    // Инициализируем анимационное состояние
+    setAnimationState({
+      startValue: currentKnowledgeValue,
+      targetValue: currentKnowledgeValue,
+      currentValue: currentKnowledgeValue,
+      progress: 100,
+      isRunning: false
+    });
+    
+    // Обновляем последнее известное значение
+    lastKnowledgeValueRef.current = currentKnowledgeValue;
+    
+    // Отправляем лог о текущем состоянии
+    addLog(`Монитор открыт. Текущий запас знаний: ${formatValue(currentKnowledgeValue, 'knowledge')}`, 'info');
+    addLog(`Производство знаний: ${formatValue(knowledge.perSecond || 0, 'knowledge')}/сек`, 'calculation');
+    
+    // Добавляем детальную информацию о структуре производства
+    if (knowledgeDiagnostics) {
+      const buildingProduction = knowledgeDiagnostics.buildingProduction
+        .filter(b => b.production > 0)
+        .map(b => `${b.name} (${b.count}): ${formatValue(b.production, 'knowledge')}/сек`)
+        .join(', ');
       
-      addLog(`Текущий запас знаний: ${formatValue(currentKnowledgeValue, 'knowledge')}`, 'info');
-      addLog(`Производство знаний: ${formatValue(knowledge.perSecond || 0, 'knowledge')}/сек`, 'calculation');
-      addLog(`Базовое производство: ${formatValue(knowledge.baseProduction || 0, 'knowledge')}/сек`, 'calculation');
-      
-      // Инициализация анимационного состояния
-      setAnimationState({
-        startValue: currentKnowledgeValue,
-        targetValue: currentKnowledgeValue,
-        currentValue: currentKnowledgeValue,
-        progress: 100,
-        isRunning: false
-      });
-      
-      lastKnowledgeValueRef.current = currentKnowledgeValue;
-      
-      // Проверяем наличие построенных практик
-      const practiceCount = state.buildings.practice?.count || 0;
-      if (practiceCount > 0) {
-        addLog(`Построено практик: ${practiceCount}`, 'info');
-        addLog(`Ожидаемое производство от практик: ${formatValue(practiceCount * 1, 'knowledge')}/сек`, 'calculation');
-      } else {
-        addLog('Практики не построены. Автоматическое производство знаний не активировано.', 'info');
+      if (buildingProduction) {
+        addLog(`Структура производства: ${buildingProduction}`, 'info');
       }
       
-      // Подробная диагностика компонентов производства
-      if (knowledgeDiagnostics) {
-        addLog(`Структура производства знаний:`, 'info');
-        
-        // Выводим информацию о здании "Практика"
-        const practiceBuildingInfo = knowledgeDiagnostics.buildingProduction.find(b => b.name === 'Практика');
-        if (practiceBuildingInfo) {
-          addLog(`- Практика (${practiceBuildingInfo.count}): ${formatValue(practiceBuildingInfo.production, 'knowledge')}/сек`, 'calculation');
-        }
-        
-        // Выводим бонусы от улучшений
-        if (knowledgeDiagnostics.upgradeBonuses.length > 0) {
-          knowledgeDiagnostics.upgradeBonuses.forEach(upgrade => {
-            addLog(`- Улучшение "${upgrade.name}": эффект ${JSON.stringify(upgrade.effects)}`, 'calculation');
-          });
-        }
+      if (knowledgeDiagnostics.upgradeBonuses.length > 0) {
+        addLog(`Активные бонусы: ${knowledgeDiagnostics.upgradeBonuses.length} улучшений`, 'info');
       }
     }
+  }, [open, formatValue, knowledgeDiagnostics]);
+  
+  // Эффект отслеживания изменений - отдельный от инициализации
+  useEffect(() => {
+    if (!open) return;
     
-    // Запускаем интервал для отслеживания изменений
+    // Очищаем предыдущий интервал если он был
+    if (logIntervalRef.current) {
+      clearInterval(logIntervalRef.current);
+    }
+    
+    // Запускаем новый интервал для отслеживания изменений
     logIntervalRef.current = setInterval(() => {
       const currentValue = state.resources.knowledge?.value || 0;
       const lastValue = lastKnowledgeValueRef.current;
       
-      if (currentValue !== lastValue) {
+      // Используем немного смягченное сравнение для чисел с плавающей запятой
+      // (разница больше 0.001 считается значимой)
+      if (Math.abs(currentValue - lastValue) > 0.001) {
         const diff = currentValue - lastValue;
         
         addLog(`Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
@@ -188,10 +191,12 @@ const KnowledgeProductionMonitor: React.FC<{
         // Запускаем анимацию изменения значения
         startValueAnimation(lastValue, currentValue);
         
+        // Обновляем ref с последним значением
         lastKnowledgeValueRef.current = currentValue;
       }
-    }, 500);
+    }, 250); // Сокращаем интервал для более частой проверки
     
+    // Очистка при размонтировании или закрытии
     return () => {
       if (logIntervalRef.current) {
         clearInterval(logIntervalRef.current);
@@ -203,7 +208,7 @@ const KnowledgeProductionMonitor: React.FC<{
         animatorRef.current.stop();
       }
     };
-  }, [open, state.resources.knowledge, formatValue, knowledgeDiagnostics]);
+  }, [open, state.resources.knowledge?.value]); // Отслеживаем напрямую value, а не весь объект
   
   // Добавляем обработчик событий TICK
   useEffect(() => {
