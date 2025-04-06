@@ -1,6 +1,143 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+
+// Функция для отладки разблокировок
+export const debugUnlockStatus = (state: GameState): { 
+  unlocked: string[],
+  locked: string[],
+  steps: string[]
+} => {
+  const unlocked: string[] = [];
+  const locked: string[] = [];
+  const steps: string[] = [];
+  
+  // Проверяем разблокировки ресурсов
+  steps.push('Проверка разблокировок ресурсов:');
+  if (state.unlocks.usdt) {
+    unlocked.push('Ресурс: USDT');
+    steps.push('✅ USDT разблокирован');
+  } else {
+    locked.push('Ресурс: USDT');
+    steps.push('❌ USDT заблокирован');
+    steps.push('• Требуется использовать "Применить знания" хотя бы 1 раз');
+  }
+  
+  if (state.unlocks.electricity) {
+    unlocked.push('Ресурс: Электричество');
+    steps.push('✅ Электричество разблокировано');
+  } else {
+    locked.push('Ресурс: Электричество');
+    steps.push('❌ Электричество заблокировано');
+    steps.push('• Требуется купить хотя бы 1 Генератор');
+  }
+  
+  if (state.unlocks.computingPower) {
+    unlocked.push('Ресурс: Вычислительная мощность');
+    steps.push('✅ Вычислительная мощность разблокирована');
+  } else {
+    locked.push('Ресурс: Вычислительная мощность');
+    steps.push('❌ Вычислительная мощность заблокирована');
+    steps.push('• Требуется купить хотя бы 1 Домашний компьютер');
+  }
+  
+  if (state.unlocks.bitcoin) {
+    unlocked.push('Ресурс: Bitcoin');
+    steps.push('✅ Bitcoin разблокирован');
+  } else {
+    locked.push('Ресурс: Bitcoin');
+    steps.push('❌ Bitcoin заблокирован');
+    steps.push('• Требуется исследовать "Основы криптовалют"');
+  }
+  
+  // Проверяем разблокировки зданий
+  steps.push('Проверка разблокировок зданий:');
+  if (state.buildings.practice?.unlocked) {
+    unlocked.push('Здание: Практика');
+    steps.push('✅ Практика разблокирована');
+  } else {
+    locked.push('Здание: Практика');
+    steps.push('❌ Практика заблокирована');
+    steps.push('• Требуется использовать "Применить знания" хотя бы 2 раза');
+  }
+  
+  if (state.buildings.generator?.unlocked) {
+    unlocked.push('Здание: Генератор');
+    steps.push('✅ Генератор разблокирован');
+  } else {
+    locked.push('Здание: Генератор');
+    steps.push('❌ Генератор заблокирован');
+    steps.push('• Требуется накопить хотя бы 11 USDT');
+  }
+  
+  if (state.buildings.homeComputer?.unlocked) {
+    unlocked.push('Здание: Домашний компьютер');
+    steps.push('✅ Домашний компьютер разблокирован');
+  } else {
+    locked.push('Здание: Домашний компьютер');
+    steps.push('❌ Домашний компьютер заблокирован');
+    steps.push('• Требуется накопить хотя бы 50 Электричества');
+  }
+  
+  if (state.buildings.cryptoWallet?.unlocked) {
+    unlocked.push('Здание: Криптокошелек');
+    steps.push('✅ Криптокошелек разблокирован');
+  } else {
+    locked.push('Здание: Криптокошелек');
+    steps.push('❌ Криптокошелек заблокирован');
+    steps.push('• Требуется исследовать "Основы блокчейна"');
+  }
+  
+  // Проверяем разблокировки исследований
+  steps.push('Проверка разблокировок исследований:');
+  if (state.unlocks.research) {
+    unlocked.push('Вкладка: Исследования');
+    steps.push('✅ Вкладка исследований разблокирована');
+  } else {
+    locked.push('Вкладка: Исследования');
+    steps.push('❌ Вкладка исследований заблокирована');
+    steps.push('• Требуется купить хотя бы 1 Генератор');
+  }
+  
+  if (state.upgrades.blockchainBasics?.unlocked) {
+    unlocked.push('Исследование: Основы блокчейна');
+    steps.push('✅ Исследование "Основы блокчейна" разблокировано');
+  } else {
+    locked.push('Исследование: Основы блокчейна');
+    steps.push('❌ Исследование "Основы блокчейна" заблокировано');
+    steps.push('• Требуется купить хотя бы 1 Генератор');
+  }
+  
+  if (state.upgrades.walletSecurity?.unlocked) {
+    unlocked.push('Исследование: Безопасность криптокошельков');
+    steps.push('✅ Исследование "Безопасность криптокошельков" разблокировано');
+  } else {
+    locked.push('Исследование: Безопасность криптокошельков');
+    steps.push('❌ Исследование "Безопасность криптокошельков" заблокировано');
+    steps.push('• Требуется купить хотя бы 1 Криптокошелек');
+  }
+  
+  if (state.upgrades.cryptoCurrencyBasics?.unlocked) {
+    unlocked.push('Исследование: Основы криптовалют');
+    steps.push('✅ Исследование "Основы криптовалют" разблокировано');
+  } else {
+    locked.push('Исследование: Основы криптовалют');
+    steps.push('❌ Исследование "Основы криптовалют" заблокировано');
+    steps.push('• Требуется купить хотя бы 2 Криптокошелька');
+  }
+  
+  // Проверяем разблокировки действий
+  steps.push('Проверка разблокировок действий:');
+  if (state.unlocks.applyKnowledge) {
+    unlocked.push('Действие: Применить знания');
+    steps.push('✅ Действие "Применить знания" разблокировано');
+  } else {
+    locked.push('Действие: Применить знания');
+    steps.push('❌ Действие "Применить знания" заблокировано');
+    steps.push('• Требуется нажать на кнопку "Изучить" хотя бы 3 раза');
+  }
+  
+  return { unlocked, locked, steps };
+};
 
 // Основная функция для проверки всех разблокировок
 export const checkAllUnlocks = (state: GameState): GameState => {
