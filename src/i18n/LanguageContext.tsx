@@ -11,6 +11,7 @@ interface LanguageContextType {
 
 const defaultLanguage: Language = 'ru';
 
+// Создаем контекст с дефолтными значениями
 const LanguageContext = createContext<LanguageContextType>({
   language: defaultLanguage,
   setLanguage: () => {},
@@ -18,6 +19,7 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Перемещаем useState внутрь компонента
   const [language, setLanguage] = useState<Language>(defaultLanguage);
   
   // Проверяем localStorage при первом рендере
