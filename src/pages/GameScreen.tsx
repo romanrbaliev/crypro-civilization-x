@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
-import { useNavigate } from "react-router-dom";
-import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
+import { Building, Lightbulb, Info, Trash2, Settings, Users, User, BookOpen } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
 import ResourceList from "@/components/ResourceList";
@@ -29,6 +27,8 @@ import EquipmentTab from "@/components/EquipmentTab";
 import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";
 import { SpecializationTab } from "@/components/SpecializationTab";
+import Header from "@/components/Header";
+import KnowledgeProductionMonitor from "@/components/KnowledgeProductionMonitor";
 
 // Функция для сброса данных игры
 const resetAllGameData = async () => {
@@ -38,10 +38,10 @@ const resetAllGameData = async () => {
 const GameScreen = () => {
   const { state, dispatch } = useGame();
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [knowledgeMonitorOpen, setKnowledgeMonitorOpen] = useState(false);
   
   // Получаем объект unlocks из состояния для обратной совместимости
   const unlocks = state.unlocks || getUnlocksFromState(state);
@@ -54,6 +54,19 @@ const GameScreen = () => {
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
+
+  // Добавляем обработчик события для открытия монитора производства знаний
+  useEffect(() => {
+    const handleOpenKnowledgeMonitor = () => {
+      setKnowledgeMonitorOpen(true);
+    };
+
+    window.addEventListener('open-knowledge-monitor', handleOpenKnowledgeMonitor);
+    
+    return () => {
+      window.removeEventListener('open-knowledge-monitor', handleOpenKnowledgeMonitor);
+    };
+  }, []);
   
   useEffect(() => {
     console.log("Текущие разблокированные элементы:", 
@@ -74,7 +87,7 @@ const GameScreen = () => {
   useEffect(() => {
     const buildingCounts = Object.values(state.buildings).map(b => b.count).join(',');
     if (buildingCounts !== '0,0,0,0,0,0,0,0,0,0') {
-      console.log("Изменились количества зданий, проверяем разблокировки");
+      console.log("Изменились количества зданий, проверяем ра��блокировки");
       dispatch({ type: "CHECK_UNLOCKS" });
     }
   }, [Object.values(state.buildings).map(b => b.count).join(','), dispatch]);
@@ -189,83 +202,10 @@ const GameScreen = () => {
   
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      {/* Верхняя панель с меню из скриншота */}
-      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
-        <div className="flex justify-between items-center h-full px-4">
-          <div></div> {/* Пустой элемент для выравнивания */}
-          
-          <div className="flex items-center space-x-2">
-            <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  Сбросить прогресс
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t('settings.resetConfirm.title')}</DialogTitle>
-                  <DialogDescription>
-                    {t('settings.resetConfirm.description')}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setResetConfirmOpen(false)}>
-                    {t('settings.resetConfirm.cancel')}
-                  </Button>
-                  <Button variant="destructive" onClick={handleResetGame}>
-                    {t('settings.resetConfirm.confirm')}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  <Settings className="h-3.5 w-3.5 mr-1" />
-                  Настройки
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>{t('settings.title')}</SheetTitle>
-                  <SheetDescription>
-                    {t('settings.gameOptions')}
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="py-4">
-                  <h3 className="font-medium mb-2">{t('settings.language')}</h3>
-                  <div className="mb-4">
-                    <LanguageSwitch />
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <h3 className="font-medium mb-2">{t('settings.gameOptions')}</h3>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
-                      onClick={() => setResetConfirmOpen(true)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {t('settings.resetProgress')}
-                    </Button>
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <h3 className="font-medium mb-2">{t('settings.about')}</h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {t('settings.version')}<br />
-                    © 2023 Crypto Civilization
-                  </p>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </header>
+      {/* Используем обновленный Header */}
+      <Header 
+        prestigePoints={state.prestigePoints || 0} 
+      />
       
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
@@ -314,6 +254,12 @@ const GameScreen = () => {
       <div className="h-24 border-t bg-white flex-shrink-0">
         <EventLog events={eventLog} />
       </div>
+      
+      {/* Компонент монитора производства знаний */}
+      <KnowledgeProductionMonitor 
+        open={knowledgeMonitorOpen} 
+        onOpenChange={setKnowledgeMonitorOpen} 
+      />
     </div>
   );
 };

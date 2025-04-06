@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { resetAllGameData } from "@/context/utils/gameStorage";
 import { toast } from "@/hooks/use-toast";
-import KnowledgeProductionMonitor from "./KnowledgeProductionMonitor";
 
 interface HeaderProps {
   prestigePoints: number;
@@ -33,7 +32,6 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
   const navigate = useNavigate();
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
-  const [knowledgeMonitorOpen, setKnowledgeMonitorOpen] = useState(false);
 
   const handleResetAll = async () => {
     try {
@@ -71,12 +69,16 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Новая кнопка для мониторинга производства знаний */}
+          {/* Кнопка для мониторинга производства знаний */}
           <Button 
             variant="ghost" 
             size="sm" 
             className="text-xs flex items-center px-2"
-            onClick={() => setKnowledgeMonitorOpen(true)}
+            onClick={() => {
+              // Генерируем кастомное событие, которое будет отловлено в GameScreen
+              const event = new CustomEvent('open-knowledge-monitor');
+              window.dispatchEvent(event);
+            }}
           >
             <BookOpen className="h-4 w-4 mr-1" />
             Производство знаний
@@ -154,12 +156,6 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      {/* Компонент монитора производства знаний */}
-      <KnowledgeProductionMonitor 
-        open={knowledgeMonitorOpen} 
-        onOpenChange={setKnowledgeMonitorOpen} 
-      />
     </header>
   );
 };
