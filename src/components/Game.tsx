@@ -1,61 +1,95 @@
 
-import { useEffect } from 'react';
-import { useGame } from '../context/hooks/useGame';
-import { ResourceContainer } from './ResourceContainer';
-import { BuildingsContainer } from './BuildingsContainer';
-import ActionButtons from './ActionButtons';
-import EventLog from './EventLog';
-import { GameHeader } from './GameHeader';
-import { ResearchContainer } from './ResearchContainer';
-import { useGameSaver } from '../hooks/useGameSaver';
-import { useGameStateUpdateService } from '../hooks/useGameStateUpdateService';
+import React, { useEffect, useState } from 'react';
+import { useGame } from '@/context/hooks/useGame';
+import { useNavigate } from 'react-router-dom';
+import GameScreen from '@/pages/GameScreen';
+import LoadingScreen from '@/components/LoadingScreen';
+import ErrorScreen from '@/components/ErrorScreen';
+import { checkSupabaseConnection } from '@/api/connectionUtils';
+import { useGameLoader } from '@/hooks/useGameLoader';
+import { useGameSaveEvents } from '@/hooks/useGameSaveEvents';
+import { useUnlockChecker } from '@/hooks/useUnlockChecker';
 
-export function Game() {
+const Game: React.FC = () => {
   const { state, dispatch } = useGame();
+  const navigate = useNavigate();
+  const [hasConnection, setHasConnection] = useState<boolean>(true);
+  const [loadingMessage, setLoadingMessage] = useState<string>('Загрузка...');
   
-  // Используем хук для автоматического сохранения игры
-  useGameSaver();
+  // Используем хук для загрузки игры
+  const { 
+    loadedState, 
+    isLoading, 
+    gameInitialized, 
+    setGameInitialized 
+  } = useGameLoader(hasConnection, setLoadingMessage);
   
-  // Используем новый хук для управления состоянием игры
-  useGameStateUpdateService();
+  // Используем хук для автоматической проверки разблокировок
+  useUnlockChecker();
   
-  // Запускаем игру, если она еще не запущена
+  // Проверяем соединение с сервером
   useEffect(() => {
-    if (!state.gameStarted) {
-      dispatch({ type: 'START_GAME' });
-    }
+    const checkConnection = async () => {
+      const connected = await checkSupabaseConnection();
+      setHasConnection(connected);
+    };
     
-    // Отладочная информация
-    console.log("Game компонент инициализирован, состояние игры:", state.gameStarted ? "Запущена" : "Не запущена");
-  }, [state.gameStarted, dispatch]);
-  
-  // Принудительно обновляем состояние игры при монтировании компонента
-  useEffect(() => {
-    if (state.gameStarted) {
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-      console.log("Принудительное обновление ресурсов выполнено");
-    }
+    checkConnection();
+    
+    // Периодически проверяем соединение
+    const intervalId = setInterval(checkConnection, 30000);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
   
-  return (
-    <div className="container mx-auto p-4 flex flex-col md:flex-row gap-4">
-      <div className="w-full md:w-2/3 space-y-4">
-        <GameHeader />
-        
-        <ActionButtons onAddEvent={() => {}} />
-        
-        <ResourceContainer resource={state.resources.knowledge} />
-        
-        {state.unlocks.research && <ResearchContainer />}
-        
-        <BuildingsContainer />
-      </div>
+  // Загружаем сохраненное состояние
+  useEffect(() => {
+    if (loadedState) {
+      dispatch({ type: 'LOAD_GAME', payload: loadedState });
+    } else if (gameInitialized && !isLoading) {
+      // Если нет сохранения, запускаем новую игру
+      dispatch({ type: 'START_GAME' });
+    }
+  }, [loadedState, dispatch, gameInitialized, isLoading]);
+  
+  // Настраиваем автосохранение
+  useGameSaveEvents(state, isLoading, hasConnection, gameInitialized);
+  
+  // Игровой цикл
+  useEffect(() => {
+    if (!state.gameStarted || isLoading) return;
+    
+    const updateResources = () => {
+      const now = Date.now();
+      const deltaTime = (now - state.lastUpdate) / 1000;
       
-      <div className="w-full md:w-1/3 mt-4 md:mt-0">
-        <EventLog events={[]} maxEvents={50} />
-      </div>
-    </div>
-  );
-}
+      if (deltaTime >= 0.1) {
+        dispatch({ type: 'UPDATE_RESOURCES', payload: { deltaTime } });
+      }
+    };
+    
+    // Обновляем ресурсы каждые 100ms
+    const intervalId = setInterval(updateResources, 100);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [state.gameStarted, state.lastUpdate, isLoading, dispatch]);
+  
+  // Если игра загружается, показываем экран загрузки
+  if (isLoading) {
+    return <LoadingScreen message={loadingMessage} />;
+  }
+  
+  // Если возникла ошибка загрузки, показываем экран ошибки
+  if (!hasConnection && !gameInitialized) {
+    return <ErrorScreen errorType="connection" retryAction={() => window.location.reload()} />;
+  }
+  
+  // Показываем игровой экран
+  return <GameScreen />;
+};
 
 export default Game;

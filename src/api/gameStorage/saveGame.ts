@@ -6,6 +6,7 @@ import { getUserIdentifier } from '../userIdentification';
 import { checkSupabaseConnection } from '../connectionUtils';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { SAVES_TABLE } from '../apiTypes';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 
 // Улучшенное сохранение игры в Supabase
 export const saveGameToServer = async (gameState: GameState): Promise<boolean> => {
@@ -24,26 +25,18 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     // Убеждаемся, что флаг gameStarted установлен
     gameStateCopy.gameStarted = true;
     
-    // Проверяем условие разблокировки USDT перед сохранением
-    if (gameStateCopy.resources && gameStateCopy.resources.usdt) {
-      if (!gameStateCopy.counters.applyKnowledge || gameStateCopy.counters.applyKnowledge.value < 2) {
-        gameStateCopy.resources.usdt.unlocked = false;
-        gameStateCopy.unlocks.usdt = false;
-      } else {
-        gameStateCopy.resources.usdt.unlocked = true;
-        gameStateCopy.unlocks.usdt = true;
-      }
-    }
+    // Применяем все разблокировки перед сохранением
+    const stateWithUnlocks = checkAllUnlocks(gameStateCopy);
     
     // Убедимся, что Bitcoin имеет достаточное пространство хранения
-    if (gameStateCopy.resources && gameStateCopy.resources.bitcoin && 
-        gameStateCopy.resources.bitcoin.max < 0.01) {
-      gameStateCopy.resources.bitcoin.max = 0.01;
+    if (stateWithUnlocks.resources && stateWithUnlocks.resources.bitcoin && 
+        stateWithUnlocks.resources.bitcoin.max < 0.01) {
+      stateWithUnlocks.resources.bitcoin.max = 0.01;
     }
     
     // Обрабатываем корректно поле activated для рефералов
-    if (gameStateCopy.referrals && gameStateCopy.referrals.length > 0) {
-      gameStateCopy.referrals = gameStateCopy.referrals.map((referral: any) => {
+    if (stateWithUnlocks.referrals && stateWithUnlocks.referrals.length > 0) {
+      stateWithUnlocks.referrals = stateWithUnlocks.referrals.map((referral: any) => {
         if (typeof referral.activated === 'string') {
           return {
             ...referral,
@@ -57,7 +50,7 @@ export const saveGameToServer = async (gameState: GameState): Promise<boolean> =
     // Преобразуем GameState в Json
     let gameDataJson: Json;
     try {
-      const jsonString = JSON.stringify(gameStateCopy);
+      const jsonString = JSON.stringify(stateWithUnlocks);
       gameDataJson = JSON.parse(jsonString);
     } catch (parseError) {
       console.error('❌ Ошибка преобразования состояния игры в JSON:', parseError);

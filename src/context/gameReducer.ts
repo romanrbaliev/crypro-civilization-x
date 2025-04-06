@@ -47,6 +47,9 @@ import {
   processExchangeBitcoin
 } from './reducers/actionReducers';
 
+// Импортируем централизованную систему разблокировок
+import { checkAllUnlocks } from '@/utils/unlockManager';
+
 // Создаем экземпляр централизованного сервиса состояния
 const gameStateService = new GameStateService();
 
@@ -57,10 +60,12 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   
   switch (action.type) {
     case "INCREMENT_RESOURCE": 
-      return processIncrementResource(state, action.payload);
+      newState = processIncrementResource(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "UPDATE_RESOURCES": 
-      return gameStateService.processGameStateUpdate(state, action.payload?.deltaTime);
+      newState = gameStateService.processGameStateUpdate(state, action.payload?.deltaTime);
+      return checkAllUnlocks(newState);
     
     case "PURCHASE_BUILDING": 
       return processPurchaseBuilding(state, action.payload);
@@ -69,37 +74,47 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return processSetLanguage(state, action.payload);
       
     case "LOAD_GAME": 
-      return processLoadGame(state, action.payload);
+      newState = processLoadGame(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "START_GAME": 
-      return processStartGame(state);
+      newState = processStartGame(state);
+      return checkAllUnlocks(newState);
     
     case "FORCE_RESOURCE_UPDATE": 
-      return gameStateService.performFullStateSync(state);
+      newState = gameStateService.performFullStateSync(state);
+      return checkAllUnlocks(newState);
     
     case "SELL_BUILDING": 
-      return processSellBuilding(state, action.payload);
+      newState = processSellBuilding(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "PRACTICE_PURCHASE": 
       return state; // Заглушка, которую нужно будет реализовать
     
     case "PURCHASE_UPGRADE": 
-      return processPurchaseUpgrade(state, action.payload);
+      newState = processPurchaseUpgrade(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "UNLOCK_FEATURE": 
-      return processUnlockFeature(state, action.payload);
+      newState = processUnlockFeature(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "UNLOCK_RESOURCE": 
-      return processUnlockResource(state, action.payload);
+      newState = processUnlockResource(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "SET_BUILDING_UNLOCKED": 
-      return processSetBuildingUnlocked(state, action.payload);
+      newState = processSetBuildingUnlocked(state, action.payload);
+      return checkAllUnlocks(newState);
       
     case "SET_UPGRADE_UNLOCKED": 
-      return processSetUpgradeUnlocked(state, action.payload);
+      newState = processSetUpgradeUnlocked(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "INCREMENT_COUNTER": 
-      return processIncrementCounter(state, action.payload);
+      newState = processIncrementCounter(state, action.payload);
+      return checkAllUnlocks(newState);
     
     case "CHECK_SYNERGIES":
       return checkSynergies(state);
@@ -123,14 +138,17 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return state; // Заглушка, которую нужно будет реализовать
     
     case "APPLY_KNOWLEDGE": 
-      return processApplyKnowledge(state);
+      newState = processApplyKnowledge(state);
+      return checkAllUnlocks(newState);
         
     case "APPLY_ALL_KNOWLEDGE": 
-      return processApplyAllKnowledge(state);
+      newState = processApplyAllKnowledge(state);
+      return checkAllUnlocks(newState);
         
     case "EXCHANGE_BTC":
     case "EXCHANGE_BITCOIN": 
-      return processExchangeBitcoin(state);
+      newState = processExchangeBitcoin(state);
+      return checkAllUnlocks(newState);
         
     case "SET_REFERRAL_CODE": 
       return processSetReferralCode(state, action.payload);
@@ -157,10 +175,14 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       };
     
     case "CHOOSE_SPECIALIZATION": 
-      return processChooseSpecialization(state, {
+      newState = processChooseSpecialization(state, {
         specializationType: action.payload.specializationId
       });
+      return checkAllUnlocks(newState);
     
+    case "CHECK_UNLOCKS":
+      return checkAllUnlocks(state);
+      
     default:
       return state;
   }

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -69,7 +68,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const renderCost = () => {
-    // Проверяем, существует ли building.cost
     if (!building.cost || Object.keys(building.cost).length === 0) {
       return <div className="text-red-500 text-[11px]">Стоимость не определена</div>;
     }
@@ -131,7 +129,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return null;
     }
     
-    // Специальные случаи для отдельных зданий
     if (building.id === 'cryptoWallet') {
       return (
         <>
@@ -197,11 +194,8 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       );
     }
     
-    // Обработка обычных эффектов
     return Object.entries(building.effects).map(([effectId, value]) => {
-      // Форматируем название эффекта
       const effectName = formatEffectName(effectId);
-      // Форматируем значение (добавляем знак + для положительных значений и % для процентов)
       const numValue = Number(value);
       const formattedValue = effectId.includes('Boost') || effectId.includes('Reduction') ? 
         `${numValue > 0 ? '+' : ''}${(numValue * 100).toFixed(0)}%` : 

@@ -1,6 +1,7 @@
 
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
   const { buildingId } = payload;
@@ -50,109 +51,31 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     cost: newCost
   };
   
-  // Обновляем счетчики и разблокируем соответствующие ресурсы/функции
-  if (buildingId === 'practice' && building.count === 0) {
-    const practiceBuilt = newState.counters.practiceBuilt?.value || 0;
-    
-    newState.counters = {
-      ...newState.counters,
-      practiceBuilt: {
-        id: 'practiceBuilt',
-        value: practiceBuilt + 1
-      }
+  // Обновляем счетчики и инкрементируем их
+  if (buildingId === 'practice') {
+    newState.counters.practiceBuilt = {
+      id: 'practiceBuilt',
+      value: (newState.counters.practiceBuilt?.value || 0) + 1
     };
-  } else if (buildingId === 'generator' && building.count === 0) {
-    const generatorBuilt = newState.counters.generatorBuilt?.value || 0;
-    
-    newState.counters = {
-      ...newState.counters,
-      generatorBuilt: {
-        id: 'generatorBuilt',
-        value: generatorBuilt + 1
-      }
+  } else if (buildingId === 'generator') {
+    newState.counters.generatorBuilt = {
+      id: 'generatorBuilt',
+      value: (newState.counters.generatorBuilt?.value || 0) + 1
     };
-    
-    // Разблокировка электричества
-    if (!newState.unlocks.electricity) {
-      newState.unlocks = {
-        ...newState.unlocks,
-        electricity: true
-      };
-      
-      newState.resources.electricity = {
-        ...newState.resources.electricity,
-        unlocked: true,
-        consumption: 0
-      };
-      
-      safeDispatchGameEvent('Разблокирован ресурс: Электричество', 'info');
-    }
-  } else if (buildingId === 'homeComputer' && building.count === 0) {
-    const computerBuilt = newState.counters.computerBuilt?.value || 0;
-    
-    newState.counters = {
-      ...newState.counters,
-      computerBuilt: {
-        id: 'computerBuilt',
-        value: computerBuilt + 1
-      }
+  } else if (buildingId === 'homeComputer') {
+    newState.counters.computerBuilt = {
+      id: 'computerBuilt',
+      value: (newState.counters.computerBuilt?.value || 0) + 1
     };
-    
-    // Разблокировка вычислительной мощности
-    if (!newState.unlocks.computingPower) {
-      newState.unlocks = {
-        ...newState.unlocks,
-        computingPower: true
-      };
-      
-      newState.resources.computingPower = {
-        ...newState.resources.computingPower,
-        unlocked: true,
-        consumption: 0
-      };
-      
-      safeDispatchGameEvent('Разблокирован ресурс: Вычислительная мощность', 'info');
-    }
-  } else if (buildingId === 'cryptoWallet' && building.count === 0) {
-    const walletBuilt = newState.counters.walletBuilt?.value || 0;
-    
-    newState.counters = {
-      ...newState.counters,
-      walletBuilt: {
-        id: 'walletBuilt',
-        value: walletBuilt + 1
-      }
+  } else if (buildingId === 'cryptoWallet') {
+    newState.counters.walletBuilt = {
+      id: 'walletBuilt',
+      value: (newState.counters.walletBuilt?.value || 0) + 1
     };
-  } else if (buildingId === 'miner' && building.count === 0) {
-    // Разблокировка биткоина
-    if (!newState.unlocks.bitcoin) {
-      newState.unlocks = {
-        ...newState.unlocks,
-        bitcoin: true,
-        mining: true
-      };
-      
-      newState.resources.bitcoin = {
-        ...newState.resources.bitcoin,
-        unlocked: true,
-        consumption: 0
-      };
-      
-      // Устанавливаем параметры майнинга
-      newState.miningParams = {
-        ...state.miningParams,
-        miningEfficiency: 1,
-        energyEfficiency: 1,
-        networkDifficulty: 1,
-        exchangeRate: 25000,
-        exchangeCommission: 0.005,
-        volatility: 0.05
-      };
-      
-      safeDispatchGameEvent('Разблокирован ресурс: Bitcoin', 'info');
-      safeDispatchGameEvent('Разблокирована возможность: Майнинг', 'info');
-    }
   }
   
-  return newState;
+  // Проверяем и обновляем все разблокировки после покупки
+  const stateWithUnlocks = checkAllUnlocks(newState);
+  
+  return stateWithUnlocks;
 };
