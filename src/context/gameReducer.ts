@@ -10,14 +10,81 @@ import {
   processLearnCrypto, 
   processApplyKnowledge, 
   processApplyAllKnowledge,
-  processExchangeBitcoin,
-  processDebugAddResources
+  processExchangeBitcoin
 } from './reducers/actionsReducer';
-import { processBuildingPurchase, processSellBuilding } from './reducers/building';
+import { 
+  processPurchaseBuilding, 
+  processSellBuilding,
+  processChooseSpecialization 
+} from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
+import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
 
 // Импорт вспомогательных функций
 import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
+
+// Функция для обработки отладочного добавления ресурсов
+const processDebugAddResources = (state: GameState, payload: any): GameState => {
+  // Создаем копию состояния
+  const newState = { ...state };
+  
+  // Если указан resourceId, заполняем этот ресурс до максимума
+  if (payload.resourceId) {
+    const resource = newState.resources[payload.resourceId];
+    if (resource) {
+      newState.resources[payload.resourceId] = {
+        ...resource,
+        value: resource.max || 1000 // Заполняем до максимума или 1000, если максимум не определен
+      };
+    }
+  } else {
+    // Если resourceId не указан, заполним все ресурсы
+    for (const resourceId in newState.resources) {
+      const resource = newState.resources[resourceId];
+      newState.resources[resourceId] = {
+        ...resource,
+        value: resource.max || 1000
+      };
+    }
+  }
+  
+  return newState;
+};
+
+// Функция для инкрементирования счетчика
+const processIncrementCounter = (
+  state: GameState,
+  payload: { counterId: string; amount?: number }
+): GameState => {
+  const { counterId, amount = 1 } = payload;
+  const counter = state.counters[counterId];
+  
+  // Проверяем, существует ли счетчик
+  if (!counter) {
+    return {
+      ...state,
+      counters: {
+        ...state.counters,
+        [counterId]: {
+          id: counterId,
+          value: amount
+        }
+      }
+    };
+  }
+
+  // Инкрементируем существующий счетчик
+  return {
+    ...state,
+    counters: {
+      ...state.counters,
+      [counterId]: {
+        id: counterId,
+        value: counter.value + amount
+      }
+    }
+  };
+};
 
 // Основной редьюсер для обработки всех действий игры
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -48,8 +115,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'INCREMENT_RESOURCE':
       // Обрабатываем увеличение ресурса и проверяем разблокировки
-      return checkAllUnlocks(processLearnCrypto(newState));
+      return checkAllUnlocks(processIncrementResource(newState, action.payload));
     
+    case 'INCREMENT_COUNTER':
+      // Обрабатываем увеличение счетчика
+      return checkAllUnlocks(processIncrementCounter(newState, action.payload));
+      
     case 'APPLY_KNOWLEDGE':
       // Обрабатываем применение знаний и проверяем разблокировки
       return checkAllUnlocks(processApplyKnowledge(newState));
@@ -62,11 +133,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'BUY_BUILDING':
       // Обрабатываем покупку здания и проверяем разблокировки
-      return checkAllUnlocks(processBuildingPurchase(newState, action.payload));
+      return processPurchaseBuilding(newState, action.payload);
     
     case 'SELL_BUILDING':
       // Обрабатываем продажу здания
-      return checkAllUnlocks(processSellBuilding(newState, action.payload));
+      return processSellBuilding(newState, action.payload);
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
