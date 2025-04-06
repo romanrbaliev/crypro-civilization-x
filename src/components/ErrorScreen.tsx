@@ -1,13 +1,15 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
 
 interface ErrorScreenProps {
   title?: string;
   description?: string;
   onRetry?: () => void;
   onReload?: () => void;
-  errorType?: string; // Добавляем поддержку для errorType
+  errorType?: string;
+  error?: Error | string;
 }
 
 const ErrorScreen: React.FC<ErrorScreenProps> = ({ 
@@ -15,28 +17,57 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({
   description = "Не удалось загрузить приложение. Пожалуйста, попробуйте снова.", 
   onRetry, 
   onReload = () => window.location.reload(),
-  errorType // Новое свойство 
+  errorType,
+  error
 }) => {
+  const [isOpen, setIsOpen] = React.useState(true);
+  
+  const errorDetails = error instanceof Error 
+    ? `${error.name}: ${error.message}\n${error.stack}` 
+    : typeof error === 'string' 
+      ? error 
+      : 'Детали ошибки недоступны';
+  
+  const handleClose = () => {
+    setIsOpen(false);
+    if (onReload) {
+      onReload();
+    }
+  };
+  
+  // Вместо полноэкранного режима используем диалог с информацией об ошибке
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg text-center">
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="text-gray-600">{description}</p>
-        <div className="flex flex-col space-y-2">
+    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription className="space-y-2">
+            <p>{description}</p>
+            {error && (
+              <div className="mt-4 p-2 bg-gray-100 rounded-md text-xs text-gray-700 max-h-40 overflow-auto">
+                <pre className="whitespace-pre-wrap">{errorDetails}</pre>
+              </div>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="space-x-2">
           {onRetry && (
             <Button 
               variant="outline" 
-              onClick={onRetry}
+              onClick={() => {
+                onRetry();
+                setIsOpen(false);
+              }}
             >
-              Повторить попытку подключения
+              Повторить попытку
             </Button>
           )}
-          <Button onClick={onReload}>
-            Обновить страницу
-          </Button>
-        </div>
-      </div>
-    </div>
+          <AlertDialogAction onClick={handleClose}>
+            Перезагрузить страницу
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
 

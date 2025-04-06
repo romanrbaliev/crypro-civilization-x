@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, Settings, Trophy } from "lucide-react";
+import { RefreshCcw, Settings } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -24,7 +24,8 @@ import {
 import { resetAllGameData } from "@/context/utils/gameStorage";
 import { toast } from "@/hooks/use-toast";
 import { useGame } from "@/context/hooks/useGame";
-import Logo from "@/components/Logo";
+import LanguageSwitch from "@/components/LanguageSwitch";
+import { useTranslation } from "@/i18n";
 
 interface HeaderProps {
   prestigePoints: number;
@@ -33,6 +34,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
   const { state } = useGame();
+  const { t } = useTranslation();
 
   const handleResetAll = async () => {
     try {
@@ -57,66 +59,54 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
 
   return (
     <header className="bg-white border-b shadow-sm p-2 flex-shrink-0">
-      <div className="flex justify-between items-center px-2">
-        <div className="flex items-center">
-          <Logo className="ml-2" />
-        </div>
+      <div className="flex justify-end items-center px-2 gap-4">
+        <Button variant="ghost" size="sm" onClick={() => setResetAlertOpen(true)}>
+          Сбросить прогресс
+        </Button>
         
-        <div className="flex items-center space-x-2">
-          {prestigePoints > 0 && (
-            <div className="flex items-center space-x-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full">
-              <Trophy className="h-4 w-4" />
-              <span className="font-medium">{prestigePoints}</span>
-            </div>
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center"
-            onClick={() => setResetAlertOpen(true)}
-          >
-            <RefreshCcw className="h-4 w-4 mr-1" />
-            <span>Сбросить прогресс</span>
-          </Button>
-          
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Настройки</SheetTitle>
-                <SheetDescription>
-                  Управление игрой и дополнительные опции
-                </SheetDescription>
-              </SheetHeader>
-              <div className="py-4">
-                <h3 className="font-medium mb-2">Настройки игры</h3>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
-                    onClick={() => setResetAlertOpen(true)}
-                  >
-                    <RefreshCcw className="h-4 w-4 mr-2" />
-                    Сбросить прогресс
-                  </Button>
-                </div>
-                
-                <Separator className="my-4" />
-                
-                <h3 className="font-medium mb-2">О игре</h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  Версия: 0.1.0 (Альфа)<br />
-                  © 2023 Crypto Civilization
-                </p>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="sm">
+              Настройки
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Настройки</SheetTitle>
+              <SheetDescription>
+                Управление игрой и дополнительные опции
+              </SheetDescription>
+            </SheetHeader>
+            <div className="py-4">
+              <h3 className="font-medium mb-2">{t('settings.language')}</h3>
+              <div className="mb-4">
+                <LanguageSwitch />
               </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+              
+              <Separator className="my-4" />
+              
+              <h3 className="font-medium mb-2">Настройки игры</h3>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
+                  onClick={() => setResetAlertOpen(true)}
+                >
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  Сбросить прогресс
+                </Button>
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <h3 className="font-medium mb-2">О игре</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Версия: 0.1.0 (Альфа)<br />
+                © 2023 Crypto Civilization
+              </p>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
       
       <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>

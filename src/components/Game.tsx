@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import ActionButtons from "@/components/ActionButtons";
 import { useTranslation } from "@/i18n";
 import { getUnlocksFromState } from '@/utils/unlockHelper';
+import { toast } from "@/hooks/use-toast";
 
 const Game: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -33,12 +34,14 @@ const Game: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resourceUpdateCounter, setResourceUpdateCounter] = useState(0); // Счетчик для обновления ресурсов
   const [lastActionTimestamp, setLastActionTimestamp] = useState(0); // Временная метка последнего действия пользователя
+  const [connectionError, setConnectionError] = useState<Error | null>(null);
   
   const { 
     loadedState, 
     isLoading, 
     gameInitialized, 
-    setGameInitialized 
+    setGameInitialized,
+    loadError
   } = useGameLoader(hasConnection, setLoadingMessage);
   
   useGameStateUpdateService();
@@ -54,8 +57,15 @@ const Game: React.FC = () => {
   
   useEffect(() => {
     const checkConnection = async () => {
-      const connected = await checkSupabaseConnection();
-      setHasConnection(connected);
+      try {
+        const connected = await checkSupabaseConnection();
+        setHasConnection(connected);
+        setConnectionError(null);
+      } catch (error) {
+        console.error("Ошибка при проверке соединения:", error);
+        setConnectionError(error instanceof Error ? error : new Error(String(error)));
+        setHasConnection(false);
+      }
     };
     
     checkConnection();
@@ -117,23 +127,6 @@ const Game: React.FC = () => {
     
     return () => clearInterval(updateInterval);
   }, [lastActionTimestamp]);
-  
-  useEffect(() => {
-    if (Math.random() < 0.1) { // Уменьшаем частоту логирования до 10%
-      console.log("Текущие разблокированные элементы:", 
-        Object.entries(state.resources)
-          .filter(([_, v]) => v.unlocked)
-          .map(([k]) => `ресурс ${k}`).join(', ') + ", " +
-        Object.entries(state.buildings)
-          .filter(([_, v]) => v.unlocked)
-          .map(([k]) => `здание ${k}`).join(', ') + ", " +
-        Object.entries(state.upgrades)
-          .filter(([_, v]) => v.unlocked || v.purchased)
-          .map(([k]) => `исследование ${k}`).join(', ')
-      );
-      console.log("Вкладка исследований разблокирована:", hasUnlockedResearch);
-    }
-  }, [state.resources, state.buildings, state.upgrades, hasUnlockedResearch, resourceUpdateCounter]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
@@ -213,13 +206,29 @@ const Game: React.FC = () => {
     return <LoadingScreen message={loadingMessage} />;
   }
   
+  if (loadError) {
+    // Используем модифицированный ErrorScreen для отображения деталей ошибки в виде всплывающего окна
+    toast({
+      title: "Ошибка загрузки игры",
+      description: "Произошла ошибка при загрузке игровых данных. Пробуем запустить новую игру.",
+      variant: "destructive",
+    });
+    
+    // Инициализируем игру заново вместо показа экрана ошибки
+    if (!gameInitialized) {
+      setGameInitialized(true);
+    }
+  }
+  
   if (!hasConnection && !gameInitialized) {
+    // Показываем диалог вместо полноэкранного сообщения
     return (
       <ErrorScreen 
         title="Ошибка соединения" 
-        description="Не удалось подключиться к серверу. Проверьте ваше соединение с интернетом."
+        description="Не удалось подключиться к серверу. Вы можете продолжить игру в автономном режиме, но прогресс не будет сохраняться на сервере."
         onRetry={() => window.location.reload()}
         errorType="connection"
+        error={connectionError}
       />
     );
   }
