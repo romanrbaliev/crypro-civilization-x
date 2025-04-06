@@ -1,42 +1,62 @@
 
-import { GameState } from '../../types';
-import { updateResourceMaxValues } from '@/utils/resourceUtils';
-import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
+import { GameState } from '@/context/types';
+import { hasResources, spendResources, processMaxResourceEffects } from '@/utils/resourceUtils';
 
-// Обработка продажи здания
+// Функция для продажи здания
 export const processSellBuilding = (
-  state: GameState,
-  payload: { buildingId: string }
+  state: GameState, 
+  payload: { buildingId: string, quantity?: number }
 ): GameState => {
-  const { buildingId } = payload;
+  const { buildingId, quantity = 1 } = payload;
   const building = state.buildings[buildingId];
   
-  // Если здание не существует или количество = 0, возвращаем текущее состояние
-  if (!building || building.count === 0) {
-    console.warn(`Попытка продать несуществующее здание: ${buildingId}`);
+  // Проверяем, существует ли здание
+  if (!building) {
+    console.error(`Здание с ID ${buildingId} не найдено`);
     return state;
   }
   
-  // Создаем новое состояние с обновленным количеством здания
-  const newBuildings = {
-    ...state.buildings,
-    [buildingId]: {
-      ...building,
-      count: building.count - 1
+  // Проверяем, что у игрока есть это здание
+  if (building.count < quantity) {
+    console.log(`У вас недостаточно зданий типа ${building.name} для продажи`);
+    return state;
+  }
+  
+  // Расчет суммы возврата (обычно процент от стоимости)
+  const refundPercent = 0.5; // получаем обратно половину стоимости
+  const refund = Object.entries(building.cost).reduce((acc, [resourceId, amount]) => {
+    acc[resourceId] = Math.floor(Number(amount) * refundPercent * quantity);
+    return acc;
+  }, {} as Record<string, number>);
+  
+  // Обновляем состояние
+  let newState = { ...state };
+  
+  // Возвращаем часть ресурсов
+  for (const [resourceId, amount] of Object.entries(refund)) {
+    const resource = newState.resources[resourceId];
+    if (resource) {
+      newState.resources = {
+        ...newState.resources,
+        [resourceId]: {
+          ...resource,
+          value: Math.min((resource.value || 0) + amount, resource.max || Infinity)
+        }
+      };
+    }
+  }
+  
+  // Уменьшаем количество зданий
+  newState = {
+    ...newState,
+    buildings: {
+      ...newState.buildings,
+      [buildingId]: {
+        ...building,
+        count: building.count - quantity
+      }
     }
   };
-  
-  console.log(`Продано здание ${building.name}`);
-  safeDispatchGameEvent(`Здание ${building.name} продано`, "info");
-  
-  // Создаем новое состояние (не возвращаем ресурсы при продаже)
-  let newState = {
-    ...state,
-    buildings: newBuildings
-  };
-  
-  // Обновляем максимальные значения ресурсов
-  newState = updateResourceMaxValues(newState);
   
   return newState;
 };

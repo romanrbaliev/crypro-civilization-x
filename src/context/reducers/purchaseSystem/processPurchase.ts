@@ -1,105 +1,73 @@
 
 import { GameState } from '@/context/types';
-import { PurchasableType } from '@/types/purchasable';
-import { updateResourceMaxValues } from '@/utils/resourceUtils';
-import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { checkAllUnlocks } from '@/utils/unlockManager';
+import { hasResources, spendResources } from '@/utils/resourceUtils';
 
-export interface PurchasePayload {
-  itemId: string;
-  itemType: PurchasableType;
-  quantity?: number;
-}
-
+// Функция для обработки покупки
 export const processPurchase = (
   state: GameState, 
-  payload: PurchasePayload
-): GameState => {
-  const { itemId, itemType, quantity = 1 } = payload;
-  
-  // Получаем предмет в зависимости от типа
+  itemId: string, 
+  itemType: string, 
+  quantity: number = 1
+): GameState | null => {
+  // Получаем объект элемента в зависимости от типа
   let item;
   if (itemType === 'building') {
     item = state.buildings[itemId];
   } else if (itemType === 'upgrade' || itemType === 'research') {
     item = state.upgrades[itemId];
   } else {
-    console.error(`Неизвестный тип предмета: ${itemType}`);
-    return state;
+    console.error('Неизвестный тип элемента для покупки:', itemType);
+    return null;
   }
-  
-  // Проверяем, существует ли предмет
+
+  // Проверяем, существует ли элемент
   if (!item) {
-    console.error(`Предмет с ID ${itemId} не найден`);
-    return state;
+    console.error(`Элемент с ID ${itemId} не найден в категории ${itemType}`);
+    return null;
   }
-  
-  // Для улучшений проверяем, что оно еще не куплено
-  if ((itemType === 'upgrade' || itemType === 'research') && item.purchased) {
-    console.log(`Исследование ${item.name} уже куплено`);
-    return state;
+
+  // Проверяем наличие ресурсов для покупки
+  if (!hasResources(state, item.cost)) {
+    console.log(`Недостаточно ресурсов для покупки ${item.name}`);
+    return null;
   }
-  
-  // Проверяем, хватает ли ресурсов для покупки
-  for (const [resourceId, amount] of Object.entries(item.cost)) {
-    const resource = state.resources[resourceId];
-    if (!resource || resource.value < Number(amount)) {
-      console.log(`Недостаточно ресурса ${resourceId} для покупки ${item.name}`);
-      return state;
-    }
-  }
-  
-  // Создаем копию состояния
-  let newState = { ...state };
-  const resources = { ...state.resources };
-  
+
   // Списываем ресурсы
-  for (const [resourceId, amount] of Object.entries(item.cost)) {
-    if (resources[resourceId]) {
-      resources[resourceId] = {
-        ...resources[resourceId],
-        value: Math.max(0, resources[resourceId].value - Number(amount))
-      };
-    }
-  }
-  
-  newState.resources = resources;
-  
-  // Обрабатываем покупку в зависимости от типа
+  let newState = spendResources(state, item.cost);
+
+  // Обновляем состояние в зависимости от типа элемента
   if (itemType === 'building') {
-    // Рассчитываем новую стоимость здания
+    // Расчет новой стоимости
     const newCost = { ...item.cost };
     for (const [resourceId, amount] of Object.entries(item.cost)) {
-      newCost[resourceId] = Math.floor(Number(amount) * item.costMultiplier);
+      newCost[resourceId] = Math.floor(Number(amount) * (item.costMultiplier || 1.1));
     }
-    
+
     // Обновляем здание
-    newState.buildings = {
-      ...newState.buildings,
-      [itemId]: {
-        ...item,
-        count: item.count + quantity,
-        cost: newCost
+    newState = {
+      ...newState,
+      buildings: {
+        ...newState.buildings,
+        [itemId]: {
+          ...item,
+          count: item.count + quantity,
+          cost: newCost
+        }
       }
     };
-    
-    safeDispatchGameEvent(`Построено: ${item.name}`, 'success');
   } else if (itemType === 'upgrade' || itemType === 'research') {
-    // Помечаем улучшение как купленное
-    newState.upgrades = {
-      ...newState.upgrades,
-      [itemId]: {
-        ...item,
-        purchased: true
+    // Отмечаем улучшение как купленное
+    newState = {
+      ...newState,
+      upgrades: {
+        ...newState.upgrades,
+        [itemId]: {
+          ...item,
+          purchased: true
+        }
       }
     };
-    
-    safeDispatchGameEvent(`Исследовано: ${item.name}`, 'success');
   }
-  
-  // Обновляем максимальные значения ресурсов
-  newState = updateResourceMaxValues(newState);
-  
-  // Проверяем разблокировки
-  return checkAllUnlocks(newState);
+
+  return newState;
 };

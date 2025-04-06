@@ -1,76 +1,59 @@
 
 import { GameState } from '@/context/types';
 
-/**
- * Обновляет максимальные значения ресурсов на основе зданий и исследований
- */
-export function updateResourceMaxValues(state: GameState): GameState {
-  // Базовые максимальные значения ресурсов
-  const baseMaxValues = {
-    knowledge: 100, // Базовый максимум знаний
-    usdt: 100,      // Базовый максимум USDT
-    electricity: 50, // Базовый максимум электричества
-    computingPower: 20, // Базовый максимум вычислительной мощности
-    bitcoin: 0.01    // Базовый максимум Bitcoin
-  };
-  
-  // Создаем копию состояния
+// Базовые функции для работы с ресурсами
+export const hasResources = (state: GameState, costs: Record<string, number>): boolean => {
+  for (const [resourceId, amount] of Object.entries(costs)) {
+    const resource = state.resources[resourceId];
+    if (!resource || resource.value < amount) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Функция для списания ресурсов
+export const spendResources = (state: GameState, costs: Record<string, number>): GameState => {
   const newState = { ...state };
-  const newResources = { ...state.resources };
   
-  // Устанавливаем базовые значения
-  for (const [resourceId, maxValue] of Object.entries(baseMaxValues)) {
-    if (newResources[resourceId]) {
-      newResources[resourceId] = {
-        ...newResources[resourceId],
-        max: maxValue
+  for (const [resourceId, amount] of Object.entries(costs)) {
+    const resource = newState.resources[resourceId];
+    if (resource) {
+      newState.resources = {
+        ...newState.resources,
+        [resourceId]: {
+          ...resource,
+          value: Math.max(0, resource.value - amount)
+        }
       };
     }
   }
   
-  // Применяем эффекты от зданий
-  for (const buildingId in state.buildings) {
-    const building = state.buildings[buildingId];
-    
-    if (building.count > 0 && building.effects) {
-      // Проверяем эффекты максимальных значений ресурсов
-      for (const resourceId in newResources) {
-        const maxEffectKey = `max${resourceId.charAt(0).toUpperCase() + resourceId.slice(1)}Boost`;
-        
-        if (building.effects[maxEffectKey]) {
-          const resource = newResources[resourceId];
-          if (resource) {
-            const effectValue = typeof building.effects[maxEffectKey] === 'number' 
-              ? building.effects[maxEffectKey] * building.count 
-              : 0;
-            
-            resource.max = (resource.max || 0) + effectValue;
-          }
-        }
-      }
-    }
-  }
-  
-  // Применяем эффекты от исследований
-  for (const upgradeId in state.upgrades) {
-    const upgrade = state.upgrades[upgradeId];
-    
-    if (upgrade.purchased && upgrade.effects) {
-      for (const [effectType, effectValue] of Object.entries(upgrade.effects)) {
-        if (effectType.includes('MaxBoost')) {
-          const resourceId = effectType.replace('MaxBoost', '').toLowerCase();
-          const resource = newResources[resourceId];
-          
-          if (resource) {
-            // Увеличиваем максимум на указанный процент
-            const boostPercent = typeof effectValue === 'number' ? effectValue : 0;
-            resource.max = (resource.max || 0) * (1 + boostPercent);
-          }
-        }
-      }
-    }
-  }
-  
-  newState.resources = newResources;
   return newState;
-}
+};
+
+// Функция для обработки эффектов зданий на максимальное количество ресурса
+export const processMaxResourceEffects = (state: GameState, building: any): GameState => {
+  const newState = { ...state };
+  
+  // Если у здания нет эффектов, возвращаем исходное состояние
+  if (!building.maxResourceEffects) {
+    return newState;
+  }
+  
+  // Применяем эффекты здания на максимальное количество ресурсов
+  for (const [resourceId, amount] of Object.entries(building.maxResourceEffects)) {
+    const resource = newState.resources[resourceId];
+    if (resource) {
+      newState.resources = {
+        ...newState.resources,
+        [resourceId]: {
+          ...resource,
+          max: (resource.max || 0) + Number(amount)
+        }
+      };
+    }
+  }
+  
+  return newState;
+};

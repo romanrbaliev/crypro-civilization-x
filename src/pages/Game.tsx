@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useTranslation } from "@/i18n";
 import { useResourceManager } from "@/hooks/useResourceManager";
@@ -11,7 +11,7 @@ const Game: React.FC = () => {
   const { recalculateProduction } = useResourceManager();
   
   // Принудительно пересчитываем производство при первом рендере
-  useEffect(() => {
+  React.useEffect(() => {
     if (state.gameStarted) {
       console.log("Game: Пересчет производства ресурсов при загрузке страницы");
       recalculateProduction();
