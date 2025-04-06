@@ -2,8 +2,12 @@
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
-import { processPurchase } from '../purchaseSystem';
+import { processPurchase } from '../purchaseSystem/processPurchase';
 import { PurchasableType } from '@/types/purchasable';
+import { ResourceSystem } from '@/systems/ResourceSystem';
+
+// Создаем экземпляр ResourceSystem
+const resourceSystem = new ResourceSystem();
 
 // Обертка для совместимости с новой системой покупок
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
@@ -56,11 +60,49 @@ export const processSellBuilding = (state: GameState, payload: { buildingId: str
     cost: prevCost
   };
   
+  // Обновляем производство и потребление ресурсов
+  if (building.production) {
+    for (const [resourceId, amount] of Object.entries(building.production)) {
+      if (resources[resourceId]) {
+        resources[resourceId] = {
+          ...resources[resourceId],
+          production: Math.max(0, (resources[resourceId].production || 0) - Number(amount))
+        };
+      }
+    }
+  }
+  
+  // Обновляем потребление ресурсов
+  if (building.consumption) {
+    for (const [resourceId, amount] of Object.entries(building.consumption)) {
+      if (resources[resourceId]) {
+        resources[resourceId] = {
+          ...resources[resourceId],
+          consumption: Math.max(0, (resources[resourceId].consumption || 0) - Number(amount))
+        };
+      }
+    }
+  }
+  
+  // Пересчитываем perSecond для всех ресурсов
+  for (const resourceId in resources) {
+    if (resources[resourceId].unlocked) {
+      resources[resourceId] = {
+        ...resources[resourceId],
+        perSecond: (resources[resourceId].production || 0) - (resources[resourceId].consumption || 0)
+      };
+    }
+  }
+  
   // Обновляем состояние
   newState.resources = resources;
   newState.buildings = buildings;
   
-  return checkAllUnlocks(newState);
+  // Проверяем разблокировки
+  const updatedState = checkAllUnlocks(newState);
+  
+  // Принудительно обновляем ресурсы
+  return resourceSystem.updateResources(updatedState, 0);
 };
 
 // Функция для выбора специализации

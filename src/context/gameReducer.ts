@@ -111,8 +111,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const currentTime = Date.now();
       const deltaTime = currentTime - newState.lastUpdate;
       
-      // Обновляем ресурсы
-      newState = updateResources(newState, deltaTime);
+      // Обновляем ресурсы через ResourceSystem
+      newState = resourceSystem.updateResources(newState, deltaTime);
       
       // Обновляем lastUpdate
       newState = { ...newState, lastUpdate: currentTime };
@@ -139,20 +139,27 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processExchangeBitcoin(newState));
     
     case 'BUY_BUILDING':
-      // Обрабатываем покупку здания, проверяем разблокировки и пересчитываем производство
-      newState = processPurchaseBuilding(newState, action.payload);
-      // Принудительно пересчитываем производство ресурсов чтобы отобразить изменения сразу
-      return calculateResourceProduction(newState);
+      // Обрабатываем покупку здания через новую систему
+      const buildingPayload = {
+        itemId: action.payload.buildingId,
+        itemType: 'building' as PurchasableType
+      };
+      return processPurchase(newState, buildingPayload);
     
     case 'SELL_BUILDING':
       // Обрабатываем продажу здания, проверяем разблокировки и пересчитываем производство
       newState = processSellBuilding(newState, action.payload);
-      // Принудительно пересчитываем производство ресурсов
-      return calculateResourceProduction(newState);
+      // Обновляем ресурсы через ResourceSystem
+      return resourceSystem.updateResources(newState, 0);
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
-      return checkAllUnlocks(processPurchaseUpgrade(newState, action.payload));
+      // Используем новую систему для покупки исследований
+      const upgradePayload = {
+        itemId: action.payload.upgradeId,
+        itemType: 'upgrade' as PurchasableType
+      };
+      return processPurchase(newState, upgradePayload);
       
     // Новое унифицированное действие покупки
     case 'PURCHASE_ITEM':
@@ -175,14 +182,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processDebugAddResources(newState, action.payload));
     
     case 'FORCE_RESOURCE_UPDATE':
-      // Принудительно пересчитываем все значения и проверяем разблокировки
-      if (action.payload) {
-        // Если передано новое состояние, используем его
-        newState = action.payload;
-      } else {
-        // Иначе пересчитываем производство
-        newState = calculateResourceProduction(newState);
-      }
+      // Принудительно обновляем все значения через ResourceSystem
+      newState = resourceSystem.updateResources(newState, 0);
       return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':

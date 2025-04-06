@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -185,59 +186,6 @@ const GameScreen = () => {
           <div className="flex-1 flex items-center pl-2 gap-2">
           </div>
           <div className="flex items-center justify-between px-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  {t('tutorial.title')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>{t('tutorial.title')}</DialogTitle>
-                  <DialogDescription>
-                    {t('tutorial.basics.intro')}
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <Tabs defaultValue="basics">
-                  <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="basics">{t('tutorial.basics')}</TabsTrigger>
-                    <TabsTrigger value="resources">{t('tutorial.resources')}</TabsTrigger>
-                    <TabsTrigger value="buildings">{t('tutorial.buildings')}</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="basics" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">{t('tutorial.basics.title')}</h4>
-                    <p className="text-sm">
-                      {t('tutorial.basics.intro')}
-                    </p>
-                  </TabsContent>
-                  
-                  <TabsContent value="resources" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">{t('tutorial.resources.title')}</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li><strong>{t('resources.knowledge')}</strong> - {t('tutorial.resources.knowledge')}</li>
-                      <li><strong>{t('resources.usdt')}</strong> - {t('tutorial.resources.usdt')}</li>
-                      <li><strong>{t('resources.electricity')}</strong> - {t('tutorial.resources.electricity')}</li>
-                      <li><strong>{t('resources.computingPower')}</strong> - {t('tutorial.resources.computingPower')}</li>
-                      <li><strong>Репутация</strong> - {t('tutorial.resources.reputation')}</li>
-                    </ul>
-                  </TabsContent>
-                  
-                  <TabsContent value="buildings" className="space-y-4 mt-4">
-                    <h4 className="font-semibold">{t('tutorial.buildings.title')}</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li><strong>{t('buildings.practice')}</strong> - {t('tutorial.buildings.practice')}</li>
-                      <li><strong>{t('buildings.generator')}</strong> - {t('tutorial.buildings.generator')}</li>
-                      <li><strong>{t('buildings.homeComputer')}</strong> - {t('tutorial.buildings.homeComputer')}</li>
-                      <li><strong>{t('buildings.cryptoWallet')}</strong> - {t('tutorial.buildings.cryptoWallet')}</li>
-                      <li><strong>{t('buildings.internetChannel')}</strong> - {t('tutorial.buildings.internetChannel')}</li>
-                    </ul>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-            
             <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
