@@ -20,6 +20,9 @@ export const ru: TranslationsType = {
   'actions.exchangeBitcoin': 'Обменять Bitcoin',
   
   'buildings.title': 'Оборудование',
+  'buildings.empty': 'У вас пока нет доступных зданий.',
+  'buildings.continue': 'Продолжайте накапливать ресурсы, чтобы разблокировать здания.',
+  'buildings.undefined': 'не определена',
   'buildings.practice': 'Практика',
   'buildings.practice.description': 'Автоматически генерирует знания о криптовалютах',
   'buildings.practice.effect': 'Производит +1 знаний/сек',

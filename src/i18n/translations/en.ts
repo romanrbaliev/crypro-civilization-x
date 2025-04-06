@@ -20,6 +20,9 @@ export const en: TranslationsType = {
   'actions.exchangeBitcoin': 'Exchange Bitcoin',
   
   'buildings.title': 'Equipment',
+  'buildings.empty': 'You don\'t have any available buildings yet.',
+  'buildings.continue': 'Continue accumulating resources to unlock buildings.',
+  'buildings.undefined': 'undefined',
   'buildings.practice': 'Practice',
   'buildings.practice.description': 'Automatically generates crypto knowledge',
   'buildings.practice.effect': 'Produces +1 knowledge/sec',

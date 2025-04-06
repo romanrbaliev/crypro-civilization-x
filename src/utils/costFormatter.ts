@@ -1,4 +1,7 @@
 
+import { formatNumber } from './helpers';
+import { useTranslation } from '@/i18n';
+
 /**
  * Форматирует стоимость здания для отображения
  */
@@ -18,26 +21,6 @@ export const formatCost = (cost: any): string => {
       return `${resourceName}: ${formattedAmount}`;
     })
     .join(', ');
-};
-
-/**
- * Форматирует число для удобочитаемого отображения
- */
-export const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(2) + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(2) + 'K';
-  } else if (typeof num === 'number' && num !== Math.floor(num)) {
-    // Для дробных чисел проверяем степень малости
-    if (num < 0.01) {
-      return num.toFixed(8);
-    } else {
-      return num.toFixed(2);
-    }
-  } else {
-    return num.toString();
-  }
 };
 
 /**
