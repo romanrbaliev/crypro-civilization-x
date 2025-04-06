@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { Book, AlarmClock, Timer, BarChart2, Buildings, Zap } from 'lucide-react';
+import { Book, AlarmClock, Timer, BarChart2, Building, Zap } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
@@ -196,7 +196,7 @@ const KnowledgeProductionMonitor: React.FC<{
             
             <div className="bg-slate-100 p-2 rounded">
               <span className="font-medium flex items-center">
-                <Buildings className="h-4 w-4 mr-1 text-blue-500" />
+                <Building className="h-4 w-4 mr-1 text-blue-500" />
                 От зданий:
               </span>
               <div className="text-xs text-gray-500 mt-1">
