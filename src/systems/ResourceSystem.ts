@@ -12,35 +12,53 @@ export class ResourceSystem {
    * @returns Обновленное состояние
    */
   public updateResources(state: GameState, deltaTime: number): GameState {
-    // Создаем копию состояния для безопасного обновления
-    const newState = { ...state };
+    // Создаем глубокую копию состояния для безопасного обновления
+    const newState = {
+      ...state,
+      resources: { ...state.resources }
+    };
     
     // Проверяем все ресурсы и обновляем их значения
     for (const resourceId in newState.resources) {
       if (newState.resources.hasOwnProperty(resourceId)) {
-        const resource = newState.resources[resourceId];
+        const resource = { ...newState.resources[resourceId] };
         
-        // Пропускаем не разблокированные ресурсы или ресурсы без производства
-        if (!resource.unlocked || resource.perSecond === 0) continue;
+        // Пропускаем не разблокированные ресурсы
+        if (!resource.unlocked) continue;
         
-        // Рассчитываем прирост ресурса за прошедшее время
-        const increment = (resource.perSecond * deltaTime) / 1000;
+        // Получаем текущие значения или устанавливаем 0, если не определены
+        const currentValue = resource.value ?? 0;
+        const perSecond = resource.perSecond ?? 0;
+        
+        // Пропускаем ресурсы без производства
+        if (perSecond === 0) continue;
+        
+        // Рассчитываем прирост ресурса за прошедшее время (в секундах)
+        const increment = (perSecond * deltaTime) / 1000;
         
         // Обновляем значение ресурса, не превышая максимум
-        let newValue = (resource.value || 0) + increment;
+        let newValue = currentValue + increment;
         
         // Если есть максимальное значение, ограничиваем им
-        if (resource.max !== undefined && resource.max !== Infinity) {
+        if (resource.max !== undefined && resource.max !== null && resource.max !== Infinity) {
           newValue = Math.min(newValue, resource.max);
         }
         
-        // Обновляем значение ресурса
+        // Обновляем значение ресурса в состоянии
         newState.resources[resourceId] = {
           ...resource,
           value: newValue
         };
+        
+        // Отладочная информация
+        if (increment > 0) {
+          console.log(`Ресурс ${resourceId}: ${currentValue.toFixed(2)} -> ${newValue.toFixed(2)} (+${increment.toFixed(4)})`);
+        }
       }
     }
+    
+    // Обновляем lastUpdate для следующего цикла
+    newState.lastUpdate = Date.now();
     
     return newState;
   }
@@ -49,23 +67,26 @@ export class ResourceSystem {
    * Обновляет максимальные значения ресурсов на основе построенных зданий
    */
   public updateResourceMaxValues(state: GameState): GameState {
-    const newState = { ...state };
+    const newState = { ...state, resources: { ...state.resources } };
     
     // Базовые значения максимумов
     const baseMaxValues: Record<string, number> = {
       knowledge: 100,
       usdt: 50,
+      bitcoin: 1,
+      electricity: 100,
+      computingPower: 50
     };
     
     // Применяем базовые значения
     for (const resourceId in baseMaxValues) {
       if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
         // Сохраняем текущее значение ресурса
-        const currentValue = newState.resources[resourceId].value || 0;
+        const resource = { ...newState.resources[resourceId] };
         
         // Устанавливаем базовое максимальное значение
         newState.resources[resourceId] = {
-          ...newState.resources[resourceId],
+          ...resource,
           max: baseMaxValues[resourceId]
         };
       }
@@ -79,13 +100,14 @@ export class ResourceSystem {
       if (!building.count || building.count <= 0) continue;
       
       // Получаем бонусы max ресурсов для здания, если они существуют
-      const maxResourcesBonus = (building as any).maxResourcesBonus as Record<string, number> | undefined;
+      const maxResourcesBonus = building.maxResourcesBonus as Record<string, number> | undefined;
       
       if (maxResourcesBonus) {
         for (const resourceId in maxResourcesBonus) {
           if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
             // Текущий максимум ресурса
-            const currentMax = newState.resources[resourceId].max || 0;
+            const resource = { ...newState.resources[resourceId] };
+            const currentMax = resource.max || baseMaxValues[resourceId] || 0;
             
             // Добавляем бонус от здания, умноженный на количество зданий
             const buildingBonus = maxResourcesBonus[resourceId] * building.count;
@@ -93,7 +115,7 @@ export class ResourceSystem {
             
             // Обновляем максимальное значение
             newState.resources[resourceId] = {
-              ...newState.resources[resourceId],
+              ...resource,
               max: newMax
             };
           }
@@ -109,13 +131,14 @@ export class ResourceSystem {
       if (!upgrade.purchased) continue;
       
       // Получаем бонусы max ресурсов для улучшения, если они существуют
-      const maxResourcesBonus = (upgrade as any).maxResourcesBonus as Record<string, number> | undefined;
+      const maxResourcesBonus = upgrade.maxResourcesBonus as Record<string, number> | undefined;
       
       if (maxResourcesBonus) {
         for (const resourceId in maxResourcesBonus) {
           if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
             // Текущий максимум ресурса
-            const currentMax = newState.resources[resourceId].max || 0;
+            const resource = { ...newState.resources[resourceId] };
+            const currentMax = resource.max || baseMaxValues[resourceId] || 0;
             
             // Рассчитываем новый максимум
             let newMax: number;
@@ -130,7 +153,7 @@ export class ResourceSystem {
             
             // Обновляем максимальное значение
             newState.resources[resourceId] = {
-              ...newState.resources[resourceId],
+              ...resource,
               max: newMax
             };
           }

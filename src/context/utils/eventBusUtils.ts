@@ -59,7 +59,7 @@ export const gameEventBus = new GameEventBus();
 export const ensureGameEventBus = (): GameEventBus => {
   if (typeof window !== 'undefined') {
     if (!window.gameEventBus) {
-      window.gameEventBus = gameEventBus;
+      window.gameEventBus = new GameEventBus();
       console.log('✅ Шина событий игры создана и подключена к window');
     }
     return window.gameEventBus;

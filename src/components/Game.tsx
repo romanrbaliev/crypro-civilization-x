@@ -9,12 +9,14 @@ import { checkSupabaseConnection } from '@/api/connectionUtils';
 import { useGameLoader } from '@/hooks/useGameLoader';
 import { useGameSaveEvents } from '@/hooks/useGameSaveEvents';
 import { useUnlockChecker } from '@/hooks/useUnlockChecker';
+import { useResourceSystem } from '@/hooks/useResourceSystem';
 
 const Game: React.FC = () => {
   const { state, dispatch } = useGame();
   const navigate = useNavigate();
   const [hasConnection, setHasConnection] = useState<boolean>(true);
   const [loadingMessage, setLoadingMessage] = useState<string>('Загрузка...');
+  const { updateResources } = useResourceSystem();
   
   // Используем хук для загрузки игры
   const { 
@@ -61,22 +63,26 @@ const Game: React.FC = () => {
   useEffect(() => {
     if (!state.gameStarted || isLoading) return;
     
-    const updateResources = () => {
+    const updateGameResources = () => {
       const now = Date.now();
-      const deltaTime = (now - state.lastUpdate) / 1000;
+      const deltaTime = now - state.lastUpdate;
       
-      if (deltaTime >= 0.1) {
-        dispatch({ type: 'UPDATE_RESOURCES', payload: { deltaTime } });
+      if (deltaTime >= 100) { // Минимальный интервал 100мс для обновления
+        // Используем функцию из ResourceSystem для обновления ресурсов
+        updateResources(deltaTime);
+        
+        // Отладочная информация
+        console.log(`Игровой цикл: прошло ${deltaTime}мс, обновляем ресурсы`);
       }
     };
     
     // Обновляем ресурсы каждые 100ms
-    const intervalId = setInterval(updateResources, 100);
+    const intervalId = setInterval(updateGameResources, 100);
     
     return () => {
       clearInterval(intervalId);
     };
-  }, [state.gameStarted, state.lastUpdate, isLoading, dispatch]);
+  }, [state.gameStarted, state.lastUpdate, isLoading, dispatch, updateResources]);
   
   // Если игра загружается, показываем экран загрузки
   if (isLoading) {

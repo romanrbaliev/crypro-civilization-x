@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { ResourceFormatter } from '@/formatters/ResourceFormatter';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 /**
  * Хук для работы с системой ресурсов
@@ -18,7 +19,23 @@ export const useResourceSystem = () => {
    */
   const updateResources = useCallback((deltaTime: number) => {
     const updatedState = resourceSystem.updateResources(state, deltaTime);
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+    
+    // Отправляем событие только если есть фактические изменения в ресурсах
+    const hasChanges = Object.keys(updatedState.resources).some(
+      resId => updatedState.resources[resId].value !== state.resources[resId].value
+    );
+    
+    if (hasChanges) {
+      // Обновляем состояние через диспетчер
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+      
+      // Выводим отладочную информацию
+      console.log(`Ресурсы обновлены после ${deltaTime}мс`, 
+        Object.entries(updatedState.resources)
+          .filter(([_, r]) => r.unlocked)
+          .map(([id, r]) => `${id}: ${r.value?.toFixed(2)} (+${r.perSecond?.toFixed(2)}/сек)`)
+      );
+    }
   }, [state, dispatch, resourceSystem]);
   
   /**
@@ -77,7 +94,13 @@ export const useResourceSystem = () => {
       type: 'INCREMENT_RESOURCE',
       payload: { resourceId, amount }
     });
-  }, [dispatch]);
+    
+    // Отправляем событие об изменении ресурса
+    safeDispatchGameEvent({
+      message: `Получено: ${formatValue(amount, resourceId)} ${state.resources[resourceId]?.name || resourceId}`,
+      type: 'info'
+    });
+  }, [dispatch, formatValue, state.resources]);
   
   /**
    * Разблокирует ресурс
@@ -88,7 +111,13 @@ export const useResourceSystem = () => {
       type: 'UNLOCK_RESOURCE',
       payload: { resourceId }
     });
-  }, [dispatch]);
+    
+    // Отправляем событие о разблокировке ресурса
+    safeDispatchGameEvent({
+      message: `Разблокирован новый ресурс: ${state.resources[resourceId]?.name || resourceId}!`,
+      type: 'success'
+    });
+  }, [dispatch, state.resources]);
   
   return {
     updateResources,
