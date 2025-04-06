@@ -1,31 +1,26 @@
 
 import { GameState } from '@/context/types';
-import { PurchasableType } from '@/types/purchasable';
+import { checkAffordability } from './checkAffordability';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { updateResourceMaxValues } from '@/utils/resourceUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
+import { EffectsManager } from '@/services/EffectsManager';
+import { PurchasableType } from '@/types/purchasable';
+import { ResourceSystem } from '@/systems/ResourceSystem';
 
-// Опции для функции processPurchase
-interface PurchaseOptions {
-  calculateMaxValues?: boolean;
-  skipUnlockCheck?: boolean;
-}
+// Создаем экземпляр ResourceSystem для проверки доступности ресурсов
+const resourceSystem = new ResourceSystem();
 
 /**
- * Универсальная функция для обработки покупок предметов
+ * Унифицированная функция для обработки покупок зданий и исследований
  */
-export const processPurchase = (
+export function processPurchase(
   state: GameState, 
-  payload: { 
-    itemId: string; 
-    itemType: PurchasableType;
-    quantity: number;
-  },
-  options: PurchaseOptions = {}
-): GameState => {
-  const { itemId, itemType, quantity = 1 } = payload;
-  const { calculateMaxValues = true, skipUnlockCheck = false } = options;
-  
+  payload: { itemId: string, itemType: PurchasableType }
+): GameState {
+  const { itemId, itemType } = payload;
+  console.log(`Обработка покупки ${itemType} с ID ${itemId}`);
+
+  // Определение типа покупаемого элемента
   let item;
   if (itemType === 'building') {
     item = state.buildings[itemId];
@@ -35,43 +30,42 @@ export const processPurchase = (
     console.error(`Неизвестный тип элемента: ${itemType}`);
     return state;
   }
-  
+
+  // Проверка существования элемента
   if (!item) {
     console.error(`Элемент с ID ${itemId} не найден в категории ${itemType}`);
     return state;
   }
-  
+
   // Для исследований проверяем, что оно еще не куплено
   if ((itemType === 'upgrade' || itemType === 'research') && item.purchased) {
     console.log(`Исследование ${item.name} уже куплено`);
     return state;
   }
-  
-  // Проверка наличия ресурсов для покупки
-  for (const [resourceId, amount] of Object.entries(item.cost)) {
-    const resource = state.resources[resourceId];
-    if (!resource || resource.value < Number(amount)) {
-      console.log(`Недостаточно ресурсов для покупки ${item.name}`);
-      return state;
-    }
+
+  // Проверка валидности объекта стоимости
+  if (!item.cost || typeof item.cost !== 'object' || Object.keys(item.cost).length === 0) {
+    console.error(`Элемент ${itemId} имеет некорректную стоимость`, item.cost);
+    return state;
   }
-  
-  // Создаем копию состояния
-  let newState = { ...state };
-  const resources = { ...state.resources };
-  
+
+  // Проверка наличия ресурсов для покупки
+  if (!resourceSystem.checkAffordability(state, item.cost)) {
+    console.log(`Недостаточно ресурсов для покупки ${item.name}`);
+    return state;
+  }
+
+  // Создаем копию состояния для модификации
+  let updatedState = { ...state };
+
   // Списываем ресурсы
   for (const [resourceId, amount] of Object.entries(item.cost)) {
-    if (resources[resourceId]) {
-      resources[resourceId] = {
-        ...resources[resourceId],
-        value: Math.max(0, resources[resourceId].value - Number(amount))
-      };
-    }
+    updatedState.resources[resourceId] = {
+      ...updatedState.resources[resourceId],
+      value: updatedState.resources[resourceId].value - Number(amount)
+    };
   }
-  
-  newState.resources = resources;
-  
+
   // Обработка покупки в зависимости от типа
   if (itemType === 'building') {
     // Рассчитываем новую стоимость здания
@@ -79,57 +73,84 @@ export const processPurchase = (
     for (const [resourceId, amount] of Object.entries(item.cost)) {
       newCost[resourceId] = Math.floor(Number(amount) * item.costMultiplier);
     }
-    
+
     // Обновляем здание
-    newState = {
-      ...newState,
-      buildings: {
-        ...newState.buildings,
-        [itemId]: {
-          ...item,
-          count: item.count + quantity,
-          cost: newCost
-        }
-      }
+    updatedState.buildings[itemId] = {
+      ...item,
+      count: item.count + 1,
+      cost: newCost
     };
+
+    // Обновляем счетчики для определенных зданий
+    updateBuildingCounters(updatedState, itemId);
+
+    // Отправляем уведомление
+    safeDispatchGameEvent({
+      messageKey: 'event.buildingPurchased',
+      type: 'success',
+      params: { name: item.name }
+    });
     
-    // Обновляем счетчики
-    if (itemId === 'practice' && newState.counters?.practiceBuilt) {
-      newState = {
-        ...newState,
-        counters: {
-          ...newState.counters,
-          practiceBuilt: {
-            ...newState.counters.practiceBuilt,
-            value: newState.counters.practiceBuilt.value + quantity
-          }
-        }
-      };
-    }
-    
+    console.log(`Куплено здание ${item.name}. Обновляем производство...`);
+
   } else if (itemType === 'upgrade' || itemType === 'research') {
     // Отмечаем улучшение как купленное
-    newState = {
-      ...newState,
-      upgrades: {
-        ...newState.upgrades,
-        [itemId]: {
-          ...item,
-          purchased: true
-        }
-      }
+    updatedState.upgrades[itemId] = {
+      ...item,
+      purchased: true
+    };
+
+    // Применяем эффекты от улучшения
+    if (item.effects) {
+      updatedState = EffectsManager.applyEffects(updatedState, item.effects);
+    }
+
+    // Отправляем уведомление
+    safeDispatchGameEvent({
+      messageKey: 'event.upgradeCompleted',
+      type: 'success',
+      params: { name: item.name }
+    });
+    
+    console.log(`Исследование ${item.name} завершено. Обновляем эффекты...`);
+  }
+
+  // Пересчитываем максимальные значения ресурсов
+  updatedState = resourceSystem.updateResourceMaxValues(updatedState);
+
+  // Принудительно обновляем всю информацию о производстве ресурсов
+  console.log("Принудительный пересчет производства после покупки");
+  updatedState = resourceSystem.recalculateAllResourceProduction(updatedState);
+  
+  console.log("После покупки: пересчитываем все unlock-и");
+  
+  // Проверяем и обновляем все разблокировки
+  return checkAllUnlocks(updatedState);
+}
+
+/**
+ * Обновляет счетчики построенных зданий
+ */
+function updateBuildingCounters(state: GameState, buildingId: string): void {
+  if (buildingId === 'practice') {
+    state.counters.practiceBuilt = {
+      id: 'practiceBuilt',
+      value: (state.counters.practiceBuilt?.value || 0) + 1
+    };
+  } else if (buildingId === 'generator') {
+    state.counters.generatorBuilt = {
+      id: 'generatorBuilt',
+      value: (state.counters.generatorBuilt?.value || 0) + 1
+    };
+  } else if (buildingId === 'homeComputer') {
+    state.counters.computerBuilt = {
+      id: 'computerBuilt',
+      value: (state.counters.computerBuilt?.value || 0) + 1
+    };
+  } else if (buildingId === 'cryptoWallet') {
+    state.counters.walletBuilt = {
+      id: 'walletBuilt',
+      value: (state.counters.walletBuilt?.value || 0) + 1
     };
   }
-  
-  // Обновляем максимальные значения ресурсов, если нужно
-  if (calculateMaxValues) {
-    newState = updateResourceMaxValues(newState);
-  }
-  
-  // Проверяем разблокировки, если нужно
-  if (!skipUnlockCheck) {
-    newState = checkAllUnlocks(newState);
-  }
-  
-  return newState;
-};
+}

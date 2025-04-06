@@ -1,54 +1,84 @@
 
-import { GameState } from '@/context/types';
+// Базовые функции для расчета ресурсов
+import { GameState } from "@/context/types";
+import { BuildingProductionCalculationService } from "@/services/BuildingProductionCalculationService";
+import { UpgradeEffectsCalculationService } from "@/services/UpgradeEffectsCalculationService";
 
-// Функция расчета производства ресурса
-export const calculateProductionRate = (state: GameState, resourceId: string): number => {
-  let productionRate = 0;
-  
-  // Расчет базового производства от зданий
+/**
+ * Вычисляет общую скорость производства для заданного ресурса
+ * @param resourceId ID ресурса
+ * @param state Игровое состояние
+ * @returns Скорость производства в единицах/сек
+ */
+export const calculateResourceProductionRate = (resourceId: string, state: GameState): number => {
+  let production = 0;
+
+  // Учитываем базовое производство ресурса
+  if (state.resources[resourceId]) {
+    production += state.resources[resourceId].baseProduction || 0;
+  }
+
+  // Учитываем производство от зданий
   for (const buildingId in state.buildings) {
     const building = state.buildings[buildingId];
-    if (building.production && building.production[resourceId]) {
-      productionRate += building.production[resourceId] * building.count;
+    if (building.count > 0 && building.production && building.production[resourceId]) {
+      const buildingProduction = building.production[resourceId] * building.count;
+      production += buildingProduction;
     }
   }
-  
-  // Применение бонусов от исследований
-  for (const upgradeId in state.upgrades) {
-    const upgrade = state.upgrades[upgradeId];
-    if (upgrade.purchased && upgrade.effects) {
-      // Используем effects вместо productionMultiplier
-      if (upgrade.effects.productionBoost && upgrade.effects.productionBoost[resourceId]) {
-        productionRate *= 1 + (upgrade.effects.productionBoost[resourceId] / 100);
-      }
-    }
+
+  // Применяем модификаторы от улучшений, если доступен сервис
+  const upgradeModifiers = UpgradeEffectsCalculationService.calculateUpgradeProductionModifiers(state);
+  if (upgradeModifiers[resourceId]) {
+    production *= upgradeModifiers[resourceId];
   }
-  
-  return productionRate;
+
+  return production;
 };
 
-// Функция расчета потребления ресурса
-export const calculateConsumptionRate = (state: GameState, resourceId: string): number => {
-  let consumptionRate = 0;
-  
-  // Расчет потребления от зданий
+/**
+ * Вычисляет общую скорость потребления для заданного ресурса
+ * @param resourceId ID ресурса
+ * @param state Игровое состояние
+ * @returns Скорость потребления в единицах/сек
+ */
+export const calculateResourceConsumptionRate = (resourceId: string, state: GameState): number => {
+  let consumption = 0;
+
+  // Учитываем потребление от зданий
   for (const buildingId in state.buildings) {
     const building = state.buildings[buildingId];
-    if (building.consumption && building.consumption[resourceId]) {
-      consumptionRate += building.consumption[resourceId] * building.count;
+    if (building.count > 0 && building.consumption && building.consumption[resourceId]) {
+      const buildingConsumption = building.consumption[resourceId] * building.count;
+      consumption += buildingConsumption;
     }
   }
+
+  // Применяем модификаторы от улучшений
+  const upgradeModifiers = UpgradeEffectsCalculationService.calculateUpgradeConsumptionModifiers(state);
+  if (upgradeModifiers[resourceId]) {
+    consumption *= upgradeModifiers[resourceId];
+  }
+
+  return consumption;
+};
+
+/**
+ * Вычисляет максимальную вместимость для заданного ресурса
+ * @param resourceId ID ресурса
+ * @param state Игровое состояние
+ * @returns Максимальная вместимость
+ */
+export const calculateResourceMaxCapacity = (resourceId: string, state: GameState): number => {
+  let maxCapacity = 100; // Базовое значение максимальной вместимости
   
-  // Применение бонусов от исследований
-  for (const upgradeId in state.upgrades) {
-    const upgrade = state.upgrades[upgradeId];
-    if (upgrade.purchased && upgrade.effects) {
-      // Используем effects вместо consumptionMultiplier
-      if (upgrade.effects.consumptionReduction && upgrade.effects.consumptionReduction[resourceId]) {
-        consumptionRate *= 1 - (upgrade.effects.consumptionReduction[resourceId] / 100);
-      }
-    }
+  // Если у ресурса уже есть максимальное значение, используем его
+  if (state.resources[resourceId] && state.resources[resourceId].max) {
+    maxCapacity = state.resources[resourceId].max;
   }
   
-  return consumptionRate;
+  // Применяем бонусы от зданий, улучшений и т.д.
+  // Добавим более подробную реализацию позже
+  
+  return maxCapacity;
 };

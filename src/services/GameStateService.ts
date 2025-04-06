@@ -1,21 +1,60 @@
 
-import { GameState } from '@/context/types';
-import { updateResourceMaxValues } from '@/utils/resourceUtils';
+import { GameState } from '../context/types';
+import { checkAllUnlocks } from '@/utils/unlockManager';
+import { EffectService } from './EffectService';
+import { ResourceSystem } from '@/systems/ResourceSystem';
 
-/**
- * Сервис для работы с состоянием игры
- */
 export class GameStateService {
-  /**
-   * Выполняет полную синхронизацию состояния игры
-   * Обновляет максимальные значения ресурсов и другие зависимые параметры
-   */
-  performFullStateSync(state: GameState): GameState {
-    let updatedState = { ...state };
+  private effectService: EffectService;
+  private resourceSystem: ResourceSystem;
+  
+  constructor() {
+    this.effectService = new EffectService();
+    this.resourceSystem = new ResourceSystem();
+  }
+  
+  processGameStateUpdate(state: GameState, deltaTime?: number): GameState {
+    // Создаем копию состояния для безопасного обновления
+    let newState = { ...state };
+    
+    // Если deltaTime не передан, расчитываем его на основе lastUpdate
+    const actualDeltaTime = deltaTime || (Date.now() - newState.lastUpdate);
+    
+    // Обновляем timestamp последнего обновления
+    newState.lastUpdate = Date.now();
+    
+    // Обновляем ресурсы на основе прошедшего времени
+    newState = this.resourceSystem.updateResources(newState, actualDeltaTime);
     
     // Обновляем максимальные значения ресурсов
-    updatedState = updateResourceMaxValues(updatedState);
+    newState = this.resourceSystem.updateResourceMaxValues(newState);
     
-    return updatedState;
+    // Добавляем эффекты от зданий
+    newState = this.effectService.addBuildingEffects(newState);
+    
+    // Обновляем эффекты потребления ресурсов
+    newState = this.effectService.updateConsumptionEffects(newState);
+    
+    // Проверяем все разблокировки
+    newState = checkAllUnlocks(newState);
+    
+    return newState;
+  }
+  
+  performFullStateSync(state: GameState): GameState {
+    // Полное обновление состояния
+    let newState = { ...state };
+    
+    // Обновляем timestamp последнего обновления и сохранения
+    newState.lastUpdate = Date.now();
+    newState.lastSaved = Date.now();
+    
+    // Производим полное обновление состояния
+    newState = this.processGameStateUpdate(newState);
+    
+    // Форсированно проверяем все разблокировки
+    newState = checkAllUnlocks(newState);
+    
+    return newState;
   }
 }
