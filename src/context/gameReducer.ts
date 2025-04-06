@@ -14,7 +14,7 @@ import {
   processDebugAddResources
 } from './reducers/actionsReducer';
 import { processBuildingPurchase } from './reducers/building';
-import { processResearchUpgrade } from './reducers/upgradeReducer';
+import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 
 // Импорт вспомогательных функций
 import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
@@ -64,7 +64,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return processBuildingPurchase(newState, action.payload);
     
     case 'RESEARCH_UPGRADE':
-      return processResearchUpgrade(newState, action.payload);
+    case 'PURCHASE_UPGRADE':
+      return processPurchaseUpgrade(newState, action.payload);
     
     case 'LOAD_GAME':
       return { ...newState, ...action.payload };
