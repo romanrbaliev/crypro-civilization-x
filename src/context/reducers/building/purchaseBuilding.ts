@@ -59,8 +59,8 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       if (newState.resources[resourceId]) {
         newState.resources[resourceId] = {
           ...newState.resources[resourceId],
-          productionRate: (newState.resources[resourceId].productionRate || 0) + 
-                          Number(amount) * productionMultiplier
+          production: (newState.resources[resourceId].production || 0) + 
+                      Number(amount) * productionMultiplier
         };
       }
     }
