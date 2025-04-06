@@ -1,505 +1,381 @@
 
-import { GameState, Resource, Building, Upgrade, ResourceType } from '@/context/types';
+import { GameState, Resource } from '@/context/types';
+import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
 /**
- * Система управления ресурсами
+ * Унифицированная система управления ресурсами
  */
 export class ResourceSystem {
-  // Кэш для расчетов, чтобы избежать повторных вычислений
-  private cache = {
-    maxValues: new Map<string, number>(),
-    productionRates: new Map<string, number>(),
-    consumptionRates: new Map<string, number>(),
-    lastState: null as GameState | null,
-    cacheExpiry: 0
-  };
-  
+  private cache: Map<string, any> = new Map();
+  private lastUpdateTimestamp: number = 0;
+
   /**
    * Обновляет ресурсы на основе прошедшего времени
-   * @param state Игровое состояние
+   * @param state Текущее состояние игры
    * @param deltaTime Прошедшее время в миллисекундах
    * @returns Обновленное состояние
    */
   public updateResources(state: GameState, deltaTime: number): GameState {
-    try {
-      // Создаем глубокую копию состояния для безопасного обновления
-      const newState = {
-        ...state,
-        resources: { ...state.resources }
-      };
+    // Валидация и обновление кэша
+    this.validateCache(state);
+    
+    // Копируем состояние для безопасного обновления
+    let newState = { ...state };
+    const resources = { ...state.resources };
+    
+    // Рассчитываем производство и потребление для каждого ресурса
+    const resourceRates = this.calculateResourceRates(state);
+    
+    // Обновляем значения ресурсов на основе прошедшего времени и их производства
+    for (const resourceId in resources) {
+      const resource = resources[resourceId];
       
-      // Очень маленькие deltaTime могут привести к ошибкам округления, пропускаем
-      if (deltaTime < 1) return newState;
-      
-      // Пакетная обработка ресурсов для повышения производительности
-      const resourcesNeedingUpdate: string[] = [];
-      
-      // Сначала определяем ресурсы, которые нужно обновить
-      for (const resourceId in newState.resources) {
-        if (newState.resources.hasOwnProperty(resourceId)) {
-          const resource = newState.resources[resourceId];
-          
-          // Пропускаем не разблокированные ресурсы
-          if (!resource.unlocked) continue;
-          
-          // Получаем текущие значения или устанавливаем 0, если не определены
-          const perSecond = resource.perSecond ?? 0;
-          
-          // Пропускаем ресурсы без производства/потребления
-          if (perSecond === 0) continue;
-          
-          resourcesNeedingUpdate.push(resourceId);
-        }
-      }
-      
-      // Затем обновляем только необходимые ресурсы
-      for (const resourceId of resourcesNeedingUpdate) {
-        const resource = { ...newState.resources[resourceId] };
-        const currentValue = resource.value ?? 0;
-        const perSecond = resource.perSecond ?? 0;
+      if (resource.unlocked && resourceRates[resourceId]) {
+        const perSecond = resourceRates[resourceId].production - resourceRates[resourceId].consumption;
         
-        // Рассчитываем прирост ресурса за прошедшее время (в секундах)
-        const increment = (perSecond * deltaTime) / 1000;
-        
-        // Обновляем значение ресурса, не превышая максимум
-        let newValue = currentValue + increment;
-        
-        // Если есть максимальное значение, ограничиваем им
-        if (resource.max !== undefined && resource.max !== null && resource.max !== Infinity) {
-          newValue = Math.min(newValue, resource.max);
-        }
-        
-        // Отладочная информация для значительных изменений
-        if (Math.abs(increment) > 0.1 && Math.random() < 0.01) {
-          console.log(`[ResourceDebug] Обновление ${resourceId}: ${currentValue.toFixed(2)} -> ${newValue.toFixed(2)}, прирост: ${increment.toFixed(2)}, perSecond: ${perSecond.toFixed(2)}`);
-        }
-        
-        // Обновляем значение ресурса в состоянии
-        newState.resources[resourceId] = {
+        // Обновляем perSecond в ресурсе
+        resources[resourceId] = {
           ...resource,
-          value: newValue
+          production: resourceRates[resourceId].production,
+          consumption: resourceRates[resourceId].consumption,
+          perSecond: perSecond
         };
+        
+        if (perSecond !== 0) {
+          // Рассчитываем новое значение с учетом производства в секунду и прошедшего времени
+          const increment = perSecond * (deltaTime / 1000);
+          const newValue = resource.value + increment;
+          
+          // Проверяем, не было ли ресурса раньше и не заполнился ли он сейчас
+          const wasFull = resource.value >= resource.max && resource.max > 0;
+          const willBeFull = newValue >= resource.max && resource.max > 0;
+          
+          // Обновляем значение ресурса, не превышая максимум
+          resources[resourceId] = {
+            ...resources[resourceId],
+            value: resource.max > 0 ? Math.min(newValue, resource.max) : newValue
+          };
+          
+          // Генерируем события при необходимости
+          if (!wasFull && willBeFull) {
+            this.emitResourceFull(resourceId, resource.name);
+          }
+        }
       }
-      
-      return newState;
-    } catch (error) {
-      console.error('[ResourceSystem] Ошибка при обновлении ресурсов:', error);
-      // Возвращаем исходное состояние в случае ошибки
-      return state;
     }
+    
+    newState.resources = resources;
+    return newState;
   }
-  
+
   /**
-   * Обновляет максимальные значения ресурсов на основе построенных зданий
+   * Рассчитывает производство и потребление для всех ресурсов
+   * @param state Текущее состояние игры
+   * @returns Объект с производством и потреблением для каждого ресурса
+   */
+  private calculateResourceRates(state: GameState): Record<string, { production: number, consumption: number }> {
+    const cacheKey = `resource_rates_${state.lastUpdate}`;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
+    const resourceRates: Record<string, { production: number, consumption: number }> = {};
+    
+    // Инициализируем ставки для всех ресурсов
+    for (const resourceId in state.resources) {
+      resourceRates[resourceId] = { 
+        production: state.resources[resourceId].baseProduction || 0, 
+        consumption: 0 
+      };
+    }
+    
+    // Рассчитываем производство и потребление от зданий
+    for (const buildingId in state.buildings) {
+      const building = state.buildings[buildingId];
+      if (building.count > 0) {
+        // Учитываем производство
+        if (building.production) {
+          for (const resourceId in building.production) {
+            if (!resourceRates[resourceId]) {
+              resourceRates[resourceId] = { production: 0, consumption: 0 };
+            }
+            resourceRates[resourceId].production += building.production[resourceId] * building.count;
+          }
+        }
+        
+        // Учитываем потребление
+        if (building.consumption) {
+          for (const resourceId in building.consumption) {
+            if (!resourceRates[resourceId]) {
+              resourceRates[resourceId] = { production: 0, consumption: 0 };
+            }
+            resourceRates[resourceId].consumption += building.consumption[resourceId] * building.count;
+          }
+        }
+      }
+    }
+    
+    // Применяем модификаторы от улучшений
+    for (const upgradeId in state.upgrades) {
+      const upgrade = state.upgrades[upgradeId];
+      if (upgrade.purchased && upgrade.effects) {
+        // Бонусы к производству
+        if (upgrade.effects.productionBoost) {
+          for (const resourceId in upgrade.effects.productionBoost) {
+            if (resourceRates[resourceId]) {
+              const boost = upgrade.effects.productionBoost[resourceId];
+              resourceRates[resourceId].production *= (1 + boost);
+            }
+          }
+        }
+        
+        // Уменьшение потребления
+        if (upgrade.effects.consumptionReduction) {
+          for (const resourceId in upgrade.effects.consumptionReduction) {
+            if (resourceRates[resourceId]) {
+              const reduction = upgrade.effects.consumptionReduction[resourceId];
+              resourceRates[resourceId].consumption *= (1 - reduction);
+            }
+          }
+        }
+      }
+    }
+    
+    this.cache.set(cacheKey, resourceRates);
+    return resourceRates;
+  }
+
+  /**
+   * Обновляет максимальные значения ресурсов на основе зданий и улучшений
+   * @param state Текущее состояние игры
+   * @returns Обновленное состояние
    */
   public updateResourceMaxValues(state: GameState): GameState {
-    try {
-      // Используем кэш, если состояние не изменилось существенно
-      if (this.cache.lastState === state && Date.now() < this.cache.cacheExpiry) {
-        // Применяем кэшированные значения
-        const newState = { ...state, resources: { ...state.resources } };
-        
-        for (const [resourceId, maxValue] of this.cache.maxValues.entries()) {
-          if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-            newState.resources[resourceId] = {
-              ...newState.resources[resourceId],
-              max: maxValue
-            };
-          }
-        }
-        
-        return newState;
-      }
-      
-      // Создаем новое состояние
-      const newState = { ...state, resources: { ...state.resources } };
-      
-      // Очищаем кэш максимальных значений
-      this.cache.maxValues.clear();
-      
-      // Базовые значения максимумов
-      const baseMaxValues: Record<string, number> = {
-        knowledge: 100,
-        usdt: 50,
-        bitcoin: 0.01,
-        electricity: 100,
-        computingPower: 50
-      };
-      
-      // Для каждого ресурса сначала устанавливаем базовые значения
-      for (const resourceId in baseMaxValues) {
-        if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-          // Сохраняем текущие свойства ресурса
-          const resource = { ...newState.resources[resourceId] };
-          
-          // Устанавливаем базовое максимальное значение
-          resource.max = baseMaxValues[resourceId];
-          
-          // Обновляем ресурс в состоянии
-          newState.resources[resourceId] = resource;
-          
-          // Кэшируем базовое значение
-          this.cache.maxValues.set(resourceId, baseMaxValues[resourceId]);
-        }
-      }
-      
-      // Применяем бонусы от зданий к максимальным значениям
-      for (const buildingId in newState.buildings) {
-        const building = newState.buildings[buildingId];
-        
-        // Пропускаем не построенные здания
-        if (!building.count || building.count <= 0) continue;
-        
-        // Получаем бонусы max ресурсов для здания, если они существуют в эффектах
-        if (building.effects) {
-          for (const effectKey in building.effects) {
-            // Проверяем, относится ли эффект к максимуму ресурса
-            if (effectKey.includes('max') && effectKey.includes('Boost')) {
-              const resourcePart = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
-              const resourceId = this.normalizeResourceId(resourcePart);
-              
-              if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-                // Текущий максимум ресурса
-                const resource = { ...newState.resources[resourceId] };
-                
-                // Добавляем бонус от здания, умноженный на количество зданий
-                const buildingBonus = Number(building.effects[effectKey]) * building.count;
-                
-                // Обновляем максимальное значение
-                resource.max += buildingBonus;
-                
-                // Обновляем ресурс в состоянии
-                newState.resources[resourceId] = resource;
-                
-                // Обновляем кэш
-                this.cache.maxValues.set(resourceId, resource.max);
-              }
-            }
-          }
-        }
-      }
-      
-      // Применяем бонусы от улучшений к максимальным значениям
-      for (const upgradeId in newState.upgrades) {
-        const upgrade = newState.upgrades[upgradeId];
-        
-        // Пропускаем не приобретенные улучшения
-        if (!upgrade.purchased) continue;
-        
-        // Применяем эффекты улучшения
-        if (upgrade.effects) {
-          for (const effectKey in upgrade.effects) {
-            // Проверяем, относится ли эффект к максимуму ресурса
-            if (effectKey.includes('max') && effectKey.includes('Boost')) {
-              const resourcePart = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
-              const resourceId = this.normalizeResourceId(resourcePart);
-              
-              if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-                // Текущий максимум ресурса
-                const resource = { ...newState.resources[resourceId] };
-                const effectValue = Number(upgrade.effects[effectKey]);
-                
-                // Если эффект процентный (>= 1.0)
-                if (effectValue >= 1.0) {
-                  resource.max = Math.floor(resource.max * effectValue);
-                } else {
-                  // Абсолютное значение
-                  resource.max += effectValue;
-                }
-                
-                // Обновляем ресурс в состоянии
-                newState.resources[resourceId] = resource;
-                
-                // Обновляем кэш
-                this.cache.maxValues.set(resourceId, resource.max);
-              }
-            }
-          }
-        }
-      }
-      
-      // Обновляем кэш
-      this.cache.lastState = newState;
-      this.cache.cacheExpiry = Date.now() + 5000; // Кэш действителен 5 секунд
-      
-      return newState;
-    } catch (error) {
-      console.error('[ResourceSystem] Ошибка при обновлении максимальных значений ресурсов:', error);
-      return state;
+    const cacheKey = `resource_max_values_${state.lastUpdate}`;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
     }
-  }
-  
-  /**
-   * Нормализует ID ресурса из названия эффекта
-   */
-  private normalizeResourceId(resourcePart: string): string {
-    // Маппинг для преобразования частей эффектов в корректные ID ресурсов
-    const resourceIdMap: Record<string, string> = {
-      'knowledge': 'knowledge',
-      'usdt': 'usdt',
-      'bitcoin': 'bitcoin',
-      'electricity': 'electricity',
-      'computingpower': 'computingPower',
-      'computing': 'computingPower'
+    
+    // Копируем состояние для безопасного обновления
+    let newState = { ...state };
+    const resources = { ...state.resources };
+    
+    // Базовые максимальные значения
+    const baseMaxValues = {
+      knowledge: 100,
+      usdt: 50,
+      electricity: 100,
+      computingPower: 1000,
+      bitcoin: 0.01
     };
     
-    return resourceIdMap[resourcePart] || resourcePart;
+    // Расчет бонусов к максимальным значениям
+    const maxBoosts: Record<string, number> = {};
+    for (const resourceId in baseMaxValues) {
+      maxBoosts[resourceId] = 0;
+    }
+    
+    // Бонусы от зданий
+    for (const buildingId in state.buildings) {
+      const building = state.buildings[buildingId];
+      if (building.count > 0 && building.effects) {
+        for (const resourceId in baseMaxValues) {
+          const boostKey = `${resourceId}MaxBoost`;
+          if (building.effects[boostKey]) {
+            maxBoosts[resourceId] += Number(building.effects[boostKey]) * building.count;
+          }
+        }
+      }
+    }
+    
+    // Бонусы от улучшений
+    for (const upgradeId in state.upgrades) {
+      const upgrade = state.upgrades[upgradeId];
+      if (upgrade.purchased && upgrade.effects) {
+        for (const resourceId in baseMaxValues) {
+          const boostKey = `${resourceId}MaxBoost`;
+          if (upgrade.effects[boostKey]) {
+            maxBoosts[resourceId] += Number(upgrade.effects[boostKey]);
+          }
+        }
+      }
+    }
+    
+    // Применяем бонусы к базовым значениям
+    for (const resourceId in baseMaxValues) {
+      if (resources[resourceId]) {
+        // Для процентных бонусов (например, к knowledge)
+        if (resourceId === 'knowledge') {
+          resources[resourceId] = {
+            ...resources[resourceId],
+            max: baseMaxValues[resourceId] * (1 + maxBoosts[resourceId])
+          };
+        } 
+        // Для фиксированных бонусов (например, к usdt)
+        else {
+          resources[resourceId] = {
+            ...resources[resourceId],
+            max: baseMaxValues[resourceId] + maxBoosts[resourceId]
+          };
+        }
+      }
+    }
+    
+    newState.resources = resources;
+    this.cache.set(cacheKey, newState);
+    return newState;
   }
-  
+
   /**
-   * Проверяет достаточно ли ресурсов для покупки
+   * Проверяет, достаточно ли ресурсов для покупки
+   * @param state Текущее состояние игры
+   * @param cost Стоимость покупки
+   * @returns true, если ресурсов достаточно
    */
   public checkAffordability(state: GameState, cost: Record<string, number>): boolean {
-    try {
-      // Проверяем каждый ресурс в стоимости
-      for (const resourceId in cost) {
-        const requiredAmount = cost[resourceId];
-        const resource = state.resources[resourceId];
-        
-        // Если ресурс не существует, не разблокирован или недостаточно его количества
-        if (!resource || !resource.unlocked || resource.value < requiredAmount) {
-          return false;
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('[ResourceSystem] Ошибка при проверке доступности ресурсов:', error);
+    // Проверка на пустой или некорректный объект стоимости
+    if (!cost || typeof cost !== 'object' || Object.keys(cost).length === 0) {
       return false;
     }
+    
+    // Проверяем каждый ресурс
+    for (const [resourceId, amount] of Object.entries(cost)) {
+      // Дополнительная проверка на валидность значения
+      if (amount === undefined || amount === null || isNaN(Number(amount))) {
+        continue; // Пропускаем невалидные значения
+      }
+      
+      const resource = state.resources[resourceId];
+      if (!resource || resource.value < Number(amount)) {
+        return false;
+      }
+    }
+    
+    return true;
   }
-  
+
   /**
    * Возвращает список недостающих ресурсов
+   * @param state Текущее состояние игры
+   * @param cost Стоимость покупки
+   * @returns Объект с недостающими ресурсами и их количеством
    */
   public getMissingResources(state: GameState, cost: Record<string, number>): Record<string, number> {
-    try {
-      const missingResources: Record<string, number> = {};
-      
-      // Проверяем каждый ресурс в стоимости
-      for (const resourceId in cost) {
-        const requiredAmount = cost[resourceId];
-        const resource = state.resources[resourceId];
-        
-        // Если ресурс не существует, не разблокирован или его недостаточно
-        if (!resource || !resource.unlocked) {
-          missingResources[resourceId] = requiredAmount;
-        } else if (resource.value < requiredAmount) {
-          missingResources[resourceId] = requiredAmount - resource.value;
-        }
-      }
-      
+    const missingResources: Record<string, number> = {};
+    
+    // Проверка на пустой или некорректный объект стоимости
+    if (!cost || typeof cost !== 'object' || Object.keys(cost).length === 0) {
       return missingResources;
-    } catch (error) {
-      console.error('[ResourceSystem] Ошибка при получении недостающих ресурсов:', error);
-      return {};
+    }
+    
+    // Проверяем каждый ресурс
+    for (const [resourceId, amount] of Object.entries(cost)) {
+      // Дополнительная проверка на валидность значения
+      if (amount === undefined || amount === null || isNaN(Number(amount))) {
+        continue; // Пропускаем невалидные значения
+      }
+      
+      const resource = state.resources[resourceId];
+      if (!resource) {
+        missingResources[resourceId] = Number(amount);
+      } else if (resource.value < Number(amount)) {
+        missingResources[resourceId] = Number(amount) - resource.value;
+      }
+    }
+    
+    return missingResources;
+  }
+
+  /**
+   * Сброс кэша
+   */
+  public clearCache(): void {
+    this.cache.clear();
+    this.lastUpdateTimestamp = Date.now();
+  }
+
+  /**
+   * Валидация кэша
+   * @param state Текущее состояние игры
+   */
+  private validateCache(state: GameState): void {
+    if (state.lastUpdate > this.lastUpdateTimestamp) {
+      this.clearCache();
+      this.lastUpdateTimestamp = state.lastUpdate;
     }
   }
 
   /**
-   * Инкрементирует значение ресурса
+   * Генерирует событие о заполнении ресурса
+   * @param resourceId ID ресурса
+   * @param resourceName Название ресурса
    */
-  public incrementResource(state: GameState, payload: { resourceId: string; amount?: number }): GameState {
-    try {
-      const { resourceId, amount = 1 } = payload;
-      const newState = { ...state, resources: { ...state.resources } };
-      
-      // Проверяем, существует ли ресурс
-      if (!newState.resources[resourceId]) {
-        console.warn(`Попытка инкрементировать несуществующий ресурс: ${resourceId}`);
-        return state;
-      }
-      
-      // Получаем текущий ресурс
-      const resource = { ...newState.resources[resourceId] };
-      
-      // Если ресурс не разблокирован, ничего не делаем
-      if (!resource.unlocked) {
-        console.warn(`Попытка инкрементировать заблокированный ресурс: ${resourceId}`);
-        return state;
-      }
-      
-      // Обновляем значение ресурса, не превышая максимум
-      let newValue = (resource.value || 0) + amount;
-      
-      // Если есть максимальное значение, ограничиваем им
-      if (resource.max !== undefined && resource.max !== Infinity) {
-        newValue = Math.min(newValue, resource.max);
-      }
-      
-      // Обновляем значение ресурса
-      newState.resources[resourceId] = {
-        ...resource,
-        value: newValue
-      };
-      
-      return newState;
-    } catch (error) {
-      console.error('[ResourceSystem] Ошибка при инкременте ресурса:', error);
-      return state;
-    }
+  private emitResourceFull(resourceId: string, resourceName: string): void {
+    safeDispatchGameEvent({
+      messageKey: 'event.resourceFull',
+      type: 'info',
+      params: { name: resourceName }
+    });
   }
 
   /**
-   * Разблокирует ресурс
+   * Обработка инкремента ресурса
+   * @param state Текущее состояние игры
+   * @param payload Объект с ID ресурса и количеством
+   * @returns Обновленное состояние
    */
-  public unlockResource(state: GameState, payload: { resourceId: string }): GameState {
-    try {
-      const { resourceId } = payload;
-      const newState = { ...state, resources: { ...state.resources } };
-      
-      // Проверяем, существует ли ресурс
-      if (!newState.resources[resourceId]) {
-        console.warn(`Попытка разблокировать несуществующий ресурс: ${resourceId}`);
-        return state;
+  public incrementResource(
+    state: GameState, 
+    payload: { resourceId: string; amount?: number }
+  ): GameState {
+    const { resourceId, amount = 1 } = payload;
+    const resource = state.resources[resourceId];
+    
+    if (!resource) return state;
+    
+    return {
+      ...state,
+      resources: {
+        ...state.resources,
+        [resourceId]: {
+          ...resource,
+          value: Math.min(resource.value + amount, resource.max)
+        }
       }
-      
-      // Получаем текущий ресурс
-      const resource = { ...newState.resources[resourceId] };
-      
-      // Если ресурс уже разблокирован, ничего не делаем
-      if (resource.unlocked) {
-        return state;
-      }
-      
-      // Разблокируем ресурс
-      newState.resources[resourceId] = {
-        ...resource,
-        unlocked: true
-      };
-      
-      return newState;
-    } catch (error) {
-      console.error('[ResourceSystem] Ошибка при разблокировке ресурса:', error);
-      return state;
-    }
+    };
   }
 
   /**
-   * Обновляет производство и потребление ресурсов на основе зданий
-   * Оптимизированная версия с кэшированием
+   * Разблокировка ресурса
+   * @param state Текущее состояние игры
+   * @param payload Объект с ID ресурса
+   * @returns Обновленное состояние
    */
-  public updateProductionConsumption(state: GameState): GameState {
-    try {
-      // Используем кэш, если состояние не изменилось существенно
-      if (this.cache.lastState === state && Date.now() < this.cache.cacheExpiry) {
-        // Применяем кэшированные значения
-        const newState = { ...state, resources: { ...state.resources } };
-        
-        for (const resourceId in newState.resources) {
-          if (newState.resources[resourceId].unlocked) {
-            const production = this.cache.productionRates.get(resourceId) || 0;
-            const consumption = this.cache.consumptionRates.get(resourceId) || 0;
-            
-            newState.resources[resourceId] = {
-              ...newState.resources[resourceId],
-              production,
-              consumption,
-              perSecond: production - consumption
-            };
-          }
-        }
-        
-        return newState;
-      }
-      
-      const newState = { ...state, resources: { ...state.resources } };
-      
-      // Очищаем кэш производства и потребления
-      this.cache.productionRates.clear();
-      this.cache.consumptionRates.clear();
-      
-      // Сбрасываем значения производства и потребления
-      for (const resourceId in newState.resources) {
-        if (newState.resources[resourceId].unlocked) {
-          newState.resources[resourceId] = {
-            ...newState.resources[resourceId],
-            production: 0,
-            consumption: 0
-          };
+  public unlockResource(
+    state: GameState, 
+    payload: { resourceId: string }
+  ): GameState {
+    const { resourceId } = payload;
+    const resource = state.resources[resourceId];
+    
+    if (!resource) return state;
+    
+    // Генерируем событие о разблокировке ресурса
+    safeDispatchGameEvent({
+      messageKey: 'event.resourceUnlocked',
+      type: 'success',
+      params: { name: resource.name }
+    });
+    
+    return {
+      ...state,
+      resources: {
+        ...state.resources,
+        [resourceId]: {
+          ...resource,
+          unlocked: true
         }
       }
-      
-      // Создаем временные хранилища для суммирования
-      const totalProduction: Record<string, number> = {};
-      const totalConsumption: Record<string, number> = {};
-      
-      // Рассчитываем производство от зданий
-      for (const buildingId in newState.buildings) {
-        const building = newState.buildings[buildingId];
-        
-        if (building.count > 0) {
-          // Учитываем производство ресурсов
-          if (building.production) {
-            for (const resourceId in building.production) {
-              if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-                // Инициализируем, если необходимо
-                if (!totalProduction[resourceId]) totalProduction[resourceId] = 0;
-                
-                const buildingProduction = Number(building.production[resourceId]) * building.count;
-                totalProduction[resourceId] += buildingProduction;
-                
-                // Добавляем отладочную информацию редко
-                if (Math.random() < 0.005) {
-                  console.log(`[Production] Здание ${buildingId} (${building.count}x) производит ${buildingProduction.toFixed(2)} ${resourceId}`);
-                }
-              }
-            }
-          }
-          
-          // Учитываем потребление ресурсов
-          if (building.consumption) {
-            for (const resourceId in building.consumption) {
-              if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-                // Инициализируем, если необходимо
-                if (!totalConsumption[resourceId]) totalConsumption[resourceId] = 0;
-                
-                const buildingConsumption = Number(building.consumption[resourceId]) * building.count;
-                totalConsumption[resourceId] += buildingConsumption;
-                
-                // Добавляем отладочную информацию редко
-                if (Math.random() < 0.005) {
-                  console.log(`[Consumption] Здание ${buildingId} (${building.count}x) потребляет ${buildingConsumption.toFixed(2)} ${resourceId}`);
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      // Обновляем ресурсы на основе рассчитанных значений
-      for (const resourceId in newState.resources) {
-        if (newState.resources[resourceId].unlocked) {
-          const production = totalProduction[resourceId] || 0;
-          const consumption = totalConsumption[resourceId] || 0;
-          const perSecond = production - consumption;
-          
-          // Кэшируем значения
-          this.cache.productionRates.set(resourceId, production);
-          this.cache.consumptionRates.set(resourceId, consumption);
-          
-          newState.resources[resourceId] = {
-            ...newState.resources[resourceId],
-            production,
-            consumption,
-            perSecond
-          };
-          
-          // Добавляем отладочную информацию редко
-          if (Math.abs(perSecond) > 0.01 && Math.random() < 0.01) {
-            console.log(`[perSecond] Ресурс ${resourceId}: +${production.toFixed(2)}/сек, -${consumption.toFixed(2)}/сек = ${perSecond.toFixed(2)}/сек`);
-          }
-        }
-      }
-      
-      // Обновляем кэш
-      this.cache.lastState = newState;
-      this.cache.cacheExpiry = Date.now() + 2000; // Кэш действителен 2 секунды
-      
-      return newState;
-    } catch (error) {
-      console.error('[ResourceSystem] Ошибка при обновлении производства и потребления:', error);
-      return state;
-    }
+    };
   }
 }

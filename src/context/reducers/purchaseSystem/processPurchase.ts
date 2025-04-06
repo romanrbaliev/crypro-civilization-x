@@ -7,7 +7,7 @@ import { EffectsManager } from '@/services/EffectsManager';
 import { PurchasableType } from '@/types/purchasable';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 
-// Создаем экземпляр ResourceSystem для работы с ресурсами
+// Создаем экземпляр ResourceSystem для проверки доступности ресурсов
 const resourceSystem = new ResourceSystem();
 
 /**
@@ -80,6 +80,21 @@ export function processPurchase(
       cost: newCost
     };
 
+    // Обновляем производство ресурсов
+    if (item.production) {
+      const productionMultiplier = 1; // Базовый множитель
+      
+      for (const [resourceId, amount] of Object.entries(item.production)) {
+        if (updatedState.resources[resourceId]) {
+          updatedState.resources[resourceId] = {
+            ...updatedState.resources[resourceId],
+            production: (updatedState.resources[resourceId].production || 0) + 
+                       Number(amount) * productionMultiplier
+          };
+        }
+      }
+    }
+
     // Обновляем счетчики для определенных зданий
     updateBuildingCounters(updatedState, itemId);
 
@@ -89,8 +104,6 @@ export function processPurchase(
       type: 'success',
       params: { name: item.name }
     });
-
-    console.log(`[Purchase] Здание ${item.name} успешно куплено, новое количество: ${updatedState.buildings[itemId].count}`);
 
   } else if (itemType === 'upgrade' || itemType === 'research') {
     // Отмечаем улучшение как купленное
@@ -102,7 +115,6 @@ export function processPurchase(
     // Применяем эффекты от улучшения
     if (item.effects) {
       updatedState = EffectsManager.applyEffects(updatedState, item.effects);
-      console.log(`[Purchase] Применены эффекты улучшения ${item.name}:`, item.effects);
     }
 
     // Отправляем уведомление
@@ -113,28 +125,11 @@ export function processPurchase(
     });
   }
 
-  // Обновляем производство и потребление ресурсов
-  console.log(`[Purchase] Обновляем производство и потребление после покупки ${item.name}`);
-  updatedState = resourceSystem.updateProductionConsumption(updatedState);
-  
   // Пересчитываем максимальные значения ресурсов
   updatedState = resourceSystem.updateResourceMaxValues(updatedState);
 
-  // Немедленно проверяем и обновляем все разблокировки
-  updatedState = checkAllUnlocks(updatedState);
-
-  // Принудительно обновляем значения ресурсов (для мгновенного эффекта)
-  updatedState = resourceSystem.updateResources(updatedState, 0);
-
-  // Выводим отладочную информацию
-  console.log(`[Purchase] ${item.name} успешно приобретено.`);
-  console.log(`[ResourceDebug] Производство/потребление ресурсов после покупки:`, 
-    Object.entries(updatedState.resources)
-      .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
-      .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
-  );
-
-  return updatedState;
+  // Проверяем и обновляем все разблокировки
+  return checkAllUnlocks(updatedState);
 }
 
 /**

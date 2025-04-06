@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import { Resource } from "@/context/types";
 import ResourceDisplay from "./ResourceDisplay";
 import { Separator } from "@/components/ui/separator";
@@ -17,30 +17,8 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   const { dispatch, state } = useGame();
   const { formatValue } = useResourceSystem();
   
-  // Используем useMemo для фильтрации ресурсов и предотвращения лишних перерисовок
-  const unlockedResources = useMemo(() => {
-    // Подробная отладка для отслеживания перерисовок
-    console.log("[ResourceList] Фильтрация разблокированных ресурсов");
-    return resources.filter(resource => resource.unlocked);
-  }, [resources]);
-  
-  // Кэшируем отформатированные значения для каждого ресурса
-  const formattedValues = useMemo(() => {
-    console.log("[ResourceList] Форматирование значений ресурсов");
-    const values: Record<string, { value: string, perSecond: string }> = {};
-    
-    unlockedResources.forEach(resource => {
-      const safeValue = resource.value !== null && resource.value !== undefined ? resource.value : 0;
-      const safePerSecond = resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0;
-      
-      values[resource.id] = {
-        value: formatValue(safeValue, resource.id),
-        perSecond: formatValue(safePerSecond, resource.id)
-      };
-    });
-    
-    return values;
-  }, [unlockedResources, formatValue]);
+  // Фильтруем только разблокированные ресурсы
+  const unlockedResources = resources.filter(resource => resource.unlocked);
   
   // Заполнение USDT до максимального значения
   const handleFillUsdt = () => {
@@ -64,9 +42,6 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
     }
   };
   
-  // Проверяем, разблокирован ли USDT
-  const isUsdtUnlocked = state.resources.usdt && state.resources.usdt.unlocked;
-  
   if (unlockedResources.length === 0) {
     return (
       <div className="text-center py-4 text-sm text-gray-500">
@@ -74,6 +49,9 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
       </div>
     );
   }
+
+  // Проверяем, разблокирован ли USDT
+  const isUsdtUnlocked = state.resources.usdt && state.resources.usdt.unlocked;
 
   return (
     <div className="flex flex-col h-full">
@@ -83,8 +61,8 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
             <div className="py-1">
               <ResourceDisplay 
                 resource={resource} 
-                formattedValue={formattedValues[resource.id].value}
-                formattedPerSecond={formattedValues[resource.id].perSecond}
+                formattedValue={formatValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
+                formattedPerSecond={formatValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
               />
             </div>
             {index < unlockedResources.length - 1 && (

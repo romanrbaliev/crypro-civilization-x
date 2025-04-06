@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { ensureUnlocksExist } from './unlockHelper';
@@ -38,8 +39,9 @@ export class UnlockManager {
     if (applyKnowledgeCount >= 1 && !resources.usdt.unlocked) {
       resources.usdt.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокирован ресурс: ${resources.usdt.name}`,
-        type: 'info'
+        messageKey: 'event.resourceUnlocked',
+        type: 'info',
+        params: { name: resources.usdt.name }
       });
     }
     
@@ -47,8 +49,9 @@ export class UnlockManager {
     if (state.buildings.generator && state.buildings.generator.count > 0 && !resources.electricity.unlocked) {
       resources.electricity.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокирован ресурс: ${resources.electricity.name}`,
-        type: 'info'
+        messageKey: 'event.resourceUnlocked',
+        type: 'info',
+        params: { name: resources.electricity.name }
       });
     }
     
@@ -56,8 +59,9 @@ export class UnlockManager {
     if (state.buildings.homeComputer && state.buildings.homeComputer.count > 0 && !resources.computingPower.unlocked) {
       resources.computingPower.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокирован ресурс: ${resources.computingPower.name}`,
-        type: 'info'
+        messageKey: 'event.resourceUnlocked',
+        type: 'info',
+        params: { name: resources.computingPower.name }
       });
     }
     
@@ -65,8 +69,9 @@ export class UnlockManager {
     if ((state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased) && !resources.bitcoin.unlocked) {
       resources.bitcoin.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокирован ресурс: ${resources.bitcoin.name}`,
-        type: 'info'
+        messageKey: 'event.resourceUnlocked',
+        type: 'info',
+        params: { name: resources.bitcoin.name }
       });
     }
     
@@ -86,8 +91,9 @@ export class UnlockManager {
     if (applyKnowledgeCount >= 2 && buildings.practice && !buildings.practice.unlocked) {
       buildings.practice.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.practice.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.practice.name }
       });
     }
     
@@ -99,8 +105,9 @@ export class UnlockManager {
         !buildings.generator.unlocked) {
       buildings.generator.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.generator.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.generator.name }
       });
     }
     
@@ -112,8 +119,9 @@ export class UnlockManager {
         !buildings.homeComputer.unlocked) {
       buildings.homeComputer.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.homeComputer.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.homeComputer.name }
       });
     }
     
@@ -124,8 +132,9 @@ export class UnlockManager {
         !buildings.cryptoWallet.unlocked) {
       buildings.cryptoWallet.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.cryptoWallet.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.cryptoWallet.name }
       });
     }
     
@@ -136,8 +145,9 @@ export class UnlockManager {
         !buildings.internetChannel.unlocked) {
       buildings.internetChannel.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.internetChannel.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.internetChannel.name }
       });
     }
     
@@ -148,8 +158,9 @@ export class UnlockManager {
         !buildings.miner.unlocked) {
       buildings.miner.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.miner.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.miner.name }
       });
     }
     
@@ -160,8 +171,9 @@ export class UnlockManager {
         !buildings.cryptoLibrary.unlocked) {
       buildings.cryptoLibrary.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.cryptoLibrary.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.cryptoLibrary.name }
       });
     }
     
@@ -172,8 +184,9 @@ export class UnlockManager {
         !buildings.asicMiner.unlocked) {
       buildings.asicMiner.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.asicMiner.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.asicMiner.name }
       });
     }
     
@@ -184,8 +197,9 @@ export class UnlockManager {
         !buildings.coolingSystem.unlocked) {
       buildings.coolingSystem.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.coolingSystem.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.coolingSystem.name }
       });
     }
     
@@ -196,8 +210,9 @@ export class UnlockManager {
         !buildings.enhancedWallet.unlocked) {
       buildings.enhancedWallet.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано здание: ${buildings.enhancedWallet.name}`,
-        type: 'info'
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.enhancedWallet.name }
       });
     }
     
@@ -219,8 +234,9 @@ export class UnlockManager {
         !upgrades.blockchainBasics.unlocked) {
       upgrades.blockchainBasics.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.blockchainBasics.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.blockchainBasics.name }
       });
     }
     
@@ -231,8 +247,9 @@ export class UnlockManager {
         !upgrades.walletSecurity.unlocked) {
       upgrades.walletSecurity.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.walletSecurity.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.walletSecurity.name }
       });
     }
     
@@ -243,8 +260,9 @@ export class UnlockManager {
         !upgrades.cryptoBasics.unlocked) {
       upgrades.cryptoBasics.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.cryptoBasics.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.cryptoBasics.name }
       });
     }
     
@@ -255,8 +273,9 @@ export class UnlockManager {
         !upgrades.algorithmOptimization.unlocked) {
       upgrades.algorithmOptimization.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.algorithmOptimization.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.algorithmOptimization.name }
       });
     }
     
@@ -267,8 +286,9 @@ export class UnlockManager {
         !upgrades.proofOfWork.unlocked) {
       upgrades.proofOfWork.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.proofOfWork.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.proofOfWork.name }
       });
     }
     
@@ -279,8 +299,9 @@ export class UnlockManager {
         !upgrades.energyEfficientComponents.unlocked) {
       upgrades.energyEfficientComponents.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.energyEfficientComponents.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.energyEfficientComponents.name }
       });
     }
     
@@ -291,8 +312,9 @@ export class UnlockManager {
         !upgrades.cryptoTrading.unlocked) {
       upgrades.cryptoTrading.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.cryptoTrading.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.cryptoTrading.name }
       });
     }
     
@@ -303,8 +325,9 @@ export class UnlockManager {
         !upgrades.tradingBot.unlocked) {
       upgrades.tradingBot.unlocked = true;
       safeDispatchGameEvent({
-        message: `Разблокировано исследование: ${upgrades.tradingBot.name}`,
-        type: 'info'
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.tradingBot.name }
       });
     }
     

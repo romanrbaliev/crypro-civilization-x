@@ -1,11 +1,9 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
 import { ResourceSystem } from '@/systems/ResourceSystem';
-import { PurchasableType } from '@/types/purchasable';
 
 // Импорт редьюсеров для разных типов действий
 import { 
@@ -109,25 +107,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'TICK':
       // Вычисляем прошедшее время
-      const currentTime = action.payload?.currentTime || Date.now();
+      const currentTime = Date.now();
       const deltaTime = currentTime - newState.lastUpdate;
       
-      // Обновляем ресурсы через ResourceSystem
-      if (deltaTime > 0) {
-        // Обновляем производство и потребление
-        newState = resourceSystem.updateProductionConsumption(newState);
-        
-        // Затем обновляем значения ресурсов
-        newState = resourceSystem.updateResources(newState, deltaTime);
-        
-        // Обновляем lastUpdate
-        newState = { ...newState, lastUpdate: currentTime };
-        
-        // Добавляем отладку
-        if (Math.random() < 0.01) {
-          console.log(`[GameReducer:TICK] Прошло ${deltaTime}мс, обновление ресурсов выполнено`);
-        }
-      }
+      // Обновляем ресурсы
+      newState = updateResources(newState, deltaTime);
+      
+      // Обновляем lastUpdate
+      newState = { ...newState, lastUpdate: currentTime };
       
       // Проверяем разблокировки
       return checkAllUnlocks(newState);
@@ -137,7 +124,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processIncrementResource(newState, action.payload));
     
     case 'INCREMENT_COUNTER':
-      // Обрабатываем увеличение счетчика и проверяем разблокировки
+      // Обрабатываем увеличение счетчика
       return checkAllUnlocks(processIncrementCounter(newState, action.payload));
       
     case 'APPLY_KNOWLEDGE':
@@ -151,36 +138,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processExchangeBitcoin(newState));
     
     case 'BUY_BUILDING':
-      // Обрабатываем покупку здания через новую систему
-      const buildingPayload = {
-        itemId: action.payload.buildingId,
-        itemType: 'building' as PurchasableType
-      };
-      const stateAfterPurchase = processPurchase(newState, buildingPayload);
-      
-      // Выводим дополнительную отладку о производстве
-      console.log('[BUY_BUILDING] Обновление производства после покупки здания:', 
-        Object.entries(stateAfterPurchase.resources)
-          .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
-          .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
-      );
-      
-      return stateAfterPurchase;
+      // Обрабатываем покупку здания и проверяем разблокировки
+      return processPurchaseBuilding(newState, action.payload);
     
     case 'SELL_BUILDING':
-      // Обрабатываем продажу здания, проверяем разблокировки и пересчитываем производство
-      newState = processSellBuilding(newState, action.payload);
-      // Обновляем ресурсы через ResourceSystem
-      return resourceSystem.updateProductionConsumption(resourceSystem.updateResources(newState, 0));
+      // Обрабатываем продажу здания
+      return processSellBuilding(newState, action.payload);
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
-      // Используем новую систему для покупки исследований
-      const upgradePayload = {
-        itemId: action.payload.upgradeId,
-        itemType: 'upgrade' as PurchasableType
-      };
-      return processPurchase(newState, upgradePayload);
+      return checkAllUnlocks(processPurchaseUpgrade(newState, action.payload));
       
     // Новое унифицированное действие покупки
     case 'PURCHASE_ITEM':
@@ -189,9 +156,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'LOAD_GAME':
       newState = { ...newState, ...action.payload };
-      // Обновляем производство и максимумы при загрузке
-      newState = resourceSystem.updateProductionConsumption(newState);
-      newState = resourceSystem.updateResourceMaxValues(newState);
       // Проверяем разблокировки при загрузке игры
       return checkAllUnlocks(newState);
     
@@ -206,17 +170,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processDebugAddResources(newState, action.payload));
     
     case 'FORCE_RESOURCE_UPDATE':
-      // Если пришло обновленное состояние, используем его
+      // Принудительно пересчитываем все значения и проверяем разблокировки
       if (action.payload) {
-        console.log("[FORCE_RESOURCE_UPDATE] Обновляем состояние из payload");
-        return checkAllUnlocks(action.payload);
+        // Если передано новое состояние, используем его
+        newState = action.payload;
+      } else {
+        // Иначе пересчитываем производство
+        newState = calculateResourceProduction(newState);
       }
-      
-      // Иначе пересчитываем производство, максимумы и обновляем ресурсы
-      console.log("[FORCE_RESOURCE_UPDATE] Пересчитываем все ресурсы");
-      newState = resourceSystem.updateProductionConsumption(newState);
-      newState = resourceSystem.updateResourceMaxValues(newState);
-      newState = resourceSystem.updateResources(newState, 0);
       return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':
