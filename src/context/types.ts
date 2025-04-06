@@ -1,6 +1,7 @@
 
 // Базовые типы
 export type ResourceType = 'basic' | 'currency' | 'power' | 'computational' | 'crypto' | 'social' | 'resource';
+export type PurchasableType = 'building' | 'upgrade' | 'research' | 'specialization';
 
 export interface Resource {
   id: string;
@@ -33,7 +34,7 @@ export interface Building {
   maxLevel?: number;
   specialization?: string;
   resourceProduction?: { [resourceId: string]: number }; // Добавляем свойство resourceProduction
-  type?: string;
+  type?: PurchasableType; // Обновленный тип
   productionBoost?: { [resourceId: string]: number };
 }
 
@@ -44,7 +45,7 @@ export interface Upgrade {
   cost: Record<string, number>;
   purchased: boolean;
   unlocked: boolean;
-  type: string;
+  type: PurchasableType | string; // Обновленный тип
   effects: any;
   effect?: any;
   category?: string;

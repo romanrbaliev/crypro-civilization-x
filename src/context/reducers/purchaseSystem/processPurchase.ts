@@ -44,13 +44,13 @@ export function processPurchase(
   }
 
   // Создаем копию состояния для модификации
-  const newState = { ...state };
+  let updatedState = { ...state };
 
   // Списываем ресурсы
   for (const [resourceId, amount] of Object.entries(item.cost)) {
-    newState.resources[resourceId] = {
-      ...newState.resources[resourceId],
-      value: newState.resources[resourceId].value - Number(amount)
+    updatedState.resources[resourceId] = {
+      ...updatedState.resources[resourceId],
+      value: updatedState.resources[resourceId].value - Number(amount)
     };
   }
 
@@ -63,7 +63,7 @@ export function processPurchase(
     }
 
     // Обновляем здание
-    newState.buildings[itemId] = {
+    updatedState.buildings[itemId] = {
       ...item,
       count: item.count + 1,
       cost: newCost
@@ -74,10 +74,10 @@ export function processPurchase(
       const productionMultiplier = 1; // Базовый множитель
       
       for (const [resourceId, amount] of Object.entries(item.production)) {
-        if (newState.resources[resourceId]) {
-          newState.resources[resourceId] = {
-            ...newState.resources[resourceId],
-            production: (newState.resources[resourceId].production || 0) + 
+        if (updatedState.resources[resourceId]) {
+          updatedState.resources[resourceId] = {
+            ...updatedState.resources[resourceId],
+            production: (updatedState.resources[resourceId].production || 0) + 
                        Number(amount) * productionMultiplier
           };
         }
@@ -85,7 +85,7 @@ export function processPurchase(
     }
 
     // Обновляем счетчики для определенных зданий
-    updateBuildingCounters(newState, itemId);
+    updateBuildingCounters(updatedState, itemId);
 
     // Отправляем уведомление
     safeDispatchGameEvent({
@@ -96,14 +96,14 @@ export function processPurchase(
 
   } else if (itemType === 'upgrade' || itemType === 'research') {
     // Отмечаем улучшение как купленное
-    newState.upgrades[itemId] = {
+    updatedState.upgrades[itemId] = {
       ...item,
       purchased: true
     };
 
     // Применяем эффекты от улучшения
     if (item.effects) {
-      newState = EffectsManager.applyEffects(newState, item.effects);
+      updatedState = EffectsManager.applyEffects(updatedState, item.effects);
     }
 
     // Отправляем уведомление
@@ -115,7 +115,7 @@ export function processPurchase(
   }
 
   // Проверяем и обновляем все разблокировки
-  return checkAllUnlocks(newState);
+  return checkAllUnlocks(updatedState);
 }
 
 /**

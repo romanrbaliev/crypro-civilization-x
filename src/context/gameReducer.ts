@@ -23,6 +23,9 @@ import { processIncrementResource, processUnlockResource } from './reducers/reso
 // Импорт вспомогательных функций
 import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
 
+// Импорт унифицированной системы покупки
+import { processPurchase } from './reducers/purchaseSystem';
+
 // Функция для обработки отладочного добавления ресурсов
 const processDebugAddResources = (state: GameState, payload: any): GameState => {
   // Создаем копию состояния

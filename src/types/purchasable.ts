@@ -14,6 +14,8 @@ export interface Purchasable {
   production?: Record<string, number>;
   consumption?: Record<string, number>;
   requirements?: Record<string, number | boolean>;
+  count?: number;         // Для зданий
+  purchased?: boolean;    // Для улучшений
 }
 
 // Типы покупаемых элементов

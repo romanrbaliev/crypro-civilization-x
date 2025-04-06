@@ -21,6 +21,7 @@ export class PurchasableFactory {
       production: config.production || {},
       consumption: config.consumption || {},
       effects: config.effects || {},
+      type: 'building' as PurchasableType,
       ...config
     };
   }
@@ -36,7 +37,7 @@ export class PurchasableFactory {
       cost: config.cost || {},
       purchased: config.purchased || false,
       unlocked: config.unlocked || false,
-      type: config.type || 'research',
+      type: (config.type as PurchasableType) || 'research',
       effects: config.effects || {},
       ...config
     };
