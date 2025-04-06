@@ -94,10 +94,4 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     default:
       return newState;
   }
-  
-  // Перед возвратом убеждаемся, что все разблокировки проверены и структура unlocks существует
-  newState = checkAllUnlocks(newState);
-  newState = ensureUnlocksExist(newState);
-  
-  return newState;
-};
+}
