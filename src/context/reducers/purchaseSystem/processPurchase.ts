@@ -86,11 +86,16 @@ export function processPurchase(
       
       for (const [resourceId, amount] of Object.entries(item.production)) {
         if (updatedState.resources[resourceId]) {
+          // Правильно устанавливаем production для ресурса
+          const currentProduction = updatedState.resources[resourceId].production || 0;
+          const additionalProduction = Number(amount) * productionMultiplier;
+          
           updatedState.resources[resourceId] = {
             ...updatedState.resources[resourceId],
-            production: (updatedState.resources[resourceId].production || 0) + 
-                       Number(amount) * productionMultiplier
+            production: currentProduction + additionalProduction
           };
+          
+          console.log(`Обновлено производство ${resourceId}: ${currentProduction} -> ${currentProduction + additionalProduction}`);
         }
       }
     }
@@ -127,6 +132,9 @@ export function processPurchase(
 
   // Пересчитываем максимальные значения ресурсов
   updatedState = resourceSystem.updateResourceMaxValues(updatedState);
+
+  // Принудительно обновляем всю информацию о производстве ресурсов
+  updatedState = resourceSystem.recalculateAllResourceProduction(updatedState);
 
   // Проверяем и обновляем все разблокировки
   return checkAllUnlocks(updatedState);

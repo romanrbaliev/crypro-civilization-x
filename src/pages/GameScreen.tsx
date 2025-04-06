@@ -70,6 +70,15 @@ const GameScreen = () => {
     console.log("Вкладка исследований разблокирована:", hasUnlockedResearch);
   }, [state.resources, state.buildings, state.upgrades, hasUnlockedResearch]);
   
+  // Эффект для принудительной проверки разблокировок при изменении зданий
+  useEffect(() => {
+    const buildingCounts = Object.values(state.buildings).map(b => b.count).join(',');
+    if (buildingCounts !== '0,0,0,0,0,0,0,0,0,0') {
+      console.log("Изменились количества зданий, проверяем разблокировки");
+      dispatch({ type: "CHECK_UNLOCKS" });
+    }
+  }, [Object.values(state.buildings).map(b => b.count).join(','), dispatch]);
+  
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
       id: generateId(),
@@ -183,9 +192,7 @@ const GameScreen = () => {
       {/* Верхняя панель с меню из скриншота */}
       <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
         <div className="flex justify-between items-center h-full px-4">
-          <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-            {t('tutorial.title')}
-          </Button>
+          <div></div> {/* Пустой элемент для выравнивания */}
           
           <div className="flex items-center space-x-2">
             <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
