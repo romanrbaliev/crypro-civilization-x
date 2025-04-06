@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -31,6 +30,13 @@ import { processPurchase } from './reducers/purchaseSystem/processPurchase';
 // Создаем статический экземпляр для использования вне компонентов
 const resourceSystem = new ResourceSystem();
 
+// Вспомогательная функция для отправки события изменения ресурса
+const dispatchResourceChangeEvent = () => {
+  if (typeof window !== 'undefined' && window.gameEventBus) {
+    window.gameEventBus.dispatchEvent(new CustomEvent('resource-change'));
+  }
+};
+
 // Функция для обработки отладочного добавления ресурсов
 const processDebugAddResources = (state: GameState, payload: any): GameState => {
   // Создаем копию состояния
@@ -55,6 +61,9 @@ const processDebugAddResources = (state: GameState, payload: any): GameState => 
       };
     }
   }
+  
+  // Отправляем событие об изменении ресурсов
+  dispatchResourceChangeEvent();
   
   return newState;
 };
@@ -143,6 +152,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'INCREMENT_RESOURCE':
       // Обрабатываем увеличение ресурса и проверяем разблокировки
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processIncrementResource(newState, action.payload));
     
     case 'INCREMENT_COUNTER':
@@ -151,12 +161,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
     case 'APPLY_KNOWLEDGE':
       // Обрабатываем применение знаний и проверяем разблокировки
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processApplyKnowledge(newState));
       
     case 'APPLY_ALL_KNOWLEDGE':
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processApplyAllKnowledge(newState));
     
     case 'EXCHANGE_BTC':
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processExchangeBitcoin(newState));
     
     case 'BUY_BUILDING':
@@ -180,12 +193,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           })
       );
       
+      // Отправляем событие об изменении ресурсов
+      dispatchResourceChangeEvent();
+      
       return stateAfterPurchase;
     
     case 'SELL_BUILDING':
       // Обрабатываем продажу здания, проверяем разблокировки и пересчитываем производство
       newState = processSellBuilding(newState, action.payload);
       // Обновляем ресурсы через ResourceSystem
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return resourceSystem.updateProductionConsumption(resourceSystem.updateResources(newState, 0));
     
     case 'RESEARCH_UPGRADE':
@@ -195,11 +212,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         itemId: action.payload.upgradeId,
         itemType: 'upgrade' as PurchasableType
       };
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return processPurchase(newState, upgradePayload);
       
     // Новое унифицированное действие покупки
     case 'PURCHASE_ITEM':
       // Используем унифицированную функцию покупки
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return processPurchase(newState, action.payload);
     
     case 'LOAD_GAME':
@@ -208,6 +227,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = resourceSystem.updateProductionConsumption(newState);
       newState = resourceSystem.updateResourceMaxValues(newState);
       // Проверяем разблокировки при загрузке игры
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(newState);
     
     case 'SAVE_GAME':
@@ -215,9 +235,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return newState;
     
     case 'RESET_GAME':
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return { ...initialState, gameStarted: true };
     
     case 'DEBUG_ADD_RESOURCES':
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processDebugAddResources(newState, action.payload));
     
     case 'FORCE_RESOURCE_UPDATE':
@@ -240,6 +262,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           console.log(`[FORCE_RESOURCE_UPDATE] Ресурсы после обновления:`, resourceInfo);
         }
         
+        dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
         return checkAllUnlocks(action.payload);
       }
       
@@ -248,6 +271,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = resourceSystem.updateProductionConsumption(newState);
       newState = resourceSystem.updateResourceMaxValues(newState);
       newState = resourceSystem.updateResources(newState, 0);
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':
@@ -258,6 +282,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'UNLOCK_RESOURCE':
       // Разблокировка ресурса
+      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(resourceSystem.unlockResource(newState, action.payload));
     
     case 'CHECK_UNLOCKS':

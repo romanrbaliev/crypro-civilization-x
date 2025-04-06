@@ -35,6 +35,7 @@ const Game: React.FC = () => {
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resourceUpdateCounter, setResourceUpdateCounter] = useState(0); // Счетчик для обновления ресурсов
+  const [lastActionTimestamp, setLastActionTimestamp] = useState(0); // Временная метка последнего действия пользователя
   
   const { 
     loadedState, 
@@ -83,14 +84,42 @@ const Game: React.FC = () => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
   
-  // Снижаем частоту обновления отображения ресурсов наполовину (решение проблемы 3)
+  // Отслеживание действий, которые должны вызывать мгновенное обновление
+  useEffect(() => {
+    // Создаем слушатель для перехвата событий изменения состояния
+    const handleGameActionEvent = () => {
+      // Обновляем временную метку последнего действия и счетчик
+      setLastActionTimestamp(Date.now());
+      setResourceUpdateCounter(prev => prev + 1);
+    };
+    
+    // Добавляем прослушиватель событий
+    if (typeof window !== 'undefined' && window.gameEventBus) {
+      window.gameEventBus.addEventListener('resource-change', handleGameActionEvent);
+      
+      return () => {
+        if (window.gameEventBus) {
+          window.gameEventBus.removeEventListener('resource-change', handleGameActionEvent);
+        }
+      };
+    }
+  }, []);
+  
+  // Регулярное обновление отображения ресурсов (раз в 100мс) для автоматического накопления
   useEffect(() => {
     const updateInterval = setInterval(() => {
-      setResourceUpdateCounter(prev => prev + 1);
-    }, 1000); // Обновляем раз в секунду вместо каждые 500мс
+      // Проверяем, прошло ли достаточно времени с последнего действия пользователя
+      const currentTime = Date.now();
+      const timeSinceLastAction = currentTime - lastActionTimestamp;
+      
+      // Только если прошло больше 100мс с последнего действия, обновляем счетчик
+      if (timeSinceLastAction > 100) {
+        setResourceUpdateCounter(prev => prev + 1);
+      }
+    }, 100); // Обновляем раз в 100мс
     
     return () => clearInterval(updateInterval);
-  }, []);
+  }, [lastActionTimestamp]);
   
   useEffect(() => {
     if (Math.random() < 0.1) { // Уменьшаем частоту логирования до 10%
