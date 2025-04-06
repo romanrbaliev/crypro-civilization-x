@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -108,7 +109,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'TICK':
       // Вычисляем прошедшее время
-      const currentTime = Date.now();
+      const currentTime = action.payload?.currentTime || Date.now();
       const deltaTime = currentTime - newState.lastUpdate;
       
       // Обновляем ресурсы через ResourceSystem
@@ -168,6 +169,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'LOAD_GAME':
       newState = { ...newState, ...action.payload };
+      // Обновляем производство и максимумы при загрузке
+      newState = resourceSystem.updateProductionConsumption(newState);
+      newState = resourceSystem.updateResourceMaxValues(newState);
       // Проверяем разблокировки при загрузке игры
       return checkAllUnlocks(newState);
     
@@ -182,7 +186,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processDebugAddResources(newState, action.payload));
     
     case 'FORCE_RESOURCE_UPDATE':
-      // Принудительно обновляем все значения через ResourceSystem
+      // Если пришло обновленное состояние, используем его
+      if (action.payload) {
+        return checkAllUnlocks(action.payload);
+      }
+      
+      // Иначе пересчитываем производство, максимумы и обновляем ресурсы
+      newState = resourceSystem.updateProductionConsumption(newState);
+      newState = resourceSystem.updateResourceMaxValues(newState);
       newState = resourceSystem.updateResources(newState, 0);
       return checkAllUnlocks(newState);
     

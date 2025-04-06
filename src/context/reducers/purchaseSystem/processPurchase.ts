@@ -7,7 +7,7 @@ import { EffectsManager } from '@/services/EffectsManager';
 import { PurchasableType } from '@/types/purchasable';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 
-// Создаем экземпляр ResourceSystem для проверки доступности ресурсов
+// Создаем экземпляр ResourceSystem для работы с ресурсами
 const resourceSystem = new ResourceSystem();
 
 /**
@@ -80,34 +80,6 @@ export function processPurchase(
       cost: newCost
     };
 
-    // Обновляем производство ресурсов
-    if (item.production) {
-      const productionMultiplier = 1; // Базовый множитель
-      
-      for (const [resourceId, amount] of Object.entries(item.production)) {
-        if (updatedState.resources[resourceId]) {
-          updatedState.resources[resourceId] = {
-            ...updatedState.resources[resourceId],
-            production: (updatedState.resources[resourceId].production || 0) + 
-                       Number(amount) * productionMultiplier
-          };
-        }
-      }
-    }
-
-    // Обновляем потребление ресурсов
-    if (item.consumption) {
-      for (const [resourceId, amount] of Object.entries(item.consumption)) {
-        if (updatedState.resources[resourceId]) {
-          updatedState.resources[resourceId] = {
-            ...updatedState.resources[resourceId],
-            consumption: (updatedState.resources[resourceId].consumption || 0) + 
-                        Number(amount)
-          };
-        }
-      }
-    }
-
     // Обновляем счетчики для определенных зданий
     updateBuildingCounters(updatedState, itemId);
 
@@ -138,25 +110,24 @@ export function processPurchase(
     });
   }
 
+  // Обновляем производство и потребление ресурсов
+  updatedState = resourceSystem.updateProductionConsumption(updatedState);
+  
   // Пересчитываем максимальные значения ресурсов
   updatedState = resourceSystem.updateResourceMaxValues(updatedState);
-  
-  // Пересчитываем perSecond для всех ресурсов
-  for (const resourceId in updatedState.resources) {
-    const resource = updatedState.resources[resourceId];
-    if (resource.unlocked) {
-      updatedState.resources[resourceId] = {
-        ...resource,
-        perSecond: (resource.production || 0) - (resource.consumption || 0)
-      };
-    }
-  }
 
   // Немедленно проверяем и обновляем все разблокировки
   updatedState = checkAllUnlocks(updatedState);
 
-  // Форсированно обновляем ресурсы для немедленного отображения изменений
-  return resourceSystem.updateResources(updatedState, 0);
+  // Выводим отладочную информацию
+  console.log(`[Purchase] ${item.name} успешно приобретено.`);
+  console.log(`[ResourceDebug] Производство/потребление ресурсов после покупки:`, 
+    Object.entries(updatedState.resources)
+      .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
+      .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
+  );
+
+  return updatedState;
 }
 
 /**

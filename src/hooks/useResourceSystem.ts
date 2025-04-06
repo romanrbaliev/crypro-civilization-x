@@ -18,7 +18,14 @@ export const useResourceSystem = () => {
    * @param deltaTime Прошедшее время в миллисекундах
    */
   const updateResources = useCallback((deltaTime: number) => {
-    const updatedState = resourceSystem.updateResources(state, deltaTime);
+    // Шаг 1: Обновляем производство и потребление
+    let updatedState = resourceSystem.updateProductionConsumption(state);
+    
+    // Шаг 2: Обновляем максимальные значения ресурсов
+    updatedState = resourceSystem.updateResourceMaxValues(updatedState);
+    
+    // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
+    updatedState = resourceSystem.updateResources(updatedState, deltaTime);
     
     // Отправляем событие только если есть фактические изменения в ресурсах
     const hasChanges = Object.keys(updatedState.resources).some(
@@ -29,10 +36,10 @@ export const useResourceSystem = () => {
       // Обновляем состояние через диспетчер
       dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
       
-      // Периодически выводим отладочную информацию (каждые ~10 обновлений)
-      if (Math.random() < 0.1) {
+      // Периодически выводим отладочную информацию
+      if (Math.random() < 0.05) {
         const logData = Object.entries(updatedState.resources)
-          .filter(([_, r]) => r.unlocked && (r.perSecond || 0) > 0)
+          .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
           .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
         
         if (logData.length > 0) {
@@ -132,7 +139,7 @@ export const useResourceSystem = () => {
     formatValue,
     incrementResource,
     unlockResource,
-    resourceSystem, // Экспортируем сам класс для сложных операций
-    resourceFormatter // Экспортируем форматтер для сложных операций
+    resourceSystem,
+    resourceFormatter
   };
 };

@@ -33,13 +33,22 @@ export const useGameStateUpdateService = () => {
         // Обновляем lastUpdate в состоянии
         dispatch({ type: 'TICK', payload: { currentTime } });
         
-        // Отладочная информация каждые 5 секунд
-        if (Math.random() < 0.02) { // ~2% шанс вывода в консоль
+        // Отладочная информация
+        if (Math.random() < 0.01) { // 1% шанс вывода в консоль
           console.log(`[GameUpdate] Прошло ${deltaTime}мс. Ресурсы обновлены.`);
+          
+          // Дополнительная отладочная информация о ресурсах
+          const activeResources = Object.entries(state.resources)
+            .filter(([_, res]) => res.unlocked && res.perSecond !== 0)
+            .map(([id, res]) => `${id}: ${res.value.toFixed(2)}/${res.max || '∞'} (${res.perSecond.toFixed(2)}/сек)`);
+          
+          if (activeResources.length > 0) {
+            console.log('[ResourceDebug] Активные ресурсы:', activeResources);
+          }
         }
       }
     }
-  }, [isPageVisible, state.gameStarted, dispatch, updateResources]);
+  }, [isPageVisible, state.gameStarted, dispatch, updateResources, state.resources]);
   
   /**
    * Проверяет все возможные разблокировки

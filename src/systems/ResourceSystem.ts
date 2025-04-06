@@ -1,5 +1,5 @@
 
-import { GameState, Resource, Building, Upgrade } from '@/context/types';
+import { GameState, Resource, Building, Upgrade, ResourceType } from '@/context/types';
 
 /**
  * Система управления ресурсами
@@ -30,7 +30,7 @@ export class ResourceSystem {
         const currentValue = resource.value ?? 0;
         const perSecond = resource.perSecond ?? 0;
         
-        // Пропускаем ресурсы без производства
+        // Пропускаем ресурсы без производства/потребления
         if (perSecond === 0) continue;
         
         // Рассчитываем прирост ресурса за прошедшее время (в секундах)
@@ -49,16 +49,8 @@ export class ResourceSystem {
           ...resource,
           value: newValue
         };
-        
-        // Отладочная информация
-        if (increment > 0) {
-          console.log(`Ресурс ${resourceId}: ${currentValue.toFixed(2)} -> ${newValue.toFixed(2)} (+${increment.toFixed(4)})`);
-        }
       }
     }
-    
-    // Обновляем lastUpdate для следующего цикла
-    newState.lastUpdate = Date.now();
     
     return newState;
   }
@@ -73,22 +65,22 @@ export class ResourceSystem {
     const baseMaxValues: Record<string, number> = {
       knowledge: 100,
       usdt: 50,
-      bitcoin: 1,
+      bitcoin: 0.01,
       electricity: 100,
       computingPower: 50
     };
     
-    // Применяем базовые значения
+    // Для каждого ресурса сначала устанавливаем базовые значения
     for (const resourceId in baseMaxValues) {
       if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
-        // Сохраняем текущее значение ресурса
+        // Сохраняем текущие свойства ресурса
         const resource = { ...newState.resources[resourceId] };
         
         // Устанавливаем базовое максимальное значение
-        newState.resources[resourceId] = {
-          ...resource,
-          max: baseMaxValues[resourceId]
-        };
+        resource.max = baseMaxValues[resourceId];
+        
+        // Обновляем ресурс в состоянии
+        newState.resources[resourceId] = resource;
       }
     }
     
@@ -104,22 +96,21 @@ export class ResourceSystem {
         for (const effectKey in building.effects) {
           // Проверяем, относится ли эффект к максимуму ресурса
           if (effectKey.includes('max') && effectKey.includes('Boost')) {
-            const resourceId = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
+            const resourcePart = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
+            const resourceId = this.normalizeResourceId(resourcePart);
             
             if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
               // Текущий максимум ресурса
               const resource = { ...newState.resources[resourceId] };
-              const currentMax = resource.max || baseMaxValues[resourceId] || 0;
               
               // Добавляем бонус от здания, умноженный на количество зданий
               const buildingBonus = Number(building.effects[effectKey]) * building.count;
-              const newMax = currentMax + buildingBonus;
               
               // Обновляем максимальное значение
-              newState.resources[resourceId] = {
-                ...resource,
-                max: newMax
-              };
+              resource.max += buildingBonus;
+              
+              // Обновляем ресурс в состоянии
+              newState.resources[resourceId] = resource;
             }
           }
         }
@@ -133,35 +124,29 @@ export class ResourceSystem {
       // Пропускаем не приобретенные улучшения
       if (!upgrade.purchased) continue;
       
-      // Получаем бонусы max ресурсов для улучшения, если они существуют в эффектах
+      // Применяем эффекты улучшения
       if (upgrade.effects) {
         for (const effectKey in upgrade.effects) {
           // Проверяем, относится ли эффект к максимуму ресурса
           if (effectKey.includes('max') && effectKey.includes('Boost')) {
-            const resourceId = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
+            const resourcePart = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
+            const resourceId = this.normalizeResourceId(resourcePart);
             
             if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
               // Текущий максимум ресурса
               const resource = { ...newState.resources[resourceId] };
-              const currentMax = resource.max || baseMaxValues[resourceId] || 0;
-              
-              // Рассчитываем новый максимум
-              let newMax: number;
               const effectValue = Number(upgrade.effects[effectKey]);
               
-              // Если бонус процентный (больше 1)
-              if (effectValue > 1) {
-                newMax = currentMax * effectValue;
+              // Если эффект процентный (>= 1.0)
+              if (effectValue >= 1.0) {
+                resource.max = Math.floor(resource.max * effectValue);
               } else {
-                // Иначе считаем как абсолютное значение
-                newMax = currentMax + effectValue;
+                // Абсолютное значение
+                resource.max += effectValue;
               }
               
-              // Обновляем максимальное значение
-              newState.resources[resourceId] = {
-                ...resource,
-                max: newMax
-              };
+              // Обновляем ресурс в состоянии
+              newState.resources[resourceId] = resource;
             }
           }
         }
@@ -169,6 +154,23 @@ export class ResourceSystem {
     }
     
     return newState;
+  }
+  
+  /**
+   * Нормализует ID ресурса из названия эффекта
+   */
+  private normalizeResourceId(resourcePart: string): string {
+    // Маппинг для преобразования частей эффектов в корректные ID ресурсов
+    const resourceIdMap: Record<string, string> = {
+      'knowledge': 'knowledge',
+      'usdt': 'usdt',
+      'bitcoin': 'bitcoin',
+      'electricity': 'electricity',
+      'computingpower': 'computingPower',
+      'computing': 'computingPower'
+    };
+    
+    return resourceIdMap[resourcePart] || resourcePart;
   }
   
   /**
@@ -216,7 +218,7 @@ export class ResourceSystem {
    */
   public incrementResource(state: GameState, payload: { resourceId: string; amount?: number }): GameState {
     const { resourceId, amount = 1 } = payload;
-    const newState = { ...state };
+    const newState = { ...state, resources: { ...state.resources } };
     
     // Проверяем, существует ли ресурс
     if (!newState.resources[resourceId]) {
@@ -225,7 +227,7 @@ export class ResourceSystem {
     }
     
     // Получаем текущий ресурс
-    const resource = newState.resources[resourceId];
+    const resource = { ...newState.resources[resourceId] };
     
     // Если ресурс не разблокирован, ничего не делаем
     if (!resource.unlocked) {
@@ -255,7 +257,7 @@ export class ResourceSystem {
    */
   public unlockResource(state: GameState, payload: { resourceId: string }): GameState {
     const { resourceId } = payload;
-    const newState = { ...state };
+    const newState = { ...state, resources: { ...state.resources } };
     
     // Проверяем, существует ли ресурс
     if (!newState.resources[resourceId]) {
@@ -264,7 +266,7 @@ export class ResourceSystem {
     }
     
     // Получаем текущий ресурс
-    const resource = newState.resources[resourceId];
+    const resource = { ...newState.resources[resourceId] };
     
     // Если ресурс уже разблокирован, ничего не делаем
     if (resource.unlocked) {
@@ -276,6 +278,77 @@ export class ResourceSystem {
       ...resource,
       unlocked: true
     };
+    
+    return newState;
+  }
+
+  /**
+   * Обновляет производство и потребление ресурсов на основе зданий
+   */
+  public updateProductionConsumption(state: GameState): GameState {
+    const newState = { ...state, resources: { ...state.resources } };
+    
+    // Сбрасываем значения производства и потребления
+    for (const resourceId in newState.resources) {
+      if (newState.resources[resourceId].unlocked) {
+        newState.resources[resourceId] = {
+          ...newState.resources[resourceId],
+          production: 0,
+          consumption: 0
+        };
+      }
+    }
+    
+    // Рассчитываем производство от зданий
+    for (const buildingId in newState.buildings) {
+      const building = newState.buildings[buildingId];
+      
+      if (building.count > 0) {
+        // Учитываем производство ресурсов
+        if (building.production) {
+          for (const resourceId in building.production) {
+            if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
+              const production = newState.resources[resourceId].production || 0;
+              const buildingProduction = Number(building.production[resourceId]) * building.count;
+              
+              newState.resources[resourceId] = {
+                ...newState.resources[resourceId],
+                production: production + buildingProduction
+              };
+            }
+          }
+        }
+        
+        // Учитываем потребление ресурсов
+        if (building.consumption) {
+          for (const resourceId in building.consumption) {
+            if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
+              const consumption = newState.resources[resourceId].consumption || 0;
+              const buildingConsumption = Number(building.consumption[resourceId]) * building.count;
+              
+              newState.resources[resourceId] = {
+                ...newState.resources[resourceId],
+                consumption: consumption + buildingConsumption
+              };
+            }
+          }
+        }
+      }
+    }
+    
+    // Рассчитываем perSecond для всех ресурсов
+    for (const resourceId in newState.resources) {
+      if (newState.resources[resourceId].unlocked) {
+        const resource = newState.resources[resourceId];
+        const production = resource.production || 0;
+        const consumption = resource.consumption || 0;
+        
+        newState.resources[resourceId] = {
+          ...resource,
+          perSecond: production - consumption
+        };
+      }
+    }
     
     return newState;
   }
