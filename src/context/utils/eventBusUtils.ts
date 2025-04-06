@@ -62,7 +62,7 @@ export const ensureGameEventBus = (): GameEventBus => {
       window.gameEventBus = new GameEventBus();
       console.log('✅ Шина событий игры создана и подключена к window');
     }
-    return window.gameEventBus;
+    return window.gameEventBus as GameEventBus;
   }
   return gameEventBus;
 };
@@ -84,7 +84,7 @@ export const safeDispatchGameEvent = (
   }
   
   if (typeof window !== 'undefined' && window.gameEventBus) {
-    window.gameEventBus.dispatchGameEvent(eventDetail);
+    (window.gameEventBus as GameEventBus).dispatchGameEvent(eventDetail);
   } else if (typeof window !== 'undefined') {
     // Если шина событий не определена в window, используем глобальную
     gameEventBus.dispatchGameEvent(eventDetail);
@@ -114,7 +114,7 @@ export const safeDispatchDetailEvent = (
   }
   
   if (typeof window !== 'undefined' && window.gameEventBus) {
-    window.gameEventBus.dispatchDetailEvent(eventDetail);
+    (window.gameEventBus as GameEventBus).dispatchDetailEvent(eventDetail);
   } else if (typeof window !== 'undefined') {
     // Если шина событий не определена в window, используем глобальную
     gameEventBus.dispatchDetailEvent(eventDetail);
