@@ -1,8 +1,16 @@
 
-import { GameEventDetail } from '../types';
-
 // Перенаправление и нормализация событий
-export const safeDispatchGameEvent = (detail: GameEventDetail): void => {
+export interface GameEventDetail {
+  messageKey: string;
+  type?: 'info' | 'success' | 'warning' | 'error';
+  params?: Record<string, any>;
+  message?: string;
+}
+
+export const safeDispatchGameEvent = (
+  detailOrMessage: GameEventDetail | string, 
+  type?: 'info' | 'success' | 'warning' | 'error'
+): void => {
   // Если window не определен (SSR), выходим
   if (typeof window === 'undefined') return;
 
@@ -10,30 +18,44 @@ export const safeDispatchGameEvent = (detail: GameEventDetail): void => {
   ensureGameEventBus();
 
   try {
-    // Преобразуем messageKey в читабельное сообщение
-    const messageParts = detail.messageKey.split('.');
-    let messageType = messageParts[0] || 'event';
-    let messageAction = messageParts[1] || 'generic';
+    // Проверяем, передана ли строка или объект
+    let detail: GameEventDetail;
     
-    let humanReadableMessage = '';
+    if (typeof detailOrMessage === 'string') {
+      detail = {
+        messageKey: 'custom.message',
+        type: type || 'info',
+        params: { message: detailOrMessage },
+        message: detailOrMessage
+      };
+    } else {
+      detail = detailOrMessage;
+    }
     
-    // Простая локализация сообщений о событиях
-    switch (detail.messageKey) {
-      case 'event.buildingPurchased':
-        humanReadableMessage = `Построено: ${detail.params?.name || 'здание'}`;
-        break;
-      case 'event.upgradeCompleted':
-        humanReadableMessage = `Исследовано: ${detail.params?.name || 'улучшение'}`;
-        break;
-      case 'event.resourceUnlocked':
-        humanReadableMessage = `Разблокирован ресурс: ${detail.params?.name || 'ресурс'}`;
-        break;
-      case 'event.knowledgeApplied':
-        humanReadableMessage = 'Знания применены';
-        break;
-      default:
-        humanReadableMessage = detail.params?.message || 
-                              `${messageType}: ${messageAction}`;
+    // Преобразуем messageKey в читабельное сообщение если сообщение не задано явно
+    if (!detail.message) {
+      const messageParts = detail.messageKey.split('.');
+      let messageType = messageParts[0] || 'event';
+      let messageAction = messageParts[1] || 'generic';
+      
+      // Простая локализация сообщений о событиях
+      switch (detail.messageKey) {
+        case 'event.buildingPurchased':
+          detail.message = `Построено: ${detail.params?.name || 'здание'}`;
+          break;
+        case 'event.upgradeCompleted':
+          detail.message = `Исследовано: ${detail.params?.name || 'улучшение'}`;
+          break;
+        case 'event.resourceUnlocked':
+          detail.message = `Разблокирован ресурс: ${detail.params?.name || 'ресурс'}`;
+          break;
+        case 'event.knowledgeApplied':
+          detail.message = 'Знания применены';
+          break;
+        default:
+          detail.message = detail.params?.message || 
+                        `${messageType}: ${messageAction}`;
+      }
     }
     
     // Стандартизируем тип события
@@ -41,18 +63,18 @@ export const safeDispatchGameEvent = (detail: GameEventDetail): void => {
     
     // Отправляем событие через шину событий
     window.gameEventBus.dispatchEvent(new CustomEvent('game-event', { 
-      detail: { message: humanReadableMessage, type: eventType } 
+      detail: { message: detail.message, type: eventType } 
     }));
     
     // Для более подробных сообщений
     window.gameEventBus.dispatchEvent(new CustomEvent('game-event-detail', { 
       detail: { 
         ...detail,
-        message: humanReadableMessage
+        message: detail.message
       } 
     }));
     
-    console.log(`Событие отправлено: ${humanReadableMessage} (${eventType})`, detail);
+    console.log(`Событие отправлено: ${detail.message} (${eventType})`, detail);
   } catch (error) {
     console.error('Ошибка при отправке события:', error);
   }

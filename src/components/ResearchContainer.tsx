@@ -10,7 +10,11 @@ export function ResearchContainer() {
   
   const handlePurchase = (upgrade: Upgrade) => {
     dispatch({ type: 'PURCHASE_UPGRADE', payload: { upgradeId: upgrade.id } });
-    safeDispatchGameEvent(`Исследование завершено: ${upgrade.name}`, 'success');
+    safeDispatchGameEvent({
+      messageKey: 'event.upgradeCompleted',
+      type: 'success',
+      params: { name: upgrade.name }
+    });
   };
   
   // Фильтруем только разблокированные и не купленные исследования

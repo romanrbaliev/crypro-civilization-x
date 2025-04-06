@@ -1,10 +1,10 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
 import { ResourceSystem } from '@/systems/ResourceSystem';
+import { PurchasableType } from '@/types/purchasable';
 
 // Импорт редьюсеров для разных типов действий
 import { 

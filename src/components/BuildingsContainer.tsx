@@ -11,7 +11,11 @@ export function BuildingsContainer() {
   
   const handlePurchase = (buildingName: string, buildingId: string) => {
     // Отправляем событие для пользовательского интерфейса
-    safeDispatchGameEvent(t('buildings.purchased', { buildingName }), 'success');
+    safeDispatchGameEvent({
+      messageKey: 'event.buildingPurchased',
+      type: 'success',
+      params: { name: buildingName }
+    });
     
     // Форсированное обновление ресурсов для отражения изменений производства
     setTimeout(() => {

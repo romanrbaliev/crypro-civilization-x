@@ -18,10 +18,11 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     const isConnected = await checkSupabaseConnection();
       
     if (!isConnected) {
-      safeDispatchGameEvent(
-        "Не удалось загрузить прогресс. Проверьте соединение с интернетом.",
-        "error"
-      );
+      safeDispatchGameEvent({
+        messageKey: 'error.connection',
+        type: 'error',
+        params: { message: "Не удалось загрузить прогресс. Проверьте соединение с интернетом." }
+      });
       return null;
     }
     
@@ -113,10 +114,11 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           return stateWithUnlocks;
         } else {
           console.error('❌ Проверка целостности данных из Supabase не пройдена');
-          safeDispatchGameEvent(
-            "Данные из облака повреждены. Начинаем новую игру.",
-            "warning"
-          );
+          safeDispatchGameEvent({
+            messageKey: 'error.dataCorrupted',
+            type: 'warning',
+            params: { message: "Данные из облака повреждены. Начинаем новую игру." }
+          });
           return null;
         }
       } catch (parseError) {
@@ -129,10 +131,11 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
     return null;
   } catch (error) {
     console.error('❌ Критическая ошибка при загрузке игры:', error);
-    safeDispatchGameEvent(
-      "Критическая ошибка при загрузке игры. Начинаем новую игру.",
-      "error"
-    );
+    safeDispatchGameEvent({
+      messageKey: 'error.critical',
+      type: 'error',
+      params: { message: "Критическая ошибка при загрузке игры. Начинаем новую игру." }
+    });
     return null;
   }
 };

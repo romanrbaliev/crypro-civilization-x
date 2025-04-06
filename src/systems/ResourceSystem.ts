@@ -1,5 +1,5 @@
 
-import { GameState, Resource } from '@/context/types';
+import { GameState, Resource, Building } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 
@@ -69,8 +69,8 @@ export class ResourceSystem {
     for (const buildingId in newState.buildings) {
       const building = newState.buildings[buildingId];
       
-      if (building.count > 0 && building.maxResourcesBonus) {
-        for (const [resourceId, bonus] of Object.entries(building.maxResourcesBonus)) {
+      if (building.count > 0 && building.effects && building.effects.maxResources) {
+        for (const [resourceId, bonus] of Object.entries(building.effects.maxResources as Record<string, number>)) {
           if (resources[resourceId]) {
             const currentMax = baseMaxValues[resourceId] || 0;
             baseMaxValues[resourceId] = currentMax + bonus * building.count;
@@ -84,11 +84,11 @@ export class ResourceSystem {
       const upgrade = newState.upgrades[upgradeId];
       
       if (upgrade.purchased && upgrade.effects && upgrade.effects.maxResources) {
-        for (const [resourceId, bonus] of Object.entries(upgrade.effects.maxResources)) {
+        for (const [resourceId, bonus] of Object.entries(upgrade.effects.maxResources as Record<string, number>)) {
           if (resources[resourceId]) {
             // Применяем процентный бонус
             const baseMax = baseMaxValues[resourceId] || 0;
-            const bonusAmount = baseMax * (bonus / 100);
+            const bonusAmount = baseMax * (Number(bonus) / 100);
             baseMaxValues[resourceId] = baseMax + bonusAmount;
           }
         }
@@ -126,6 +126,58 @@ export class ResourceSystem {
     }
     
     return true;
+  }
+
+  /**
+   * Получает список недостающих ресурсов
+   */
+  public getMissingResources(state: GameState, cost: Record<string, number>): Record<string, number> {
+    const missing: Record<string, number> = {};
+    
+    if (!cost) return missing;
+    
+    for (const [resourceId, amount] of Object.entries(cost)) {
+      const resource = state.resources[resourceId];
+      
+      // Если ресурса нет или его недостаточно
+      if (!resource || resource.value < Number(amount)) {
+        missing[resourceId] = Number(amount) - (resource?.value || 0);
+      }
+    }
+    
+    return missing;
+  }
+
+  /**
+   * Увеличивает значение ресурса
+   */
+  public incrementResource(state: GameState, payload: { resourceId: string; amount?: number }): GameState {
+    const { resourceId, amount = 1 } = payload;
+    const resource = state.resources[resourceId];
+    
+    if (!resource) {
+      console.error(`Ресурс с ID ${resourceId} не найден`);
+      return state;
+    }
+    
+    // Создаем копию состояния
+    const newState = { ...state };
+    const resources = { ...newState.resources };
+    
+    // Увеличиваем значение ресурса
+    const newValue = resource.value + amount;
+    
+    // Применяем ограничение максимального значения
+    resources[resourceId] = {
+      ...resource,
+      value: resource.max > 0 ? Math.min(newValue, resource.max) : newValue
+    };
+    
+    // Обновляем состояние
+    newState.resources = resources;
+    
+    // Проверяем разблокировки после увеличения ресурса
+    return checkAllUnlocks(newState);
   }
 
   /**

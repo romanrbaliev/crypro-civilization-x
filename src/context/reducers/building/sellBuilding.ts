@@ -27,7 +27,11 @@ export const processSellBuilding = (
   };
   
   console.log(`Продано здание ${building.name}`);
-  safeDispatchGameEvent(`Здание ${building.name} продано`, "info");
+  safeDispatchGameEvent({
+    messageKey: 'building.sold',
+    type: 'info',
+    params: { name: building.name }
+  });
   
   // Создаем новое состояние (не возвращаем ресурсы при продаже)
   let newState = {
