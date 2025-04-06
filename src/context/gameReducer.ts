@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -30,13 +31,6 @@ import { processPurchase } from './reducers/purchaseSystem/processPurchase';
 // Создаем статический экземпляр для использования вне компонентов
 const resourceSystem = new ResourceSystem();
 
-// Вспомогательная функция для отправки события изменения ресурса
-const dispatchResourceChangeEvent = () => {
-  if (typeof window !== 'undefined' && window.gameEventBus) {
-    window.gameEventBus.dispatchEvent(new CustomEvent('resource-change'));
-  }
-};
-
 // Функция для обработки отладочного добавления ресурсов
 const processDebugAddResources = (state: GameState, payload: any): GameState => {
   // Создаем копию состояния
@@ -61,9 +55,6 @@ const processDebugAddResources = (state: GameState, payload: any): GameState => 
       };
     }
   }
-  
-  // Отправляем событие об изменении ресурсов
-  dispatchResourceChangeEvent();
   
   return newState;
 };
@@ -126,7 +117,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Обновляем производство и потребление
         newState = resourceSystem.updateProductionConsumption(newState);
         
-        // Затем обновляем значения ресурсов - самый важный шаг!
+        // Затем обновляем значения ресурсов
         newState = resourceSystem.updateResources(newState, deltaTime);
         
         // Обновляем lastUpdate
@@ -135,15 +126,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Добавляем отладку
         if (Math.random() < 0.01) {
           console.log(`[GameReducer:TICK] Прошло ${deltaTime}мс, обновление ресурсов выполнено`);
-          
-          // Выводим текущие значения ресурсов
-          const resourceValues = Object.entries(newState.resources)
-            .filter(([_, r]) => r.unlocked)
-            .map(([id, r]) => `${id}: ${r.value?.toFixed(2) || '0'} (+${r.perSecond?.toFixed(2) || '0'}/сек)`);
-          
-          if (resourceValues.length > 0) {
-            console.log(`[GameReducer:TICK] Ресурсы после обновления:`, resourceValues);
-          }
         }
       }
       
@@ -152,7 +134,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'INCREMENT_RESOURCE':
       // Обрабатываем увеличение ресурса и проверяем разблокировки
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processIncrementResource(newState, action.payload));
     
     case 'INCREMENT_COUNTER':
@@ -161,15 +142,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
     case 'APPLY_KNOWLEDGE':
       // Обрабатываем применение знаний и проверяем разблокировки
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processApplyKnowledge(newState));
       
     case 'APPLY_ALL_KNOWLEDGE':
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processApplyAllKnowledge(newState));
     
     case 'EXCHANGE_BTC':
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processExchangeBitcoin(newState));
     
     case 'BUY_BUILDING':
@@ -183,18 +161,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Выводим дополнительную отладку о производстве
       console.log('[BUY_BUILDING] Обновление производства после покупки здания:', 
         Object.entries(stateAfterPurchase.resources)
-          .filter(([_, r]) => {
-            const resource = r as any;
-            return resource.unlocked && resource.perSecond !== 0;
-          })
-          .map(([id, r]) => {
-            const resource = r as any;
-            return `${id}: ${resource.perSecond.toFixed(2)}/сек`;
-          })
+          .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
+          .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
       );
-      
-      // Отправляем событие об изменении ресурсов
-      dispatchResourceChangeEvent();
       
       return stateAfterPurchase;
     
@@ -202,7 +171,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Обрабатываем продажу здания, проверяем разблокировки и пересчитываем производство
       newState = processSellBuilding(newState, action.payload);
       // Обновляем ресурсы через ResourceSystem
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return resourceSystem.updateProductionConsumption(resourceSystem.updateResources(newState, 0));
     
     case 'RESEARCH_UPGRADE':
@@ -212,13 +180,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         itemId: action.payload.upgradeId,
         itemType: 'upgrade' as PurchasableType
       };
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return processPurchase(newState, upgradePayload);
       
     // Новое унифицированное действие покупки
     case 'PURCHASE_ITEM':
       // Используем унифицированную функцию покупки
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return processPurchase(newState, action.payload);
     
     case 'LOAD_GAME':
@@ -227,7 +193,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = resourceSystem.updateProductionConsumption(newState);
       newState = resourceSystem.updateResourceMaxValues(newState);
       // Проверяем разблокировки при загрузке игры
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(newState);
     
     case 'SAVE_GAME':
@@ -235,34 +200,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return newState;
     
     case 'RESET_GAME':
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return { ...initialState, gameStarted: true };
     
     case 'DEBUG_ADD_RESOURCES':
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(processDebugAddResources(newState, action.payload));
     
     case 'FORCE_RESOURCE_UPDATE':
       // Если пришло обновленное состояние, используем его
       if (action.payload) {
         console.log("[FORCE_RESOURCE_UPDATE] Обновляем состояние из payload");
-        
-        // Выводим отладочную информацию о ресурсах
-        const resourceInfo = Object.entries(action.payload.resources)
-          .filter(([_, r]) => {
-            const resource = r as any;
-            return resource.unlocked;
-          })
-          .map(([id, r]) => {
-            const resource = r as any;
-            return `${id}: ${resource.value?.toFixed(2) || '0'} (+${resource.perSecond?.toFixed(2) || '0'}/сек)`;
-          });
-        
-        if (resourceInfo.length > 0) {
-          console.log(`[FORCE_RESOURCE_UPDATE] Ресурсы после обновления:`, resourceInfo);
-        }
-        
-        dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
         return checkAllUnlocks(action.payload);
       }
       
@@ -271,7 +217,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = resourceSystem.updateProductionConsumption(newState);
       newState = resourceSystem.updateResourceMaxValues(newState);
       newState = resourceSystem.updateResources(newState, 0);
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':
@@ -282,7 +227,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'UNLOCK_RESOURCE':
       // Разблокировка ресурса
-      dispatchResourceChangeEvent(); // Добавляем событие для обновления UI
       return checkAllUnlocks(resourceSystem.unlockResource(newState, action.payload));
     
     case 'CHECK_UNLOCKS':

@@ -1,20 +1,9 @@
-
 import { GameState, Resource, Building, Upgrade, ResourceType } from '@/context/types';
 
 /**
  * Система управления ресурсами
  */
 export class ResourceSystem {
-  // Кэш для хранения расчетов, чтобы избежать повторных вычислений
-  private resourceCache: Map<string, any> = new Map();
-  private lastUpdateTime: number = 0;
-  
-  // Сброс кэша при существенных изменениях
-  private resetCache() {
-    this.resourceCache.clear();
-    this.lastUpdateTime = Date.now();
-  }
-  
   /**
    * Обновляет ресурсы на основе прошедшего времени
    * @param state Игровое состояние
@@ -22,18 +11,7 @@ export class ResourceSystem {
    * @returns Обновленное состояние
    */
   public updateResources(state: GameState, deltaTime: number): GameState {
-    // Проверяем, что deltaTime имеет положительное значение
-    if (deltaTime <= 0) {
-      return state;
-    }
-
-    // Проверяем, нужно ли сбросить кэш
-    if (Date.now() - this.lastUpdateTime > 5000) {
-      this.resetCache();
-    }
-
-    // Создаем копию состояния для безопасного обновления, 
-    // но избегаем глубокого копирования для повышения производительности
+    // Создаем глубокую копию состояния для безопасного обновления
     const newState = {
       ...state,
       resources: { ...state.resources }
@@ -42,19 +20,14 @@ export class ResourceSystem {
     // Проверяем все ресурсы и обновляем их значения
     for (const resourceId in newState.resources) {
       if (newState.resources.hasOwnProperty(resourceId)) {
-        const resource = newState.resources[resourceId];
+        const resource = { ...newState.resources[resourceId] };
         
         // Пропускаем не разблокированные ресурсы
         if (!resource.unlocked) continue;
         
         // Получаем текущие значения или устанавливаем 0, если не определены
-        const currentValue = resource.value !== undefined && resource.value !== null 
-          ? resource.value 
-          : 0;
-        
-        const perSecond = resource.perSecond !== undefined && resource.perSecond !== null 
-          ? resource.perSecond 
-          : 0;
+        const currentValue = resource.value ?? 0;
+        const perSecond = resource.perSecond ?? 0;
         
         // Пропускаем ресурсы без производства/потребления
         if (perSecond === 0) continue;
@@ -68,6 +41,11 @@ export class ResourceSystem {
         // Если есть максимальное значение, ограничиваем им
         if (resource.max !== undefined && resource.max !== null && resource.max !== Infinity) {
           newValue = Math.min(newValue, resource.max);
+        }
+        
+        // Отладочная информация для мониторинга изменений ресурсов
+        if (Math.abs(increment) > 0.001) {
+          console.log(`[ResourceDebug] Обновление ${resourceId}: ${currentValue.toFixed(4)} -> ${newValue.toFixed(4)}, прирост: ${increment.toFixed(4)}, perSecond: ${perSecond.toFixed(4)}`);
         }
         
         // Обновляем значение ресурса в состоянии
@@ -85,12 +63,6 @@ export class ResourceSystem {
    * Обновляет максимальные значения ресурсов на основе построенных зданий
    */
   public updateResourceMaxValues(state: GameState): GameState {
-    // Проверяем кэш для избежания лишних пересчетов
-    const cacheKey = `maxValues_${JSON.stringify(Object.values(state.buildings).map(b => b.count))}`;
-    if (this.resourceCache.has(cacheKey)) {
-      return this.resourceCache.get(cacheKey);
-    }
-
     const newState = { ...state, resources: { ...state.resources } };
     
     // Базовые значения максимумов
@@ -145,15 +117,6 @@ export class ResourceSystem {
               newState.resources[resourceId] = resource;
             }
           }
-          
-          // Проверяем прямые эффекты для knowledge
-          if (effectKey === 'knowledgeMaxBoost' && newState.resources.knowledge && newState.resources.knowledge.unlocked) {
-            const resource = { ...newState.resources.knowledge };
-            const buildingBonus = Number(building.effects[effectKey]) * building.count;
-            
-            resource.max += buildingBonus;
-            newState.resources.knowledge = resource;
-          }
         }
       }
     }
@@ -190,28 +153,9 @@ export class ResourceSystem {
               newState.resources[resourceId] = resource;
             }
           }
-          
-          // Явная проверка для максимума знаний
-          if (effectKey === 'knowledgeMaxBoost' && newState.resources.knowledge && newState.resources.knowledge.unlocked) {
-            const resource = { ...newState.resources.knowledge };
-            const effectValue = Number(upgrade.effects[effectKey]);
-            
-            // Если эффект процентный (>= 1.0)
-            if (effectValue >= 1.0) {
-              resource.max = Math.floor(resource.max * effectValue);
-            } else {
-              // Абсолютное значение
-              resource.max += effectValue;
-            }
-            
-            newState.resources.knowledge = resource;
-          }
         }
       }
     }
-    
-    // Сохраняем результат в кэш
-    this.resourceCache.set(cacheKey, newState);
     
     return newState;
   }
@@ -282,6 +226,7 @@ export class ResourceSystem {
     
     // Проверяем, существует ли ресурс
     if (!newState.resources[resourceId]) {
+      console.warn(`Попытка инкрементировать несуществующий ресурс: ${resourceId}`);
       return state;
     }
     
@@ -290,6 +235,7 @@ export class ResourceSystem {
     
     // Если ресурс не разблокирован, ничего не делаем
     if (!resource.unlocked) {
+      console.warn(`Попытка инкрементировать заблокированный ресурс: ${resourceId}`);
       return state;
     }
     
@@ -319,6 +265,7 @@ export class ResourceSystem {
     
     // Проверяем, существует ли ресурс
     if (!newState.resources[resourceId]) {
+      console.warn(`Попытка разблокировать несуществующий ресурс: ${resourceId}`);
       return state;
     }
     
@@ -343,16 +290,6 @@ export class ResourceSystem {
    * Обновляет производство и потребление ресурсов на основе зданий
    */
   public updateProductionConsumption(state: GameState): GameState {
-    // Проверяем кэш для избежания лишних пересчетов
-    const buildingKey = JSON.stringify(Object.entries(state.buildings)
-      .filter(([_, b]) => b.count > 0)
-      .map(([id, b]) => ({ id, count: b.count })));
-    
-    const cacheKey = `prodCons_${buildingKey}`;
-    if (this.resourceCache.has(cacheKey)) {
-      return this.resourceCache.get(cacheKey);
-    }
-    
     const newState = { ...state, resources: { ...state.resources } };
     
     // Сбрасываем значения производства и потребления
@@ -378,6 +315,9 @@ export class ResourceSystem {
               const production = newState.resources[resourceId].production || 0;
               const buildingProduction = Number(building.production[resourceId]) * building.count;
               
+              // Добавляем отладочную информацию
+              console.log(`[Production] Здание ${buildingId} (${building.count}x) производит ${buildingProduction.toFixed(2)} ${resourceId}`);
+              
               newState.resources[resourceId] = {
                 ...newState.resources[resourceId],
                 production: production + buildingProduction
@@ -392,6 +332,9 @@ export class ResourceSystem {
             if (newState.resources[resourceId] && newState.resources[resourceId].unlocked) {
               const consumption = newState.resources[resourceId].consumption || 0;
               const buildingConsumption = Number(building.consumption[resourceId]) * building.count;
+              
+              // Добавляем отладочную информацию
+              console.log(`[Consumption] Здание ${buildingId} (${building.count}x) потребляет ${buildingConsumption.toFixed(2)} ${resourceId}`);
               
               newState.resources[resourceId] = {
                 ...newState.resources[resourceId],
@@ -411,15 +354,15 @@ export class ResourceSystem {
         const consumption = resource.consumption || 0;
         const perSecond = production - consumption;
         
+        // Добавляем отладочную информацию о скорости производства
+        console.log(`[perSecond] Ресурс ${resourceId}: +${production.toFixed(2)}/сек, -${consumption.toFixed(2)}/сек = ${perSecond.toFixed(2)}/сек`);
+        
         newState.resources[resourceId] = {
           ...resource,
           perSecond: perSecond
         };
       }
     }
-    
-    // Сохраняем результат в кэш
-    this.resourceCache.set(cacheKey, newState);
     
     return newState;
   }

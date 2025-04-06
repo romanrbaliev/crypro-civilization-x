@@ -55,20 +55,6 @@ export class EffectService {
         for (const [effectType, effectValue] of Object.entries(upgrade.effects)) {
           this.applyUpgradeEffect(resources, effectType, effectValue);
         }
-        
-        // Специальная обработка для blockchainBasics (исправление производства знаний)
-        if (upgradeId === 'blockchainBasics' && resources.knowledge) {
-          // Увеличиваем максимальное значение знаний на 50%
-          if (!upgrade.effects.knowledgeMaxBoost) {
-            resources.knowledge.max = (resources.knowledge.max || 100) * 1.5;
-          }
-          
-          // Увеличиваем производство знаний на 10%
-          resources.knowledge.production = (resources.knowledge.production || 0) * 1.1;
-          resources.knowledge.perSecond = (resources.knowledge.perSecond || 0) * 1.1;
-          
-          console.log(`[EffectService] Применен эффект blockchainBasics для knowledge: max=${resources.knowledge.max}, production=${resources.knowledge.production}`);
-        }
       }
     }
     
@@ -82,110 +68,28 @@ export class EffectService {
     effectType: string,
     effectValue: any
   ): void {
-    // Преобразуем effectType к нижнему регистру для консистентности
-    const effectTypeLower = effectType.toLowerCase();
+    // Разбираем тип эффекта (например "knowledgeMaxBoost")
+    const [resourceId, effectName] = effectType.split(/(?=[A-Z])/);
     
-    // Проверяем тип эффекта по шаблонам
-    if (effectTypeLower.includes('max') && effectTypeLower.includes('boost')) {
-      // Эффект на максимальное значение ресурса
-      this.applyMaxBoostEffect(resources, effectTypeLower, effectValue);
-    } else if (effectTypeLower.includes('production') || 
-              (effectTypeLower.includes('boost') && !effectTypeLower.includes('max'))) {
-      // Эффект на производство ресурса
-      this.applyProductionBoostEffect(resources, effectTypeLower, effectValue);
-    } else if (effectTypeLower.includes('efficiency')) {
-      // Эффект на эффективность (обработка в других сервисах)
-      console.log(`[EffectService] Эффект эффективности ${effectType} будет обработан в других сервисах`);
-    } else {
-      // Неизвестный тип эффекта
-      console.warn(`[EffectService] Неизвестный тип эффекта: ${effectType}`);
-    }
-  }
-  
-  // Применение эффекта на максимальное значение ресурса
-  private applyMaxBoostEffect(
-    resources: Record<string, Resource>,
-    effectType: string,
-    effectValue: any
-  ): void {
-    // Определяем ID ресурса из эффекта
-    const resourceId = this.extractResourceIdFromEffect(effectType);
+    if (!resourceId) return;
     
-    if (!resourceId || !resources[resourceId]) {
-      console.warn(`[EffectService] Ресурс не найден для эффекта ${effectType}`);
-      return;
-    }
-    
-    const resource = resources[resourceId];
-    const numValue = Number(effectValue);
-    
-    // Если эффект процентный (>= 1.0)
-    if (numValue >= 1.0) {
-      resource.max = (resource.max || 0) * numValue;
-    } else {
-      // Если эффект предполагает добавление процента (< 1.0)
-      resource.max = (resource.max || 0) * (1 + numValue);
-    }
-    
-    console.log(`[EffectService] Применен maxBoost для ${resourceId}: новый max=${resource.max}`);
-  }
-  
-  // Применение эффекта на производство ресурса
-  private applyProductionBoostEffect(
-    resources: Record<string, Resource>,
-    effectType: string,
-    effectValue: any
-  ): void {
-    // Определяем ID ресурса из эффекта
-    const resourceId = this.extractResourceIdFromEffect(effectType);
-    
-    if (!resourceId || !resources[resourceId]) {
-      console.warn(`[EffectService] Ресурс не найден для эффекта ${effectType}`);
-      return;
-    }
-    
-    const resource = resources[resourceId];
-    const numValue = Number(effectValue);
-    
-    // Применяем бонус к производству
-    if (numValue >= 1.0) {
-      resource.production = (resource.production || 0) * numValue;
-      resource.perSecond = (resource.perSecond || 0) * numValue;
-    } else {
-      resource.production = (resource.production || 0) * (1 + numValue);
-      resource.perSecond = (resource.perSecond || 0) * (1 + numValue);
-    }
-    
-    console.log(`[EffectService] Применен productionBoost для ${resourceId}: новое production=${resource.production}`);
-  }
-  
-  // Извлекаем ID ресурса из названия эффекта
-  private extractResourceIdFromEffect(effectType: string): string | null {
-    // Удаляем распространенные суффиксы
-    const cleanedEffectType = effectType
-      .replace('maxboost', '')
-      .replace('productionboost', '')
-      .replace('boost', '')
-      .replace('efficiency', '');
-    
-    // Маппинг к ID ресурсов
-    const resourceMapping: Record<string, string> = {
-      'knowledge': 'knowledge',
-      'usdt': 'usdt',
-      'bitcoin': 'bitcoin',
-      'electricity': 'electricity',
-      'computingpower': 'computingPower',
-      'computing': 'computingPower'
-    };
-    
-    // Проходим по всем ключам маппинга и находим совпадения
-    for (const [key, value] of Object.entries(resourceMapping)) {
-      if (cleanedEffectType.includes(key)) {
-        return value;
+    // Применяем эффект к соответствующему ресурсу
+    if (resources[resourceId.toLowerCase()]) {
+      const resource = resources[resourceId.toLowerCase()];
+      
+      switch (effectName.toLowerCase()) {
+        case 'maxboost':
+          resource.max *= (1 + Number(effectValue));
+          break;
+        case 'productionboost':
+          resource.production *= (1 + Number(effectValue));
+          resource.perSecond *= (1 + Number(effectValue));
+          break;
+        case 'efficiencyboost':
+          // Этот эффект обрабатывается в других местах
+          break;
       }
     }
-    
-    return null;
   }
   
   // Метод для обновления эффектов потребления ресурсов

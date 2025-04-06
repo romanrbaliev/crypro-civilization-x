@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
 import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Building } from '@/context/types';
 import { formatCost } from '@/utils/costFormatter';
@@ -15,40 +16,9 @@ interface BuildingCardProps {
 const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onSelect, isSelected }) => {
   const { id, name, description, count = 0, cost = {}, effects = {} } = building;
   const { t, language } = useTranslation();
-  const [formattedCostText, setFormattedCostText] = useState<string>("");
 
-  // Форматирование стоимости с учетом языка с ретраями
-  useEffect(() => {
-    // Попытка форматирования с ретраями
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    const formatWithRetry = () => {
-      try {
-        const formatted = formatCost(cost, language);
-        if (formatted && formatted !== "undefined" && formatted !== "Стоимость не определена") {
-          setFormattedCostText(formatted);
-        } else if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(formatWithRetry, 100 * retryCount);
-        } else {
-          // Если после всех попыток форматирования не удалось получить корректный результат,
-          // отображаем базовую информацию о стоимости
-          setFormattedCostText(Object.keys(cost).length > 0 ? t('buildings.hasCost') : t('buildings.free'));
-        }
-      } catch (error) {
-        console.error("Ошибка при форматировании стоимости:", error);
-        if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(formatWithRetry, 100 * retryCount);
-        } else {
-          setFormattedCostText(t('buildings.costError'));
-        }
-      }
-    };
-
-    formatWithRetry();
-  }, [cost, language, t]);
+  // Форматирование стоимости с учетом языка
+  const formattedCost = formatCost(cost, language);
   
   // Определение иконки для здания
   const getBuildingIcon = () => {
@@ -147,7 +117,7 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onS
             </div>
           </div>
           <div className="text-sm font-medium text-green-600">
-            {formattedCostText}
+            {formattedCost}
           </div>
         </div>
         

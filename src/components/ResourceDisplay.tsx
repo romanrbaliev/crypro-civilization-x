@@ -1,6 +1,7 @@
 
-import React, { useEffect, useRef, memo } from "react";
+import React, { useEffect, useRef } from "react";
 import { Resource } from "@/context/types";
+import { useResourceAnimation } from "@/hooks/useResourceAnimation";
 import { useResourceSystem } from "@/hooks/useResourceSystem";
 
 interface ResourceDisplayProps {
@@ -9,7 +10,7 @@ interface ResourceDisplayProps {
   formattedPerSecond?: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = memo(({ 
+const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ 
   resource, 
   formattedValue: propFormattedValue, 
   formattedPerSecond: propFormattedPerSecond 
@@ -19,11 +20,16 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = memo(({
   const resourceRef = useRef<HTMLDivElement>(null);
   const { formatValue, resourceFormatter } = useResourceSystem();
   
+  // Используем хук анимации для плавного обновления отображаемого значения
+  // Проверяем, что значение определено перед передачей его в хук
+  const safeValue = value !== null && value !== undefined ? value : 0;
+  const animatedValue = useResourceAnimation(safeValue, id);
+  
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
   // Форматирование значений с учетом типа ресурса
-  const formattedValue = propFormattedValue || formatValue(value, id);
+  const formattedValue = propFormattedValue || formatValue(animatedValue, id);
   
   // Форматируем максимальное значение всегда без десятичных знаков
   const formattedMax = max === Infinity 
@@ -44,34 +50,32 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = memo(({
         : formatValue(safePerSecond, id)
   );
   
-  // Эффект для выделения изменений - оптимизирован для предотвращения частых перерисовок
+  // Эффект для выделения изменений
   useEffect(() => {
     // Если значение изменилось существенно, выделяем это изменение
-    if (value !== null && prevValueRef.current !== null && 
-        Math.abs(value - prevValueRef.current) > 0.5) {
-      
+    if (safeValue !== null && prevValueRef.current !== null && Math.abs(safeValue - prevValueRef.current) > 0.1) {
       const element = resourceRef.current?.querySelector(`#resource-value-${id}`);
       if (element) {
         // Добавляем класс для анимации, затем удаляем его
         element.classList.add('resource-changed');
-        const timerId = setTimeout(() => {
-          if (element && element.classList) {
-            element.classList.remove('resource-changed');
-          }
+        setTimeout(() => {
+          element.classList.remove('resource-changed');
         }, 500);
-        
-        // Очистка таймера при размонтировании
-        return () => clearTimeout(timerId);
       }
-      prevValueRef.current = value;
+      prevValueRef.current = safeValue;
     }
-  }, [value, id]);
+  }, [safeValue, id]);
+
+  // Добавляем отладочную информацию при наведении
+  const debugValue = safeValue !== null ? safeValue.toFixed(2) : "0.00";
+  const debugPerSecond = safePerSecond !== null ? safePerSecond.toFixed(3) : "0.000";
+  const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
 
   // Преобразуем название ресурса
   const displayName = resourceFormatter.getDisplayName(id, name);
 
   return (
-    <div className="w-full text-xs" ref={resourceRef}>
+    <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
       <div className="flex justify-between items-center mb-0.5">
         <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{displayName}</div>
         <div id={`resource-value-${id}`} className="text-gray-600 text-[10px] whitespace-nowrap transition-colors">
@@ -90,24 +94,6 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = memo(({
       )}
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Оптимизированная функция сравнения для memo
-  // Возвращаем true, если компонент НЕ должен обновляться
-  if (prevProps.formattedValue !== nextProps.formattedValue) return false;
-  if (prevProps.formattedPerSecond !== nextProps.formattedPerSecond) return false;
-  
-  const prevRes = prevProps.resource;
-  const nextRes = nextProps.resource;
-  
-  if (prevRes.id !== nextRes.id) return false;
-  if (prevRes.value !== nextRes.value) return false;
-  if (prevRes.max !== nextRes.max) return false;
-  if (prevRes.perSecond !== nextRes.perSecond) return false;
-  if (prevRes.name !== nextRes.name) return false;
-  
-  return true;
-});
-
-ResourceDisplay.displayName = 'ResourceDisplay';
+};
 
 export default ResourceDisplay;

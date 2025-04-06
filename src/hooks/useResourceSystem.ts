@@ -1,5 +1,4 @@
-
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { ResourceFormatter } from '@/formatters/ResourceFormatter';
@@ -13,55 +12,37 @@ export const useResourceSystem = () => {
   const resourceSystem = useMemo(() => new ResourceSystem(), []);
   const resourceFormatter = useMemo(() => new ResourceFormatter(), []);
   
-  // Кэш форматированных значений
-  const formatCache = useRef<Map<string, string>>(new Map());
-  
-  // Очистка кэша форматированных значений
-  const clearFormatCache = useCallback(() => {
-    formatCache.current.clear();
-  }, []);
-  
-  // Регулярная очистка кэша
-  useMemo(() => {
-    const intervalId = setInterval(clearFormatCache, 10000); // Каждые 10 секунд
-    return () => clearInterval(intervalId);
-  }, [clearFormatCache]);
-  
   /**
    * Обновляет ресурсы на основе прошедшего времени
    * @param deltaTime Прошедшее время в миллисекундах
    */
   const updateResources = useCallback((deltaTime: number) => {
-    // Важная проверка: пропускаем отрицательное время (может случиться из-за ошибок в Date.now())
-    if (deltaTime < 0) {
-      console.warn(`[ResourceSystem] Попытка обновления с отрицательным временем: ${deltaTime}мс`);
-      return;
-    }
+    // Шаг 1: Обновляем производство и потребление
+    let updatedState = resourceSystem.updateProductionConsumption(state);
     
-    // Если слишком большое deltaTime, ограничиваем его
-    const safeDeltatime = Math.min(deltaTime, 300000); // Максимум 5 минут
+    // Шаг 2: Обновляем максимальные значения ресурсов
+    updatedState = resourceSystem.updateResourceMaxValues(updatedState);
     
-    try {
-      // Шаг 1: Обновляем производство и потребление
-      let updatedState = resourceSystem.updateProductionConsumption(state);
+    // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
+    updatedState = resourceSystem.updateResources(updatedState, deltaTime);
+    
+    // Важно: всегда отправляем обновление состояния, даже при маленьких изменениях
+    // Удаляем проверку hasChanges, которая блокировала обновления
+    
+    // Обновляем состояние через диспетчер
+    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+    
+    // Периодически выводим отладочную информацию
+    if (Math.random() < 0.05) {
+      const logData = Object.entries(updatedState.resources)
+        .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
+        .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
       
-      // Шаг 2: Обновляем максимальные значения ресурсов
-      updatedState = resourceSystem.updateResourceMaxValues(updatedState);
-      
-      // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
-      updatedState = resourceSystem.updateResources(updatedState, safeDeltatime);
-      
-      // Обновляем состояние через диспетчер
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
-      
-      // Очищаем кэш форматированных значений при существенном обновлении
-      if (Math.random() < 0.05) { // 5% шанс очистки кэша
-        clearFormatCache();
+      if (logData.length > 0) {
+        console.log(`[ResourceUpdate] Ресурсы обновлены (Δt=${deltaTime}мс):`, logData);
       }
-    } catch (error) {
-      console.error('Ошибка при обновлении ресурсов:', error);
     }
-  }, [state, dispatch, resourceSystem, clearFormatCache]);
+  }, [state, dispatch, resourceSystem]);
   
   /**
    * Проверяет, достаточно ли ресурсов для покупки
@@ -85,12 +66,8 @@ export const useResourceSystem = () => {
    * Обновляет максимальные значения ресурсов
    */
   const updateResourceMaxValues = useCallback(() => {
-    try {
-      const updatedState = resourceSystem.updateResourceMaxValues(state);
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
-    } catch (error) {
-      console.error('Ошибка при обновлении максимальных значений ресурсов:', error);
-    }
+    const updatedState = resourceSystem.updateResourceMaxValues(state);
+    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
   }, [state, dispatch, resourceSystem]);
   
   /**
@@ -104,36 +81,14 @@ export const useResourceSystem = () => {
   }, [resourceFormatter]);
   
   /**
-   * Форматирует значение ресурса с использованием кэша
+   * Форматирует значение ресурса
    * @param value Числовое значение
    * @param resourceId ID ресурса
    * @returns Отформатированное значение
    */
   const formatValue = useCallback((value: number | null | undefined, resourceId: string): string => {
-    if (value === null || value === undefined) return '0';
-    
-    // Округляем для кэширования
-    const roundedValue = Math.round(value * 100) / 100;
-    const cacheKey = `${resourceId}_${roundedValue}`;
-    
-    // Проверяем кэш
-    if (formatCache.current.has(cacheKey)) {
-      return formatCache.current.get(cacheKey) as string;
-    }
-    
-    // Форматируем значение
-    const formatted = resourceFormatter.formatValue(roundedValue, resourceId);
-    
-    // Сохраняем в кэш только если кэш не слишком большой
-    if (formatCache.current.size < 1000) {
-      formatCache.current.set(cacheKey, formatted);
-    } else if (Math.random() < 0.01) {
-      // Если кэш слишком большой, с небольшой вероятностью очищаем его
-      clearFormatCache();
-    }
-    
-    return formatted;
-  }, [resourceFormatter, clearFormatCache]);
+    return resourceFormatter.formatValue(value, resourceId);
+  }, [resourceFormatter]);
   
   /**
    * Инкрементирует ресурс
@@ -146,13 +101,11 @@ export const useResourceSystem = () => {
       payload: { resourceId, amount }
     });
     
-    // Отправляем событие об изменении ресурса только для значительных изменений
-    if (amount > 1 || Math.random() < 0.1) {
-      safeDispatchGameEvent({
-        message: `Получено: ${formatValue(amount, resourceId)} ${state.resources[resourceId]?.name || resourceId}`,
-        type: 'info'
-      });
-    }
+    // Отправляем событие об изменении ресурса
+    safeDispatchGameEvent({
+      message: `Получено: ${formatValue(amount, resourceId)} ${state.resources[resourceId]?.name || resourceId}`,
+      type: 'info'
+    });
   }, [dispatch, formatValue, state.resources]);
   
   /**

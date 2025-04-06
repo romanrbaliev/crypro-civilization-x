@@ -14,7 +14,6 @@ export const useGameLoader = (
   const [loadedState, setLoadedState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [gameInitialized, setGameInitialized] = useState(false);
-  const [loadError, setLoadError] = useState<Error | null>(null);
   
   let loadMessageShown = false;
 
@@ -63,13 +62,15 @@ export const useGameLoader = (
           setLoadedState(null);
           setIsLoading(false);
           setGameInitialized(true);
-          setLoadError(new Error("Превышено время ожидания загрузки"));
           
-          toast({
-            title: "Ошибка загрузки",
-            description: "Превышено время ожидания загрузки. Начинаем новую игру.",
-            variant: "destructive",
-          });
+          if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
+            loadMessageShown = true;
+            toast({
+              title: "Ошибка загрузки",
+              description: "Превышено время ожидания загрузки. Начинаем новую игру.",
+              variant: "destructive",
+            });
+          }
         }, LOAD_TIMEOUT);
         
         const savedState = await loadGameState();
@@ -102,13 +103,17 @@ export const useGameLoader = (
         setLoadedState(savedState);
         setGameInitialized(true);
         
-        if (savedState) {
-          toast({
-            title: "Игра загружена",
-            description: "Ваш прогресс успешно восстановлен",
-            variant: "default",
-          });
-        } else {
+        if (savedState && !loadMessageShown && process.env.NODE_ENV !== 'development') {
+          loadMessageShown = true;
+          setTimeout(() => {
+            toast({
+              title: "Игра загружена",
+              description: "Ваш прогресс успешно восстановлен",
+              variant: "default",
+            });
+          }, 1000);
+        } else if (!savedState && !loadMessageShown && process.env.NODE_ENV !== 'development') {
+          loadMessageShown = true;
           toast({
             title: "Новая игра",
             description: "Сохранения не найдены. Начинаем новую игру.",
@@ -118,13 +123,15 @@ export const useGameLoader = (
       } catch (err) {
         console.error('❌ Ошибка при загрузке состояния:', err);
         setGameInitialized(true);
-        setLoadError(err instanceof Error ? err : new Error(String(err)));
         
-        toast({
-          title: "Ошибка загрузки",
-          description: "Не удалось загрузить сохраненную игру. Начинаем новую игру.",
-          variant: "destructive",
-        });
+        if (!loadMessageShown && process.env.NODE_ENV !== 'development') {
+          loadMessageShown = true;
+          toast({
+            title: "Ошибка загрузки",
+            description: "Не удалось загрузить сохраненную игру. Начинаем новую игру.",
+            variant: "destructive",
+          });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -137,7 +144,6 @@ export const useGameLoader = (
     loadedState,
     isLoading,
     gameInitialized,
-    setGameInitialized,
-    loadError
+    setGameInitialized
   };
 };

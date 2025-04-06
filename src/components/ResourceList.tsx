@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import { Resource } from "@/context/types";
 import ResourceDisplay from "./ResourceDisplay";
 import { Separator } from "@/components/ui/separator";
@@ -10,19 +10,15 @@ import { useResourceSystem } from "@/hooks/useResourceSystem";
 
 interface ResourceListProps {
   resources: Resource[];
-  updateCounter?: number;
 }
 
 // Используем memo для предотвращения лишних перерисовок
-const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCounter }) => {
+const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   const { dispatch, state } = useGame();
   const { formatValue } = useResourceSystem();
   
   // Фильтруем только разблокированные ресурсы
-  const unlockedResources = useMemo(() => 
-    resources.filter(resource => resource.unlocked), 
-    [resources]
-  );
+  const unlockedResources = resources.filter(resource => resource.unlocked);
   
   // Заполнение USDT до максимального значения
   const handleFillUsdt = () => {
@@ -57,35 +53,23 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCount
   // Проверяем, разблокирован ли USDT
   const isUsdtUnlocked = state.resources.usdt && state.resources.usdt.unlocked;
 
-  // Мемоизируем отформатированные значения ресурсов для предотвращения лишних вычислений
-  const formattedResourceValues = useMemo(() => {
-    return unlockedResources.map(resource => ({
-      id: resource.id,
-      formattedValue: formatValue(resource.value ?? 0, resource.id),
-      formattedPerSecond: formatValue(resource.perSecond ?? 0, resource.id)
-    }));
-  }, [unlockedResources, formatValue, updateCounter]);
-
   return (
     <div className="flex flex-col h-full">
       <div className="space-y-0.5 text-xs flex-grow">
-        {unlockedResources.map((resource, index) => {
-          const formatted = formattedResourceValues.find(r => r.id === resource.id);
-          return (
-            <React.Fragment key={resource.id}>
-              <div className="py-1">
-                <ResourceDisplay 
-                  resource={resource}
-                  formattedValue={formatted?.formattedValue}
-                  formattedPerSecond={formatted?.formattedPerSecond}
-                />
-              </div>
-              {index < unlockedResources.length - 1 && (
-                <Separator className="my-0.5" />
-              )}
-            </React.Fragment>
-          );
-        })}
+        {unlockedResources.map((resource, index) => (
+          <React.Fragment key={resource.id}>
+            <div className="py-1">
+              <ResourceDisplay 
+                resource={resource} 
+                formattedValue={formatValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
+                formattedPerSecond={formatValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
+              />
+            </div>
+            {index < unlockedResources.length - 1 && (
+              <Separator className="my-0.5" />
+            )}
+          </React.Fragment>
+        ))}
       </div>
       
       {/* Кнопка заполнения USDT (только если USDT разблокирован) */}
@@ -104,9 +88,6 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCount
       )}
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Упрощенное сравнение, учитывая только updateCounter
-  return prevProps.updateCounter === nextProps.updateCounter;
 });
 
 // Добавляем отображаемое имя для отладки
