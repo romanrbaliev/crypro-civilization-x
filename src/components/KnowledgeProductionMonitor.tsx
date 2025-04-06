@@ -40,7 +40,7 @@ const KnowledgeProductionMonitor: React.FC<{
   const lastKnowledgeValueRef = useRef<number>(0);
   const practiceBuiltRef = useRef<number>(0);
   const animatorRef = useRef<Animator | null>(null);
-  const knowledgeResource = state.resources.knowledge;
+  const monitorOpenTimeRef = useRef<number>(0);
   
   // Состояние для анимации
   const [animationState, setAnimationState] = useState<AnimationState>({
@@ -51,7 +51,7 @@ const KnowledgeProductionMonitor: React.FC<{
     isRunning: false
   });
   
-  // Функция для добавления лога с выводом в консоль (для отладки)
+  // Функция для добавления лога с выводом в консоль
   const addLog = (message: string, type: LogEntry['type'] = 'info') => {
     const newLog: LogEntry = {
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -90,7 +90,7 @@ const KnowledgeProductionMonitor: React.FC<{
     
     // Создаем новый аниматор
     animatorRef.current = new Animator(
-      1000, // длительность анимации в мс (сокращаем для более быстрого отклика)
+      500, // уменьшаем длительность анимации для быстрого отклика
       easing.easeOutQuad, // функция плавности
       (progress) => {
         // Обновляем текущее значение анимации
@@ -109,7 +109,7 @@ const KnowledgeProductionMonitor: React.FC<{
           progress: 100,
           isRunning: false
         }));
-        addLog(`Анимация изменения значения завершена: ${formatValue(startVal, 'knowledge')} → ${formatValue(targetVal, 'knowledge')}`, 'animation');
+        addLog(`Анимация изменения значения завершена: ${formatValue(targetVal, 'knowledge')}`, 'animation');
       }
     );
     
@@ -131,11 +131,16 @@ const KnowledgeProductionMonitor: React.FC<{
   useEffect(() => {
     if (!open) return;
     
+    // Запоминаем время открытия монитора
+    monitorOpenTimeRef.current = Date.now();
+    
     const knowledge = state.resources.knowledge;
     if (!knowledge || !knowledge.unlocked) return;
     
     // Получаем текущее значение при открытии монитора
     const currentKnowledgeValue = knowledge.value || 0;
+    
+    addLog(`Монитор открыт в ${new Date().toLocaleTimeString()}`, 'info');
     
     // Инициализируем анимационное состояние
     setAnimationState({
@@ -150,7 +155,7 @@ const KnowledgeProductionMonitor: React.FC<{
     lastKnowledgeValueRef.current = currentKnowledgeValue;
     
     // Отправляем лог о текущем состоянии
-    addLog(`Монитор открыт. Текущий запас знаний: ${formatValue(currentKnowledgeValue, 'knowledge')}`, 'info');
+    addLog(`Текущий запас знаний: ${formatValue(currentKnowledgeValue, 'knowledge')}`, 'info');
     addLog(`Производство знаний: ${formatValue(knowledge.perSecond || 0, 'knowledge')}/сек`, 'calculation');
     
     // Добавляем детальную информацию о структуре производства
@@ -168,106 +173,57 @@ const KnowledgeProductionMonitor: React.FC<{
         addLog(`Активные бонусы: ${knowledgeDiagnostics.upgradeBonuses.length} улучшений`, 'info');
       }
     }
-  }, [open, formatValue, state.resources.knowledge?.unlocked]);
+    
+    // Регистрируем обработчик событий обновления знаний
+    const handleKnowledgeUpdated = (event: CustomEvent) => {
+      const { oldValue, newValue, delta } = event.detail;
+      addLog(`Событие обновления: ${formatValue(oldValue, 'knowledge')} → ${formatValue(newValue, 'knowledge')} (${delta > 0 ? '+' : ''}${formatValue(delta, 'knowledge')})`, 'production');
+      startValueAnimation(oldValue, newValue);
+      lastKnowledgeValueRef.current = newValue;
+    };
+    
+    window.addEventListener('knowledge-value-updated', handleKnowledgeUpdated as EventListener);
+    
+    return () => {
+      window.removeEventListener('knowledge-value-updated', handleKnowledgeUpdated as EventListener);
+    };
+  }, [open, formatValue, knowledgeDiagnostics]);
   
-  // ВАЖНО: Отдельный эффект для отслеживания изменений значения knowledge.value
-  // Это ключевой эффект для обнаружения изменений!
-  useEffect(() => {
-    if (!open || !knowledgeResource || !knowledgeResource.unlocked) return;
-    
-    const currentValue = knowledgeResource.value || 0;
-    const lastValue = lastKnowledgeValueRef.current;
-    
-    // Добавим более детальный отладочный вывод
-    console.log(`KnowledgeMonitor: Проверка изменения знаний - было: ${lastValue.toFixed(2)}, стало: ${currentValue.toFixed(2)}, разница: ${(currentValue - lastValue).toFixed(4)}`);
-    
-    // Проверяем на реальное изменение значения с порогом точности
-    if (Math.abs(currentValue - lastValue) > 0.0001) {
-      const diff = currentValue - lastValue;
-      
-      addLog(`Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
-      
-      // Запускаем анимацию изменения значения
-      startValueAnimation(lastValue, currentValue);
-      
-      // Обновляем ref с последним значением
-      lastKnowledgeValueRef.current = currentValue;
-    }
-  }, [open, knowledgeResource?.value, formatValue]);
-  
-  // Эффект для установки интервала периодической проверки
+  // Отдельный эффект для отслеживания изменений значения knowledge.value с быстрой периодичностью
   useEffect(() => {
     if (!open) return;
     
-    // Очищаем предыдущий интервал если он был
-    if (logIntervalRef.current) {
-      clearInterval(logIntervalRef.current);
-    }
-    
-    // Запускаем новый интервал для обновления UI и проверки изменений
-    // Используем более короткий интервал для более частой проверки
-    logIntervalRef.current = setInterval(() => {
-      if (knowledgeResource && knowledgeResource.unlocked) {
-        const currentValue = knowledgeResource.value || 0;
-        const lastValue = lastKnowledgeValueRef.current;
+    const checkInterval = setInterval(() => {
+      const knowledgeResource = state.resources.knowledge;
+      if (!knowledgeResource || !knowledgeResource.unlocked) return;
+      
+      const currentValue = knowledgeResource.value || 0;
+      const lastValue = lastKnowledgeValueRef.current;
+      
+      // Проверяем на реальное изменение значения с малым порогом точности
+      if (Math.abs(currentValue - lastValue) > 0.000001) {
+        const diff = currentValue - lastValue;
         
-        // Проверяем, изменилось ли значение
-        if (Math.abs(currentValue - lastValue) > 0.0001) {
-          const diff = currentValue - lastValue;
-          
-          addLog(`[Интервал] Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
-          
-          // Запускаем анимацию изменения значения
-          startValueAnimation(lastValue, currentValue);
-          
-          // Обновляем ref с последним значением
-          lastKnowledgeValueRef.current = currentValue;
-        } else if (knowledgeResource.perSecond > 0) {
-          // Если производство положительное, но значение не меняется, логируем проблему
-          console.log(`KnowledgeMonitor: WARNING - Производство > 0 (${knowledgeResource.perSecond.toFixed(2)}), но значение не меняется: ${currentValue.toFixed(2)}`);
+        addLog(`[Интервал] Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
+        
+        // Запускаем анимацию изменения значения
+        startValueAnimation(lastValue, currentValue);
+        
+        // Обновляем ref с последним значением
+        lastKnowledgeValueRef.current = currentValue;
+      } else if (knowledgeResource.perSecond > 0) {
+        const elapsedSeconds = (Date.now() - monitorOpenTimeRef.current) / 1000;
+        // Проверяем, не прошло ли уже 3 секунды без изменений
+        if (elapsedSeconds > 3) {
+          addLog(`Внимание: Производство > 0 (${knowledgeResource.perSecond.toFixed(4)}), но значение не меняется уже ${elapsedSeconds.toFixed(1)} сек`, 'calculation');
         }
       }
-    }, 100); // Сокращаем интервал для более частой проверки (100мс)
-    
-    // Очистка при размонтировании или закрытии
-    return () => {
-      if (logIntervalRef.current) {
-        clearInterval(logIntervalRef.current);
-        logIntervalRef.current = null;
-      }
-      
-      // Останавливаем анимацию при размонтировании
-      if (animatorRef.current) {
-        animatorRef.current.stop();
-      }
-    };
-  }, [open, knowledgeResource, formatValue]);
-  
-  // Добавляем обработчик событий TICK
-  useEffect(() => {
-    if (!open) return;
-    
-    const originalConsoleLog = console.log;
-    
-    // Перехватываем логи, связанные с TICK и resourceUpdateReducer
-    console.log = (...args) => {
-      originalConsoleLog(...args);
-      
-      const logMessage = args.join(' ');
-      
-      if (logMessage.includes('TICK') && logMessage.includes('Обновление ресурсов')) {
-        addLog(`TICK: ${logMessage}`, 'tick');
-      } else if (logMessage.includes('resourceUpdateReducer') && logMessage.includes('Знания')) {
-        addLog(`Система: ${logMessage}`, 'calculation');
-      } else if (logMessage.includes('ResourceProductionService') && logMessage.includes('знаний')) {
-        addLog(`Расчет: ${logMessage}`, 'calculation');
-      }
-    };
+    }, 50); // Очень короткий интервал для быстрого отслеживания
     
     return () => {
-      console.log = originalConsoleLog;
+      clearInterval(checkInterval);
     };
-  }, [open]);
+  }, [open, state.resources.knowledge, formatValue]);
   
   // Отображение разных типов логов
   const getLogIcon = (type: LogEntry['type']) => {
@@ -294,6 +250,22 @@ const KnowledgeProductionMonitor: React.FC<{
     return (animationState.currentValue / resource.max) * 100;
   };
   
+  // Модифицируем хук useGameStateUpdateService для более частого обновления
+  useEffect(() => {
+    if (!open) return;
+    
+    // Увеличиваем частоту обновления игрового состояния, когда монитор открыт
+    const forcedUpdateInterval = setInterval(() => {
+      // Имитируем TICK в очень короткие интервалы для обновления UI
+      window.dispatchEvent(new CustomEvent('monitor-force-update'));
+    }, 100); // Более частое обновление, когда монитор открыт
+    
+    return () => {
+      clearInterval(forcedUpdateInterval);
+    };
+  }, [open]);
+  
+  // Основное представление компонента
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">

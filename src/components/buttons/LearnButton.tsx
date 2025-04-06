@@ -15,14 +15,15 @@ const LearnButton: React.FC = () => {
   const baseProduction = 1;
   
   const handleClick = () => {
-    console.log('Клик по кнопке "Изучить крипту"');
+    console.log('==== КЛИК ПО КНОПКЕ "ИЗУЧИТЬ КРИПТУ" ====');
     
     // Инкрементируем счетчик кликов
     const currentValue = state.counters.knowledgeClicks?.value || 0;
     
     if (state.resources.knowledge?.unlocked) {
       // Логируем текущее значение перед изменением
-      console.log('Текущее значение знаний перед кликом:', state.resources.knowledge.value);
+      const knowledgeBefore = state.resources.knowledge.value || 0;
+      console.log(`LearnButton: Текущее значение знаний перед кликом: ${knowledgeBefore}`);
       
       // Добавляем знания
       incrementResource('knowledge', baseProduction);
@@ -30,7 +31,14 @@ const LearnButton: React.FC = () => {
       // Открываем монитор производства знаний через событие
       window.dispatchEvent(new CustomEvent('open-knowledge-monitor'));
       
-      console.log('Добавлено знаний:', baseProduction);
+      // Логируем после инкремента
+      setTimeout(() => {
+        const knowledgeAfter = state.resources.knowledge.value || 0;
+        console.log(`LearnButton: Значение знаний после клика: ${knowledgeAfter}`);
+        console.log(`LearnButton: Разница: ${knowledgeAfter - knowledgeBefore}`);
+      }, 50);
+      
+      console.log(`LearnButton: Отправлена команда INCREMENT_RESOURCE, знания +${baseProduction}`);
     }
   };
   

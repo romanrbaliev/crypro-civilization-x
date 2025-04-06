@@ -7,22 +7,26 @@ const resourceSystem = new ResourceSystem();
 
 // Определяем функцию для обновления ресурсов
 export const updateResources = (state: GameState, deltaTime: number): GameState => {
-  console.log(`resourceUpdateReducer: Обновление ресурсов, прошло ${deltaTime}ms`);
+  console.log(`===== resourceUpdateReducer: Обновление ресурсов =====`);
+  console.log(`Прошло ${deltaTime}ms`);
   
   if (deltaTime <= 0) {
     console.log("resourceUpdateReducer: deltaTime <= 0, пропускаем обновление");
     return state;
   }
   
-  // Логируем состояние знаний до обновления (для отладки монитора)
+  // Глубокая копия состояния перед обновлением (для сравнения)
+  const stateBefore = JSON.parse(JSON.stringify(state));
+  
+  // Логируем состояние знаний до обновления
   const knowledgeBefore = state.resources.knowledge?.value || 0;
   const knowledgeProduction = state.resources.knowledge?.perSecond || 0;
   
-  console.log(`resourceUpdateReducer: Знания до обновления: ${knowledgeBefore.toFixed(2)}, производство: ${knowledgeProduction.toFixed(2)}/сек`);
+  console.log(`resourceUpdateReducer: Знания ДО: ${knowledgeBefore.toFixed(4)}, производство: ${knowledgeProduction.toFixed(4)}/сек`);
   
   // Расчет ожидаемого прироста для проверки
-  const expectedIncrement = (knowledgeProduction * deltaTime / 1000).toFixed(4);
-  console.log(`resourceUpdateReducer: Ожидаемый прирост знаний за ${deltaTime}ms: ${expectedIncrement}`);
+  const expectedIncrement = (knowledgeProduction * deltaTime / 1000);
+  console.log(`resourceUpdateReducer: Ожидаемый прирост знаний за ${deltaTime}ms: ${expectedIncrement.toFixed(6)}`);
   
   // Обновляем ресурсы, используя ResourceSystem
   const updatedState = resourceSystem.updateResources(state, deltaTime);
@@ -31,13 +35,29 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
   const knowledgeAfter = updatedState.resources.knowledge?.value || 0;
   const knowledgeDelta = knowledgeAfter - knowledgeBefore;
   
-  console.log(`resourceUpdateReducer: Знания после обновления: ${knowledgeAfter.toFixed(2)}, прирост: ${knowledgeDelta.toFixed(4)} (за ${deltaTime}ms)`);
+  console.log(`resourceUpdateReducer: Знания ПОСЛЕ: ${knowledgeAfter.toFixed(4)}, прирост: ${knowledgeDelta.toFixed(6)} (за ${deltaTime}ms)`);
   
   // Проверка на проблему с обновлением
-  if (knowledgeProduction > 0 && knowledgeDelta <= 0) {
-    console.error("resourceUpdateReducer: ПРОБЛЕМА! Производство положительное, но значение не увеличилось!");
-    console.log("resourceUpdateReducer: Состояние перед:", JSON.stringify(state.resources.knowledge));
+  if (knowledgeProduction > 0 && knowledgeDelta < 0.000001 && deltaTime > 100) {
+    console.error("resourceUpdateReducer: КРИТИЧЕСКАЯ ПРОБЛЕМА! Производство положительное, но значение не увеличилось!");
+    console.log("resourceUpdateReducer: Состояние перед:", JSON.stringify(stateBefore.resources.knowledge));
     console.log("resourceUpdateReducer: Состояние после:", JSON.stringify(updatedState.resources.knowledge));
+  }
+  
+  // Создаем событие обновления значения знаний
+  if (Math.abs(knowledgeDelta) > 0.000001) {
+    try {
+      window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
+        detail: { 
+          oldValue: knowledgeBefore,
+          newValue: knowledgeAfter,
+          delta: knowledgeDelta
+        }
+      }));
+      console.log("resourceUpdateReducer: Отправлено событие knowledge-value-updated");
+    } catch (e) {
+      console.error("resourceUpdateReducer: Ошибка при отправке события:", e);
+    }
   }
   
   // Возвращаем обновленное состояние

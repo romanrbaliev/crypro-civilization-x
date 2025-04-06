@@ -10,6 +10,8 @@ export const useGameStateUpdateService = () => {
   
   // Добавляем счетчик тиков для отладки
   const tickCountRef = useRef<number>(0);
+  // Флаг, указывающий, что монитор знаний открыт
+  const monitorIsOpenRef = useRef<boolean>(false);
   
   const updateGameState = useCallback(() => {
     if (!isPageVisible || !state.gameStarted) {
@@ -30,14 +32,13 @@ export const useGameStateUpdateService = () => {
         console.log(`Тик #${tickCountRef.current}: Обновление состояния игры, прошло ${cappedDeltaTime}ms`);
       }
       
-      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Не обновляем ресурсы здесь напрямую, а передаем управление редьюсеру
-      // Это устраняет дублирование обновления ресурсов между useGameStateUpdateService и gameReducer
-      // Используем skipResourceUpdate: false, чтобы указать, что ресурсы должны обновляться в редьюсере
+      // Используем более детальное логирование, если монитор знаний открыт
       dispatch({ 
         type: 'TICK', 
         payload: { 
           currentTime,
-          skipResourceUpdate: false 
+          skipResourceUpdate: false,
+          debug: monitorIsOpenRef.current // Включаем расширенное логирование если монитор открыт
         } 
       });
       
@@ -61,6 +62,52 @@ export const useGameStateUpdateService = () => {
     }
   }, [state.gameStarted, recalculateAllProduction, dispatch]);
   
+  // Добавляем эффект для обработки событий от монитора знаний
+  useEffect(() => {
+    // Функция-обработчик события открытия монитора знаний
+    const handleKnowledgeMonitorOpen = () => {
+      monitorIsOpenRef.current = true;
+      console.log("Монитор знаний открыт, включаем режим расширенного логирования");
+      
+      // Принудительно обновляем производство при открытии монитора
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+    };
+    
+    // Функция-обработчик события принудительного обновления
+    const handleForceUpdate = () => {
+      if (monitorIsOpenRef.current) {
+        // Принудительно обновляем ресурсы, когда монитор открыт
+        const currentTime = Date.now();
+        const deltaTime = currentTime - lastTickTimeRef.current;
+        
+        // Обновляем только если прошло достаточно времени
+        if (deltaTime > 50) {
+          dispatch({ 
+            type: 'TICK', 
+            payload: { 
+              currentTime,
+              skipResourceUpdate: false,
+              debug: true // Всегда включаем расширенное логирование для этих обновлений
+            } 
+          });
+          lastTickTimeRef.current = currentTime;
+        }
+      }
+    };
+    
+    // Слушаем событие открытия монитора
+    window.addEventListener('open-knowledge-monitor', handleKnowledgeMonitorOpen);
+    
+    // Слушаем событие принудительного обновления от монитора
+    window.addEventListener('monitor-force-update', handleForceUpdate);
+    
+    // Очищаем обработчики при размонтировании
+    return () => {
+      window.removeEventListener('open-knowledge-monitor', handleKnowledgeMonitorOpen);
+      window.removeEventListener('monitor-force-update', handleForceUpdate);
+    };
+  }, [dispatch]);
+  
   // Главный эффект для обновления игры
   useEffect(() => {
     console.log("Запуск системы обновления ресурсов");
@@ -79,7 +126,11 @@ export const useGameStateUpdateService = () => {
     const forceUpdateInterval = setInterval(() => {
       if (isPageVisible && state.gameStarted) {
         dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-        console.log("Принудительное обновление производства ресурсов");
+        
+        // Выводим логи только иногда для снижения шума в консоли
+        if (!monitorIsOpenRef.current) {
+          console.log("Принудительное обновление производства ресурсов");
+        }
       }
     }, 3000);
     

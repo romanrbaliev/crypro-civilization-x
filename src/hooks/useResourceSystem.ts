@@ -21,8 +21,7 @@ export const useResourceSystem = () => {
     
     console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
     
-    // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Вместо обновления ресурсов здесь, отправляем действие TICK
-    // Это предотвращает дублирование обновления ресурсов между системами
+    // Отправляем действие TICK с дополнительной отладочной информацией
     dispatch({ 
       type: 'TICK', 
       payload: { 
@@ -88,11 +87,39 @@ export const useResourceSystem = () => {
    * @param amount Количество
    */
   const incrementResource = useCallback((resourceId: string, amount: number = 1) => {
+    console.log(`useResourceSystem: Увеличение ресурса ${resourceId} на ${amount}`);
+    
+    // Получаем текущее значение для логирования
+    const currentValue = state.resources[resourceId]?.value || 0;
+    console.log(`useResourceSystem: Текущее значение ${resourceId}: ${currentValue}`);
+    
     dispatch({
       type: 'INCREMENT_RESOURCE',
       payload: { resourceId, amount }
     });
-  }, [dispatch]);
+    
+    // Дополнительно запускаем проверку разблокировок после инкремента
+    setTimeout(() => {
+      dispatch({ type: 'CHECK_UNLOCKS' });
+      
+      // И форсируем обновление для монитора
+      const newValue = state.resources[resourceId]?.value || 0;
+      console.log(`useResourceSystem: Новое значение ${resourceId}: ${newValue}`);
+      
+      // Отправляем событие обновления значения
+      try {
+        window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
+          detail: { 
+            oldValue: currentValue,
+            newValue: newValue,
+            delta: newValue - currentValue
+          }
+        }));
+      } catch (e) {
+        console.error("useResourceSystem: Ошибка при отправке события:", e);
+      }
+    }, 50);
+  }, [dispatch, state.resources]);
   
   /**
    * Пересчитывает всё производство ресурсов
@@ -188,7 +215,7 @@ export const useResourceSystem = () => {
     applyKnowledge,
     applyAllKnowledge,
     exchangeBitcoin,
-    getResourceDiagnostics, // Экспортируем функцию диагностики
+    getResourceDiagnostics,
     resourceSystem,
     resourceFormatter
   };
