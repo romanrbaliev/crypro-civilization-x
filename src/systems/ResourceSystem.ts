@@ -124,14 +124,17 @@ export class ResourceSystem {
     let updatedState = { ...state };
     const resources = { ...state.resources };
     
-    console.log(`Обновление ресурсов, прошло ${deltaSeconds} секунд`);
+    console.log(`Обновление ресурсов, прошло ${deltaSeconds.toFixed(2)} секунд`);
     
     // Обрабатываем каждый ресурс
     for (const resourceId in resources) {
       const resource = resources[resourceId];
       
       // Пропускаем неразблокированные ресурсы
-      if (!resource.unlocked) continue;
+      if (!resource.unlocked) {
+        console.log(`Ресурс ${resourceId} не разблокирован, пропускаем...`);
+        continue;
+      }
       
       // Получаем значения производства и потребления
       const production = resource.production || 0;
@@ -190,6 +193,8 @@ export class ResourceSystem {
       
       if (building.count <= 0) continue;
       
+      console.log(`Обрабатываем производство здания ${buildingId} (количество: ${building.count})`);
+      
       // Обрабатываем производство
       if (building.production) {
         for (const resourceId in building.production) {
@@ -203,8 +208,12 @@ export class ResourceSystem {
             };
             
             console.log(`Здание ${buildingId} (${building.count} шт.) производит ${resourceId}: ${buildingProduction} в секунду`);
+          } else {
+            console.log(`Ресурс ${resourceId} не существует или не разблокирован`);
           }
         }
+      } else {
+        console.log(`У здания ${buildingId} нет настроек производства`);
       }
       
       // Обрабатываем потребление
@@ -233,6 +242,7 @@ export class ResourceSystem {
           ...resource,
           perSecond: (resource.production || 0) - (resource.consumption || 0)
         };
+        console.log(`Обновлен перерасчет скорости ресурса ${resourceId}: ${resources[resourceId].perSecond}/сек`);
       }
     }
     
@@ -252,14 +262,14 @@ export class ResourceSystem {
     if (resources.knowledge) {
       resources.knowledge = {
         ...resources.knowledge,
-        max: 100 // Используем жесткое значение вместо baseMax
+        max: 100 // Базовое значение
       };
     }
     
     if (resources.usdt) {
       resources.usdt = {
         ...resources.usdt,
-        max: 100 // Используем жесткое значение вместо baseMax
+        max: 100 // Базовое значение
       };
     }
     
@@ -353,6 +363,16 @@ export class ResourceSystem {
     // Сначала обновляем максимальные значения ресурсов
     state = this.updateResourceMaxValues(state);
     // Затем пересчитываем производство
-    return this.updateResourceProduction(state);
+    state = this.updateResourceProduction(state);
+    
+    // Дополнительно выводим информацию о текущем производстве
+    for (const resourceId in state.resources) {
+      const resource = state.resources[resourceId];
+      if (resource.unlocked) {
+        console.log(`Ресурс ${resourceId}: производство ${resource.production || 0}/сек, потребление ${resource.consumption || 0}/сек, итого ${resource.perSecond || 0}/сек`);
+      }
+    }
+    
+    return state;
   }
 }

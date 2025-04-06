@@ -18,6 +18,7 @@ export function processPurchase(
   payload: { itemId: string, itemType: PurchasableType }
 ): GameState {
   const { itemId, itemType } = payload;
+  console.log(`Обработка покупки ${itemType} с ID ${itemId}`);
 
   // Определение типа покупаемого элемента
   let item;
@@ -118,6 +119,7 @@ export function processPurchase(
   updatedState = resourceSystem.updateResourceMaxValues(updatedState);
 
   // Принудительно обновляем всю информацию о производстве ресурсов
+  console.log("Принудительный пересчет производства после покупки");
   updatedState = resourceSystem.recalculateAllResourceProduction(updatedState);
   
   console.log("После покупки: пересчитываем все unlock-и");

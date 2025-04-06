@@ -104,6 +104,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
   // Ниже идет обработка всех типов действий
   switch (action.type) {
     case 'START_GAME':
+      console.log("Игра запущена, пересчитываем производство и проверяем разблокировки");
+      newState = resourceSystem.recalculateAllResourceProduction(newState);
       return checkAllUnlocks({ ...newState, gameStarted: true });
     
     case 'TICK':
@@ -112,6 +114,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const deltaTime = currentTime - newState.lastUpdate;
       
       if (deltaTime > 0) {
+        console.log(`TICK: Обновление ресурсов за ${deltaTime}ms`);
+        
         // Обновляем ресурсы
         newState = resourceSystem.updateResources(newState, deltaTime);
         
@@ -122,6 +126,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         newState = checkAllUnlocks(newState);
         
         console.log(`TICK: Обновлены ресурсы, прошло ${deltaTime}ms`);
+      } else {
+        console.log(`TICK: Пропускаем обновление, прошло ${deltaTime}ms`);
       }
       
       return newState;
@@ -146,6 +152,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'BUY_BUILDING':
       // Обрабатываем покупку здания и проверяем разблокировки
+      console.log("Обработка BUY_BUILDING...");
       return processPurchaseBuilding(newState, action.payload);
     
     case 'SELL_BUILDING':
@@ -159,11 +166,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     // Новое унифицированное действие покупки
     case 'PURCHASE_ITEM':
       // Используем унифицированную функцию покупки
+      console.log("Обработка PURCHASE_ITEM...");
       return processPurchase(newState, action.payload);
     
     case 'LOAD_GAME':
+      console.log("Загрузка игры...");
       newState = { ...newState, ...action.payload };
       // Принудительно пересчитываем производство
+      console.log("Пересчитываем производство после загрузки...");
       newState = resourceSystem.recalculateAllResourceProduction(newState);
       // Проверяем разблокировки при загрузке игры
       return checkAllUnlocks(newState);
@@ -180,6 +190,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'FORCE_RESOURCE_UPDATE':
       // Принудительно пересчитываем все значения и проверяем разблокировки
+      console.log("FORCE_RESOURCE_UPDATE: Принудительное обновление производства ресурсов");
       if (action.payload) {
         // Если передано новое состояние, используем его
         newState = action.payload;

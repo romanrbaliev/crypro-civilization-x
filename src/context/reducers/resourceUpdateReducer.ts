@@ -9,6 +9,11 @@ const resourceSystem = new ResourceSystem();
 export const updateResources = (state: GameState, deltaTime: number): GameState => {
   console.log(`resourceUpdateReducer: Обновление ресурсов, прошло ${deltaTime}ms`);
   
+  if (deltaTime <= 0) {
+    console.log("resourceUpdateReducer: deltaTime <= 0, пропускаем обновление");
+    return state;
+  }
+  
   // Обновляем ресурсы, используя ResourceSystem
   const updatedState = resourceSystem.updateResources(state, deltaTime);
   
@@ -21,5 +26,15 @@ export const calculateResourceProduction = (state: GameState): GameState => {
   console.log("resourceUpdateReducer: Пересчет производства ресурсов");
   
   // Полностью пересчитываем производство ресурсов
-  return resourceSystem.recalculateAllResourceProduction(state);
+  const updatedState = resourceSystem.recalculateAllResourceProduction(state);
+  
+  // Выводим состояние производства ресурсов после пересчета
+  for (const resourceId in updatedState.resources) {
+    const resource = updatedState.resources[resourceId];
+    if (resource.unlocked) {
+      console.log(`Ресурс ${resourceId}: производство ${resource.production || 0}/сек, потребление ${resource.consumption || 0}/сек, перерасчет ${resource.perSecond || 0}/сек`);
+    }
+  }
+  
+  return updatedState;
 };

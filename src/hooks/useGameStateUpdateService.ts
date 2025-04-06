@@ -6,31 +6,43 @@ import { useResourceSystem } from './useResourceSystem';
 
 export const useGameStateUpdateService = () => {
   const { state, dispatch, isPageVisible } = useGame();
-  const { updateResources } = useResourceSystem();
+  const { updateResources, recalculateAllProduction } = useResourceSystem();
   const unlockService = new UnlockService();
   const lastTickTimeRef = useRef<number>(Date.now());
   
   const updateGameState = useCallback(() => {
-    if (isPageVisible && state.gameStarted) {
-      const currentTime = Date.now();
-      const deltaTime = currentTime - state.lastUpdate;
+    if (!isPageVisible || !state.gameStarted) {
+      return;
+    }
+    
+    const currentTime = Date.now();
+    const deltaTime = currentTime - state.lastUpdate;
+    
+    // Если прошло слишком много времени (например, более минуты),
+    // ограничиваем дельту времени, чтобы не было резких скачков
+    const cappedDeltaTime = Math.min(deltaTime, 60000);
+    
+    if (cappedDeltaTime > 0) {
+      console.log(`Обновление состояния игры: прошло ${cappedDeltaTime}ms`);
       
-      // Если прошло слишком много времени (например, более минуты),
-      // ограничиваем дельту времени, чтобы не было резких скачков
-      const cappedDeltaTime = Math.min(deltaTime, 60000);
+      // Обновляем ресурсы с учетом прошедшего времени
+      updateResources(cappedDeltaTime);
       
-      if (cappedDeltaTime > 0) {
-        // Обновляем ресурсы с учетом прошедшего времени
-        updateResources(cappedDeltaTime);
-        
-        // Обновляем lastUpdate
-        dispatch({ type: 'TICK', payload: { currentTime } });
-        
-        console.log(`Тик игры: прошло ${cappedDeltaTime}ms, lastUpdate обновлен`);
-        lastTickTimeRef.current = currentTime;
-      }
+      // Обновляем lastUpdate
+      dispatch({ type: 'TICK', payload: { currentTime } });
+      
+      console.log(`Тик игры: прошло ${cappedDeltaTime}ms, lastUpdate обновлен`);
+      lastTickTimeRef.current = currentTime;
     }
   }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch, updateResources]);
+  
+  // Инициализация игрового состояния при первой загрузке
+  useEffect(() => {
+    if (state.gameStarted) {
+      console.log("Инициализация игрового состояния при первой загрузке");
+      recalculateAllProduction();
+    }
+  }, [state.gameStarted, recalculateAllProduction]);
   
   useEffect(() => {
     // Запускаем таймер для обновления ресурсов каждые 500ms для более плавного обновления
