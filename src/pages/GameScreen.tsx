@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +30,6 @@ import { Separator } from "@/components/ui/separator";
 import { clearAllSavedDataForAllUsers } from "@/api/adminService";
 import { getUnlocksFromState } from '@/utils/unlockHelper';
 
-// Функция для сброса данных игры
 const resetAllGameData = async () => {
   await clearAllSavedDataForAllUsers();
 };
@@ -44,7 +42,6 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
-  // Получаем объект unlocks из состояния для обратной совместимости
   const unlocks = state.unlocks || getUnlocksFromState(state);
   
   const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
@@ -181,83 +178,7 @@ const GameScreen = () => {
   
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
-        <div className="flex justify-between items-center h-full">
-          <div className="flex-1 flex items-center pl-2 gap-2">
-          </div>
-          <div className="flex items-center justify-between px-2">
-            <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  {t('settings.resetProgress')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t('settings.resetConfirm.title')}</DialogTitle>
-                  <DialogDescription>
-                    {t('settings.resetConfirm.description')}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setResetConfirmOpen(false)}>
-                    {t('settings.resetConfirm.cancel')}
-                  </Button>
-                  <Button variant="destructive" onClick={handleResetGame}>
-                    {t('settings.resetConfirm.confirm')}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
-                  <Settings className="h-3.5 w-3.5 mr-1" />
-                  {t('settings.title')}
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>{t('settings.title')}</SheetTitle>
-                  <SheetDescription>
-                    {t('settings.gameOptions')}
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="py-4">
-                  <h3 className="font-medium mb-2">{t('settings.language')}</h3>
-                  <div className="mb-4">
-                    <LanguageSwitch />
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <h3 className="font-medium mb-2">{t('settings.gameOptions')}</h3>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
-                      onClick={() => setResetConfirmOpen(true)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {t('settings.resetProgress')}
-                    </Button>
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <h3 className="font-medium mb-2">{t('settings.about')}</h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {t('settings.version')}<br />
-                    © 2023 Crypto Civilization
-                  </p>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-          <div className="flex-1"></div>
-        </div>
-      </header>
+      <Header prestigePoints={state.prestigePoints || 0} />
       
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">
