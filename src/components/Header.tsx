@@ -33,6 +33,14 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from "@/components/ui/menubar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface HeaderProps {
   prestigePoints: number;
@@ -41,7 +49,14 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
   const navigate = useNavigate();
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
+  const [debugDialogOpen, setDebugDialogOpen] = useState(false);
   const { state } = useGame();
+  const [debugInfo, setDebugInfo] = useState({
+    resources: [] as Array<{id: string, value: number, max: string|number, perSecond: number}>,
+    buildings: [] as Array<{id: string, count: number, production: any, consumption: any}>,
+    lastUpdate: 0,
+    productionFlow: [] as string[]
+  });
 
   const handleResetAll = async () => {
     try {
@@ -71,46 +86,52 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
     // Вывод информации о времени обновления
     const currentTime = Date.now();
     const lastUpdateDiff = currentTime - state.lastUpdate;
-    console.log(`[Debug] Текущее время: ${new Date(currentTime).toISOString()}`);
-    console.log(`[Debug] Последнее обновление: ${new Date(state.lastUpdate).toISOString()}`);
-    console.log(`[Debug] Прошло с последнего обновления: ${lastUpdateDiff}мс`);
     
-    // Вывод информации о состоянии ресурсов
-    console.log("[Debug] Состояние всех ресурсов:");
-    Object.entries(state.resources).forEach(([id, resource]) => {
-      const res = resource as any;
-      if (res.unlocked) {
-        console.log(`[Debug] ${id}: значение=${res.value?.toFixed(2) || 0}, макс=${res.max || '∞'}, скорость=${res.perSecond?.toFixed(4) || 0}/сек`);
-        console.log(`[Debug] ${id}: производство=${res.production?.toFixed(4) || 0}, потребление=${res.consumption?.toFixed(4) || 0}`);
-      }
+    // Подготовка данных для отображения в интерфейсе
+    const resourcesInfo = Object.entries(state.resources)
+      .filter(([_, r]) => {
+        const resource = r as any;
+        return resource.unlocked;
+      })
+      .map(([id, r]) => {
+        const resource = r as any;
+        return {
+          id,
+          value: Number(resource.value?.toFixed(2)) || 0,
+          max: resource.max || '∞',
+          perSecond: Number(resource.perSecond?.toFixed(4)) || 0,
+          production: Number(resource.production?.toFixed(4)) || 0,
+          consumption: Number(resource.consumption?.toFixed(4)) || 0
+        };
+      });
+    
+    const buildingsInfo = Object.entries(state.buildings)
+      .filter(([_, building]) => building.count > 0)
+      .map(([id, building]) => ({
+        id,
+        count: building.count,
+        production: building.production || 'нет',
+        consumption: building.consumption || 'нет'
+      }));
+    
+    const productionFlow = [
+      "1. useGameStateUpdateService -> updateGameState (каждый кадр)",
+      "2. updateResources(deltaTime) -> resourceSystem.updateResources(state, deltaTime)",
+      "3. dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState })",
+      "4. gameReducer -> case 'FORCE_RESOURCE_UPDATE'"
+    ];
+    
+    setDebugInfo({
+      resources: resourcesInfo,
+      buildings: buildingsInfo,
+      lastUpdate: lastUpdateDiff,
+      productionFlow
     });
     
-    // Вывод информации о зданиях
-    console.log("[Debug] Здания, влияющие на производство:");
-    Object.entries(state.buildings).forEach(([id, building]) => {
-      if (building.count > 0) {
-        console.log(`[Debug] ${id}: количество=${building.count}, производство:`, building.production || 'нет', 'потребление:', building.consumption || 'нет');
-      }
-    });
-    
-    // Путь выполнения кода
-    console.log("[Debug] Проверка последовательности обновления:");
-    console.log("[Debug] 1. useGameStateUpdateService -> updateGameState (каждый кадр)");
-    console.log("[Debug] 2. updateResources(deltaTime) -> resourceSystem.updateResources(state, deltaTime)");
-    console.log("[Debug] 3. dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState })");
-    console.log("[Debug] 4. gameReducer -> case 'FORCE_RESOURCE_UPDATE'");
-    
-    // Отображение в интерфейсе
-    toast({
-      title: "Отладка ресурсов",
-      description: "Информация выведена в консоль разработчика (F12)",
-      variant: "default",
-    });
+    setDebugDialogOpen(true);
   };
 
   const triggerProductionConsumptionDebug = () => {
-    console.log("=== ОТЛАДКА ПРОИЗВОДСТВА/ПОТРЕБЛЕНИЯ ===");
-    
     // Импорт ResourceSystem для проверки
     const ResourceSystem = require('@/systems/ResourceSystem').ResourceSystem;
     const resourceSystem = new ResourceSystem();
@@ -119,56 +140,64 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
     const stateCopy = JSON.parse(JSON.stringify(state));
     
     // Проверяем пересчет производства/потребления
-    console.log("[Debug] Пересчитываем производство/потребление...");
     const updatedState = resourceSystem.updateProductionConsumption(stateCopy);
     
     // Проверяем обновление максимумов
-    console.log("[Debug] Пересчитываем максимальные значения...");
     const updatedWithMaxes = resourceSystem.updateResourceMaxValues(updatedState);
     
-    // Выводим результаты
-    console.log("[Debug] Результаты пересчета:");
-    Object.entries(updatedWithMaxes.resources).forEach(([id, resource]) => {
-      const res = resource as any;
-      if (res.unlocked) {
-        console.log(`[Debug] ${id}: perSecond=${res.perSecond?.toFixed(4) || 0}/сек (производство=${res.production?.toFixed(4) || 0}, потребление=${res.consumption?.toFixed(4) || 0})`);
-      }
+    // Подготовка данных для отображения
+    const resourcesInfo = Object.entries(updatedWithMaxes.resources)
+      .filter(([_, r]) => {
+        const resource = r as any;
+        return resource.unlocked;
+      })
+      .map(([id, r]) => {
+        const resource = r as any;
+        return {
+          id,
+          value: Number(resource.value?.toFixed(2)) || 0,
+          max: resource.max || '∞',
+          perSecond: Number(resource.perSecond?.toFixed(4)) || 0,
+          production: Number(resource.production?.toFixed(4)) || 0,
+          consumption: Number(resource.consumption?.toFixed(4)) || 0
+        };
+      });
+    
+    setDebugInfo({
+      ...debugInfo,
+      resources: resourcesInfo,
+      productionFlow: ["Перерасчет производства/потребления", "Обновление максимальных значений"]
     });
     
-    toast({
-      title: "Отладка производства",
-      description: "Информация о производстве выведена в консоль",
-      variant: "default",
-    });
+    setDebugDialogOpen(true);
   };
 
   const triggerPurchaseSystemDebug = () => {
-    console.log("=== ОТЛАДКА СИСТЕМЫ ПОКУПОК ===");
+    // Подготовка данных зданий для отображения
+    const buildingsInfo = Object.entries(state.buildings)
+      .filter(([_, building]) => building.unlocked)
+      .map(([id, building]) => ({
+        id,
+        count: building.count,
+        cost: building.cost,
+        effects: building.effects || 'нет эффектов'
+      }));
     
-    // Вывод информации о зданиях и их эффектах
-    console.log("[Debug] Здания и их эффекты:");
-    Object.entries(state.buildings).forEach(([id, building]) => {
-      if (building.unlocked) {
-        console.log(`[Debug] ${id}: количество=${building.count}, стоимость:`, building.cost);
-        if (building.effects) {
-          console.log(`[Debug] ${id} эффекты:`, building.effects);
-        }
-      }
+    const productionFlow = [
+      "1. Нажатие на кнопку -> dispatch({ type: 'BUY_BUILDING', payload: { buildingId } })",
+      "2. gameReducer -> case 'BUY_BUILDING' -> processPurchase(newState, { itemId, itemType })",
+      "3. processPurchase -> проверка ресурсов -> списание ресурсов -> обновление здания",
+      "4. resourceSystem.updateProductionConsumption -> пересчет производства/потребления",
+      "5. resourceSystem.updateResourceMaxValues -> пересчет максимумов"
+    ];
+    
+    setDebugInfo({
+      ...debugInfo,
+      buildings: buildingsInfo,
+      productionFlow
     });
     
-    // Проверка системы покупок
-    console.log("[Debug] Путь выполнения покупки:");
-    console.log("[Debug] 1. Нажатие на кнопку -> dispatch({ type: 'BUY_BUILDING', payload: { buildingId } })");
-    console.log("[Debug] 2. gameReducer -> case 'BUY_BUILDING' -> processPurchase(newState, { itemId, itemType })");
-    console.log("[Debug] 3. processPurchase -> проверка ресурсов -> списание ресурсов -> обновление здания");
-    console.log("[Debug] 4. resourceSystem.updateProductionConsumption -> пересчет производства/потребления");
-    console.log("[Debug] 5. resourceSystem.updateResourceMaxValues -> пересчет максимумов");
-    
-    toast({
-      title: "Отладка покупок",
-      description: "Информация о покупках выведена в консоль",
-      variant: "default",
-    });
+    setDebugDialogOpen(true);
   };
 
   return (
@@ -186,29 +215,108 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         
         <div className="flex items-center space-x-2">
           {/* Отладочное меню */}
-          <Menubar className="border-none shadow-none">
-            <MenubarMenu>
-              <MenubarTrigger className="font-medium p-1">
+          <Dialog open={debugDialogOpen} onOpenChange={setDebugDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="font-medium">
                 <Bug className="h-4 w-4 text-red-500 mr-1" />
                 Отладка
-              </MenubarTrigger>
-              <MenubarContent>
-                <MenubarItem onClick={triggerResourceDebug}>
-                  Проверка ресурсов
-                </MenubarItem>
-                <MenubarItem onClick={triggerProductionConsumptionDebug}>
-                  Проверка производства
-                </MenubarItem>
-                <MenubarItem onClick={triggerPurchaseSystemDebug}>
-                  Проверка системы покупок
-                </MenubarItem>
-                <MenubarSeparator />
-                <MenubarItem onClick={() => console.clear()}>
-                  Очистить консоль
-                </MenubarItem>
-              </MenubarContent>
-            </MenubarMenu>
-          </Menubar>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+              <DialogHeader>
+                <DialogTitle>Отладка игровых систем</DialogTitle>
+                <DialogDescription>
+                  Подробная информация о состоянии игровых систем и ресурсов
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <Button variant="outline" onClick={triggerResourceDebug}>Проверка ресурсов</Button>
+                  <Button variant="outline" onClick={triggerProductionConsumptionDebug}>Проверка производства</Button>
+                  <Button variant="outline" onClick={triggerPurchaseSystemDebug}>Проверка системы покупок</Button>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Ресурсы:</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border p-2 text-left">ID</th>
+                          <th className="border p-2 text-left">Значение</th>
+                          <th className="border p-2 text-left">Максимум</th>
+                          <th className="border p-2 text-left">В секунду</th>
+                          <th className="border p-2 text-left">Производство</th>
+                          <th className="border p-2 text-left">Потребление</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {debugInfo.resources.map(res => (
+                          <tr key={res.id}>
+                            <td className="border p-2">{res.id}</td>
+                            <td className="border p-2">{res.value}</td>
+                            <td className="border p-2">{res.max}</td>
+                            <td className="border p-2" style={{color: res.perSecond >= 0 ? 'green' : 'red'}}>
+                              {res.perSecond}
+                            </td>
+                            <td className="border p-2 text-green-600">{res.production}</td>
+                            <td className="border p-2 text-red-600">{res.consumption}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Здания:</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border p-2 text-left">ID</th>
+                          <th className="border p-2 text-left">Количество</th>
+                          <th className="border p-2 text-left">Производство</th>
+                          <th className="border p-2 text-left">Потребление</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {debugInfo.buildings.map(building => (
+                          <tr key={building.id}>
+                            <td className="border p-2">{building.id}</td>
+                            <td className="border p-2">{building.count}</td>
+                            <td className="border p-2">{JSON.stringify(building.production)}</td>
+                            <td className="border p-2">{JSON.stringify(building.consumption)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Процесс обновления:</h3>
+                  <div className="bg-gray-100 p-3 rounded">
+                    <ol className="list-decimal list-inside">
+                      {debugInfo.productionFlow.map((step, index) => (
+                        <li key={index} className="mb-1">{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                  <div className="mt-2">
+                    <p>Время с последнего обновления: {debugInfo.lastUpdate}мс</p>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           
           {prestigePoints > 0 && (
             <div className="flex items-center space-x-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full">

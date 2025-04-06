@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Building } from '@/context/types';
 import { formatCost } from '@/utils/costFormatter';
@@ -16,9 +16,22 @@ interface BuildingCardProps {
 const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onSelect, isSelected }) => {
   const { id, name, description, count = 0, cost = {}, effects = {} } = building;
   const { t, language } = useTranslation();
-
-  // Форматирование стоимости с учетом языка
-  const formattedCost = formatCost(cost, language);
+  const [formattedCostText, setFormattedCostText] = useState<string>("");
+  
+  // Оборачиваем форматирование стоимости в useEffect, чтобы гарантировать его выполнение
+  useEffect(() => {
+    if (cost && Object.keys(cost).length > 0) {
+      const costText = formatCost(cost, language);
+      setFormattedCostText(costText || "");
+      
+      if (!costText) {
+        console.warn(`[BuildingCard] Не удалось отформатировать стоимость для здания ${id}:`, cost);
+      }
+    } else {
+      console.warn(`[BuildingCard] Стоимость для здания ${id} не определена:`, cost);
+      setFormattedCostText("Стоимость...");
+    }
+  }, [cost, id, language]);
   
   // Определение иконки для здания
   const getBuildingIcon = () => {
@@ -117,7 +130,7 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onS
             </div>
           </div>
           <div className="text-sm font-medium text-green-600">
-            {formattedCost}
+            {formattedCostText}
           </div>
         </div>
         
