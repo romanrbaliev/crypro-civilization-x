@@ -9,8 +9,8 @@ interface ActionButtonsHookProps {
 
 // Функция для проверки, разблокирована ли кнопка "Применить знания" на основе счетчика кликов
 const isApplyKnowledgeUnlocked = (state: GameState): boolean => {
-  // Проверяем наличие флага разблокировки
-  if (state.unlocks.applyKnowledge === true) return true;
+  // Проверяем наличие флага разблокировки (с защитой от undefined)
+  if (state.unlocks && state.unlocks.applyKnowledge === true) return true;
   
   // Проверяем наличие счетчика кликов знаний
   const counter = state.counters.knowledgeClicks;

@@ -2,95 +2,74 @@
 import { GameState } from '@/context/types';
 
 /**
- * Проверяет разблокирован ли ресурс
+ * Проверяет наличие определенного ресурса в состоянии
  */
 export const isResourceUnlocked = (state: GameState, resourceId: string): boolean => {
-  if (!state.resources[resourceId]) return false;
-  return state.resources[resourceId].unlocked;
+  return state.resources[resourceId]?.unlocked === true;
 };
 
 /**
- * Проверяет разблокировано ли здание
+ * Проверяет наличие определенного здания в состоянии
  */
 export const isBuildingUnlocked = (state: GameState, buildingId: string): boolean => {
-  if (!state.buildings[buildingId]) return false;
-  return state.buildings[buildingId].unlocked;
+  return state.buildings[buildingId]?.unlocked === true;
 };
 
 /**
- * Проверяет разблокирован ли апгрейд
+ * Проверяет наличие определенного улучшения в состоянии
  */
 export const isUpgradeUnlocked = (state: GameState, upgradeId: string): boolean => {
-  if (!state.upgrades[upgradeId]) return false;
-  return state.upgrades[upgradeId].unlocked;
+  return state.upgrades[upgradeId]?.unlocked === true || 
+         state.upgrades[upgradeId]?.purchased === true;
 };
 
 /**
- * Проверяет куплен ли апгрейд
- */
-export const isUpgradePurchased = (state: GameState, upgradeId: string): boolean => {
-  if (!state.upgrades[upgradeId]) return false;
-  return state.upgrades[upgradeId].purchased;
-};
-
-/**
- * Получает совместимый объект unlocks из текущего состояния
- * для обратной совместимости
+ * Создает объект unlocks на основе текущего состояния
  */
 export const getUnlocksFromState = (state: GameState): Record<string, boolean> => {
   const unlocks: Record<string, boolean> = {};
-  
-  // Добавляем ресурсы
+
+  // Проверяем разблокировку ресурсов
   Object.entries(state.resources).forEach(([id, resource]) => {
     if (resource.unlocked) {
       unlocks[id] = true;
     }
   });
-  
-  // Добавляем здания
+
+  // Проверяем разблокировку зданий
   Object.entries(state.buildings).forEach(([id, building]) => {
     if (building.unlocked) {
       unlocks[id] = true;
     }
   });
-  
-  // Добавляем апгрейды
+
+  // Проверяем разблокировку улучшений
   Object.entries(state.upgrades).forEach(([id, upgrade]) => {
     if (upgrade.unlocked || upgrade.purchased) {
       unlocks[id] = true;
     }
   });
-  
-  // Проверяем специальные разблокировки
-  // Исследования
-  const hasUnlockedResearch = Object.values(state.upgrades).some(u => u.unlocked || u.purchased);
-  unlocks.research = hasUnlockedResearch;
-  
-  // Специализация
-  unlocks.specialization = !!state.specialization;
-  
-  // Рефералы
-  const hasCryptoCommunity = state.upgrades.cryptoCommunity?.purchased === true;
-  unlocks.referrals = hasCryptoCommunity;
-  
-  // Трейдинг
-  const hasCryptoTrading = state.upgrades.cryptoTrading?.purchased === true;
-  unlocks.trading = hasCryptoTrading;
-  
-  // Автопродажа BTC
-  const hasTradingBot = state.upgrades.tradingBot?.purchased === true;
-  unlocks.autoSell = hasTradingBot;
-  
+
+  // Проверяем состояние счетчика applyKnowledge
+  if (state.counters.applyKnowledge && 
+      (typeof state.counters.applyKnowledge === 'number' ? 
+        state.counters.applyKnowledge > 0 : 
+        state.counters.applyKnowledge.value > 0)) {
+    unlocks.applyKnowledge = true;
+  }
+
   return unlocks;
 };
 
 /**
- * Обновляет состояние, добавляя в него объект unlocks
- * для обратной совместимости
+ * Убеждается, что объект unlocks существует в состоянии
  */
 export const ensureUnlocksExist = (state: GameState): GameState => {
-  return {
-    ...state,
-    unlocks: getUnlocksFromState(state)
-  };
+  if (!state.unlocks) {
+    return {
+      ...state,
+      unlocks: getUnlocksFromState(state)
+    };
+  }
+  return state;
 };

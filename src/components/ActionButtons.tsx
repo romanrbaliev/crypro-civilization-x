@@ -1,9 +1,9 @@
-
 import React, { useCallback, useRef } from "react";
 import { useActionButtons } from "@/hooks/useActionButtons";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/hooks/useGame";
 import { useTranslation } from "@/i18n"; // Импортируем хук для переводов
+import { ensureUnlocksExist } from '@/utils/unlockHelper';
 
 interface ActionButtonsProps {
   onAddEvent: (message: string, type: string) => void;
@@ -11,6 +11,7 @@ interface ActionButtonsProps {
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const { state } = useGame();
+  const safeState = ensureUnlocksExist(state); // Обеспечиваем наличие структуры unlocks
   const { t } = useTranslation(); // Используем хук для переводов
   const {
     handleLearnClick, 
@@ -23,9 +24,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onAddEvent }) => {
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Визуальная проверка доступности кнопок
-  const canApplyKnowledge = (state.resources.knowledge?.value || 0) >= 10;
-  const canExchangeBitcoin = (state.resources.bitcoin?.value || 0) > 0;
-  const bitcoinUnlocked = state.resources.bitcoin && state.resources.bitcoin.unlocked;
+  const canApplyKnowledge = (safeState.resources.knowledge?.value || 0) >= 10;
+  const canExchangeBitcoin = (safeState.resources.bitcoin?.value || 0) > 0;
+  const bitcoinUnlocked = safeState.resources.bitcoin && safeState.resources.bitcoin.unlocked;
   
   // Обработчик быстрых кликов для кнопки изучения
   const handleLearnMouseDown = useCallback(() => {

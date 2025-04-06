@@ -1,173 +1,103 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
-import { GameStateService } from '@/services/GameStateService';
+import { saveGameToServer } from '@/api/gameStorage';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
 
-// Импортируем все обработчики редьюсеров
-import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
+// Импорт редьюсеров для разных типов действий
+import { processResourceProduction } from './reducers/resourceProduction';
 import { 
-  processPurchaseBuilding, 
-  processSellBuilding,
-  processChooseSpecialization 
-} from './reducers/building';
-import { processPurchaseUpgrade } from './reducers/upgradeReducer';
-import { processSetLanguage } from './reducers';
-import {
-  processStartGame,
-  processLoadGame,
-  processPrestige,
-  processResetGame,
-  processRestartComputers
-} from './gameStateReducer';
-import { 
-  checkSynergies, 
-  activateSynergy
-} from './reducers/synergyReducer';
-
-// Импортируем обработчики для реферальной системы
-import {
-  processSetReferralCode,
-  processAddReferral,
-  processActivateReferral,
-  processHireReferralHelper,
-  processRespondToHelperRequest,
-  processUpdateReferralStatus
-} from './reducers/referralReducer';
-
-// Импортируем обработчики для действий
-import {
-  processApplyKnowledge,
+  processLearnCrypto, 
+  processApplyKnowledge, 
   processApplyAllKnowledge,
-  processExchangeBitcoin
-} from './reducers/actionReducers';
+  processExchangeBitcoin,
+  processDebugAddResources
+} from './reducers/actionsReducer';
+import { processBuyBuilding } from './reducers/building';
+import { processResearchUpgrade } from './reducers/upgradeReducer';
 
-// Импортируем централизованную систему разблокировок
-import { checkAllUnlocks } from '@/utils/unlockManager';
+// Импорт вспомогательных функций
+import { getTimeElapsed } from '@/utils/timeUtils';
+import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
 
-// Создаем экземпляр централизованного сервиса состояния
-const gameStateService = new GameStateService();
-
-export const gameReducer = (state: GameState = initialState, action: GameAction): GameState => {
-  console.log('Received action:', action.type);
+// Основной редьюсер для обработки всех действий игры
+export const gameReducer = (state: GameState, action: GameAction): GameState => {
+  // Добавляем логирование действий для отладки
+  console.log(`gameReducer: обработка действия ${action.type}`, action.payload);
   
-  let newState;
+  // Сначала убеждаемся, что структура unlocks существует
+  let newState = ensureUnlocksExist(state);
   
+  // Ниже идет обработка всех типов действий
   switch (action.type) {
-    case "INCREMENT_RESOURCE": 
-      newState = processIncrementResource(state, action.payload);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
+    case 'START_GAME':
+      return { ...newState, gameStarted: true };
     
-    case "UPDATE_RESOURCES": 
-      newState = gameStateService.processGameStateUpdate(state, action.payload?.deltaTime);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
-    
-    case "PURCHASE_BUILDING": 
-      newState = processPurchaseBuilding(state, action.payload);
-      return ensureUnlocksExist(newState);
-    
-    case "SET_LANGUAGE":
-      return processSetLanguage(state, action.payload);
+    case 'TICK':
+      // Вычисляем прошедшее время
+      const currentTime = Date.now();
+      const deltaTime = currentTime - newState.lastUpdate;
       
-    case "LOAD_GAME": 
-      newState = processLoadGame(state, action.payload);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
+      // Обновляем ресурсы
+      newState = updateResources(newState, deltaTime);
+      
+      // Обновляем lastUpdate
+      newState = { ...newState, lastUpdate: currentTime };
+      
+      return newState;
     
-    case "START_GAME": 
-      newState = processStartGame(state);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
+    case 'INCREMENT_RESOURCE':
+      // Обрабатываем увеличение ресурса
+      return processLearnCrypto(newState);
     
-    case "FORCE_RESOURCE_UPDATE": 
-      newState = gameStateService.performFullStateSync(state);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
+    case 'APPLY_KNOWLEDGE':
+      // Обрабатываем применение знаний
+      return processApplyKnowledge(newState);
+      
+    case 'APPLY_ALL_KNOWLEDGE':
+      return processApplyAllKnowledge(newState);
     
-    case "SELL_BUILDING": 
-      newState = processSellBuilding(state, action.payload);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
+    case 'EXCHANGE_BTC':
+      return processExchangeBitcoin(newState);
     
-    case "PURCHASE_UPGRADE": 
-      newState = processPurchaseUpgrade(state, action.payload);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
+    case 'BUY_BUILDING':
+      // Обрабатываем покупку здания
+      return processBuyBuilding(newState, action.payload);
     
-    case "UNLOCK_RESOURCE": 
-      newState = processUnlockResource(state, action.payload);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
+    case 'RESEARCH_UPGRADE':
+      return processResearchUpgrade(newState, action.payload);
     
-    case "CHECK_SYNERGIES":
-      return checkSynergies(state);
+    case 'LOAD_GAME':
+      return { ...newState, ...action.payload };
     
-    case "ACTIVATE_SYNERGY":
-      return activateSynergy(state, action.payload);
+    case 'SAVE_GAME':
+      saveGameToServer(newState);
+      return newState;
     
-    case "PRESTIGE": 
-      return processPrestige(state);
+    case 'RESET_GAME':
+      return { ...initialState, gameStarted: true };
     
-    case "RESET_GAME": 
-      return processResetGame(state);
+    case 'DEBUG_ADD_RESOURCES':
+      return processDebugAddResources(newState, action.payload);
     
-    case "RESTART_COMPUTERS": 
-      return processRestartComputers(state);
+    case 'FORCE_RESOURCE_UPDATE':
+      // Принудительно пересчитываем все значения
+      newState = calculateResourceProduction(newState);
+      return newState;
     
-    case "APPLY_KNOWLEDGE": 
-      newState = processApplyKnowledge(state);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
-        
-    case "APPLY_ALL_KNOWLEDGE": 
-      newState = processApplyAllKnowledge(state);
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
-        
-    case "EXCHANGE_BTC":
-    case "EXCHANGE_BITCOIN": 
-      newState = processExchangeBitcoin(state);
-      return ensureUnlocksExist(newState);
-        
-    case "SET_REFERRAL_CODE": 
-      return processSetReferralCode(state, action.payload);
-    
-    case "ADD_REFERRAL": 
-      return processAddReferral(state, action.payload);
-    
-    case "ACTIVATE_REFERRAL": 
-      return processActivateReferral(state, action.payload);
-    
-    case "HIRE_REFERRAL_HELPER": 
-      return processHireReferralHelper(state, action.payload);
-    
-    case "RESPOND_TO_HELPER_REQUEST": 
-      return processRespondToHelperRequest(state, action.payload);
-    
-    case "UPDATE_REFERRAL_STATUS": 
-      return processUpdateReferralStatus(state, action.payload);
-    
-    case "UPDATE_HELPERS": 
+    case 'UPDATE_HELPERS':
       return {
-        ...state,
+        ...newState,
         referralHelpers: action.payload.updatedHelpers
       };
     
-    case "CHOOSE_SPECIALIZATION": 
-      newState = processChooseSpecialization(state, {
-        specializationType: action.payload.specializationId
-      });
-      newState = checkAllUnlocks(newState);
-      return ensureUnlocksExist(newState);
-    
-    case "CHECK_UNLOCKS":
-      // Прямой вызов централизованной системы разблокировок
-      newState = checkAllUnlocks(state);
-      return ensureUnlocksExist(newState);
-      
     default:
-      return state;
+      return newState;
   }
+  
+  // Перед возвратом убеждаемся, что все разблокировки проверены и структура unlocks существует
+  newState = checkAllUnlocks(newState);
+  newState = ensureUnlocksExist(newState);
+  
+  return newState;
 };
