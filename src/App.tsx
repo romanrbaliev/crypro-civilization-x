@@ -4,11 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useEffect } from 'react';
-import GameScreen from "./pages/GameScreen";
+import Game from "./components/Game"; // Импортируем напрямую из components
 import StartScreen from "./pages/StartScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { LanguageProvider } from "./i18n"; // Импортируем языковой провайдер
+import { LanguageProvider } from "./i18n";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { checkSupabaseConnection, createSavesTableIfNotExists, getUserIdentifier } from "./api/gameDataService";
@@ -242,7 +242,7 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<StartScreen />} />
-                <Route path="/game" element={<GameScreen />} />
+                <Route path="/game" element={<Game />} /> {/* Используем Game компонент напрямую */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

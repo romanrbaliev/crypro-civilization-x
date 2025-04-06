@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -71,14 +70,12 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
     updateHistory: []
   });
   
-  // Обновляем отладочные данные при открытии диалога и изменении состояния игры
   useEffect(() => {
     if (debugDialogOpen) {
       updateDebugData();
     }
   }, [debugDialogOpen, state]);
   
-  // Обновляем отладочные данные каждую секунду, пока диалог открыт
   useEffect(() => {
     if (!debugDialogOpen) return;
     
@@ -89,9 +86,7 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
     return () => clearInterval(intervalId);
   }, [debugDialogOpen]);
   
-  // Функция для сбора отладочных данных
   const updateDebugData = () => {
-    // Получаем данные о ресурсах
     const resources = Object.entries(state.resources)
       .filter(([_, r]) => r.unlocked)
       .map(([id, r]) => ({
@@ -103,7 +98,6 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         consumption: r.consumption || 0
       }));
     
-    // Получаем данные о зданиях
     const buildings = Object.entries(state.buildings)
       .filter(([_, b]) => b.unlocked && b.count > 0)
       .map(([id, b]) => ({
@@ -115,13 +109,10 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         effects: b.effects || {}
       }));
     
-    // Обновляем историю обновлений
     let updateHistory = debugData.updateHistory || [];
     const currentTime = Date.now();
     
-    // Добавляем новую запись в историю, если прошло достаточно времени
     if (updateHistory.length === 0 || currentTime - updateHistory[0].timestamp > 1000) {
-      // Вычисляем изменения ресурсов
       const resourceChanges: { [id: string]: number } = {};
       resources.forEach(r => {
         const prevResource = debugData.resources.find(prevR => prevR.id === r.id);
@@ -132,11 +123,10 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         }
       });
       
-      // Добавляем новую запись в начало истории
       updateHistory = [
         { timestamp: currentTime, resourceChanges },
         ...updateHistory
-      ].slice(0, 10); // Ограничиваем историю 10 записями
+      ].slice(0, 10);
     }
     
     setDebugData({
@@ -156,7 +146,6 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         variant: "success",
       });
       
-      // Перезагрузка страницы после небольшой задержки
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -168,6 +157,8 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
       });
     }
   };
+
+  console.log('Рендеринг Header компонента');
 
   return (
     <header className="bg-white border-b shadow-sm p-2 flex-shrink-0">
@@ -190,11 +181,11 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
             </div>
           )}
           
-          {/* Добавляем кнопку отладки */}
           <Dialog open={debugDialogOpen} onOpenChange={setDebugDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" title="Отладка ресурсов">
-                <Bug className="h-5 w-5" />
+              <Button variant="outline" size="sm" className="flex items-center" title="Отладка ресурсов">
+                <Bug className="h-4 w-4 mr-1" />
+                <span>Отладка</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[90vw] max-h-[80vh] overflow-auto">
@@ -213,7 +204,9 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
                         <th className="text-right p-2">Макс.</th>
                         <th className="text-right p-2">Производство</th>
                         <th className="text-right p-2">Потребление</th>
-                        <th className="text-right p-2">Изменение/сек</th>
+                        <th className={`text-right p-2 ${resource.perSecond > 0 ? 'text-green-600' : resource.perSecond < 0 ? 'text-red-600' : ''}`}>
+                          {resource.perSecond.toFixed(3)}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -355,7 +348,6 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         </div>
       </div>
       
-      {/* Диалог подтверждения сброса */}
       <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

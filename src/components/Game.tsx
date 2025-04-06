@@ -23,6 +23,7 @@ import LanguageSwitch from "@/components/LanguageSwitch";
 import { useTranslation } from "@/i18n";
 import { toast } from "@/components/ui/use-toast";
 import { getUnlocksFromState } from '@/utils/unlockHelper';
+import UnlocksDebugger from '@/components/UnlocksDebugger';
 
 const Game: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -194,6 +195,10 @@ const Game: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <Header prestigePoints={state.prestigePoints || 0} />
+      
+      <div className="p-2">
+        <UnlocksDebugger />
+      </div>
       
       <div className="flex-1 flex overflow-hidden">
         <div className="w-2/5 border-r flex flex-col overflow-hidden">

@@ -1,10 +1,6 @@
 
-import React from 'react';
+// Этот файл оставлен для обратной совместимости
+// и теперь просто переадресует к компоненту Game
 import Game from '@/components/Game';
 
-// Компонент-страница, который рендерит главный компонент игры
-const GamePage: React.FC = () => {
-  return <Game />;
-};
-
-export default GamePage;
+export default Game;
