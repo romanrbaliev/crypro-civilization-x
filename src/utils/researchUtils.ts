@@ -65,3 +65,40 @@ export const formatEffectValue = (value: number, effectId: string): string => {
   // Для других эффектов просто отображаем значение
   return `${value}`;
 };
+
+/**
+ * Форматирует эффект для отображения (комбинирует название и значение)
+ */
+export const formatEffect = (effectId: string, value: number): string => {
+  return `${formatEffectName(effectId)}: ${formatEffectValue(value, effectId)}`;
+};
+
+/**
+ * Возвращает название специализации
+ */
+export const getSpecializationName = (specialization: string): string => {
+  const specializationMap: { [key: string]: string } = {
+    'miner': 'Майнер',
+    'trader': 'Трейдер',
+    'investor': 'Инвестор',
+    'influencer': 'Инфлюенсер',
+    'defi': 'DeFi',
+    'general': 'Общая'
+  };
+  
+  return specializationMap[specialization] || specialization;
+};
+
+/**
+ * Получает разблокированные здания по группе
+ */
+export const getUnlockedBuildingsByGroup = (state: GameState, buildingIds: string[]): string[] => {
+  return buildingIds.filter(id => state.buildings[id]?.unlocked === true);
+};
+
+/**
+ * Получает разблокированные исследования по группе
+ */
+export const getUnlockedUpgradesByGroup = (state: GameState, upgradeIds: string[]): string[] => {
+  return upgradeIds.filter(id => state.upgrades[id]?.unlocked === true);
+};

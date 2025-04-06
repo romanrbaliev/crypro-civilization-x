@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,11 @@ const UnlocksDebugger: React.FC = () => {
   
   const checkUnlocks = () => {
     const result = debugUnlockStatus(state);
-    setDebugInfo(result);
+    if (result && 'unlocked' in result && 'locked' in result && 'steps' in result) {
+      setDebugInfo(result as { unlocked: string[], locked: string[], steps: string[] });
+    } else {
+      console.error('Неверный формат данных от debugUnlockStatus:', result);
+    }
   };
   
   // Автоматически обновляем данные при открытии окна
