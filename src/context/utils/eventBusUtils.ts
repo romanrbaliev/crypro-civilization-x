@@ -127,13 +127,6 @@ export const safeDispatchDetailEvent = (
   }
 };
 
-// Объявляем gameEventBus как глобальное свойство window
-declare global {
-  interface Window {
-    gameEventBus: GameEventBus;
-  }
-}
-
 // Инициализация gameEventBus в глобальном контексте
 if (typeof window !== 'undefined') {
   window.gameEventBus = gameEventBus;
