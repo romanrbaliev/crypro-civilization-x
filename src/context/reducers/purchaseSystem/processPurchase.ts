@@ -133,17 +133,31 @@ export function processPurchase(
 
   // Выводим отладочную информацию
   console.log(`[Purchase] ${item.name} успешно приобретено.`);
+  
+  // Выводим информацию о производстве/потреблении ресурсов после покупки
   console.log(`[ResourceDebug] Производство/потребление ресурсов после покупки:`, 
     Object.entries(updatedState.resources)
-      .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
-      .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
+      .filter(([_, r]) => {
+        const resource = r as any;
+        return resource.unlocked && resource.perSecond !== 0;
+      })
+      .map(([id, r]) => {
+        const resource = r as any;
+        return `${id}: ${resource.perSecond.toFixed(2)}/сек`;
+      })
   );
   
   // Выводим текущие значения ресурсов
   console.log(`[ResourceDebug] Текущие значения ресурсов после покупки:`, 
     Object.entries(updatedState.resources)
-      .filter(([_, r]) => r.unlocked)
-      .map(([id, r]) => `${id}: ${r.value.toFixed(2)}/${r.max || '∞'} (${r.perSecond.toFixed(2)}/сек)`)
+      .filter(([_, r]) => {
+        const resource = r as any;
+        return resource.unlocked;
+      })
+      .map(([id, r]) => {
+        const resource = r as any;
+        return `${id}: ${resource.value.toFixed(2)}/${resource.max || '∞'} (${resource.perSecond.toFixed(2)}/сек)`;
+      })
   );
 
   return updatedState;

@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -169,8 +170,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Выводим дополнительную отладку о производстве
       console.log('[BUY_BUILDING] Обновление производства после покупки здания:', 
         Object.entries(stateAfterPurchase.resources)
-          .filter(([_, r]) => r.unlocked && r.perSecond !== 0)
-          .map(([id, r]) => `${id}: ${r.perSecond.toFixed(2)}/сек`)
+          .filter(([_, r]) => {
+            const resource = r as any;
+            return resource.unlocked && resource.perSecond !== 0;
+          })
+          .map(([id, r]) => {
+            const resource = r as any;
+            return `${id}: ${resource.perSecond.toFixed(2)}/сек`;
+          })
       );
       
       return stateAfterPurchase;
@@ -220,8 +227,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         
         // Выводим отладочную информацию о ресурсах
         const resourceInfo = Object.entries(action.payload.resources)
-          .filter(([_, r]) => r.unlocked)
-          .map(([id, r]) => `${id}: ${r.value?.toFixed(2) || '0'} (+${r.perSecond?.toFixed(2) || '0'}/сек)`);
+          .filter(([_, r]) => {
+            const resource = r as any;
+            return resource.unlocked;
+          })
+          .map(([id, r]) => {
+            const resource = r as any;
+            return `${id}: ${resource.value?.toFixed(2) || '0'} (+${resource.perSecond?.toFixed(2) || '0'}/сек)`;
+          });
         
         if (resourceInfo.length > 0) {
           console.log(`[FORCE_RESOURCE_UPDATE] Ресурсы после обновления:`, resourceInfo);
