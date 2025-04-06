@@ -5,7 +5,7 @@ import { createGameEventBus } from "./gameEvents";
 export type GameEventType = "info" | "success" | "warning" | "error";
 
 // Интерфейс для параметризованного сообщения события
-interface GameEventData {
+export interface GameEventData {
   messageKey: string;
   type: GameEventType;
   params?: Record<string, string | number>;
