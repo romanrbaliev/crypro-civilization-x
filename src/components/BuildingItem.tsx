@@ -44,11 +44,18 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const canAfford = (): boolean => {
-    if (!building.cost || Object.keys(building.cost).length === 0) {
+    // Улучшенная проверка на валидность объекта cost
+    if (!building.cost || typeof building.cost !== 'object' || Object.keys(building.cost).length === 0) {
       return false;
     }
     
+    // Проверяем каждый ресурс
     for (const [resourceId, amount] of Object.entries(building.cost)) {
+      // Дополнительная проверка на валидность значения
+      if (amount === undefined || amount === null || isNaN(Number(amount))) {
+        continue; // Пропускаем невалидные значения
+      }
+      
       const resource = state.resources[resourceId];
       if (!resource || resource.value < Number(amount)) {
         return false;
@@ -76,11 +83,21 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const renderCost = () => {
-    if (!building.cost || Object.keys(building.cost).length === 0) {
+    // Улучшенная проверка на валидность объекта cost
+    if (!building.cost || typeof building.cost !== 'object' || Object.keys(building.cost).length === 0) {
       return <div className="text-red-500 text-[11px]">{t('buildings.cost')} {t('buildings.undefined')}</div>;
     }
     
-    return Object.entries(building.cost).map(([resourceId, amount]) => {
+    // Фильтруем только действительные пары ключ-значение
+    const validCostEntries = Object.entries(building.cost)
+      .filter(([_, amount]) => amount !== undefined && amount !== null && !isNaN(Number(amount)));
+    
+    // Если после фильтрации нет валидных элементов, возвращаем сообщение об ошибке
+    if (validCostEntries.length === 0) {
+      return <div className="text-red-500 text-[11px]">{t('buildings.cost')} {t('buildings.undefined')}</div>;
+    }
+    
+    return validCostEntries.map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
       if (!resource) return null;
       

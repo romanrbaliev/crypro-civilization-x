@@ -4,43 +4,53 @@ import { GameState } from '@/context/types';
 /**
  * Проверяет, достаточно ли ресурсов для покупки
  */
-export function checkAffordability(
-  state: GameState,
-  costs: Record<string, number>
-): boolean {
-  if (!costs || Object.keys(costs).length === 0) {
-    return true;
+export function checkAffordability(state: GameState, cost: Record<string, number>): boolean {
+  // Проверка на пустой или некорректный объект стоимости
+  if (!cost || typeof cost !== 'object' || Object.keys(cost).length === 0) {
+    return false;
   }
-
-  for (const [resourceId, amount] of Object.entries(costs)) {
+  
+  // Проверяем каждый ресурс
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    // Дополнительная проверка на валидность значения
+    if (amount === undefined || amount === null || isNaN(Number(amount))) {
+      continue; // Пропускаем невалидные значения
+    }
+    
     const resource = state.resources[resourceId];
     if (!resource || resource.value < Number(amount)) {
       return false;
     }
   }
-
+  
   return true;
 }
 
 /**
- * Получает список недостающих ресурсов
+ * Возвращает список недостающих ресурсов
  */
-export function getMissingResources(
-  state: GameState,
-  costs: Record<string, number>
-): Record<string, number> {
-  const missing: Record<string, number> = {};
-
-  if (!costs || Object.keys(costs).length === 0) {
-    return missing;
+export function getMissingResources(state: GameState, cost: Record<string, number>): Record<string, number> {
+  const missingResources: Record<string, number> = {};
+  
+  // Проверка на пустой или некорректный объект стоимости
+  if (!cost || typeof cost !== 'object' || Object.keys(cost).length === 0) {
+    return missingResources;
   }
-
-  for (const [resourceId, amount] of Object.entries(costs)) {
+  
+  // Проверяем каждый ресурс
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    // Дополнительная проверка на валидность значения
+    if (amount === undefined || amount === null || isNaN(Number(amount))) {
+      continue; // Пропускаем невалидные значения
+    }
+    
     const resource = state.resources[resourceId];
-    if (!resource || resource.value < Number(amount)) {
-      missing[resourceId] = Number(amount) - (resource?.value || 0);
+    if (!resource) {
+      missingResources[resourceId] = Number(amount);
+    } else if (resource.value < Number(amount)) {
+      missingResources[resourceId] = Number(amount) - resource.value;
     }
   }
-
-  return missing;
+  
+  return missingResources;
 }

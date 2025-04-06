@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { checkAffordability } from './checkAffordability';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
@@ -35,6 +34,12 @@ export function processPurchase(
   // Для исследований проверяем, что оно еще не куплено
   if ((itemType === 'upgrade' || itemType === 'research') && item.purchased) {
     console.log(`Исследование ${item.name} уже куплено`);
+    return state;
+  }
+
+  // Проверка валидности объекта стоимости
+  if (!item.cost || typeof item.cost !== 'object' || Object.keys(item.cost).length === 0) {
+    console.error(`Элемент ${itemId} имеет некорректную стоимость`, item.cost);
     return state;
   }
 
