@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, memo } from "react";
 import { Resource } from "@/context/types";
 import { useResourceSystem } from "@/hooks/useResourceSystem";
 
@@ -9,7 +9,7 @@ interface ResourceDisplayProps {
   formattedPerSecond?: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ 
+const ResourceDisplay: React.FC<ResourceDisplayProps> = memo(({ 
   resource, 
   formattedValue: propFormattedValue, 
   formattedPerSecond: propFormattedPerSecond 
@@ -54,11 +54,14 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
       if (element) {
         // Добавляем класс для анимации, затем удаляем его
         element.classList.add('resource-changed');
-        setTimeout(() => {
+        const timerId = setTimeout(() => {
           if (element && element.classList) {
             element.classList.remove('resource-changed');
           }
         }, 500);
+        
+        // Очистка таймера при размонтировании
+        return () => clearTimeout(timerId);
       }
       prevValueRef.current = value;
     }
@@ -87,6 +90,24 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Оптимизированная функция сравнения для memo
+  // Возвращаем true, если компонент НЕ должен обновляться
+  if (prevProps.formattedValue !== nextProps.formattedValue) return false;
+  if (prevProps.formattedPerSecond !== nextProps.formattedPerSecond) return false;
+  
+  const prevRes = prevProps.resource;
+  const nextRes = nextProps.resource;
+  
+  if (prevRes.id !== nextRes.id) return false;
+  if (prevRes.value !== nextRes.value) return false;
+  if (prevRes.max !== nextRes.max) return false;
+  if (prevRes.perSecond !== nextRes.perSecond) return false;
+  if (prevRes.name !== nextRes.name) return false;
+  
+  return true;
+});
+
+ResourceDisplay.displayName = 'ResourceDisplay';
 
 export default ResourceDisplay;

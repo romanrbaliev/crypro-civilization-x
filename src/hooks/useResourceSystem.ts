@@ -1,5 +1,5 @@
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
 import { ResourceFormatter } from '@/formatters/ResourceFormatter';
@@ -13,6 +13,20 @@ export const useResourceSystem = () => {
   const resourceSystem = useMemo(() => new ResourceSystem(), []);
   const resourceFormatter = useMemo(() => new ResourceFormatter(), []);
   
+  // Кэш форматированных значений
+  const formatCache = useRef<Map<string, string>>(new Map());
+  
+  // Очистка кэша форматированных значений
+  const clearFormatCache = useCallback(() => {
+    formatCache.current.clear();
+  }, []);
+  
+  // Регулярная очистка кэша
+  useMemo(() => {
+    const intervalId = setInterval(clearFormatCache, 10000); // Каждые 10 секунд
+    return () => clearInterval(intervalId);
+  }, [clearFormatCache]);
+  
   /**
    * Обновляет ресурсы на основе прошедшего времени
    * @param deltaTime Прошедшее время в миллисекундах
@@ -24,6 +38,9 @@ export const useResourceSystem = () => {
       return;
     }
     
+    // Если слишком большое deltaTime, ограничиваем его
+    const safeDeltatime = Math.min(deltaTime, 300000); // Максимум 5 минут
+    
     try {
       // Шаг 1: Обновляем производство и потребление
       let updatedState = resourceSystem.updateProductionConsumption(state);
@@ -32,25 +49,19 @@ export const useResourceSystem = () => {
       updatedState = resourceSystem.updateResourceMaxValues(updatedState);
       
       // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
-      updatedState = resourceSystem.updateResources(updatedState, deltaTime);
+      updatedState = resourceSystem.updateResources(updatedState, safeDeltatime);
       
       // Обновляем состояние через диспетчер
       dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
       
-      // Значительно уменьшаем отладочную информацию
-      if (Math.random() < 0.001) { // 0.1% шанс вывода в консоль
-        const logData = Object.entries(updatedState.resources)
-          .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
-          .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
-        
-        if (logData.length > 0) {
-          console.log(`[ResourceUpdate] Ресурсы обновлены (Δt=${deltaTime}мс)`);
-        }
+      // Очищаем кэш форматированных значений при существенном обновлении
+      if (Math.random() < 0.05) { // 5% шанс очистки кэша
+        clearFormatCache();
       }
     } catch (error) {
       console.error('Ошибка при обновлении ресурсов:', error);
     }
-  }, [state, dispatch, resourceSystem]);
+  }, [state, dispatch, resourceSystem, clearFormatCache]);
   
   /**
    * Проверяет, достаточно ли ресурсов для покупки
@@ -93,14 +104,36 @@ export const useResourceSystem = () => {
   }, [resourceFormatter]);
   
   /**
-   * Форматирует значение ресурса
+   * Форматирует значение ресурса с использованием кэша
    * @param value Числовое значение
    * @param resourceId ID ресурса
    * @returns Отформатированное значение
    */
   const formatValue = useCallback((value: number | null | undefined, resourceId: string): string => {
-    return resourceFormatter.formatValue(value, resourceId);
-  }, [resourceFormatter]);
+    if (value === null || value === undefined) return '0';
+    
+    // Округляем для кэширования
+    const roundedValue = Math.round(value * 100) / 100;
+    const cacheKey = `${resourceId}_${roundedValue}`;
+    
+    // Проверяем кэш
+    if (formatCache.current.has(cacheKey)) {
+      return formatCache.current.get(cacheKey) as string;
+    }
+    
+    // Форматируем значение
+    const formatted = resourceFormatter.formatValue(roundedValue, resourceId);
+    
+    // Сохраняем в кэш только если кэш не слишком большой
+    if (formatCache.current.size < 1000) {
+      formatCache.current.set(cacheKey, formatted);
+    } else if (Math.random() < 0.01) {
+      // Если кэш слишком большой, с небольшой вероятностью очищаем его
+      clearFormatCache();
+    }
+    
+    return formatted;
+  }, [resourceFormatter, clearFormatCache]);
   
   /**
    * Инкрементирует ресурс

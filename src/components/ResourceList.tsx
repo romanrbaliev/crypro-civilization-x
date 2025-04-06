@@ -57,23 +57,35 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCount
   // Проверяем, разблокирован ли USDT
   const isUsdtUnlocked = state.resources.usdt && state.resources.usdt.unlocked;
 
+  // Мемоизируем отформатированные значения ресурсов для предотвращения лишних вычислений
+  const formattedResourceValues = useMemo(() => {
+    return unlockedResources.map(resource => ({
+      id: resource.id,
+      formattedValue: formatValue(resource.value ?? 0, resource.id),
+      formattedPerSecond: formatValue(resource.perSecond ?? 0, resource.id)
+    }));
+  }, [unlockedResources, formatValue, updateCounter]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="space-y-0.5 text-xs flex-grow">
-        {unlockedResources.map((resource, index) => (
-          <React.Fragment key={resource.id}>
-            <div className="py-1">
-              <ResourceDisplay 
-                resource={resource} 
-                formattedValue={formatValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
-                formattedPerSecond={formatValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
-              />
-            </div>
-            {index < unlockedResources.length - 1 && (
-              <Separator className="my-0.5" />
-            )}
-          </React.Fragment>
-        ))}
+        {unlockedResources.map((resource, index) => {
+          const formatted = formattedResourceValues.find(r => r.id === resource.id);
+          return (
+            <React.Fragment key={resource.id}>
+              <div className="py-1">
+                <ResourceDisplay 
+                  resource={resource}
+                  formattedValue={formatted?.formattedValue}
+                  formattedPerSecond={formatted?.formattedPerSecond}
+                />
+              </div>
+              {index < unlockedResources.length - 1 && (
+                <Separator className="my-0.5" />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
       
       {/* Кнопка заполнения USDT (только если USDT разблокирован) */}
@@ -93,17 +105,8 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCount
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Проверяем, изменился ли счетчик обновлений
-  if (prevProps.updateCounter !== nextProps.updateCounter) {
-    return false; // Обновляем компонент, если счетчик изменился
-  }
-  
-  // Проверяем, изменились ли ресурсы по существу
-  if (prevProps.resources.length !== nextProps.resources.length) {
-    return false; // Обновляем, если количество ресурсов изменилось
-  }
-  
-  return true; // Не обновляем компонент, если существенных изменений нет
+  // Упрощенное сравнение, учитывая только updateCounter
+  return prevProps.updateCounter === nextProps.updateCounter;
 });
 
 // Добавляем отображаемое имя для отладки

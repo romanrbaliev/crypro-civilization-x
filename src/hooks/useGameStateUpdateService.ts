@@ -5,6 +5,7 @@ import { UnlockService } from '@/services/UnlockService';
 import { useResourceSystem } from './useResourceSystem';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
+import { clearEffectCache } from '@/utils/effects/effectApplication';
 
 /**
  * Хук для централизованного обновления игрового состояния
@@ -16,7 +17,50 @@ export const useGameStateUpdateService = () => {
   const unlockService = new UnlockService();
   const lastUpdateTimeRef = useRef<number>(Date.now());
   const frameCountRef = useRef<number>(0);
-  const throttleRef = useRef<{ lastResourceDebug: number }>({ lastResourceDebug: 0 });
+  const throttleRef = useRef<{ 
+    lastResourceDebug: number,
+    lastCacheCleanup: number,
+    lastUnlockCheck: number,
+    lastPerformanceCheck: number,
+    frameTimings: number[]
+  }>({ 
+    lastResourceDebug: 0, 
+    lastCacheCleanup: 0,
+    lastUnlockCheck: 0,
+    lastPerformanceCheck: 0,
+    frameTimings: []
+  });
+  
+  // Мониторинг производительности для выявления проблем
+  const monitorPerformance = useCallback((frameTime: number) => {
+    const { frameTimings } = throttleRef.current;
+    
+    // Добавляем время кадра в массив (не более 60 последних кадров)
+    frameTimings.push(frameTime);
+    if (frameTimings.length > 60) {
+      frameTimings.shift();
+    }
+    
+    // Проверяем производительность каждые 5 секунд
+    const now = Date.now();
+    if (now - throttleRef.current.lastPerformanceCheck > 5000) {
+      throttleRef.current.lastPerformanceCheck = now;
+      
+      // Подсчитываем среднее время кадра
+      const avgFrameTime = frameTimings.reduce((sum, time) => sum + time, 0) / frameTimings.length;
+      
+      // Если среднее время кадра слишком велико (> 50 мс, что меньше 20 FPS)
+      if (avgFrameTime > 50 && frameTimings.length > 10) {
+        console.warn(`[Performance] Высокое среднее время кадра: ${avgFrameTime.toFixed(2)}мс. Возможны проблемы с производительностью.`);
+        
+        // Очищаем кэши для предотвращения возможных проблем с памятью
+        clearEffectCache();
+        
+        // Сбрасываем массив для нового измерения
+        throttleRef.current.frameTimings = [];
+      }
+    }
+  }, []);
   
   /**
    * Обновляет игровое состояние с учетом прошедшего времени
@@ -25,6 +69,7 @@ export const useGameStateUpdateService = () => {
     frameCountRef.current += 1;
     
     if (isPageVisible && state.gameStarted) {
+      const startTime = performance.now();
       const currentTime = Date.now();
       const deltaTime = currentTime - lastUpdateTimeRef.current;
       
@@ -36,45 +81,37 @@ export const useGameStateUpdateService = () => {
       // Ограничиваем максимальное обновление во времени для предотвращения скачков
       const safeDeltatime = Math.min(deltaTime, 1000); // Максимум 1 секунда
       
-      // Обновляем ресурсы
-      updateResources(safeDeltatime);
-      lastUpdateTimeRef.current = currentTime;
-      
-      // Обновляем lastUpdate в состоянии
-      dispatch({ type: 'TICK', payload: { currentTime } });
-      
-      // Отладочная информация - примерно каждые 5 секунд
-      if (frameCountRef.current % 300 === 0) {
-        console.log(`[GameUpdate] Кадр #${frameCountRef.current}, Δt=${deltaTime}мс`);
+      try {
+        // Обновляем ресурсы
+        updateResources(safeDeltatime);
+        lastUpdateTimeRef.current = currentTime;
         
-        // Ограничиваем вывод отладочной информации о ресурсах
+        // Обновляем lastUpdate в состоянии
+        dispatch({ type: 'TICK', payload: { currentTime } });
+        
+        // Очистка кэша эффектов периодически
         const now = Date.now();
-        if (now - throttleRef.current.lastResourceDebug > 5000) {
-          throttleRef.current.lastResourceDebug = now;
-          
-          // Дополнительная отладочная информация о ресурсах
-          const activeResources = Object.entries(state.resources)
-            .filter(([_, res]) => res.unlocked && res.perSecond !== 0)
-            .map(([id, res]) => `${id}: ${res.value?.toFixed(2) || 0}/${res.max || '∞'} (${res.perSecond?.toFixed(2) || 0}/сек)`);
-          
-          if (activeResources.length > 0) {
-            console.log('[ResourceDebug] Активные ресурсы:', activeResources);
-          }
+        if (now - throttleRef.current.lastCacheCleanup > 30000) { // Каждые 30 секунд
+          throttleRef.current.lastCacheCleanup = now;
+          clearEffectCache();
         }
+        
+        // Проверка разблокировок реже, чем обновление ресурсов
+        if (now - throttleRef.current.lastUnlockCheck > 2000) { // Каждые 2 секунды
+          throttleRef.current.lastUnlockCheck = now;
+          dispatch({ type: 'CHECK_UNLOCKS' });
+        }
+        
+        // Измеряем производительность
+        const frameTime = performance.now() - startTime;
+        monitorPerformance(frameTime);
+      } catch (error) {
+        console.error('Ошибка при обновлении игрового состояния:', error);
       }
     }
-  }, [isPageVisible, state.gameStarted, dispatch, updateResources, state.resources]);
+  }, [isPageVisible, state.gameStarted, dispatch, updateResources, monitorPerformance]);
   
-  /**
-   * Проверяет все возможные разблокировки
-   */
-  const checkUnlocks = useCallback(() => {
-    if (isPageVisible && state.gameStarted) {
-      dispatch({ type: 'CHECK_UNLOCKS' });
-    }
-  }, [isPageVisible, state.gameStarted, dispatch]);
-  
-  // Эффект для запуска таймеров обновления ресурсов и проверки разблокировок
+  // Эффект для запуска таймеров обновления ресурсов
   useEffect(() => {
     if (!state.gameStarted) return;
     
@@ -94,25 +131,15 @@ export const useGameStateUpdateService = () => {
     
     animationFrameId = requestAnimationFrame(updateFrame);
     
-    // Запускаем таймер для проверки разблокировок каждые 5 секунд
-    const unlockCheckInterval = setInterval(() => {
-      try {
-        checkUnlocks();
-      } catch (error) {
-        console.error('Ошибка при проверке разблокировок:', error);
-      }
-    }, 5000);
-    
     // Логируем информацию о запуске системы обновления
     console.log(`🔄 Система обновления игрового состояния запущена в режиме requestAnimationFrame`);
     
     // Очистка таймеров при размонтировании
     return () => {
       cancelAnimationFrame(animationFrameId);
-      clearInterval(unlockCheckInterval);
       console.log('🛑 Система обновления игрового состояния остановлена');
     };
-  }, [updateGameState, checkUnlocks, state.gameStarted]);
+  }, [updateGameState, state.gameStarted]);
   
   // Эффект для обработки возобновления активности вкладки
   useEffect(() => {
@@ -124,17 +151,26 @@ export const useGameStateUpdateService = () => {
         const offlineTime = currentTime - lastUpdateTimeRef.current;
         
         if (offlineTime > 1000) { // Если прошло более 1 секунды
-          // Обновляем состояние с учетом прошедшего времени
-          updateResources(offlineTime);
-          lastUpdateTimeRef.current = currentTime;
-          
-          // Отправляем событие о возобновлении игры
-          safeDispatchGameEvent({
-            message: `Добро пожаловать обратно! Прошло ${Math.floor(offlineTime / 1000)} сек.`,
-            type: 'info'
-          });
-          
-          console.log(`[GameResume] Игра возобновлена после ${offlineTime}мс отсутствия.`);
+          try {
+            // Обновляем состояние с учетом прошедшего времени
+            // Для безопасности ограничиваем максимальное время отсутствия
+            const safeOfflineTime = Math.min(offlineTime, 300000); // Не более 5 минут
+            updateResources(safeOfflineTime);
+            lastUpdateTimeRef.current = currentTime;
+            
+            // Отправляем событие о возобновлении игры
+            safeDispatchGameEvent({
+              message: `Добро пожаловать обратно! Прошло ${Math.floor(safeOfflineTime / 1000)} сек.`,
+              type: 'info'
+            });
+            
+            // Очищаем кэши
+            clearEffectCache();
+            
+            console.log(`[GameResume] Игра возобновлена после ${safeOfflineTime}мс отсутствия.`);
+          } catch (error) {
+            console.error('Ошибка при возобновлении игры:', error);
+          }
         }
       }
     };
