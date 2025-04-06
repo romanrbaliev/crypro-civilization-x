@@ -35,18 +35,12 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
     ? "Требуется 10 знаний" 
     : "Недостаточно знаний";
   
-  // Обработчик клика с дополнительным логированием
-  const handleClick = () => {
-    console.log(`ApplyKnowledgeButton: Нажата кнопка "${buttonText}", текущее значение знаний: ${knowledgeValue}`);
-    onClick();
-  };
-  
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            onClick={handleClick}
+            onClick={onClick}
             className={`w-full ${className}`}
             variant={disabled ? "outline" : "default"}
             size="sm"

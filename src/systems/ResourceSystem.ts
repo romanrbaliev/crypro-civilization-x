@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { ResourceFormatter } from '@/formatters/ResourceFormatter';
@@ -29,9 +30,6 @@ export class ResourceSystem {
       resource.value + incrementAmount,
       resource.max || Number.MAX_SAFE_INTEGER
     );
-    
-    // Логируем изменение для отладки
-    console.log(`ResourceSystem.incrementResource: ${resourceId} ${resource.value.toFixed(2)} -> ${newValue.toFixed(2)} (+${incrementAmount})`);
     
     return {
       ...state,
@@ -114,10 +112,9 @@ export class ResourceSystem {
    * Обновляет ресурсы на основе производства и прошедшего времени
    */
   updateResources(state: GameState, deltaTime: number): GameState {
-    // Если дельта времени меньше или равна нулю, возвращаем состояние без изменений
+    // Если дельта времени меньше или равна нулю, просто обновляем производство
     if (deltaTime <= 0) {
-      console.log("ResourceSystem.updateResources: deltaTime <= 0, пропускаем обновление");
-      return state;
+      return this.updateResourceProduction(state);
     }
     
     // Преобразуем миллисекунды в секунды
@@ -127,7 +124,7 @@ export class ResourceSystem {
     let updatedState = { ...state };
     const resources = { ...state.resources };
     
-    console.log(`ResourceSystem.updateResources: прошло ${deltaSeconds.toFixed(2)} секунд`);
+    console.log(`Обновление ресурсов, прошло ${deltaSeconds.toFixed(2)} секунд`);
     
     // Обрабатываем каждый ресурс
     for (const resourceId in resources) {
@@ -135,18 +132,20 @@ export class ResourceSystem {
       
       // Пропускаем неразблокированные ресурсы
       if (!resource.unlocked) {
+        console.log(`Ресурс ${resourceId} не разблокирован, пропускаем...`);
         continue;
       }
       
       // Получаем значения производства и потребления
-      const perSecond = resource.perSecond || 0;
+      const production = resource.production || 0;
+      const consumption = resource.consumption || 0;
       
-      // Рассчитываем изменение ресурса
-      const change = perSecond * deltaSeconds;
+      // Рассчитываем чистое изменение ресурса
+      const netChange = (production - consumption) * deltaSeconds;
       
-      if (Math.abs(change) > 0.001) {
+      if (netChange !== 0) {
         // Обновляем значение ресурса
-        let newValue = resource.value + change;
+        let newValue = resource.value + netChange;
         
         // Ограничиваем значение максимумом, если он установлен
         if (resource.max !== undefined && resource.max !== null) {
@@ -157,7 +156,7 @@ export class ResourceSystem {
         newValue = Math.max(0, newValue);
         
         if (Math.abs(newValue - resource.value) > 0.001) {
-          console.log(`ResourceSystem.updateResources: ${resourceId} ${resource.value.toFixed(2)} -> ${newValue.toFixed(2)} (изменение: ${change.toFixed(2)}, perSecond: ${perSecond.toFixed(2)})`);
+          console.log(`Ресурс ${resourceId}: ${resource.value.toFixed(2)} -> ${newValue.toFixed(2)} (изменение: ${netChange.toFixed(2)}, продукция: ${production}/сек, потребление: ${consumption}/сек)`);
         }
         
         // Обновляем ресурс
@@ -176,16 +175,15 @@ export class ResourceSystem {
    * Обновляет производство ресурсов на основе зданий
    */
   updateResourceProduction(state: GameState): GameState {
-    console.log("ResourceSystem.updateResourceProduction: Обновление производства ресурсов");
+    console.log("Обновление производства ресурсов на основе зданий");
     const resources = { ...state.resources };
     
-    // Сначала обнуляем всё производство и потребление для каждого ресурса
+    // Сначала обнуляем всё производство для каждого ресурса
     for (const resourceId in resources) {
       resources[resourceId] = {
         ...resources[resourceId],
         production: 0,
-        consumption: 0,
-        perSecond: 0
+        consumption: 0
       };
     }
     
@@ -195,7 +193,7 @@ export class ResourceSystem {
       
       if (building.count <= 0) continue;
       
-      console.log(`ResourceSystem.updateResourceProduction: Обрабатываем производство здания ${buildingId} (количество: ${building.count})`);
+      console.log(`Обрабатываем производство здания ${buildingId} (количество: ${building.count})`);
       
       // Обрабатываем производство
       if (building.production) {
@@ -209,9 +207,13 @@ export class ResourceSystem {
               production: currentProduction + buildingProduction
             };
             
-            console.log(`ResourceSystem.updateResourceProduction: Здание ${buildingId} (${building.count} шт.) производит ${resourceId}: ${buildingProduction} в секунду`);
+            console.log(`Здание ${buildingId} (${building.count} шт.) производит ${resourceId}: ${buildingProduction} в секунду`);
+          } else {
+            console.log(`Ресурс ${resourceId} не существует или не разблокирован`);
           }
         }
+      } else {
+        console.log(`У здания ${buildingId} нет настроек производства`);
       }
       
       // Обрабатываем потребление
@@ -226,7 +228,7 @@ export class ResourceSystem {
               consumption: currentConsumption + buildingConsumption
             };
             
-            console.log(`ResourceSystem.updateResourceProduction: Здание ${buildingId} потребляет ${resourceId}: ${buildingConsumption} в секунду`);
+            console.log(`Здание ${buildingId} потребляет ${resourceId}: ${buildingConsumption} в секунду`);
           }
         }
       }
@@ -236,16 +238,11 @@ export class ResourceSystem {
     for (const resourceId in resources) {
       const resource = resources[resourceId];
       if (resource.unlocked) {
-        const production = resource.production || 0;
-        const consumption = resource.consumption || 0;
-        const perSecond = production - consumption;
-        
         resources[resourceId] = {
           ...resource,
-          perSecond: perSecond
+          perSecond: (resource.production || 0) - (resource.consumption || 0)
         };
-        
-        console.log(`ResourceSystem.updateResourceProduction: Обновлен перерасчет скорости ресурса ${resourceId}: ${perSecond}/сек (производство: ${production}, потребление: ${consumption})`);
+        console.log(`Обновлен перерасчет скорости ресурса ${resourceId}: ${resources[resourceId].perSecond}/сек`);
       }
     }
     
@@ -362,22 +359,20 @@ export class ResourceSystem {
    * Полностью пересчитывает всё производство для всех ресурсов
    */
   recalculateAllResourceProduction(state: GameState): GameState {
-    console.log("ResourceSystem.recalculateAllResourceProduction: Пересчет производства всех ресурсов");
-    
+    console.log("Пересчет производства всех ресурсов");
     // Сначала обновляем максимальные значения ресурсов
-    let updatedState = this.updateResourceMaxValues(state);
-    
+    state = this.updateResourceMaxValues(state);
     // Затем пересчитываем производство
-    updatedState = this.updateResourceProduction(updatedState);
+    state = this.updateResourceProduction(state);
     
     // Дополнительно выводим информацию о текущем производстве
-    for (const resourceId in updatedState.resources) {
-      const resource = updatedState.resources[resourceId];
+    for (const resourceId in state.resources) {
+      const resource = state.resources[resourceId];
       if (resource.unlocked) {
-        console.log(`ResourceSystem.recalculateAllResourceProduction: Ресурс ${resourceId}: производство ${resource.production || 0}/сек, потребление ${resource.consumption || 0}/сек, итого ${resource.perSecond || 0}/сек`);
+        console.log(`Ресурс ${resourceId}: производство ${resource.production || 0}/сек, потребление ${resource.consumption || 0}/сек, итого ${resource.perSecond || 0}/сек`);
       }
     }
     
-    return updatedState;
+    return state;
   }
 }
