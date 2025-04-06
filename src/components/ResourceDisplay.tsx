@@ -1,95 +1,67 @@
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Resource } from "@/context/types";
-import { useResourceAnimation } from "@/hooks/useResourceAnimation";
-import { useResourceSystem } from "@/hooks/useResourceSystem";
+import { Zap, TrendingUp, TrendingDown } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 interface ResourceDisplayProps {
   resource: Resource;
-  formattedValue?: string;
-  formattedPerSecond?: string;
+  formattedValue: string;
+  formattedPerSecond: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ 
-  resource, 
-  formattedValue: propFormattedValue, 
-  formattedPerSecond: propFormattedPerSecond 
+const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
+  resource,
+  formattedValue,
+  formattedPerSecond
 }) => {
-  const { id, name, value = 0, max = Infinity, perSecond = 0 } = resource;
-  const prevValueRef = useRef(value);
-  const resourceRef = useRef<HTMLDivElement>(null);
-  const { formatValue, resourceFormatter } = useResourceSystem();
+  const { t } = useTranslation();
   
-  // Используем хук анимации для плавного обновления отображаемого значения
-  // Проверяем, что значение определено перед передачей его в хук
-  const safeValue = value !== null && value !== undefined ? value : 0;
-  const animatedValue = useResourceAnimation(safeValue, id);
+  // Получение перевода ресурса
+  const getResourceName = (resourceId: string): string => {
+    const resourceKeyMap: Record<string, string> = {
+      'knowledge': 'Знания',
+      'usdt': 'USDT',
+      'electricity': 'Электричество', 
+      'computingPower': 'Вычисл. мощность',
+      'bitcoin': 'Bitcoin'
+    };
+    
+    return resourceKeyMap[resourceId] || resourceId;
+  };
   
-  // Определяем отрицательную скорость производства
-  const isNegativeRate = perSecond < 0;
+  // Цвет для показателя perSecond
+  const getPerSecondColor = (perSecond: number) => {
+    if (perSecond > 0) return "text-green-600";
+    if (perSecond < 0) return "text-red-600";
+    return "text-gray-500";
+  };
   
-  // Форматирование значений с учетом типа ресурса
-  const formattedValue = propFormattedValue || formatValue(animatedValue, id);
+  // Иконка для показателя perSecond
+  const getPerSecondIcon = (perSecond: number) => {
+    if (perSecond > 0) return <TrendingUp size={14} className="mr-1" />;
+    if (perSecond < 0) return <TrendingDown size={14} className="mr-1" />;
+    return null;
+  };
   
-  // Форматируем максимальное значение всегда без десятичных знаков
-  const formattedMax = max === Infinity 
-    ? "∞" 
-    : max >= 1000000 
-      ? Math.floor(max / 1000000) + "M"
-      : max >= 1000 
-        ? Math.floor(max / 1000) + "K" 
-        : Math.floor(max).toString();
-  
-  // Форматирование скорости производства с учетом K и M для тысяч и миллионов
-  const safePerSecond = perSecond !== null && perSecond !== undefined ? perSecond : 0;
-  const formattedPerSecond = propFormattedPerSecond || (
-    Math.abs(safePerSecond) >= 1000000 
-      ? (safePerSecond / 1000000).toFixed(1).replace('.0', '') + "M" 
-      : Math.abs(safePerSecond) >= 1000 
-        ? (safePerSecond / 1000).toFixed(1).replace('.0', '') + "K"
-        : formatValue(safePerSecond, id)
-  );
-  
-  // Эффект для выделения изменений
-  useEffect(() => {
-    // Если значение изменилось существенно, выделяем это изменение
-    if (safeValue !== null && prevValueRef.current !== null && Math.abs(safeValue - prevValueRef.current) > 0.1) {
-      const element = resourceRef.current?.querySelector(`#resource-value-${id}`);
-      if (element) {
-        // Добавляем класс для анимации, затем удаляем его
-        element.classList.add('resource-changed');
-        setTimeout(() => {
-          element.classList.remove('resource-changed');
-        }, 500);
-      }
-      prevValueRef.current = safeValue;
-    }
-  }, [safeValue, id]);
-
-  // Добавляем отладочную информацию при наведении
-  const debugValue = safeValue !== null ? safeValue.toFixed(2) : "0.00";
-  const debugPerSecond = safePerSecond !== null ? safePerSecond.toFixed(3) : "0.000";
-  const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
-
-  // Преобразуем название ресурса
-  const displayName = resourceFormatter.getDisplayName(id, name);
-
   return (
-    <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
-      <div className="flex justify-between items-center mb-0.5">
-        <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{displayName}</div>
-        <div id={`resource-value-${id}`} className="text-gray-600 text-[10px] whitespace-nowrap transition-colors">
+    <div className="flex justify-between items-center py-0.5">
+      <div>
+        <div className="text-sm font-medium">{getResourceName(resource.id)}</div>
+        <div className="text-sm">
           {formattedValue}
-          {max !== Infinity && ` / ${formattedMax}`}
+          {resource.max !== Infinity && (
+            <span className="text-xs text-gray-500 ml-1">
+              /{resource.max !== undefined ? formattedValue : "∞"}
+            </span>
+          )}
         </div>
       </div>
       
-      {/* Отображаем скорость только если она не равна нулю */}
-      {safePerSecond !== 0 && (
-        <div className="flex items-center justify-end">
-          <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
-            {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
-          </div>
+      {resource.perSecond !== 0 && (
+        <div className={`flex items-center text-xs ${getPerSecondColor(resource.perSecond)}`}>
+          {getPerSecondIcon(resource.perSecond)}
+          {formattedPerSecond}/сек
         </div>
       )}
     </div>

@@ -4,33 +4,13 @@ import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
-import { ResourceSystem } from '@/systems/ResourceSystem';
+import { ResourceManager } from '@/managers/ResourceManager';
 
-// Импорт редьюсеров для разных типов действий
-import { 
-  processLearnCrypto, 
-  processApplyKnowledge, 
-  processApplyAllKnowledge,
-  processExchangeBitcoin
-} from './reducers/actionsReducer';
-import { 
-  processPurchaseBuilding, 
-  processSellBuilding,
-  processChooseSpecialization 
-} from './reducers/building';
-import { processPurchaseUpgrade } from './reducers/upgradeReducer';
-import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
+// Импорт обработчиков для различных действий
+import { processLearnCrypto, processExchangeBitcoin } from './reducers/actionsReducer';
+import { processSellBuilding, processChooseSpecialization } from './reducers/building';
 
-// Импорт вспомогательных функций
-import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
-
-// Импорт унифицированной системы покупки
-import { processPurchase } from './reducers/purchaseSystem/processPurchase';
-
-// Создаем статический экземпляр для использования вне компонентов
-const resourceSystem = new ResourceSystem();
-
-// Функция для обработки отладочного добавления ресурсов
+// Обработка отладочного добавления ресурсов
 const processDebugAddResources = (state: GameState, payload: any): GameState => {
   // Создаем копию состояния
   const newState = { ...state };
@@ -41,7 +21,7 @@ const processDebugAddResources = (state: GameState, payload: any): GameState => 
     if (resource) {
       newState.resources[payload.resourceId] = {
         ...resource,
-        value: resource.max || 1000 // Заполняем до максимума или 1000, если максимум не определен
+        value: resource.max || 1000
       };
     }
   } else {
@@ -58,7 +38,7 @@ const processDebugAddResources = (state: GameState, payload: any): GameState => 
   return newState;
 };
 
-// Функция для инкрементирования счетчика
+// Инкрементирование счетчика
 const processIncrementCounter = (
   state: GameState,
   payload: { counterId: string; amount?: number }
@@ -66,7 +46,6 @@ const processIncrementCounter = (
   const { counterId, amount = 1 } = payload;
   const counter = state.counters[counterId];
   
-  // Проверяем, существует ли счетчик
   if (!counter) {
     return {
       ...state,
@@ -80,7 +59,6 @@ const processIncrementCounter = (
     };
   }
 
-  // Инкрементируем существующий счетчик
   return {
     ...state,
     counters: {
@@ -93,23 +71,112 @@ const processIncrementCounter = (
   };
 };
 
-// Основной редьюсер для обработки всех действий игры
+// Обработка покупки элемента (здания, улучшения и т.д.)
+const processPurchaseItem = (
+  state: GameState, 
+  payload: { itemId: string, itemType: string }
+): GameState => {
+  const { itemId, itemType } = payload;
+  
+  // Определение типа покупаемого элемента
+  let item;
+  if (itemType === 'building') {
+    item = state.buildings[itemId];
+  } else if (itemType === 'upgrade' || itemType === 'research') {
+    item = state.upgrades[itemId];
+  } else {
+    console.error(`Неизвестный тип элемента: ${itemType}`);
+    return state;
+  }
+
+  // Проверка существования элемента
+  if (!item) {
+    console.error(`Элемент с ID ${itemId} не найден в категории ${itemType}`);
+    return state;
+  }
+
+  // Для исследований проверяем, что оно еще не куплено
+  if ((itemType === 'upgrade' || itemType === 'research') && item.purchased) {
+    console.log(`Исследование ${item.name} уже куплено`);
+    return state;
+  }
+
+  // Проверка наличия ресурсов для покупки
+  if (!ResourceManager.canAfford(state, item.cost)) {
+    console.log(`Недостаточно ресурсов для покупки ${item.name}`);
+    return state;
+  }
+
+  // Списываем ресурсы
+  let updatedState = ResourceManager.spendResources(state, item.cost);
+
+  // Обработка покупки в зависимости от типа
+  if (itemType === 'building') {
+    // Рассчитываем новую стоимость здания
+    const newCost = { ...item.cost };
+    for (const [resourceId, amount] of Object.entries(item.cost)) {
+      newCost[resourceId] = Math.floor(Number(amount) * item.costMultiplier);
+    }
+
+    // Обновляем здание
+    updatedState = {
+      ...updatedState,
+      buildings: {
+        ...updatedState.buildings,
+        [itemId]: {
+          ...item,
+          count: item.count + 1,
+          cost: newCost
+        }
+      }
+    };
+
+    // Обновляем счетчики
+    if (itemId === 'practice') {
+      updatedState = processIncrementCounter(updatedState, { counterId: 'practiceBuilt' });
+    } else if (itemId === 'generator') {
+      updatedState = processIncrementCounter(updatedState, { counterId: 'generatorBuilt' });
+    } else if (itemId === 'homeComputer') {
+      updatedState = processIncrementCounter(updatedState, { counterId: 'computerBuilt' });
+    } else if (itemId === 'cryptoWallet') {
+      updatedState = processIncrementCounter(updatedState, { counterId: 'walletBuilt' });
+    }
+  } else if (itemType === 'upgrade' || itemType === 'research') {
+    // Отмечаем улучшение как купленное
+    updatedState = {
+      ...updatedState,
+      upgrades: {
+        ...updatedState.upgrades,
+        [itemId]: {
+          ...item,
+          purchased: true
+        }
+      }
+    };
+  }
+
+  // Пересчитываем производство ресурсов
+  updatedState = ResourceManager.recalculateAllProduction(updatedState);
+  
+  // Проверяем разблокировки
+  return checkAllUnlocks(updatedState);
+};
+
+// Основной редьюсер
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
-  // Добавляем логирование действий для отладки
   console.log(`gameReducer: обработка действия ${action.type}`, action.payload);
   
-  // Сначала убеждаемся, что структура unlocks существует
+  // Убеждаемся, что структура unlocks существует
   let newState = ensureUnlocksExist(state);
   
-  // Ниже идет обработка всех типов действий
   switch (action.type) {
     case 'START_GAME':
       console.log("Игра запущена, пересчитываем производство и проверяем разблокировки");
-      newState = resourceSystem.recalculateAllResourceProduction(newState);
+      newState = ResourceManager.recalculateAllProduction(newState);
       return checkAllUnlocks({ ...newState, gameStarted: true });
     
     case 'TICK':
-      // Вычисляем прошедшее время
+      // Получаем текущее время
       const currentTime = action.payload?.currentTime || Date.now();
       const deltaTime = currentTime - newState.lastUpdate;
       
@@ -117,65 +184,77 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         console.log(`TICK: Обновление ресурсов за ${deltaTime}ms`);
         
         // Обновляем ресурсы
-        newState = resourceSystem.updateResources(newState, deltaTime);
+        newState = ResourceManager.updateResources(newState, deltaTime);
         
         // Обновляем lastUpdate
         newState = { ...newState, lastUpdate: currentTime };
         
-        // Проверяем разблокировки после обновления ресурсов
+        // Проверяем разблокировки
         newState = checkAllUnlocks(newState);
         
         console.log(`TICK: Обновлены ресурсы, прошло ${deltaTime}ms`);
-      } else {
-        console.log(`TICK: Пропускаем обновление, прошло ${deltaTime}ms`);
       }
       
       return newState;
     
+    // Обработка новых действий с ресурсами
+    case 'UPDATE_RESOURCES':
+    case 'UPDATE_PRODUCTION':
+    case 'UPDATE_MAX_VALUES':
+    case 'SPEND_RESOURCES':
+      return checkAllUnlocks(action.payload);
+    
     case 'INCREMENT_RESOURCE':
-      // Обрабатываем увеличение ресурса и проверяем разблокировки
-      return checkAllUnlocks(processIncrementResource(newState, action.payload));
+      return checkAllUnlocks(ResourceManager.incrementResource(
+        newState,
+        action.payload.resourceId,
+        action.payload.amount || 1
+      ));
     
     case 'INCREMENT_COUNTER':
-      // Обрабатываем увеличение счетчика
       return checkAllUnlocks(processIncrementCounter(newState, action.payload));
-      
+    
     case 'APPLY_KNOWLEDGE':
-      // Обрабатываем применение знаний и проверяем разблокировки
-      return checkAllUnlocks(processApplyKnowledge(newState));
-      
+      return checkAllUnlocks(ResourceManager.applyKnowledge(newState));
+    
     case 'APPLY_ALL_KNOWLEDGE':
-      return checkAllUnlocks(processApplyAllKnowledge(newState));
+      return checkAllUnlocks(ResourceManager.applyKnowledge(newState));
     
     case 'EXCHANGE_BTC':
       return checkAllUnlocks(processExchangeBitcoin(newState));
     
+    case 'PURCHASE_ITEM':
+      return processPurchaseItem(newState, action.payload);
+    
     case 'BUY_BUILDING':
-      // Обрабатываем покупку здания и проверяем разблокировки
-      console.log("Обработка BUY_BUILDING...");
-      return processPurchaseBuilding(newState, action.payload);
+      return processPurchaseItem(newState, { 
+        itemId: action.payload.buildingId, 
+        itemType: 'building' 
+      });
     
     case 'SELL_BUILDING':
-      // Обрабатываем продажу здания
       return processSellBuilding(newState, action.payload);
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
-      return checkAllUnlocks(processPurchaseUpgrade(newState, action.payload));
-      
-    // Новое унифицированное действие покупки
-    case 'PURCHASE_ITEM':
-      // Используем унифицированную функцию покупки
-      console.log("Обработка PURCHASE_ITEM...");
-      return processPurchase(newState, action.payload);
+      return processPurchaseItem(newState, { 
+        itemId: action.payload.upgradeId, 
+        itemType: 'upgrade' 
+      });
+    
+    case 'APPLY_KNOWLEDGE_COMPLETE':
+    case 'APPLY_ALL_KNOWLEDGE_COMPLETE':
+    case 'INCREMENT_RESOURCE_COMPLETE':
+      return checkAllUnlocks(action.payload.state);
+    
+    case 'UNLOCK_RESOURCE_COMPLETE':
+      return checkAllUnlocks(action.payload.state);
     
     case 'LOAD_GAME':
       console.log("Загрузка игры...");
       newState = { ...newState, ...action.payload };
-      // Принудительно пересчитываем производство
-      console.log("Пересчитываем производство после загрузки...");
-      newState = resourceSystem.recalculateAllResourceProduction(newState);
-      // Проверяем разблокировки при загрузке игры
+      // Пересчитываем производство после загрузки
+      newState = ResourceManager.recalculateAllProduction(newState);
       return checkAllUnlocks(newState);
     
     case 'SAVE_GAME':
@@ -189,16 +268,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processDebugAddResources(newState, action.payload));
     
     case 'FORCE_RESOURCE_UPDATE':
-      // Принудительно пересчитываем все значения и проверяем разблокировки
-      console.log("FORCE_RESOURCE_UPDATE: Принудительное обновление производства ресурсов");
-      if (action.payload) {
-        // Если передано новое состояние, используем его
-        newState = action.payload;
-      } else {
-        // Иначе пересчитываем производство
-        newState = resourceSystem.recalculateAllResourceProduction(newState);
-      }
-      return checkAllUnlocks(newState);
+      // Принудительно пересчитываем производство
+      return checkAllUnlocks(ResourceManager.recalculateAllProduction(newState));
     
     case 'UPDATE_HELPERS':
       return {
@@ -207,14 +278,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     
     case 'UNLOCK_RESOURCE':
-      // Разблокировка ресурса
-      return checkAllUnlocks(resourceSystem.unlockResource(newState, action.payload));
+      return checkAllUnlocks(ResourceManager.unlockResource(newState, action.payload.resourceId));
     
     case 'CHECK_UNLOCKS':
-      // Добавляем явную обработку действия проверки разблокировок
       return checkAllUnlocks(newState);
     
     default:
       return newState;
   }
-}
+};
