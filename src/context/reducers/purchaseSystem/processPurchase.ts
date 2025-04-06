@@ -95,6 +95,19 @@ export function processPurchase(
       }
     }
 
+    // Обновляем потребление ресурсов
+    if (item.consumption) {
+      for (const [resourceId, amount] of Object.entries(item.consumption)) {
+        if (updatedState.resources[resourceId]) {
+          updatedState.resources[resourceId] = {
+            ...updatedState.resources[resourceId],
+            consumption: (updatedState.resources[resourceId].consumption || 0) + 
+                        Number(amount)
+          };
+        }
+      }
+    }
+
     // Обновляем счетчики для определенных зданий
     updateBuildingCounters(updatedState, itemId);
 
@@ -127,9 +140,23 @@ export function processPurchase(
 
   // Пересчитываем максимальные значения ресурсов
   updatedState = resourceSystem.updateResourceMaxValues(updatedState);
+  
+  // Пересчитываем perSecond для всех ресурсов
+  for (const resourceId in updatedState.resources) {
+    const resource = updatedState.resources[resourceId];
+    if (resource.unlocked) {
+      updatedState.resources[resourceId] = {
+        ...resource,
+        perSecond: (resource.production || 0) - (resource.consumption || 0)
+      };
+    }
+  }
 
-  // Проверяем и обновляем все разблокировки
-  return checkAllUnlocks(updatedState);
+  // Немедленно проверяем и обновляем все разблокировки
+  updatedState = checkAllUnlocks(updatedState);
+
+  // Форсированно обновляем ресурсы для немедленного отображения изменений
+  return resourceSystem.updateResources(updatedState, 0);
 }
 
 /**

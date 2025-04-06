@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -124,7 +125,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processIncrementResource(newState, action.payload));
     
     case 'INCREMENT_COUNTER':
-      // Обрабатываем увеличение счетчика
+      // Обрабатываем увеличение счетчика и проверяем разблокировки
       return checkAllUnlocks(processIncrementCounter(newState, action.payload));
       
     case 'APPLY_KNOWLEDGE':
@@ -138,12 +139,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(processExchangeBitcoin(newState));
     
     case 'BUY_BUILDING':
-      // Обрабатываем покупку здания и проверяем разблокировки
-      return processPurchaseBuilding(newState, action.payload);
+      // Обрабатываем покупку здания, проверяем разблокировки и пересчитываем производство
+      newState = processPurchaseBuilding(newState, action.payload);
+      // Принудительно пересчитываем производство ресурсов чтобы отобразить изменения сразу
+      return calculateResourceProduction(newState);
     
     case 'SELL_BUILDING':
-      // Обрабатываем продажу здания
-      return processSellBuilding(newState, action.payload);
+      // Обрабатываем продажу здания, проверяем разблокировки и пересчитываем производство
+      newState = processSellBuilding(newState, action.payload);
+      // Принудительно пересчитываем производство ресурсов
+      return calculateResourceProduction(newState);
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
