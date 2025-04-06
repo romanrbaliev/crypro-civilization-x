@@ -1,77 +1,60 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useGame } from '@/context/hooks/useGame';
 import { useResourceSystem } from '@/hooks/useResourceSystem';
 import { useTranslation } from '@/i18n';
-import { Brain } from 'lucide-react';
-import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { useGame } from '@/context/hooks/useGame';
+import { Book } from 'lucide-react';
+import KnowledgeProductionPopup from '@/components/KnowledgeProductionPopup';
 
 const LearnButton: React.FC = () => {
-  const { t } = useTranslation();
+  const { state } = useGame();
   const { incrementResource } = useResourceSystem();
-  const { state, dispatch } = useGame();
+  const { t } = useTranslation();
+  const [showPopup, setShowPopup] = useState(false);
+  const [lastProduction, setLastProduction] = useState(0);
   
-  const handleLearnClick = () => {
-    // Увеличиваем знания на 1
-    incrementResource('knowledge', 1);
+  // Определяем базовое производство знаний
+  const baseProduction = 1;
+  
+  const handleClick = () => {
+    console.log('Клик по кнопке "Изучить крипту"');
     
-    // Увеличиваем счетчик нажатий на кнопку "Изучить"
-    dispatch({
-      type: 'INCREMENT_COUNTER',
-      payload: { counterId: 'learnClicks', amount: 1 }
-    });
+    // Инкрементируем счетчик кликов
+    const currentValue = state.counters.knowledgeClicks?.value || 0;
     
-    // Отправляем событие о получении знаний
-    safeDispatchGameEvent('Изучение: +1 знание', 'success');
-    
-    // Также установим базовое производство для знаний,
-    // если оно ещё не установлено и нет практик (во избежание дублирования)
-    const knowledge = state.resources.knowledge;
-    const practiceCount = state.buildings.practice?.count || 0;
-    
-    if ((!knowledge.baseProduction || knowledge.baseProduction <= 0) && practiceCount === 0) {
-      // Установим базовое производство в 0.1 знаний/сек после первых нескольких нажатий
-      const learnClicks = state.counters.learnClicks?.value || 0;
+    if (state.resources.knowledge?.unlocked) {
+      // Добавляем знания
+      incrementResource('knowledge', baseProduction);
+      setLastProduction(baseProduction);
+      setShowPopup(true);
       
-      if (learnClicks >= 5 && learnClicks <= 10) {
-        console.log("LearnButton: Устанавливаем базовое производство знаний 0.1/сек после 5 нажатий");
-        
-        // Обновляем ресурс знания, устанавливая базовое производство
-        const updatedKnowledge = {
-          ...knowledge,
-          baseProduction: 0.1,
-          production: (knowledge.production || 0) + 0.1,
-          perSecond: (knowledge.perSecond || 0) + 0.1,
-        };
-        
-        // Обновляем ресурсы
-        dispatch({
-          type: 'FORCE_RESOURCE_UPDATE',
-          payload: {
-            ...state,
-            resources: {
-              ...state.resources,
-              knowledge: updatedKnowledge
-            }
-          }
-        });
-        
-        safeDispatchGameEvent('Вы получили базовое производство знаний: +0.1/сек', 'info');
-      }
+      console.log('Добавлено знаний:', baseProduction);
     }
   };
   
+  // Заблокирована ли кнопка
+  const isDisabled = !state.resources.knowledge?.unlocked;
+  
   return (
-    <Button
-      variant="default"
-      size="lg"
-      onClick={handleLearnClick}
-      className="w-full bg-indigo-600 hover:bg-indigo-700 mb-2"
-    >
-      <Brain className="mr-2 h-5 w-5" />
-      {t('actions.learn')}
-    </Button>
+    <>
+      <Button 
+        variant="outline" 
+        className="flex items-center justify-center gap-2 mb-2 h-12 w-full bg-gradient-to-r from-green-50 to-blue-50 hover:from-green-100 hover:to-blue-100 border-green-200"
+        disabled={isDisabled}
+        onClick={handleClick}
+      >
+        <Book className="h-5 w-5 text-green-600" />
+        <span className="font-medium">{t('buttons.learn')}</span>
+      </Button>
+      
+      {showPopup && (
+        <KnowledgeProductionPopup 
+          value={lastProduction} 
+          onComplete={() => setShowPopup(false)} 
+        />
+      )}
+    </>
   );
 };
 
