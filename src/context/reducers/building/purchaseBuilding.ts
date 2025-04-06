@@ -89,7 +89,7 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     };
   }
   
-  // Отправляем событие о покупке здания
+  // Отправляем событие о покупке здания с учетом языка
   const eventMessage = newState.language === 'ru' 
     ? `Приобретено здание: ${building.name}` 
     : `Building purchased: ${building.name}`;

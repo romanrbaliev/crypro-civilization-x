@@ -181,6 +181,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return checkAllUnlocks(newState);
     
     case "CHECK_UNLOCKS":
+      // Прямой вызов централизованной системы разблокировок
       return checkAllUnlocks(state);
       
     default:

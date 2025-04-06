@@ -1,7 +1,6 @@
 
 import { useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { checkAllUnlocks } from '@/utils/unlockManager';
 
 /**
  * Хук для периодической проверки разблокировок элементов игры
@@ -12,6 +11,7 @@ export const useUnlockChecker = () => {
   // Проверка разблокировок при первом рендере
   useEffect(() => {
     dispatch({ type: "CHECK_UNLOCKS" });
+    console.log("📊 useUnlockChecker: Первоначальная проверка разблокировок");
   }, [dispatch]);
   
   // Проверка разблокировок при изменении ключевых показателей

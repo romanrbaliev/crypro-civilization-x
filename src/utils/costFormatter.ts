@@ -3,7 +3,7 @@ import { formatNumber } from './helpers';
 import { useTranslation } from '@/i18n';
 
 /**
- * Форматирует стоимость здания для отображения
+ * Форматирует стоимость здания для отображения с учетом языка
  */
 export const formatCost = (cost: any, language: string = 'ru'): string => {
   if (!cost || Object.keys(cost).length === 0) {
@@ -12,7 +12,7 @@ export const formatCost = (cost: any, language: string = 'ru'): string => {
   
   return Object.entries(cost)
     .map(([resourceId, amount]) => {
-      // Получаем название ресурса
+      // Получаем название ресурса с учетом языка
       const resourceName = getResourceName(resourceId, language);
       
       // Форматируем количество
@@ -27,6 +27,7 @@ export const formatCost = (cost: any, language: string = 'ru'): string => {
  * Возвращает название ресурса по его идентификатору с учетом языка
  */
 const getResourceName = (resourceId: string, language: string = 'ru'): string => {
+  // Используем словари для перевода
   const resourceNamesRu: {[key: string]: string} = {
     knowledge: 'Знания',
     usdt: 'USDT',
@@ -43,6 +44,9 @@ const getResourceName = (resourceId: string, language: string = 'ru'): string =>
     bitcoin: 'Bitcoin'
   };
   
+  // Выбираем словарь в зависимости от языка
   const names = language === 'ru' ? resourceNamesRu : resourceNamesEn;
+  
+  // Возвращаем перевод или ID ресурса, если перевод не найден
   return names[resourceId] || resourceId;
 };
