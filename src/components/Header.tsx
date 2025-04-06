@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -70,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
     lastUpdate: 0,
     updateHistory: []
   });
-  
+
   useEffect(() => {
     if (debugDialogOpen) {
       updateDebugData();
