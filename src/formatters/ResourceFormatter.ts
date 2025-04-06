@@ -60,8 +60,9 @@ export class ResourceFormatter {
     if (value === Infinity) return "∞";
     if (isNaN(value)) return "0";
     
-    // Используем утилиту из модуля, а не метод класса, чтобы избежать undefined
-    const format = getResourceFormatUtil(resourceId);
+    // Используем локальный getResourceFormat вместо обращения к this.getResourceFormat
+    const format = this.getResourceFormat(resourceId); 
+    
     if (Math.abs(value) < format.minValue) return "0";
     
     // Используем форматирование с буквами K и M для больших чисел

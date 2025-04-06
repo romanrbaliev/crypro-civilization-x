@@ -1,5 +1,5 @@
 
-import { GameState, Resource } from '@/context/types';
+import { GameState, Resource, Building, Upgrade } from '@/context/types';
 
 /**
  * Система управления ресурсами
@@ -75,11 +75,11 @@ export class ResourceSystem {
     for (const buildingId in newState.buildings) {
       const building = newState.buildings[buildingId];
       
-      // Пропускаем здания без эффектов максимальных значений или не построенные здания
-      if (!building.purchased || building.count <= 0) continue;
+      // Пропускаем не построенные здания
+      if (!building.count || building.count <= 0) continue;
       
       // Получаем бонусы max ресурсов для здания, если они существуют
-      const maxResourcesBonus = building.maxResourcesBonus as Record<string, number> | undefined;
+      const maxResourcesBonus = (building as any).maxResourcesBonus as Record<string, number> | undefined;
       
       if (maxResourcesBonus) {
         for (const resourceId in maxResourcesBonus) {
@@ -88,7 +88,8 @@ export class ResourceSystem {
             const currentMax = newState.resources[resourceId].max || 0;
             
             // Добавляем бонус от здания, умноженный на количество зданий
-            const newMax = currentMax + (maxResourcesBonus[resourceId] * building.count);
+            const buildingBonus = maxResourcesBonus[resourceId] * building.count;
+            const newMax = currentMax + buildingBonus;
             
             // Обновляем максимальное значение
             newState.resources[resourceId] = {
@@ -108,7 +109,7 @@ export class ResourceSystem {
       if (!upgrade.purchased) continue;
       
       // Получаем бонусы max ресурсов для улучшения, если они существуют
-      const maxResourcesBonus = upgrade.maxResourcesBonus as Record<string, number> | undefined;
+      const maxResourcesBonus = (upgrade as any).maxResourcesBonus as Record<string, number> | undefined;
       
       if (maxResourcesBonus) {
         for (const resourceId in maxResourcesBonus) {

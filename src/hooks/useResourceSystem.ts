@@ -1,3 +1,4 @@
+
 import { useCallback, useMemo } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
@@ -94,8 +95,8 @@ export const useResourceSystem = () => {
     canAfford,
     getMissingResources,
     updateResourceMaxValues,
-    formatCost: resourceFormatter.formatCost,
-    formatValue: resourceFormatter.formatValue,
+    formatCost,
+    formatValue,
     incrementResource,
     unlockResource,
     resourceSystem, // Экспортируем сам класс для сложных операций
