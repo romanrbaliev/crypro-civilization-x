@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Building } from '@/context/types';
@@ -32,18 +31,24 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onS
         } else if (retryCount < maxRetries) {
           retryCount++;
           setTimeout(formatWithRetry, 100 * retryCount);
+        } else {
+          // Если после всех попыток форматирования не удалось получить корректный результат,
+          // отображаем базовую информацию о стоимости
+          setFormattedCostText(Object.keys(cost).length > 0 ? t('buildings.hasCost') : t('buildings.free'));
         }
       } catch (error) {
         console.error("Ошибка при форматировании стоимости:", error);
         if (retryCount < maxRetries) {
           retryCount++;
           setTimeout(formatWithRetry, 100 * retryCount);
+        } else {
+          setFormattedCostText(t('buildings.costError'));
         }
       }
     };
 
     formatWithRetry();
-  }, [cost, language]);
+  }, [cost, language, t]);
   
   // Определение иконки для здания
   const getBuildingIcon = () => {
