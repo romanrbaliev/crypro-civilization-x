@@ -24,27 +24,31 @@ export const useResourceSystem = () => {
       return;
     }
     
-    // Шаг 1: Обновляем производство и потребление
-    let updatedState = resourceSystem.updateProductionConsumption(state);
-    
-    // Шаг 2: Обновляем максимальные значения ресурсов
-    updatedState = resourceSystem.updateResourceMaxValues(updatedState);
-    
-    // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
-    updatedState = resourceSystem.updateResources(updatedState, deltaTime);
-    
-    // Обновляем состояние через диспетчер
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
-    
-    // Периодически выводим отладочную информацию
-    if (Math.random() < 0.01) { // 1% шанс вывода в консоль
-      const logData = Object.entries(updatedState.resources)
-        .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
-        .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
+    try {
+      // Шаг 1: Обновляем производство и потребление
+      let updatedState = resourceSystem.updateProductionConsumption(state);
       
-      if (logData.length > 0) {
-        console.log(`[ResourceUpdate] Ресурсы обновлены (Δt=${deltaTime}мс):`, logData);
+      // Шаг 2: Обновляем максимальные значения ресурсов
+      updatedState = resourceSystem.updateResourceMaxValues(updatedState);
+      
+      // Шаг 3: Обновляем значения ресурсов на основе прошедшего времени
+      updatedState = resourceSystem.updateResources(updatedState, deltaTime);
+      
+      // Обновляем состояние через диспетчер
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+      
+      // Значительно уменьшаем отладочную информацию
+      if (Math.random() < 0.001) { // 0.1% шанс вывода в консоль
+        const logData = Object.entries(updatedState.resources)
+          .filter(([_, r]) => r.unlocked && (r.perSecond !== 0))
+          .map(([id, r]) => `${id}: ${formatValue(r.value, id)} (+${formatValue(r.perSecond || 0, id)}/сек)`);
+        
+        if (logData.length > 0) {
+          console.log(`[ResourceUpdate] Ресурсы обновлены (Δt=${deltaTime}мс)`);
+        }
       }
+    } catch (error) {
+      console.error('Ошибка при обновлении ресурсов:', error);
     }
   }, [state, dispatch, resourceSystem]);
   
@@ -70,8 +74,12 @@ export const useResourceSystem = () => {
    * Обновляет максимальные значения ресурсов
    */
   const updateResourceMaxValues = useCallback(() => {
-    const updatedState = resourceSystem.updateResourceMaxValues(state);
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+    try {
+      const updatedState = resourceSystem.updateResourceMaxValues(state);
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
+    } catch (error) {
+      console.error('Ошибка при обновлении максимальных значений ресурсов:', error);
+    }
   }, [state, dispatch, resourceSystem]);
   
   /**
@@ -105,11 +113,13 @@ export const useResourceSystem = () => {
       payload: { resourceId, amount }
     });
     
-    // Отправляем событие об изменении ресурса
-    safeDispatchGameEvent({
-      message: `Получено: ${formatValue(amount, resourceId)} ${state.resources[resourceId]?.name || resourceId}`,
-      type: 'info'
-    });
+    // Отправляем событие об изменении ресурса только для значительных изменений
+    if (amount > 1 || Math.random() < 0.1) {
+      safeDispatchGameEvent({
+        message: `Получено: ${formatValue(amount, resourceId)} ${state.resources[resourceId]?.name || resourceId}`,
+        type: 'info'
+      });
+    }
   }, [dispatch, formatValue, state.resources]);
   
   /**
@@ -131,23 +141,10 @@ export const useResourceSystem = () => {
   
   return {
     updateResources,
-    canAfford: useCallback((cost: Record<string, number>): boolean => {
-      return resourceSystem.checkAffordability(state, cost);
-    }, [state, resourceSystem]),
-    
-    getMissingResources: useCallback((cost: Record<string, number>): Record<string, number> => {
-      return resourceSystem.getMissingResources(state, cost);
-    }, [state, resourceSystem]),
-    
-    updateResourceMaxValues: useCallback(() => {
-      const updatedState = resourceSystem.updateResourceMaxValues(state);
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
-    }, [state, dispatch, resourceSystem]),
-    
-    formatCost: useCallback((cost: any, language: string = 'ru'): string => {
-      return resourceFormatter.formatCost(cost, language);
-    }, [resourceFormatter]),
-    
+    canAfford,
+    getMissingResources,
+    updateResourceMaxValues,
+    formatCost,
     formatValue,
     incrementResource,
     unlockResource,

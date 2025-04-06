@@ -16,6 +16,7 @@ export const useGameStateUpdateService = () => {
   const unlockService = new UnlockService();
   const lastUpdateTimeRef = useRef<number>(Date.now());
   const frameCountRef = useRef<number>(0);
+  const throttleRef = useRef<{ lastResourceDebug: number }>({ lastResourceDebug: 0 });
   
   /**
    * Обновляет игровое состояние с учетом прошедшего времени
@@ -27,25 +28,38 @@ export const useGameStateUpdateService = () => {
       const currentTime = Date.now();
       const deltaTime = currentTime - lastUpdateTimeRef.current;
       
-      // Всегда обновляем ресурсы, даже если прошло мало времени
-      // Это устраняет проблему с неплавным обновлением ресурсов
-      updateResources(deltaTime);
+      // Пропускаем обновление, если прошло слишком мало времени (меньше 16мс - ~60 fps)
+      if (deltaTime < 16) {
+        return;
+      }
+      
+      // Ограничиваем максимальное обновление во времени для предотвращения скачков
+      const safeDeltatime = Math.min(deltaTime, 1000); // Максимум 1 секунда
+      
+      // Обновляем ресурсы
+      updateResources(safeDeltatime);
       lastUpdateTimeRef.current = currentTime;
       
       // Обновляем lastUpdate в состоянии
       dispatch({ type: 'TICK', payload: { currentTime } });
       
-      // Отладочная информация - примерно каждые 3 секунды
-      if (frameCountRef.current % 100 === 0) {
+      // Отладочная информация - примерно каждые 5 секунд
+      if (frameCountRef.current % 300 === 0) {
         console.log(`[GameUpdate] Кадр #${frameCountRef.current}, Δt=${deltaTime}мс`);
         
-        // Дополнительная отладочная информация о ресурсах
-        const activeResources = Object.entries(state.resources)
-          .filter(([_, res]) => res.unlocked && res.perSecond !== 0)
-          .map(([id, res]) => `${id}: ${res.value?.toFixed(2) || 0}/${res.max || '∞'} (${res.perSecond?.toFixed(2) || 0}/сек)`);
-        
-        if (activeResources.length > 0) {
-          console.log('[ResourceDebug] Активные ресурсы:', activeResources);
+        // Ограничиваем вывод отладочной информации о ресурсах
+        const now = Date.now();
+        if (now - throttleRef.current.lastResourceDebug > 5000) {
+          throttleRef.current.lastResourceDebug = now;
+          
+          // Дополнительная отладочная информация о ресурсах
+          const activeResources = Object.entries(state.resources)
+            .filter(([_, res]) => res.unlocked && res.perSecond !== 0)
+            .map(([id, res]) => `${id}: ${res.value?.toFixed(2) || 0}/${res.max || '∞'} (${res.perSecond?.toFixed(2) || 0}/сек)`);
+          
+          if (activeResources.length > 0) {
+            console.log('[ResourceDebug] Активные ресурсы:', activeResources);
+          }
         }
       }
     }
@@ -68,14 +82,26 @@ export const useGameStateUpdateService = () => {
     let animationFrameId: number;
     
     const updateFrame = () => {
-      updateGameState();
-      animationFrameId = requestAnimationFrame(updateFrame);
+      try {
+        updateGameState();
+        animationFrameId = requestAnimationFrame(updateFrame);
+      } catch (error) {
+        console.error('Ошибка в цикле обновления игры:', error);
+        // Перезапускаем цикл обновления при ошибке
+        animationFrameId = requestAnimationFrame(updateFrame);
+      }
     };
     
     animationFrameId = requestAnimationFrame(updateFrame);
     
     // Запускаем таймер для проверки разблокировок каждые 5 секунд
-    const unlockCheckInterval = setInterval(checkUnlocks, 5000);
+    const unlockCheckInterval = setInterval(() => {
+      try {
+        checkUnlocks();
+      } catch (error) {
+        console.error('Ошибка при проверке разблокировок:', error);
+      }
+    }, 5000);
     
     // Логируем информацию о запуске системы обновления
     console.log(`🔄 Система обновления игрового состояния запущена в режиме requestAnimationFrame`);

@@ -1,5 +1,5 @@
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Resource } from "@/context/types";
 import ResourceDisplay from "./ResourceDisplay";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +10,7 @@ import { useResourceSystem } from "@/hooks/useResourceSystem";
 
 interface ResourceListProps {
   resources: Resource[];
-  updateCounter?: number; // Добавляем счетчик обновлений
+  updateCounter?: number;
 }
 
 // Используем memo для предотвращения лишних перерисовок
@@ -19,7 +19,10 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCount
   const { formatValue } = useResourceSystem();
   
   // Фильтруем только разблокированные ресурсы
-  const unlockedResources = resources.filter(resource => resource.unlocked);
+  const unlockedResources = useMemo(() => 
+    resources.filter(resource => resource.unlocked), 
+    [resources]
+  );
   
   // Заполнение USDT до максимального значения
   const handleFillUsdt = () => {
@@ -99,8 +102,6 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources, updateCount
   if (prevProps.resources.length !== nextProps.resources.length) {
     return false; // Обновляем, если количество ресурсов изменилось
   }
-  
-  // Другие проверки можно добавить по необходимости
   
   return true; // Не обновляем компонент, если существенных изменений нет
 });

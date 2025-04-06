@@ -1,7 +1,6 @@
 
 import React, { useEffect, useRef } from "react";
 import { Resource } from "@/context/types";
-import { useResourceAnimation } from "@/hooks/useResourceAnimation";
 import { useResourceSystem } from "@/hooks/useResourceSystem";
 
 interface ResourceDisplayProps {
@@ -20,16 +19,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   const resourceRef = useRef<HTMLDivElement>(null);
   const { formatValue, resourceFormatter } = useResourceSystem();
   
-  // Используем хук анимации для плавного обновления отображаемого значения
-  // Проверяем, что значение определено перед передачей его в хук
-  const safeValue = value !== null && value !== undefined ? value : 0;
-  const animatedValue = useResourceAnimation(safeValue, id);
-  
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
   // Форматирование значений с учетом типа ресурса
-  const formattedValue = propFormattedValue || formatValue(animatedValue, id);
+  const formattedValue = propFormattedValue || formatValue(value, id);
   
   // Форматируем максимальное значение всегда без десятичных знаков
   const formattedMax = max === Infinity 
@@ -50,32 +44,31 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
         : formatValue(safePerSecond, id)
   );
   
-  // Эффект для выделения изменений
+  // Эффект для выделения изменений - оптимизирован для предотвращения частых перерисовок
   useEffect(() => {
     // Если значение изменилось существенно, выделяем это изменение
-    if (safeValue !== null && prevValueRef.current !== null && Math.abs(safeValue - prevValueRef.current) > 0.1) {
+    if (value !== null && prevValueRef.current !== null && 
+        Math.abs(value - prevValueRef.current) > 0.5) {
+      
       const element = resourceRef.current?.querySelector(`#resource-value-${id}`);
       if (element) {
         // Добавляем класс для анимации, затем удаляем его
         element.classList.add('resource-changed');
         setTimeout(() => {
-          element.classList.remove('resource-changed');
+          if (element && element.classList) {
+            element.classList.remove('resource-changed');
+          }
         }, 500);
       }
-      prevValueRef.current = safeValue;
+      prevValueRef.current = value;
     }
-  }, [safeValue, id]);
-
-  // Добавляем отладочную информацию при наведении
-  const debugValue = safeValue !== null ? safeValue.toFixed(2) : "0.00";
-  const debugPerSecond = safePerSecond !== null ? safePerSecond.toFixed(3) : "0.000";
-  const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
+  }, [value, id]);
 
   // Преобразуем название ресурса
   const displayName = resourceFormatter.getDisplayName(id, name);
 
   return (
-    <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
+    <div className="w-full text-xs" ref={resourceRef}>
       <div className="flex justify-between items-center mb-0.5">
         <div className="font-medium text-[9px] truncate mr-1 max-w-[70%]">{displayName}</div>
         <div id={`resource-value-${id}`} className="text-gray-600 text-[10px] whitespace-nowrap transition-colors">
