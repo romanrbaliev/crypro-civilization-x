@@ -177,6 +177,45 @@ export class UnlockManager {
       });
     }
     
+    // 8. Проверка разблокировки "ASIC-майнера" (после покупки обычного майнера)
+    if (state.buildings.miner && 
+        state.buildings.miner.count > 0 && 
+        buildings.asicMiner && 
+        !buildings.asicMiner.unlocked) {
+      buildings.asicMiner.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.asicMiner.name }
+      });
+    }
+    
+    // 9. Проверка разблокировки "Системы охлаждения" (после 2+ уровня домашнего компьютера)
+    if (state.buildings.homeComputer && 
+        state.buildings.homeComputer.count >= 2 && 
+        buildings.coolingSystem && 
+        !buildings.coolingSystem.unlocked) {
+      buildings.coolingSystem.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.coolingSystem.name }
+      });
+    }
+    
+    // 10. Проверка разблокировки "Улучшенного кошелька" (после 5+ уровня криптокошелька)
+    if (state.buildings.cryptoWallet && 
+        state.buildings.cryptoWallet.count >= 5 && 
+        buildings.enhancedWallet && 
+        !buildings.enhancedWallet.unlocked) {
+      buildings.enhancedWallet.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.buildingUnlocked',
+        type: 'info',
+        params: { name: buildings.enhancedWallet.name }
+      });
+    }
+    
     newState.buildings = buildings;
     return newState;
   }
@@ -227,6 +266,71 @@ export class UnlockManager {
       });
     }
     
+    // 4. Проверка разблокировки "Оптимизация алгоритмов" (после покупки майнера)
+    if (state.buildings.miner && 
+        state.buildings.miner.count > 0 && 
+        upgrades.algorithmOptimization && 
+        !upgrades.algorithmOptimization.unlocked) {
+      upgrades.algorithmOptimization.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.algorithmOptimization.name }
+      });
+    }
+    
+    // 5. Проверка разблокировки "Proof of Work" (после исследования "Оптимизация алгоритмов")
+    if (state.upgrades.algorithmOptimization && 
+        state.upgrades.algorithmOptimization.purchased && 
+        upgrades.proofOfWork && 
+        !upgrades.proofOfWork.unlocked) {
+      upgrades.proofOfWork.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.proofOfWork.name }
+      });
+    }
+    
+    // 6. Проверка разблокировки "Энергоэффективные компоненты" (после покупки системы охлаждения)
+    if (state.buildings.coolingSystem && 
+        state.buildings.coolingSystem.count > 0 && 
+        upgrades.energyEfficientComponents && 
+        !upgrades.energyEfficientComponents.unlocked) {
+      upgrades.energyEfficientComponents.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.energyEfficientComponents.name }
+      });
+    }
+    
+    // 7. Проверка разблокировки "Криптовалютный трейдинг" (после покупки улучшенного кошелька)
+    if (state.buildings.enhancedWallet && 
+        state.buildings.enhancedWallet.count > 0 && 
+        upgrades.cryptoTrading && 
+        !upgrades.cryptoTrading.unlocked) {
+      upgrades.cryptoTrading.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.cryptoTrading.name }
+      });
+    }
+    
+    // 8. Проверка разблокировки "Торговый бот" (после исследования "Криптовалютный трейдинг")
+    if (state.upgrades.cryptoTrading && 
+        state.upgrades.cryptoTrading.purchased && 
+        upgrades.tradingBot && 
+        !upgrades.tradingBot.unlocked) {
+      upgrades.tradingBot.unlocked = true;
+      safeDispatchGameEvent({
+        messageKey: 'event.upgradeUnlocked',
+        type: 'info',
+        params: { name: upgrades.tradingBot.name }
+      });
+    }
+    
     newState.upgrades = upgrades;
     return newState;
   }
@@ -235,7 +339,7 @@ export class UnlockManager {
    * Безопасно получает значение счетчика
    */
   private getCounterValue(state: GameState, counterId: string): number {
-    const counter = state.counters[counterId];
+    const counter = state.counters?.[counterId];
     if (!counter) return 0;
     
     return typeof counter === 'object' ? counter.value : counter;

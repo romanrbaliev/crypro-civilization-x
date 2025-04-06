@@ -30,7 +30,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
   // Ниже идет обработка всех типов действий
   switch (action.type) {
     case 'START_GAME':
-      return { ...newState, gameStarted: true };
+      return checkAllUnlocks({ ...newState, gameStarted: true });
     
     case 'TICK':
       // Вычисляем прошедшее время
@@ -43,32 +43,35 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Обновляем lastUpdate
       newState = { ...newState, lastUpdate: currentTime };
       
-      return newState;
+      // Проверяем разблокировки
+      return checkAllUnlocks(newState);
     
     case 'INCREMENT_RESOURCE':
-      // Обрабатываем увеличение ресурса
-      return processLearnCrypto(newState);
+      // Обрабатываем увеличение ресурса и проверяем разблокировки
+      return checkAllUnlocks(processLearnCrypto(newState));
     
     case 'APPLY_KNOWLEDGE':
-      // Обрабатываем применение знаний
-      return processApplyKnowledge(newState);
+      // Обрабатываем применение знаний и проверяем разблокировки
+      return checkAllUnlocks(processApplyKnowledge(newState));
       
     case 'APPLY_ALL_KNOWLEDGE':
-      return processApplyAllKnowledge(newState);
+      return checkAllUnlocks(processApplyAllKnowledge(newState));
     
     case 'EXCHANGE_BTC':
-      return processExchangeBitcoin(newState);
+      return checkAllUnlocks(processExchangeBitcoin(newState));
     
     case 'BUY_BUILDING':
-      // Обрабатываем покупку здания
-      return processBuildingPurchase(newState, action.payload);
+      // Обрабатываем покупку здания и проверяем разблокировки
+      return checkAllUnlocks(processBuildingPurchase(newState, action.payload));
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
-      return processPurchaseUpgrade(newState, action.payload);
+      return checkAllUnlocks(processPurchaseUpgrade(newState, action.payload));
     
     case 'LOAD_GAME':
-      return { ...newState, ...action.payload };
+      newState = { ...newState, ...action.payload };
+      // Проверяем разблокировки при загрузке игры
+      return checkAllUnlocks(newState);
     
     case 'SAVE_GAME':
       saveGameToServer(newState);
@@ -78,18 +81,22 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return { ...initialState, gameStarted: true };
     
     case 'DEBUG_ADD_RESOURCES':
-      return processDebugAddResources(newState, action.payload);
+      return checkAllUnlocks(processDebugAddResources(newState, action.payload));
     
     case 'FORCE_RESOURCE_UPDATE':
-      // Принудительно пересчитываем все значения
+      // Принудительно пересчитываем все значения и проверяем разблокировки
       newState = calculateResourceProduction(newState);
-      return newState;
+      return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':
       return {
         ...newState,
         referralHelpers: action.payload.updatedHelpers
       };
+    
+    case 'CHECK_UNLOCKS':
+      // Добавляем явную обработку действия проверки разблокировок
+      return checkAllUnlocks(newState);
     
     default:
       return newState;

@@ -4,7 +4,7 @@ import { useGame } from '@/context/hooks/useGame';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
 
 /**
- * Хук для периодической проверки разблокировок элементов игры
+ * Хук для периодической проверки разблокировок элементов игры и при действиях пользователя
  */
 export const useUnlockChecker = () => {
   const { state, dispatch } = useGame();
@@ -27,13 +27,48 @@ export const useUnlockChecker = () => {
       dispatch({ type: "CHECK_UNLOCKS" });
     };
     
-    // Проверяем разблокировки каждые 3 секунды (уменьшил интервал с 5 до 3 для более быстрой реакции)
+    // Проверяем разблокировки каждые 3 секунды
     const intervalId = setInterval(checkUnlocks, 3000);
     
     return () => {
       clearInterval(intervalId);
     };
   }, [dispatch]);
+  
+  // Проверка разблокировок при изменении важных частей состояния
+  useEffect(() => {
+    dispatch({ type: "CHECK_UNLOCKS" });
+    console.log("📊 useUnlockChecker: Проверка разблокировок при изменении ресурсов");
+  }, [
+    state.resources.knowledge?.value, 
+    state.resources.usdt?.value, 
+    state.resources.electricity?.value,
+    dispatch
+  ]);
+  
+  // Проверка разблокировок при изменении счетчиков
+  useEffect(() => {
+    dispatch({ type: "CHECK_UNLOCKS" });
+    console.log("📊 useUnlockChecker: Проверка разблокировок при изменении счетчиков");
+  }, [state.counters, dispatch]);
+  
+  // Проверка разблокировок при изменении зданий
+  useEffect(() => {
+    dispatch({ type: "CHECK_UNLOCKS" });
+    console.log("📊 useUnlockChecker: Проверка разблокировок при изменении зданий");
+  }, [
+    Object.values(state.buildings).map(b => b.count).join(','), 
+    dispatch
+  ]);
+  
+  // Проверка разблокировок при изменении исследований
+  useEffect(() => {
+    dispatch({ type: "CHECK_UNLOCKS" });
+    console.log("📊 useUnlockChecker: Проверка разблокировок при изменении исследований");
+  }, [
+    Object.values(state.upgrades).map(u => u.purchased).join(','), 
+    dispatch
+  ]);
   
   // Возвращаем пустой объект, просто для возможности использования хука
   return {};
