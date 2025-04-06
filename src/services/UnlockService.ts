@@ -2,7 +2,6 @@
 import { GameState } from '@/context/types';
 import { 
   checkAllUnlocks, 
-  rebuildAllUnlocks,
   forceCheckAllUnlocks
 } from '@/utils/unlockManager';
 
@@ -24,7 +23,7 @@ export class UnlockService {
    */
   rebuildAllUnlocks(state: GameState): GameState {
     console.log("UnlockService: Делегирование полной перепроверки в unlockManager");
-    return rebuildAllUnlocks(state);
+    return checkAllUnlocks(state);
   }
   
   /**

@@ -1,11 +1,10 @@
 
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { RESOURCES, BUILDINGS, UPGRADES, TABS } from '@/data/gameElements';
+import { ensureUnlocksExist } from './unlockHelper';
 
 /**
  * Централизованная система для управления всеми разблокировками в игре
- * Все разблокировки теперь происходят через этот файл
  */
 export class UnlockManager {
   /**
@@ -15,14 +14,15 @@ export class UnlockManager {
     console.log("UnlockManager: Проверка всех разблокировок");
     
     // Создаем глубокую копию состояния для модификации
-    let newState = JSON.parse(JSON.stringify(state));
+    let newState = { ...state };
     
     // Последовательно проверяем разблокировки разных типов
-    newState = this.checkActionsUnlocks(newState);
     newState = this.checkResourceUnlocks(newState);
     newState = this.checkBuildingUnlocks(newState);
     newState = this.checkUpgradeUnlocks(newState);
-    newState = this.checkTabUnlocks(newState);
+    
+    // Обеспечиваем обратную совместимость
+    newState = ensureUnlocksExist(newState);
     
     return newState;
   }
@@ -30,7 +30,7 @@ export class UnlockManager {
   /**
    * Проверяет разблокировки ресурсов
    */
-  private checkResourceUnlocks(state: GameState): GameState {
+  checkResourceUnlocks(state: GameState): GameState {
     const newState = { ...state };
     const resources = { ...state.resources };
     
@@ -80,46 +80,9 @@ export class UnlockManager {
   }
   
   /**
-   * Проверяет разблокировки действий (кнопок)
-   */
-  private checkActionsUnlocks(state: GameState): GameState {
-    const newState = { ...state };
-    
-    // 1. Проверка разблокировки кнопки "Применить знания" (3+ кликов по "Изучить")
-    const knowledgeClicksCount = this.getCounterValue(state, 'knowledgeClicks');
-    const applyKnowledgeButton = document.getElementById('apply-knowledge-button');
-    
-    if (knowledgeClicksCount >= 3) {
-      if (applyKnowledgeButton && applyKnowledgeButton.classList.contains('hidden')) {
-        applyKnowledgeButton.classList.remove('hidden');
-        safeDispatchGameEvent({
-          messageKey: 'event.actionUnlocked',
-          type: 'info',
-          params: { name: 'Применить знания' }
-        });
-      }
-    }
-    
-    // 2. Проверка разблокировки обмена Bitcoin
-    if (state.resources.bitcoin && state.resources.bitcoin.unlocked) {
-      const exchangeBtcButton = document.getElementById('exchange-btc-button');
-      if (exchangeBtcButton && exchangeBtcButton.classList.contains('hidden')) {
-        exchangeBtcButton.classList.remove('hidden');
-        safeDispatchGameEvent({
-          messageKey: 'event.actionUnlocked',
-          type: 'info',
-          params: { name: 'Обменять BTC' }
-        });
-      }
-    }
-    
-    return newState;
-  }
-  
-  /**
    * Проверяет разблокировки зданий
    */
-  private checkBuildingUnlocks(state: GameState): GameState {
+  checkBuildingUnlocks(state: GameState): GameState {
     const newState = { ...state };
     const buildings = { ...state.buildings };
     
@@ -221,7 +184,7 @@ export class UnlockManager {
   /**
    * Проверяет разблокировки исследований
    */
-  private checkUpgradeUnlocks(state: GameState): GameState {
+  checkUpgradeUnlocks(state: GameState): GameState {
     const newState = { ...state };
     const upgrades = { ...state.upgrades };
     
@@ -269,37 +232,6 @@ export class UnlockManager {
   }
   
   /**
-   * Проверяет разблокировки вкладок/разделов
-   */
-  private checkTabUnlocks(state: GameState): GameState {
-    const newState = { ...state };
-    
-    // 1. Проверка разблокировки вкладки Equipment (есть разблокированные здания)
-    const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
-    const equipmentTab = document.getElementById('equipment-tab');
-    if (hasUnlockedBuildings && equipmentTab && equipmentTab.classList.contains('hidden')) {
-      equipmentTab.classList.remove('hidden');
-    }
-    
-    // 2. Проверка разблокировки вкладки Research (есть разблокированные исследования)
-    const hasUnlockedResearch = Object.values(state.upgrades).some(u => u.unlocked);
-    const researchTab = document.getElementById('research-tab');
-    if (hasUnlockedResearch && researchTab && researchTab.classList.contains('hidden')) {
-      researchTab.classList.remove('hidden');
-    }
-    
-    // 3. Проверка разблокировки вкладки Specialization
-    if (state.player?.specialization) {
-      const specializationTab = document.getElementById('specialization-tab');
-      if (specializationTab && specializationTab.classList.contains('hidden')) {
-        specializationTab.classList.remove('hidden');
-      }
-    }
-    
-    return newState;
-  }
-  
-  /**
    * Безопасно получает значение счетчика
    */
   private getCounterValue(state: GameState, counterId: string): number {
@@ -315,6 +247,24 @@ export class UnlockManager {
   forceCheckAllUnlocks(state: GameState): GameState {
     return this.checkAllUnlocks(state);
   }
+  
+  /**
+   * Отладочная функция для вывода статуса разблокировок
+   */
+  debugUnlockStatus(state: GameState): Record<string, any> {
+    return {
+      resources: Object.fromEntries(
+        Object.entries(state.resources).map(([id, r]) => [id, r.unlocked])
+      ),
+      buildings: Object.fromEntries(
+        Object.entries(state.buildings).map(([id, b]) => [id, b.unlocked])
+      ),
+      upgrades: Object.fromEntries(
+        Object.entries(state.upgrades).map(([id, u]) => [id, { unlocked: u.unlocked, purchased: u.purchased }])
+      ),
+      counters: state.counters
+    };
+  }
 }
 
 // Создаем экземпляр менеджера для экспорта
@@ -328,4 +278,36 @@ export const checkAllUnlocks = (state: GameState): GameState => {
 // Экспортируем функцию для форсированной проверки разблокировок
 export const forceCheckAllUnlocks = (state: GameState): GameState => {
   return unlockManager.forceCheckAllUnlocks(state);
+};
+
+// Экспортируем отдельные функции проверки для обратной совместимости
+export const checkBuildingUnlocks = (state: GameState): GameState => {
+  return unlockManager.checkBuildingUnlocks(state);
+};
+
+export const checkResourceUnlocks = (state: GameState): GameState => {
+  return unlockManager.checkResourceUnlocks(state);
+};
+
+export const checkUpgradeUnlocks = (state: GameState): GameState => {
+  return unlockManager.checkUpgradeUnlocks(state);
+};
+
+// Экспортируем функцию отладки
+export const debugUnlockStatus = (state: GameState): Record<string, any> => {
+  return unlockManager.debugUnlockStatus(state);
+};
+
+// Заглушки для обратной совместимости
+export const checkActionUnlocks = (state: GameState): GameState => {
+  return checkAllUnlocks(state);
+};
+
+export const checkSpecialUnlocks = (state: GameState): GameState => {
+  return checkAllUnlocks(state);
+};
+
+// Функция для обновления состояния через проверку всех разблокировок
+export const rebuildAllUnlocks = (state: GameState): GameState => {
+  return checkAllUnlocks(state);
 };

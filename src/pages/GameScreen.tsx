@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +28,7 @@ import {
 } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { clearAllSavedDataForAllUsers } from "@/api/adminService";
+import { getUnlocksFromState } from '@/utils/unlockHelper';
 
 // Функция для сброса данных игры
 const resetAllGameData = async () => {
@@ -43,20 +43,32 @@ const GameScreen = () => {
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   
+  // Получаем объект unlocks из состояния для обратной совместимости
+  const unlocks = state.unlocks || getUnlocksFromState(state);
+  
   const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
-  const hasUnlockedResearch = state.unlocks.research === true;
-  const hasUnlockedSpecialization = state.unlocks.specialization === true;
-  const hasUnlockedReferrals = state.unlocks.referrals === true || 
-                              state.upgrades.cryptoCommunity?.purchased === true;
+  const hasUnlockedResearch = Object.values(state.upgrades).some(u => u.unlocked || u.purchased);
+  const hasUnlockedSpecialization = !!state.specialization;
+  const hasUnlockedReferrals = state.upgrades.cryptoCommunity?.purchased === true;
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
   
   useEffect(() => {
-    console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
-    console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
-  }, [state.unlocks]);
+    console.log("Текущие разблокированные элементы:", 
+      Object.entries(state.resources)
+        .filter(([_, v]) => v.unlocked)
+        .map(([k]) => `ресурс ${k}`).join(', ') + ", " +
+      Object.entries(state.buildings)
+        .filter(([_, v]) => v.unlocked)
+        .map(([k]) => `здание ${k}`).join(', ') + ", " +
+      Object.entries(state.upgrades)
+        .filter(([_, v]) => v.unlocked || v.purchased)
+        .map(([k]) => `исследование ${k}`).join(', ')
+    );
+    console.log("Вкладка исследований разблокирована:", hasUnlockedResearch);
+  }, [state.resources, state.buildings, state.upgrades, hasUnlockedResearch]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {

@@ -127,6 +127,9 @@ export interface GameState {
   gameTime?: number;
   specialization?: string; // Добавляем поле specialization
   referredBy?: string | null; // Добавляем поле referredBy
+  
+  // Добавляем обратную совместимость
+  unlocks?: Record<string, boolean>;
 }
 
 // Типы для контекста игры

@@ -1,64 +1,37 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { unlockSystemService } from '@/services/UnlockSystemService';
-
-// Интервал обновления состояния игры в миллисекундах
-const UPDATE_INTERVAL = 1000;
+import { GameStateService } from '@/services/GameStateService';
+import { UnlockService } from '@/services/UnlockService';
 
 export const useGameStateUpdateService = () => {
   const { state, dispatch, isPageVisible } = useGame();
-  const lastUpdateRef = useRef(Date.now());
+  const gameStateService = new GameStateService();
+  const unlockService = new UnlockService();
   
-  useEffect(() => {
-    // Функция обновления игрового состояния
-    const updateGameState = () => {
-      const now = Date.now();
-      const delta = now - lastUpdateRef.current;
-      
-      // Обновляем состояние только если прошло нужное количество времени и вкладка видима
-      if (delta >= UPDATE_INTERVAL && isPageVisible !== false) {
-        dispatch({ 
-          type: 'UPDATE_RESOURCES',
-          payload: { deltaTime: delta }
-        });
-        
-        lastUpdateRef.current = now;
-      }
-    };
-    
-    // Устанавливаем интервал обновления
-    const intervalId = setInterval(updateGameState, 100);
-    
-    // При первой загрузке форсированно проверяем все разблокировки
-    if (state.gameStarted) {
-      // Форсированно проверяем все разблокировки
-      setTimeout(() => {
-        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-      }, 500);
-    }
-    
-    // Очищаем интервал при размонтировании
-    return () => clearInterval(intervalId);
-  }, [dispatch, isPageVisible, state.gameStarted]);
-  
-  // Производим принудительное обновление при изменении флага видимости
-  useEffect(() => {
+  const updateGameState = useCallback(() => {
     if (isPageVisible && state.gameStarted) {
-      const now = Date.now();
-      const timeSinceLastUpdate = now - state.lastUpdate;
-      
-      // Если прошло больше 1 секунды с последнего обновления
-      if (timeSinceLastUpdate > 1000) {
-        dispatch({ 
-          type: 'UPDATE_RESOURCES',
-          payload: { deltaTime: timeSinceLastUpdate }
-        });
-        
-        lastUpdateRef.current = now;
-      }
+      dispatch({ type: 'UPDATE_RESOURCES' });
     }
-  }, [isPageVisible, dispatch, state.lastUpdate, state.gameStarted]);
+  }, [isPageVisible, state.gameStarted, dispatch]);
+  
+  useEffect(() => {
+    // Запускаем таймер для обновления ресурсов каждую секунду
+    const updateInterval = setInterval(updateGameState, 1000);
+    
+    // Запускаем таймер для проверки разблокировок каждые 5 секунд
+    const unlockCheckInterval = setInterval(() => {
+      if (isPageVisible && state.gameStarted) {
+        dispatch({ type: 'CHECK_UNLOCKS' });
+      }
+    }, 5000);
+    
+    // Очистка таймеров при размонтировании
+    return () => {
+      clearInterval(updateInterval);
+      clearInterval(unlockCheckInterval);
+    };
+  }, [updateGameState, isPageVisible, state.gameStarted, dispatch]);
   
   return null;
 };

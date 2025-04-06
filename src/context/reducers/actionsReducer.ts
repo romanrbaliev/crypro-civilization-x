@@ -1,11 +1,17 @@
 import { GameState } from '../types';
-import { processIncrementCounter } from './unlockReducer';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 import { calculateCost, canAffordCost, deductResources } from '@/utils/helpers';
 
 // Обработчик для действия "Изучить крипту"
 export const processLearnCrypto = (state: GameState): GameState => {
+  // Используем копию состояния для модификации
+  let updatedState = { ...state };
+  
   // Увеличиваем счетчик нажатий на кнопку "Изучить"
-  const updatedState = processIncrementCounter(state, { counterId: 'knowledgeClicks' });
+  updatedState.counters.knowledgeClicks = {
+    id: 'knowledgeClicks',
+    value: (updatedState.counters.knowledgeClicks?.value || 0) + 1
+  };
   
   // Получаем текущие знания
   const knowledge = updatedState.resources.knowledge;
@@ -16,12 +22,6 @@ export const processLearnCrypto = (state: GameState): GameState => {
     value: Math.min(knowledge.value + 1, knowledge.max),
   };
   
-  // Проверяем, нужно ли разблокировать USDT
-  let shouldUnlockUSDT = false;
-  if (updatedState.counters.knowledgeClicks.value >= 3 && !updatedState.unlocks.usdt) {
-    shouldUnlockUSDT = true;
-  }
-  
   // Обновляем статистику
   const updatedStats = {
     ...state.stats,
@@ -30,24 +30,17 @@ export const processLearnCrypto = (state: GameState): GameState => {
   };
   
   // Возвращаем обновленное состояние
-  return {
+  updatedState = {
     ...updatedState,
     resources: {
       ...updatedState.resources,
       knowledge: updatedKnowledge,
-      ...(shouldUnlockUSDT && {
-        usdt: {
-          ...updatedState.resources.usdt,
-          unlocked: true
-        }
-      })
-    },
-    unlocks: {
-      ...updatedState.unlocks,
-      ...(shouldUnlockUSDT && { usdt: true })
     },
     stats: updatedStats
   };
+  
+  // Проверяем разблокировки
+  return checkAllUnlocks(updatedState);
 };
 
 // Обработчик для применения знаний (обмен знаний на USDT)
@@ -79,7 +72,11 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   };
   
   // Инкрементируем счетчик обменов
-  const updatedState = processIncrementCounter(state, { counterId: 'applyKnowledge' });
+  let updatedState = { ...state };
+  updatedState.counters.applyKnowledge = {
+    id: 'applyKnowledge',
+    value: (updatedState.counters.applyKnowledge?.value || 0) + 1
+  };
   
   // Проверяем, нужно ли разблокировать здание "Практика"
   let shouldUnlockPractice = false;
@@ -88,7 +85,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   }
   
   // Возвращаем обновленное состояние
-  return {
+  updatedState = {
     ...updatedState,
     resources: {
       ...updatedState.resources,
@@ -110,12 +107,10 @@ export const processApplyKnowledge = (state: GameState): GameState => {
         }
       })
     },
-    unlocks: {
-      ...updatedState.unlocks,
-      ...(shouldUnlockPractice && { practice: true })
-    },
     stats: updatedStats
   };
+  
+  return updatedState;
 };
 
 // Обработчик для применения всех знаний (обмен всех знаний на USDT)
@@ -147,7 +142,11 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   };
   
   // Инкрементируем счетчик обменов
-  const updatedState = processIncrementCounter(state, { counterId: 'applyKnowledge' });
+  let updatedState = { ...state };
+  updatedState.counters.applyKnowledge = {
+    id: 'applyKnowledge',
+    value: (updatedState.counters.applyKnowledge?.value || 0) + 1
+  };
   
   // Проверяем, нужно ли разблокировать здание "Практика"
   let shouldUnlockPractice = false;
@@ -156,7 +155,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   }
   
   // Возвращаем обновленное состояние
-  return {
+  updatedState = {
     ...updatedState,
     resources: {
       ...updatedState.resources,
@@ -178,12 +177,10 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
         }
       })
     },
-    unlocks: {
-      ...updatedState.unlocks,
-      ...(shouldUnlockPractice && { practice: true })
-    },
     stats: updatedStats
   };
+  
+  return updatedState;
 };
 
 // Обработчик для добычи вычислительной мощности
@@ -192,7 +189,7 @@ export const processMiningPower = (state: GameState): GameState => {
 };
 
 // Обработчик для обмена BTC на USDT
-export const processExchangeBtc = (state: GameState): GameState => {
+export const processExchangeBitcoin = (state: GameState): GameState => {
   return state; // Заглушка
 };
 
@@ -268,23 +265,25 @@ export const processResearchUpgrade = (state: GameState, payload: { upgradeId: s
 
 // Разблокировка исследований
 export const processUnlockResearch = (state: GameState): GameState => {
+  // Вместо обновления state.unlocks.research мы должны
+  // обновить статус разблокировки в каждом апгрейде
+  const upgrades = { ...state.upgrades };
+  
+  // Разблокируем основное исследование
+  if (upgrades.blockchainBasics) {
+    upgrades.blockchainBasics.unlocked = true;
+  }
+  
   return {
     ...state,
-    unlocks: {
-      ...state.unlocks,
-      research: true
-    }
+    upgrades
   };
 };
 
 // Разблокировка обмена Bitcoin
 export const processUnlockBitcoinExchange = (state: GameState): GameState => {
   return {
-    ...state,
-    unlocks: {
-      ...state.unlocks,
-      bitcoinExchange: true
-    }
+    ...state
   };
 };
 

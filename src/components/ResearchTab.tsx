@@ -11,8 +11,10 @@ interface ResearchTabProps {
 const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
   
-  // Проверяем состояние флага research в unlocks
-  const researchUnlocked = state.unlocks.research === true;
+  // Проверяем наличие разблокированных исследований
+  const researchUnlocked = Object.values(state.upgrades).some(upgrade => 
+    upgrade.unlocked || upgrade.purchased
+  );
   
   // Определяем базовое исследование
   const isInitialResearch = (upgradeId: string) => {

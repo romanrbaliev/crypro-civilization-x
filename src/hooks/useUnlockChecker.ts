@@ -1,6 +1,7 @@
 
 import { useEffect } from 'react';
 import { useGame } from '@/context/hooks/useGame';
+import { ensureUnlocksExist } from '@/utils/unlockHelper';
 
 /**
  * Хук для периодической проверки разблокировок элементов игры
@@ -10,9 +11,15 @@ export const useUnlockChecker = () => {
   
   // Проверка разблокировок при первом рендере
   useEffect(() => {
+    // Обеспечиваем обратную совместимость
+    if (!state.unlocks) {
+      const updatedState = ensureUnlocksExist(state);
+      dispatch({ type: "LOAD_GAME", payload: updatedState });
+    }
+    
     dispatch({ type: "CHECK_UNLOCKS" });
     console.log("📊 useUnlockChecker: Первоначальная проверка разблокировок");
-  }, [dispatch]);
+  }, [dispatch, state]);
   
   // Проверка разблокировок при изменении ключевых показателей
   useEffect(() => {

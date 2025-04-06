@@ -2,6 +2,7 @@
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
+import { ensureUnlocksExist } from '@/utils/unlockHelper';
 
 // Импортируем все обработчики редьюсеров
 import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
@@ -55,41 +56,50 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   switch (action.type) {
     case "INCREMENT_RESOURCE": 
       newState = processIncrementResource(state, action.payload);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "UPDATE_RESOURCES": 
       newState = gameStateService.processGameStateUpdate(state, action.payload?.deltaTime);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "PURCHASE_BUILDING": 
-      return processPurchaseBuilding(state, action.payload);
+      newState = processPurchaseBuilding(state, action.payload);
+      return ensureUnlocksExist(newState);
     
     case "SET_LANGUAGE":
       return processSetLanguage(state, action.payload);
       
     case "LOAD_GAME": 
       newState = processLoadGame(state, action.payload);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "START_GAME": 
       newState = processStartGame(state);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "FORCE_RESOURCE_UPDATE": 
       newState = gameStateService.performFullStateSync(state);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "SELL_BUILDING": 
       newState = processSellBuilding(state, action.payload);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "PURCHASE_UPGRADE": 
       newState = processPurchaseUpgrade(state, action.payload);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "UNLOCK_RESOURCE": 
       newState = processUnlockResource(state, action.payload);
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "CHECK_SYNERGIES":
       return checkSynergies(state);
@@ -107,14 +117,19 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return processRestartComputers(state);
     
     case "APPLY_KNOWLEDGE": 
-      return processApplyKnowledge(state);
+      newState = processApplyKnowledge(state);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
         
     case "APPLY_ALL_KNOWLEDGE": 
-      return processApplyAllKnowledge(state);
+      newState = processApplyAllKnowledge(state);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
         
     case "EXCHANGE_BTC":
     case "EXCHANGE_BITCOIN": 
-      return processExchangeBitcoin(state);
+      newState = processExchangeBitcoin(state);
+      return ensureUnlocksExist(newState);
         
     case "SET_REFERRAL_CODE": 
       return processSetReferralCode(state, action.payload);
@@ -144,11 +159,13 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       newState = processChooseSpecialization(state, {
         specializationType: action.payload.specializationId
       });
-      return checkAllUnlocks(newState);
+      newState = checkAllUnlocks(newState);
+      return ensureUnlocksExist(newState);
     
     case "CHECK_UNLOCKS":
       // Прямой вызов централизованной системы разблокировок
-      return checkAllUnlocks(state);
+      newState = checkAllUnlocks(state);
+      return ensureUnlocksExist(newState);
       
     default:
       return state;
