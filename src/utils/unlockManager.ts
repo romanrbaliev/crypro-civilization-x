@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { ensureUnlocksExist } from './unlockHelper';
@@ -36,13 +35,23 @@ export class UnlockManager {
     
     // 1. Проверка разблокировки USDT (после 1+ применений знаний)
     const applyKnowledgeCount = this.getCounterValue(state, 'applyKnowledge');
-    if (applyKnowledgeCount >= 1 && !resources.usdt.unlocked) {
+    if (applyKnowledgeCount >= 1 && resources.usdt && !resources.usdt.unlocked) {
       resources.usdt.unlocked = true;
-      safeDispatchGameEvent({
-        messageKey: 'event.resourceUnlocked',
-        type: 'info',
-        params: { name: resources.usdt.name }
-      });
+      
+      // Обновляем unlocks напрямую
+      if (!newState.unlocks) newState.unlocks = {};
+      newState.unlocks.usdt = true;
+      newState.unlocks.applyKnowledge = true;
+      
+      safeDispatchGameEvent(`Разблокирован ресурс: USDT`);
+    }
+    
+    // Проверка счетчика кликов знаний для разблокировки кнопки "Применить знания"
+    const knowledgeClicksCount = this.getCounterValue(state, 'knowledgeClicks');
+    if (knowledgeClicksCount >= 3) {
+      // Разблокировка кнопки "Применить знания"
+      if (!newState.unlocks) newState.unlocks = {};
+      newState.unlocks.applyKnowledge = true;
     }
     
     // 2. Проверка разблокировки Электричества (после покупки генератора)

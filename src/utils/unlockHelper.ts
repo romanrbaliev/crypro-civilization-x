@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -92,6 +91,7 @@ export const getUnlocksFromState = (state: GameState): Record<string, boolean> =
     
     if (applyKnowledgeValue > 0) {
       unlocks.applyKnowledge = true;
+      unlocks.usdt = true; // Если был применен счетчик, то USDT тоже должен быть разблокирован
     }
   }
 

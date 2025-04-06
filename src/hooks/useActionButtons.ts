@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
@@ -68,9 +67,9 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     // Убираем отправку события в журнал о получении знания
   }, [dispatch]);
   
-  // Обработчик для применения всех знаний (теперь это единственная функциональность)
+  // Обработчик для применения всех знаний
   const handleApplyAllKnowledge = useCallback(() => {
-    // Проверяем, достаточно ли знаний для конвертации
+    // Проверяем, д��статочно ли знаний для конвертации
     if ((resources.knowledge?.value || 0) < 10) {
       onAddEvent(`Недостаточно знаний! Требуется минимум 10`, "error");
       return;
@@ -100,7 +99,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     // Количество применённых знаний
     const knowledgeValue = resources.knowledge?.value || 0;
     const conversions = Math.floor(knowledgeValue / 10);
-    const obtainedUsdt = Math.floor(conversions * usdtRate);
+    const obtainedUsdt = conversions * usdtRate;
     
     // Показываем уведомление с учетом бонуса
     onAddEvent(`Все знания успешно применены! Получено ${obtainedUsdt} USDT`, "success");
@@ -109,6 +108,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     setTimeout(() => {
       console.log("handleApplyAllKnowledge: Принудительное обновление после APPLY_ALL_KNOWLEDGE");
       dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      dispatch({ type: "CHECK_UNLOCKS" });
       
       // Проверяем состояние после обновления
       setTimeout(() => {
@@ -151,7 +151,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     dispatch({ type: "EXCHANGE_BTC" });
     
-    // Более детальное сообщение для журнала событий
+    // Более детальное сообщение для журнали событий
     onAddEvent(
       `Обменяны ${safeFormatBitcoin(bitcoinAmount)} Bitcoin на ${safeFormatUsdt(finalUsdtAmount)} USDT по курсу ${bitcoinPrice}`, 
       "success"
@@ -180,6 +180,6 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     currentExchangeRate,
     shouldHideLearnButton,
     knowledgeEfficiencyBonus,
-    applyKnowledgeUnlocked
+    applyKnowledgeUnlocked: isApplyKnowledgeUnlocked(safeState)
   };
 };

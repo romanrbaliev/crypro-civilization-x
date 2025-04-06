@@ -22,13 +22,17 @@ export const processUnlockResource = (
 export const processApplyKnowledge = (
   state: GameState
 ): GameState => {
-  return resourceSystem.applyKnowledge(state);
+  // Применяем знания и обновляем разблокировки
+  const updatedState = resourceSystem.applyKnowledge(state);
+  return updatedState;
 };
 
 export const processApplyAllKnowledge = (
   state: GameState
 ): GameState => {
-  return resourceSystem.applyAllKnowledge(state);
+  // Применяем все знания и обновляем разблокировки
+  const updatedState = resourceSystem.applyAllKnowledge(state);
+  return updatedState;
 };
 
 export const processExchangeBitcoin = (

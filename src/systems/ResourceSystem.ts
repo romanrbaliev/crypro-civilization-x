@@ -362,12 +362,20 @@ export class ResourceSystem {
    */
   applyKnowledge(state: GameState): GameState {
     const knowledgeResource = state.resources.knowledge;
-    const usdtResource = state.resources.usdt;
     
-    // Проверяем, что ресурсы существуют и разблокированы
-    if (!knowledgeResource || !knowledgeResource.unlocked || !usdtResource || !usdtResource.unlocked) {
-      console.warn(`ResourceSystem: Невозможно применить знания, ресурсы не разблокированы`);
+    // Проверяем, что ресурс knowledge существует и разблокирован
+    if (!knowledgeResource || !knowledgeResource.unlocked) {
+      console.warn(`ResourceSystem: Невозможно применить знания, ресурс knowledge не разблокирован`);
       return state;
+    }
+    
+    // Получаем или создаем ресурс USDT если он не существует
+    let usdtResource = state.resources.usdt;
+    
+    // Если ресурс USDT не существует или еще не разблокирован, разблокируем его
+    if (!usdtResource || !usdtResource.unlocked) {
+      console.log(`ResourceSystem: Ресурс USDT будет автоматически разблокирован при применении знаний`);
+      // Не используем return здесь, чтобы продолжить выполнение функции
     }
     
     // Минимальное количество знаний для конвертации
@@ -400,8 +408,32 @@ export class ResourceSystem {
     
     console.log(`ResourceSystem: Применение знаний - конвертация ${knowledgeToConvert} знаний в ${usdtGained} USDT`);
     
+    // Создаем или обновляем ресурс USDT
+    if (!usdtResource) {
+      usdtResource = {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стабильная криптовалюта',
+        type: 'currency',
+        icon: '💲',
+        value: 0,
+        max: 100,
+        unlocked: true,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        consumption: 0
+      };
+    } else {
+      // Обновляем состояние разблокировки USDT
+      usdtResource = {
+        ...usdtResource,
+        unlocked: true
+      };
+    }
+    
     // Обновляем ресурсы
-    return {
+    const updatedState = {
       ...state,
       resources: {
         ...state.resources,
@@ -411,18 +443,35 @@ export class ResourceSystem {
         },
         usdt: {
           ...usdtResource,
-          value: Math.min(usdtResource.value + usdtGained, usdtResource.max || Number.MAX_SAFE_INTEGER)
+          value: Math.min((usdtResource.value || 0) + usdtGained, usdtResource.max || Number.MAX_SAFE_INTEGER),
+          unlocked: true
         }
       },
-      // Увеличиваем счетчик применения знаний
+      // Увеличиваем счетчик применения знаний, используя правильный ключ
       counters: {
         ...state.counters,
-        apply: {
-          id: 'apply',
-          value: (state.counters.apply?.value || 0) + 1
+        applyKnowledge: {
+          id: 'applyKnowledge',
+          value: (state.counters.applyKnowledge?.value || 0) + 1
         }
       }
     };
+    
+    // Отправляем событие в шину событий
+    safeDispatchGameEvent(`Применены знания: получено ${usdtGained.toFixed(2)} USDT`);
+    
+    // Явно проверяем обновление разблокировок
+    if (!state.unlocks) {
+      updatedState.unlocks = {};
+    } else {
+      updatedState.unlocks = { ...state.unlocks };
+    }
+    
+    // Явно ставим флаги разблокировки
+    updatedState.unlocks.usdt = true;
+    updatedState.unlocks.applyKnowledge = true;
+    
+    return updatedState;
   }
   
   /**
@@ -432,12 +481,20 @@ export class ResourceSystem {
    */
   applyAllKnowledge(state: GameState): GameState {
     const knowledgeResource = state.resources.knowledge;
-    const usdtResource = state.resources.usdt;
     
-    // Проверяем, что ресурсы существуют и разблокированы
-    if (!knowledgeResource || !knowledgeResource.unlocked || !usdtResource || !usdtResource.unlocked) {
-      console.warn(`ResourceSystem: Невозможно применить знания, ресурсы не разблокированы`);
+    // Проверяем, что ресурс knowledge существует и разблокирован
+    if (!knowledgeResource || !knowledgeResource.unlocked) {
+      console.warn(`ResourceSystem: Невозможно применить знания, ресурс knowledge не разблокирован`);
       return state;
+    }
+    
+    // Получаем или создаем ресурс USDT если он не существует
+    let usdtResource = state.resources.usdt;
+    
+    // Если ресурс USDT не существует или еще не разблокирован, разблокируем его
+    if (!usdtResource || !usdtResource.unlocked) {
+      console.log(`ResourceSystem: Ресурс USDT будет автоматически разблокирован при применении знаний`);
+      // Не используем return здесь, чтобы продолжить выполнение функции
     }
     
     // Минимальное количество знаний для конвертации
@@ -470,8 +527,32 @@ export class ResourceSystem {
     
     console.log(`ResourceSystem: Применение всех знаний - конвертация ${knowledgeToConvert} знаний в ${usdtGained} USDT`);
     
+    // Создаем или обновляем ресурс USDT
+    if (!usdtResource) {
+      usdtResource = {
+        id: 'usdt',
+        name: 'USDT',
+        description: 'Стабильная криптовалюта',
+        type: 'currency',
+        icon: '💲',
+        value: 0,
+        max: 100,
+        unlocked: true,
+        baseProduction: 0,
+        production: 0,
+        perSecond: 0,
+        consumption: 0
+      };
+    } else {
+      // Обновляем состояние разблокировки USDT
+      usdtResource = {
+        ...usdtResource,
+        unlocked: true
+      };
+    }
+    
     // Обновляем ресурсы
-    return {
+    const updatedState = {
       ...state,
       resources: {
         ...state.resources,
@@ -481,18 +562,35 @@ export class ResourceSystem {
         },
         usdt: {
           ...usdtResource,
-          value: Math.min(usdtResource.value + usdtGained, usdtResource.max || Number.MAX_SAFE_INTEGER)
+          value: Math.min((usdtResource.value || 0) + usdtGained, usdtResource.max || Number.MAX_SAFE_INTEGER),
+          unlocked: true
         }
       },
-      // Увеличиваем счетчик применения знаний
+      // Увеличиваем счетчик применения знаний, используя правильный ключ
       counters: {
         ...state.counters,
-        apply: {
-          id: 'apply',
-          value: (state.counters.apply?.value || 0) + 1
+        applyKnowledge: {
+          id: 'applyKnowledge',
+          value: (state.counters.applyKnowledge?.value || 0) + 1
         }
       }
     };
+    
+    // Отправляем событие в шину событий
+    safeDispatchGameEvent(`Применены знания: получено ${usdtGained.toFixed(2)} USDT`);
+    
+    // Явно проверяем обновление разблокировок
+    if (!state.unlocks) {
+      updatedState.unlocks = {};
+    } else {
+      updatedState.unlocks = { ...state.unlocks };
+    }
+    
+    // Явно ставим флаги разблокировки
+    updatedState.unlocks.usdt = true;
+    updatedState.unlocks.applyKnowledge = true;
+    
+    return updatedState;
   }
   
   /**
