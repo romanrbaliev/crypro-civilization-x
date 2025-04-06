@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useGameState } from '@/context/GameStateContext';
-import { Upgrade } from '@/context/types';
+import { Upgrade, GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { formatNumber } from '@/utils/helpers';
 
@@ -63,7 +63,7 @@ export function ResearchContainer() {
 }
 
 // Функция для проверки возможности приобретения исследования
-function canAfford(upgrade: Upgrade, state: any): boolean {
+function canAfford(upgrade: Upgrade, state: GameState): boolean {
   for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
     const resource = state.resources[resourceId];
     if (!resource || resource.value < Number(amount)) {
