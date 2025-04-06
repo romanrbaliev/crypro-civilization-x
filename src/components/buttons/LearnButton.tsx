@@ -21,6 +21,9 @@ const LearnButton: React.FC = () => {
     const currentValue = state.counters.knowledgeClicks?.value || 0;
     
     if (state.resources.knowledge?.unlocked) {
+      // Логируем текущее значение перед изменением
+      console.log('Текущее значение знаний перед кликом:', state.resources.knowledge.value);
+      
       // Добавляем знания
       incrementResource('knowledge', baseProduction);
       

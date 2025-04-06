@@ -51,7 +51,7 @@ const KnowledgeProductionMonitor: React.FC<{
     isRunning: false
   });
   
-  // Функция для добавления лога
+  // Функция для добавления лога с выводом в консоль (для отладки)
   const addLog = (message: string, type: LogEntry['type'] = 'info') => {
     const newLog: LogEntry = {
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -59,6 +59,8 @@ const KnowledgeProductionMonitor: React.FC<{
       message,
       type
     };
+    
+    console.log(`KnowledgeMonitor: ${message}`);
     
     setLogs(prevLogs => [newLog, ...prevLogs].slice(0, 100)); // Ограничиваем список 100 записями
   };
@@ -68,7 +70,7 @@ const KnowledgeProductionMonitor: React.FC<{
   
   // Функция для запуска анимации изменения значения
   const startValueAnimation = (startVal: number, targetVal: number) => {
-    if (startVal === targetVal) return;
+    if (Math.abs(startVal - targetVal) < 0.001) return;
     
     // Логируем начало анимации
     addLog(`Начата анимация изменения значения: ${formatValue(startVal, 'knowledge')} → ${formatValue(targetVal, 'knowledge')}`, 'animation');
@@ -88,7 +90,7 @@ const KnowledgeProductionMonitor: React.FC<{
     
     // Создаем новый аниматор
     animatorRef.current = new Animator(
-      1500, // длительность анимации в мс
+      1000, // длительность анимации в мс (сокращаем для более быстрого отклика)
       easing.easeOutQuad, // функция плавности
       (progress) => {
         // Обновляем текущее значение анимации
@@ -168,16 +170,19 @@ const KnowledgeProductionMonitor: React.FC<{
     }
   }, [open, formatValue, state.resources.knowledge?.unlocked]);
   
-  // ВАЖНОЕ ИСПРАВЛЕНИЕ: Отдельный эффект для отслеживания изменений значения знаний 
+  // ВАЖНО: Отдельный эффект для отслеживания изменений значения knowledge.value
+  // Это ключевой эффект для обнаружения изменений!
   useEffect(() => {
     if (!open || !knowledgeResource || !knowledgeResource.unlocked) return;
     
-    // Храним значение в переменной для отладки
     const currentValue = knowledgeResource.value || 0;
     const lastValue = lastKnowledgeValueRef.current;
     
+    // Добавим более детальный отладочный вывод
+    console.log(`KnowledgeMonitor: Проверка изменения знаний - было: ${lastValue.toFixed(2)}, стало: ${currentValue.toFixed(2)}, разница: ${(currentValue - lastValue).toFixed(4)}`);
+    
     // Проверяем на реальное изменение значения с порогом точности
-    if (Math.abs(currentValue - lastValue) > 0.001) {
+    if (Math.abs(currentValue - lastValue) > 0.0001) {
       const diff = currentValue - lastValue;
       
       addLog(`Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
@@ -190,7 +195,7 @@ const KnowledgeProductionMonitor: React.FC<{
     }
   }, [open, knowledgeResource?.value, formatValue]);
   
-  // Эффект для установки интервала отслеживания изменений
+  // Эффект для установки интервала периодической проверки
   useEffect(() => {
     if (!open) return;
     
@@ -200,13 +205,14 @@ const KnowledgeProductionMonitor: React.FC<{
     }
     
     // Запускаем новый интервал для обновления UI и проверки изменений
+    // Используем более короткий интервал для более частой проверки
     logIntervalRef.current = setInterval(() => {
-      // Дополнительная проверка по интервалу для подстраховки
       if (knowledgeResource && knowledgeResource.unlocked) {
         const currentValue = knowledgeResource.value || 0;
         const lastValue = lastKnowledgeValueRef.current;
         
-        if (Math.abs(currentValue - lastValue) > 0.001) {
+        // Проверяем, изменилось ли значение
+        if (Math.abs(currentValue - lastValue) > 0.0001) {
           const diff = currentValue - lastValue;
           
           addLog(`[Интервал] Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
@@ -216,9 +222,12 @@ const KnowledgeProductionMonitor: React.FC<{
           
           // Обновляем ref с последним значением
           lastKnowledgeValueRef.current = currentValue;
+        } else if (knowledgeResource.perSecond > 0) {
+          // Если производство положительное, но значение не меняется, логируем проблему
+          console.log(`KnowledgeMonitor: WARNING - Производство > 0 (${knowledgeResource.perSecond.toFixed(2)}), но значение не меняется: ${currentValue.toFixed(2)}`);
         }
       }
-    }, 200); // Сокращаем интервал для более частой проверки
+    }, 100); // Сокращаем интервал для более частой проверки (100мс)
     
     // Очистка при размонтировании или закрытии
     return () => {
@@ -248,7 +257,7 @@ const KnowledgeProductionMonitor: React.FC<{
       
       if (logMessage.includes('TICK') && logMessage.includes('Обновление ресурсов')) {
         addLog(`TICK: ${logMessage}`, 'tick');
-      } else if (logMessage.includes('resourceUpdateReducer') || logMessage.includes('ResourceSystem')) {
+      } else if (logMessage.includes('resourceUpdateReducer') && logMessage.includes('Знания')) {
         addLog(`Система: ${logMessage}`, 'calculation');
       } else if (logMessage.includes('ResourceProductionService') && logMessage.includes('знаний')) {
         addLog(`Расчет: ${logMessage}`, 'calculation');

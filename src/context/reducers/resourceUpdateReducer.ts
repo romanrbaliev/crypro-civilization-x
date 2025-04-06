@@ -20,6 +20,10 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
   
   console.log(`resourceUpdateReducer: Знания до обновления: ${knowledgeBefore.toFixed(2)}, производство: ${knowledgeProduction.toFixed(2)}/сек`);
   
+  // Расчет ожидаемого прироста для проверки
+  const expectedIncrement = (knowledgeProduction * deltaTime / 1000).toFixed(4);
+  console.log(`resourceUpdateReducer: Ожидаемый прирост знаний за ${deltaTime}ms: ${expectedIncrement}`);
+  
   // Обновляем ресурсы, используя ResourceSystem
   const updatedState = resourceSystem.updateResources(state, deltaTime);
   
@@ -28,6 +32,13 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
   const knowledgeDelta = knowledgeAfter - knowledgeBefore;
   
   console.log(`resourceUpdateReducer: Знания после обновления: ${knowledgeAfter.toFixed(2)}, прирост: ${knowledgeDelta.toFixed(4)} (за ${deltaTime}ms)`);
+  
+  // Проверка на проблему с обновлением
+  if (knowledgeProduction > 0 && knowledgeDelta <= 0) {
+    console.error("resourceUpdateReducer: ПРОБЛЕМА! Производство положительное, но значение не увеличилось!");
+    console.log("resourceUpdateReducer: Состояние перед:", JSON.stringify(state.resources.knowledge));
+    console.log("resourceUpdateReducer: Состояние после:", JSON.stringify(updatedState.resources.knowledge));
+  }
   
   // Возвращаем обновленное состояние
   return updatedState;
