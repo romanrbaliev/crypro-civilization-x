@@ -227,14 +227,14 @@ export class ResourceSystem {
     if (resources.knowledge) {
       resources.knowledge = {
         ...resources.knowledge,
-        max: resources.knowledge.baseMax || 100
+        max: 100 // Используем жесткое значение вместо baseMax
       };
     }
     
     if (resources.usdt) {
       resources.usdt = {
         ...resources.usdt,
-        max: resources.usdt.baseMax || 100
+        max: 100 // Используем жесткое значение вместо baseMax
       };
     }
     
@@ -244,18 +244,28 @@ export class ResourceSystem {
       
       if (building.count <= 0) continue;
       
-      // Учитываем бонусы к максимуму
-      if (building.maxBonus) {
-        for (const resourceId in building.maxBonus) {
-          if (resources[resourceId]) {
-            const currentMax = resources[resourceId].max || 0;
-            const buildingBonus = building.maxBonus[resourceId] * building.count;
-            
-            resources[resourceId] = {
-              ...resources[resourceId],
-              max: currentMax + buildingBonus
-            };
-          }
+      // Проверяем наличие эффектов у здания
+      if (building.effects) {
+        // Проверяем конкретные эффекты для ресурсов
+        if (building.effects.maxUSDTBoost && resources.usdt) {
+          resources.usdt = {
+            ...resources.usdt,
+            max: (resources.usdt.max || 100) + (Number(building.effects.maxUSDTBoost) * building.count)
+          };
+        }
+        
+        if (building.effects.maxKnowledgePercentBoost && resources.knowledge) {
+          resources.knowledge = {
+            ...resources.knowledge,
+            max: (resources.knowledge.max || 100) * (1 + Number(building.effects.maxKnowledgePercentBoost) * building.count)
+          };
+        }
+        
+        if (building.effects.maxKnowledgeBoost && resources.knowledge) {
+          resources.knowledge = {
+            ...resources.knowledge,
+            max: (resources.knowledge.max || 100) + (Number(building.effects.maxKnowledgeBoost) * building.count)
+          };
         }
       }
     }
@@ -268,20 +278,37 @@ export class ResourceSystem {
       
       // Учитываем эффекты улучшений
       if (upgrade.effects) {
-        // Бонусы к максимуму
-        if (upgrade.effects.knowledgeMaxBoost) {
+        // Бонусы к максимуму knowledge
+        if (upgrade.effects.knowledgeMaxBoost && resources.knowledge) {
           const knowledgeMax = resources.knowledge.max || 100;
           resources.knowledge = {
             ...resources.knowledge,
-            max: knowledgeMax * (1 + upgrade.effects.knowledgeMaxBoost)
+            max: knowledgeMax * (1 + Number(upgrade.effects.knowledgeMaxBoost))
           };
         }
         
-        if (upgrade.effects.usdtMaxBoost) {
+        if (upgrade.effects.maxKnowledgePercentBoost && resources.knowledge) {
+          const knowledgeMax = resources.knowledge.max || 100;
+          resources.knowledge = {
+            ...resources.knowledge,
+            max: knowledgeMax * (1 + Number(upgrade.effects.maxKnowledgePercentBoost))
+          };
+        }
+        
+        // Бонусы к максимуму USDT
+        if (upgrade.effects.usdtMaxBoost && resources.usdt) {
           const usdtMax = resources.usdt.max || 100;
           resources.usdt = {
             ...resources.usdt,
-            max: usdtMax * (1 + upgrade.effects.usdtMaxBoost)
+            max: usdtMax * (1 + Number(upgrade.effects.usdtMaxBoost))
+          };
+        }
+        
+        if (upgrade.effects.maxUSDTPercentBoost && resources.usdt) {
+          const usdtMax = resources.usdt.max || 100;
+          resources.usdt = {
+            ...resources.usdt,
+            max: usdtMax * (1 + Number(upgrade.effects.maxUSDTPercentBoost))
           };
         }
       }
