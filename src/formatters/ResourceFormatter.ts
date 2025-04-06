@@ -1,7 +1,7 @@
 
 import { getResourceName } from '@/data/gameElements';
 import { formatNumber } from '@/utils/helpers';
-import { ResourceFormatConfig, resourceFormats, getResourceFormat } from '@/utils/resourceFormatConfig';
+import { ResourceFormatConfig, resourceFormats, getResourceFormat as getResourceFormatUtil } from '@/utils/resourceFormatConfig';
 
 /**
  * Система форматирования ресурсов
@@ -60,7 +60,8 @@ export class ResourceFormatter {
     if (value === Infinity) return "∞";
     if (isNaN(value)) return "0";
     
-    const format = this.getResourceFormat(resourceId);
+    // Используем утилиту из модуля, а не метод класса, чтобы избежать undefined
+    const format = getResourceFormatUtil(resourceId);
     if (Math.abs(value) < format.minValue) return "0";
     
     // Используем форматирование с буквами K и M для больших чисел
@@ -85,7 +86,11 @@ export class ResourceFormatter {
    * @returns Конфигурация форматирования
    */
   public getResourceFormat(resourceId: string): ResourceFormatConfig {
-    return this.formatConfigs[resourceId] || this.formatConfigs.default;
+    // Защищаемся от undefined
+    if (!this.formatConfigs) {
+      return getResourceFormatUtil(resourceId);
+    }
+    return this.formatConfigs[resourceId] || this.formatConfigs.default || getResourceFormatUtil(resourceId);
   }
 
   /**
