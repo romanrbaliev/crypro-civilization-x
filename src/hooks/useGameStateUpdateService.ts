@@ -1,19 +1,26 @@
 
 import { useEffect, useCallback } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { GameStateService } from '@/services/GameStateService';
 import { UnlockService } from '@/services/UnlockService';
+import { useResourceSystem } from './useResourceSystem';
 
 export const useGameStateUpdateService = () => {
   const { state, dispatch, isPageVisible } = useGame();
-  const gameStateService = new GameStateService();
+  const { updateResources } = useResourceSystem();
   const unlockService = new UnlockService();
   
   const updateGameState = useCallback(() => {
     if (isPageVisible && state.gameStarted) {
-      dispatch({ type: 'UPDATE_RESOURCES' });
+      const currentTime = Date.now();
+      const deltaTime = currentTime - state.lastUpdate;
+      
+      // Обновляем ресурсы с учетом прошедшего времени
+      updateResources(deltaTime);
+      
+      // Обновляем lastUpdate
+      dispatch({ type: 'TICK', payload: { currentTime } });
     }
-  }, [isPageVisible, state.gameStarted, dispatch]);
+  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch, updateResources]);
   
   useEffect(() => {
     // Запускаем таймер для обновления ресурсов каждую секунду

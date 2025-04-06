@@ -2,13 +2,15 @@
 import { GameState } from '../context/types';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { EffectService } from './EffectService';
-import { updateResources, calculateResourceProduction } from '@/context/reducers/resourceUpdateReducer';
+import { ResourceSystem } from '@/systems/ResourceSystem';
 
 export class GameStateService {
   private effectService: EffectService;
+  private resourceSystem: ResourceSystem;
   
   constructor() {
     this.effectService = new EffectService();
+    this.resourceSystem = new ResourceSystem();
   }
   
   processGameStateUpdate(state: GameState, deltaTime?: number): GameState {
@@ -22,10 +24,10 @@ export class GameStateService {
     newState.lastUpdate = Date.now();
     
     // Обновляем ресурсы на основе прошедшего времени
-    newState = updateResources(newState, actualDeltaTime);
+    newState = this.resourceSystem.updateResources(newState, actualDeltaTime);
     
-    // Рассчитываем производство ресурсов от зданий
-    newState = calculateResourceProduction(newState);
+    // Обновляем максимальные значения ресурсов
+    newState = this.resourceSystem.updateResourceMaxValues(newState);
     
     // Добавляем эффекты от зданий
     newState = this.effectService.addBuildingEffects(newState);

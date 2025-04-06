@@ -3,6 +3,7 @@ import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
+import { ResourceSystem } from '@/systems/ResourceSystem';
 
 // Импорт редьюсеров для разных типов действий
 import { 
@@ -24,6 +25,9 @@ import { updateResources, calculateResourceProduction } from './reducers/resourc
 
 // Импорт унифицированной системы покупки
 import { processPurchase } from './reducers/purchaseSystem/processPurchase';
+
+// Создаем статический экземпляр для использования вне компонентов
+const resourceSystem = new ResourceSystem();
 
 // Функция для обработки отладочного добавления ресурсов
 const processDebugAddResources = (state: GameState, payload: any): GameState => {
@@ -167,7 +171,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'FORCE_RESOURCE_UPDATE':
       // Принудительно пересчитываем все значения и проверяем разблокировки
-      newState = calculateResourceProduction(newState);
+      if (action.payload) {
+        // Если передано новое состояние, используем его
+        newState = action.payload;
+      } else {
+        // Иначе пересчитываем производство
+        newState = calculateResourceProduction(newState);
+      }
       return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':
@@ -175,6 +185,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         ...newState,
         referralHelpers: action.payload.updatedHelpers
       };
+    
+    case 'UNLOCK_RESOURCE':
+      // Разблокировка ресурса
+      return checkAllUnlocks(resourceSystem.unlockResource(newState, action.payload));
     
     case 'CHECK_UNLOCKS':
       // Добавляем явную обработку действия проверки разблокировок

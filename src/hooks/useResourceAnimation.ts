@@ -1,81 +1,46 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { getResourceFormat } from '@/utils/resourceFormatConfig';
 
 /**
- * Хук для плавной анимации изменения значений ресурсов
- * @param value текущее реальное значение ресурса
- * @param resourceId идентификатор ресурса (для оптимизации)
- * @returns анимированное значение ресурса
+ * Хук для плавной анимации изменения значения ресурса
+ * @param targetValue Целевое значение
+ * @param resourceId ID ресурса
+ * @returns Текущее анимированное значение
  */
-export function useResourceAnimation(value: number, resourceId: string): number {
-  const [animatedValue, setAnimatedValue] = useState(value);
-  const frameRef = useRef<number>(0);
-  const startTimeRef = useRef<number>(0);
-  const startValueRef = useRef<number>(value);
-  const targetValueRef = useRef<number>(value);
-  const lastValueRef = useRef<number>(value);
+export const useResourceAnimation = (targetValue: number, resourceId: string): number => {
+  const [displayValue, setDisplayValue] = useState(targetValue);
   
-  // Константа для определения скорости анимации
-  const animationDuration = 300; // мс, более быстрая анимация для ощущения мгновенной реакции
+  // Получаем конфигурацию обновления для ресурса
+  const resourceFormat = getResourceFormat(resourceId);
+  const updateFrequency = resourceFormat.updateFrequency || 50; // По умолчанию 50мс (20 обновлений в секунду)
   
   useEffect(() => {
-    // Защита от null и undefined
-    if (value === null || value === undefined) {
-      setAnimatedValue(0);
+    // Если разница слишком маленькая, сразу обновляем значение
+    if (Math.abs(targetValue - displayValue) < 0.01) {
+      setDisplayValue(targetValue);
       return;
     }
     
-    // Проверяем, действительно ли изменилось значение
-    if (Math.abs(value - lastValueRef.current) < 0.001) {
-      return; // Пропускаем очень маленькие изменения
-    }
-    
-    lastValueRef.current = value;
-    
-    // Если значение изменилось, запускаем анимацию
-    if (value !== targetValueRef.current) {
-      // Останавливаем предыдущую анимацию, если она была
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current);
-      }
-      
-      // Запоминаем текущие значения для анимации
-      startValueRef.current = animatedValue;
-      targetValueRef.current = value;
-      startTimeRef.current = performance.now();
-      
-      // Функция анимации
-      const animate = (currentTime: number) => {
-        // Рассчитываем прогресс
-        const elapsedTime = currentTime - startTimeRef.current;
-        const progress = Math.min(elapsedTime / animationDuration, 1);
+    // Создаем интервал для плавной анимации
+    const interval = setInterval(() => {
+      setDisplayValue(prev => {
+        // Вычисляем шаг изменения (10% от разницы)
+        const step = (targetValue - prev) * 0.1;
         
-        // Применяем плавность к прогрессу (easing function)
-        const easedProgress = 1 - Math.pow(1 - progress, 2); // easeOutQuad для более плавного эффекта
-        
-        // Рассчитываем новое значение
-        const newValue = startValueRef.current + (targetValueRef.current - startValueRef.current) * easedProgress;
-        
-        // Обновляем состояние
-        setAnimatedValue(newValue);
-        
-        // Продолжаем анимацию, если она не завершена
-        if (progress < 1) {
-          frameRef.current = requestAnimationFrame(animate);
+        // Если шаг очень маленький, завершаем анимацию
+        if (Math.abs(step) < 0.01) {
+          clearInterval(interval);
+          return targetValue;
         }
-      };
-      
-      // Запускаем анимацию
-      frameRef.current = requestAnimationFrame(animate);
-    }
+        
+        return prev + step;
+      });
+    }, updateFrequency);
     
-    // Очистка при размонтировании
-    return () => {
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current);
-      }
-    };
-  }, [value, animatedValue, resourceId]);
+    // Очищаем интервал при размонтировании или изменении целевого значения
+    return () => clearInterval(interval);
+  }, [targetValue, displayValue, updateFrequency]);
   
-  return animatedValue;
-}
+  return displayValue;
+};

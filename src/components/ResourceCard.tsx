@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatResourceValue } from '@/utils/resourceFormatConfig';
 import { Resource } from '@/context/types';
 import { 
   CircleIcon, 
@@ -13,6 +12,7 @@ import {
   HardDriveIcon,
   BitcoinIcon
 } from 'lucide-react';
+import { useResourceSystem } from '@/hooks/useResourceSystem';
 
 interface ResourceCardProps {
   resource: Resource;
@@ -20,6 +20,7 @@ interface ResourceCardProps {
 
 const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
   const { id, name, value = 0, max = Infinity, perSecond = 0 } = resource;
+  const { formatValue, resourceFormatter } = useResourceSystem();
   
   const getResourceIcon = (iconName: string) => {
     // Используем иконки из lucide-react напрямую
@@ -55,23 +56,12 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
   };
   
   // Безопасное форматирование значений
-  const safeFormattedValue = formatResourceValue(value, id);
-  const safeFormattedMax = max !== Infinity && max > 0 ? formatResourceValue(max, id) : "∞";
-  const safeFormattedPerSecond = formatResourceValue(perSecond, id);
+  const safeFormattedValue = formatValue(value, id);
+  const safeFormattedMax = max !== Infinity && max > 0 ? formatValue(max, id) : "∞";
+  const safeFormattedPerSecond = formatValue(perSecond, id);
   
   // Преобразуем название ресурса для отображения
-  let displayName = name;
-  if (id === 'usdt') {
-    displayName = 'USDT';
-  } else if (id === 'bitcoin') {
-    displayName = 'Bitcoin';
-  } else if (id === 'knowledge') {
-    displayName = 'Знания';
-  } else if (id === 'electricity') {
-    displayName = 'Электричество';
-  } else if (id === 'computingPower') {
-    displayName = 'Вычисл. мощность';
-  }
+  const displayName = resourceFormatter.getDisplayName(id, name);
   
   return (
     <Card className="mb-2 bg-white relative">

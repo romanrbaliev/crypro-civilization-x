@@ -1,9 +1,14 @@
+
 import { GameState } from '@/context/types';
 import { checkAffordability } from './checkAffordability';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { EffectsManager } from '@/services/EffectsManager';
 import { PurchasableType } from '@/types/purchasable';
+import { ResourceSystem } from '@/systems/ResourceSystem';
+
+// Создаем экземпляр ResourceSystem для проверки доступности ресурсов
+const resourceSystem = new ResourceSystem();
 
 /**
  * Унифицированная функция для обработки покупок зданий и исследований
@@ -44,7 +49,7 @@ export function processPurchase(
   }
 
   // Проверка наличия ресурсов для покупки
-  if (!checkAffordability(state, item.cost)) {
+  if (!resourceSystem.checkAffordability(state, item.cost)) {
     console.log(`Недостаточно ресурсов для покупки ${item.name}`);
     return state;
   }
@@ -119,6 +124,9 @@ export function processPurchase(
       params: { name: item.name }
     });
   }
+
+  // Пересчитываем максимальные значения ресурсов
+  updatedState = resourceSystem.updateResourceMaxValues(updatedState);
 
   // Проверяем и обновляем все разблокировки
   return checkAllUnlocks(updatedState);

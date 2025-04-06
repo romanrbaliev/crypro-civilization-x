@@ -4,6 +4,7 @@ import { Resource } from '@/context/types';
 import { formatNumber } from '@/utils/helpers';
 import { Zap, TrendingUp } from 'lucide-react';
 import { useTranslation } from '@/i18n';
+import { useResourceSystem } from '@/hooks/useResourceSystem';
 
 interface ResourceContainerProps {
   resource: Resource;
@@ -17,6 +18,7 @@ export const ResourceContainer: React.FC<ResourceContainerProps> = ({
   className = ""
 }) => {
   const { t } = useTranslation();
+  const { formatValue } = useResourceSystem();
   
   // Функция для получения ключа перевода ресурса
   const getResourceTranslationKey = (resourceId: string): string => {
@@ -44,10 +46,10 @@ export const ResourceContainer: React.FC<ResourceContainerProps> = ({
           {t(getResourceTranslationKey(resource.id) as any)}
         </div>
         <div className="text-lg font-semibold">
-          {formatNumber(resource.value)}
+          {formatValue(resource.value, resource.id)}
           {resource.max !== Infinity && (
             <span className="text-xs text-gray-500">
-              /{formatNumber(resource.max)}
+              /{formatValue(resource.max, resource.id)}
             </span>
           )}
         </div>
@@ -57,7 +59,7 @@ export const ResourceContainer: React.FC<ResourceContainerProps> = ({
         <div className={`px-2 py-1 rounded-md flex items-center text-xs
           ${resource.perSecond > 0 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
           {resource.perSecond > 0 ? <TrendingUp size={12} className="mr-1" /> : <Zap size={12} className="mr-1" />}
-          {formatNumber(resource.perSecond)}/{t('resources.perSecond')}
+          {formatValue(resource.perSecond, resource.id)}/{t('resources.perSecond')}
         </div>
       )}
     </div>

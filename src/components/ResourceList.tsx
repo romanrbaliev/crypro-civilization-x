@@ -3,10 +3,10 @@ import React, { memo } from "react";
 import { Resource } from "@/context/types";
 import ResourceDisplay from "./ResourceDisplay";
 import { Separator } from "@/components/ui/separator";
-import { formatResourceValue } from "@/utils/resourceFormatConfig";
 import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
 import { CircleDollarSign } from "lucide-react";
+import { useResourceSystem } from "@/hooks/useResourceSystem";
 
 interface ResourceListProps {
   resources: Resource[];
@@ -15,6 +15,7 @@ interface ResourceListProps {
 // Используем memo для предотвращения лишних перерисовок
 const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   const { dispatch, state } = useGame();
+  const { formatValue } = useResourceSystem();
   
   // Фильтруем только разблокированные ресурсы
   const unlockedResources = resources.filter(resource => resource.unlocked);
@@ -60,8 +61,8 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
             <div className="py-1">
               <ResourceDisplay 
                 resource={resource} 
-                formattedValue={formatResourceValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
-                formattedPerSecond={formatResourceValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
+                formattedValue={formatValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
+                formattedPerSecond={formatValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
               />
             </div>
             {index < unlockedResources.length - 1 && (

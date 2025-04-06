@@ -1,8 +1,8 @@
 
 import React, { useEffect, useRef } from "react";
 import { Resource } from "@/context/types";
-import { formatResourceValue } from "@/utils/resourceFormatConfig";
 import { useResourceAnimation } from "@/hooks/useResourceAnimation";
+import { useResourceSystem } from "@/hooks/useResourceSystem";
 
 interface ResourceDisplayProps {
   resource: Resource;
@@ -10,10 +10,15 @@ interface ResourceDisplayProps {
   formattedPerSecond?: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedValue: propFormattedValue, formattedPerSecond: propFormattedPerSecond }) => {
+const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ 
+  resource, 
+  formattedValue: propFormattedValue, 
+  formattedPerSecond: propFormattedPerSecond 
+}) => {
   const { id, name, value = 0, max = Infinity, perSecond = 0 } = resource;
   const prevValueRef = useRef(value);
   const resourceRef = useRef<HTMLDivElement>(null);
+  const { formatValue, resourceFormatter } = useResourceSystem();
   
   // Используем хук анимации для плавного обновления отображаемого значения
   // Проверяем, что значение определено перед передачей его в хук
@@ -24,7 +29,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   const isNegativeRate = perSecond < 0;
   
   // Форматирование значений с учетом типа ресурса
-  const formattedValue = propFormattedValue || formatResourceValue(animatedValue, id);
+  const formattedValue = propFormattedValue || formatValue(animatedValue, id);
   
   // Форматируем максимальное значение всегда без десятичных знаков
   const formattedMax = max === Infinity 
@@ -42,7 +47,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
       ? (safePerSecond / 1000000).toFixed(1).replace('.0', '') + "M" 
       : Math.abs(safePerSecond) >= 1000 
         ? (safePerSecond / 1000).toFixed(1).replace('.0', '') + "K"
-        : formatResourceValue(safePerSecond, id)
+        : formatValue(safePerSecond, id)
   );
   
   // Эффект для выделения изменений
@@ -67,18 +72,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
 
   // Преобразуем название ресурса
-  let displayName = name;
-  if (id === 'usdt') {
-    displayName = 'USDT';
-  } else if (id === 'bitcoin') {
-    displayName = 'Bitcoin';
-  } else if (id === 'knowledge') {
-    displayName = 'Знания';
-  } else if (id === 'electricity') {
-    displayName = 'Электричество';
-  } else if (id === 'computingPower') {
-    displayName = 'Вычисл. мощность';
-  }
+  const displayName = resourceFormatter.getDisplayName(id, name);
 
   return (
     <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
