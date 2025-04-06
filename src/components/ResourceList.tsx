@@ -26,13 +26,18 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
       const maxUsdt = state.resources.usdt.max || 0;
       const currentValue = state.resources.usdt.value || 0;
       
-      dispatch({
-        type: "INCREMENT_RESOURCE",
-        payload: {
-          resourceId: "usdt",
-          amount: maxUsdt - currentValue
-        }
-      });
+      // Добавляем ровно столько USDT, сколько не хватает до максимума
+      const amountToAdd = maxUsdt - currentValue;
+      
+      if (amountToAdd > 0) {
+        dispatch({
+          type: "INCREMENT_RESOURCE",
+          payload: {
+            resourceId: "usdt",
+            amount: amountToAdd
+          }
+        });
+      }
     }
   };
   

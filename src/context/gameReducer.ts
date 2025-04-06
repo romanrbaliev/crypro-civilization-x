@@ -13,7 +13,7 @@ import {
   processExchangeBitcoin,
   processDebugAddResources
 } from './reducers/actionsReducer';
-import { processBuildingPurchase } from './reducers/building';
+import { processBuildingPurchase, processSellBuilding } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 
 // Импорт вспомогательных функций
@@ -63,6 +63,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'BUY_BUILDING':
       // Обрабатываем покупку здания и проверяем разблокировки
       return checkAllUnlocks(processBuildingPurchase(newState, action.payload));
+    
+    case 'SELL_BUILDING':
+      // Обрабатываем продажу здания
+      return checkAllUnlocks(processSellBuilding(newState, action.payload));
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':

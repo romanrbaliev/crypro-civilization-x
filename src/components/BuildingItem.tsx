@@ -33,7 +33,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   const { t, language } = useTranslation();
   
   const handlePurchase = () => {
-    dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: building.id } });
+    dispatch({ type: "BUY_BUILDING", payload: { buildingId: building.id } });
     if (onPurchase) onPurchase();
   };
   
