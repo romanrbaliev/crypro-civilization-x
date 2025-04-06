@@ -1,4 +1,3 @@
-
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -24,7 +23,7 @@ import { processIncrementResource, processUnlockResource } from './reducers/reso
 import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
 
 // Импорт унифицированной системы покупки
-import { processPurchase } from './reducers/purchaseSystem';
+import { processPurchase } from './reducers/purchaseSystem/processPurchase';
 
 // Функция для обработки отладочного добавления ресурсов
 const processDebugAddResources = (state: GameState, payload: any): GameState => {

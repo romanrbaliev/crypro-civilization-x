@@ -1,4 +1,3 @@
-
 // Базовые типы
 export type ResourceType = 'basic' | 'currency' | 'power' | 'computational' | 'crypto' | 'social' | 'resource';
 export type PurchasableType = 'building' | 'upgrade' | 'research' | 'specialization';
@@ -34,7 +33,7 @@ export interface Building {
   maxLevel?: number;
   specialization?: string;
   resourceProduction?: { [resourceId: string]: number }; // Добавляем свойство resourceProduction
-  type?: PurchasableType; // Обновленный тип
+  type: PurchasableType; // Обязательный тип
   productionBoost?: { [resourceId: string]: number };
 }
 
@@ -45,7 +44,7 @@ export interface Upgrade {
   cost: Record<string, number>;
   purchased: boolean;
   unlocked: boolean;
-  type: PurchasableType | string; // Обновленный тип
+  type: PurchasableType; // Меняем тип на PurchasableType
   effects: any;
   effect?: any;
   category?: string;
@@ -129,7 +128,7 @@ export interface GameState {
   specialization?: string; // Добавляем поле specialization
   referredBy?: string | null; // Добавляем поле referredBy
   
-  // Добавляем обратную совместимость
+  // Добавляем обра��ную совместимость
   unlocks?: Record<string, boolean>;
 }
 

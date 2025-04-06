@@ -85,9 +85,11 @@ export class PurchasableFactory {
     itemType: PurchasableType
   ): Purchasable | null {
     if (itemType === 'building') {
-      return state.buildings[itemId] || null;
+      const building = state.buildings[itemId];
+      return building ? { ...building, type: 'building' as PurchasableType } : null;
     } else if (itemType === 'upgrade' || itemType === 'research') {
-      return state.upgrades[itemId] || null;
+      const upgrade = state.upgrades[itemId];
+      return upgrade ? { ...upgrade, type: itemType as PurchasableType } : null;
     } else if (itemType === 'specialization') {
       return state.specializations?.[itemId] || null;
     }
