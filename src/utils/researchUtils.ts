@@ -62,6 +62,11 @@ export const formatEffectValue = (value: number, effectId: string): string => {
   return `${value.toFixed(2)}`;
 };
 
+// Добавленная функция для форматирования эффекта
+export const formatEffect = (effectId: string, value: number): string => {
+  return `${formatEffectName(effectId)}: ${formatEffectValue(value, effectId)}`;
+};
+
 // Проверяет эффективность исследования для данного типа ресурса
 export const checkUpgradeEfficiency = (
   upgrade: Upgrade,
@@ -88,6 +93,51 @@ export const checkUpgradeEfficiency = (
   }
   
   return 0; // Нет эффекта
+};
+
+// Добавим недостающие функции, которые упоминаются в ошибках
+
+// Проверяет, изучено ли исследование "Основы блокчейна"
+export const isBlockchainBasicsUnlocked = (state: GameState): boolean => {
+  return state.upgrades.blockchainBasics?.purchased === true;
+};
+
+// Получает название специализации
+export const getSpecializationName = (specId: string): string => {
+  const specializationMap: Record<string, string> = {
+    'miner': 'Майнер',
+    'trader': 'Трейдер',
+    'investor': 'Инвестор',
+    'influencer': 'Инфлюенсер',
+    'defi': 'DeFi',
+    'technology': 'Технологии',
+    'financial': 'Финансы',
+    'social': 'Социальные',
+    'temporal': 'Временные',
+    'mystical': 'Мистические'
+  };
+  
+  return specializationMap[specId] || specId;
+};
+
+// Получает разблокированные здания по группе
+export const getUnlockedBuildingsByGroup = (
+  state: GameState, 
+  buildingIds: string[]
+): string[] => {
+  return buildingIds.filter(id => 
+    state.buildings[id]?.unlocked === true
+  );
+};
+
+// Получает разблокированные исследования по группе
+export const getUnlockedUpgradesByGroup = (
+  state: GameState, 
+  upgradeIds: string[]
+): string[] => {
+  return upgradeIds.filter(id => 
+    state.upgrades[id]?.unlocked === true || state.upgrades[id]?.purchased === true
+  );
 };
 
 // Применяет эффекты исследования к состоянию

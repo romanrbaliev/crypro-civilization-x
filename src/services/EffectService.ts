@@ -59,7 +59,7 @@ export class EffectService {
         // Специальная обработка для blockchainBasics (исправление производства знаний)
         if (upgradeId === 'blockchainBasics' && resources.knowledge) {
           // Увеличиваем максимальное значение знаний на 50%
-          if (!effectType.includes('knowledgeMaxBoost')) {
+          if (!upgrade.effects.knowledgeMaxBoost) {
             resources.knowledge.max = (resources.knowledge.max || 100) * 1.5;
           }
           
