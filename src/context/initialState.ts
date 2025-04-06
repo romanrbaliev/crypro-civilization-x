@@ -1,3 +1,4 @@
+
 import { GameState } from './types';
 
 // Интерфейс MiningParams
@@ -351,19 +352,6 @@ export const initialState: GameState = {
         autoBotTrading: 1
       }
     }
-  },
-  
-  unlocks: {
-    usdt: false,
-    research: false,
-    electricity: false,
-    bitcoin: false,
-    computingPower: false,
-    mining: false,
-    trading: false,
-    specialization: false,
-    offline: false,
-    autoSell: false
   },
   
   miningParams: {

@@ -1,7 +1,6 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
-import { unlockSystemService } from '@/services/UnlockSystemService';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 
 /**
  * Обработчик для применения знаний (конвертация в USDT)
@@ -13,37 +12,18 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   
   // Проверяем, достаточно ли знаний
   if (!resources.knowledge || resources.knowledge.value < 10) {
-    safeDispatchGameEvent('Недостаточно знаний для применения', 'error');
+    safeDispatchGameEvent({
+      messageKey: 'error.notEnoughKnowledge',
+      type: 'error'
+    });
     return state;
-  }
-  
-  // Проверяем, разблокирован ли USDT
-  if (!resources.usdt) {
-    resources.usdt = {
-      id: 'usdt',
-      name: 'USDT',
-      description: 'Стабильная криптовалюта, привязанная к доллару',
-      type: 'currency',
-      icon: 'dollar',
-      value: 0,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0,
-      max: 100,
-      unlocked: true,
-      consumption: 0
-    };
-    
-    newState.unlocks.usdt = true;
   }
   
   // Базовая ставка конвертации: 10 знаний = 1 USDT
   let conversionRate = 0.1; // 1/10
   
   // Проверяем, есть ли исследование для повышения эффективности
-  const hasCryptoBasics = 
-    (state.upgrades.cryptoCurrencyBasics?.purchased === true) ||
-    (state.upgrades.cryptoBasics?.purchased === true);
+  const hasCryptoBasics = state.upgrades.cryptoBasics?.purchased === true;
   
   // Если есть исследование, увеличиваем эффективность на 10%
   if (hasCryptoBasics) {
@@ -77,7 +57,7 @@ export const processApplyKnowledge = (state: GameState): GameState => {
   newState.resources = resources;
   
   // Проверяем разблокировки после применения знаний
-  return unlockSystemService.checkAllUnlocks(newState);
+  return checkAllUnlocks(newState);
 };
 
 /**
@@ -92,26 +72,6 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   if (!resources.knowledge || resources.knowledge.value < 10) {
     safeDispatchGameEvent('Недостаточно знаний для применения', 'error');
     return state;
-  }
-  
-  // Проверяем, разблокирован ли USDT
-  if (!resources.usdt) {
-    resources.usdt = {
-      id: 'usdt',
-      name: 'USDT',
-      description: 'Стабильная криптовалюта, привязанная к доллару',
-      type: 'currency',
-      icon: 'dollar',
-      value: 0,
-      baseProduction: 0,
-      production: 0,
-      perSecond: 0,
-      max: 100,
-      unlocked: true,
-      consumption: 0
-    };
-    
-    newState.unlocks.usdt = true;
   }
   
   // Базовая ставка конвертации: 10 знаний = 1 USDT
@@ -165,7 +125,7 @@ export const processApplyAllKnowledge = (state: GameState): GameState => {
   newState.resources = resources;
   
   // Проверяем разблокировки после применения знаний
-  return unlockSystemService.checkAllUnlocks(newState);
+  return checkAllUnlocks(newState);
 };
 
 /**
@@ -210,5 +170,5 @@ export const processExchangeBitcoin = (state: GameState): GameState => {
   newState.resources = resources;
   
   // Проверяем разблокировки после обмена
-  return unlockSystemService.checkAllUnlocks(newState);
+  return checkAllUnlocks(newState);
 };

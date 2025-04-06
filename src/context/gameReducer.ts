@@ -13,12 +13,6 @@ import {
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { processSetLanguage } from './reducers';
 import {
-  processUnlockFeature,
-  processSetBuildingUnlocked,
-  processSetUpgradeUnlocked,
-  processIncrementCounter
-} from './reducers/unlockReducer';
-import {
   processStartGame,
   processLoadGame,
   processPrestige,
@@ -89,31 +83,12 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       newState = processSellBuilding(state, action.payload);
       return checkAllUnlocks(newState);
     
-    case "PRACTICE_PURCHASE": 
-      return state; // Заглушка, которую нужно будет реализовать
-    
     case "PURCHASE_UPGRADE": 
       newState = processPurchaseUpgrade(state, action.payload);
       return checkAllUnlocks(newState);
     
-    case "UNLOCK_FEATURE": 
-      newState = processUnlockFeature(state, action.payload);
-      return checkAllUnlocks(newState);
-    
     case "UNLOCK_RESOURCE": 
       newState = processUnlockResource(state, action.payload);
-      return checkAllUnlocks(newState);
-    
-    case "SET_BUILDING_UNLOCKED": 
-      newState = processSetBuildingUnlocked(state, action.payload);
-      return checkAllUnlocks(newState);
-      
-    case "SET_UPGRADE_UNLOCKED": 
-      newState = processSetUpgradeUnlocked(state, action.payload);
-      return checkAllUnlocks(newState);
-    
-    case "INCREMENT_COUNTER": 
-      newState = processIncrementCounter(state, action.payload);
       return checkAllUnlocks(newState);
     
     case "CHECK_SYNERGIES":
@@ -131,24 +106,15 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "RESTART_COMPUTERS": 
       return processRestartComputers(state);
     
-    case "MINE_COMPUTING_POWER": 
-      return state; // Заглушка, которую нужно будет реализовать
-    
-    case "CHECK_EQUIPMENT_STATUS": 
-      return state; // Заглушка, которую нужно будет реализовать
-    
     case "APPLY_KNOWLEDGE": 
-      newState = processApplyKnowledge(state);
-      return checkAllUnlocks(newState);
+      return processApplyKnowledge(state);
         
     case "APPLY_ALL_KNOWLEDGE": 
-      newState = processApplyAllKnowledge(state);
-      return checkAllUnlocks(newState);
+      return processApplyAllKnowledge(state);
         
     case "EXCHANGE_BTC":
     case "EXCHANGE_BITCOIN": 
-      newState = processExchangeBitcoin(state);
-      return checkAllUnlocks(newState);
+      return processExchangeBitcoin(state);
         
     case "SET_REFERRAL_CODE": 
       return processSetReferralCode(state, action.payload);

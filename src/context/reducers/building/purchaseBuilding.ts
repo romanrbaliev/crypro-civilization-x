@@ -97,7 +97,5 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
   });
   
   // Проверяем и обновляем все разблокировки после покупки
-  const stateWithUnlocks = checkAllUnlocks(newState);
-  
-  return stateWithUnlocks;
+  return checkAllUnlocks(newState);
 };

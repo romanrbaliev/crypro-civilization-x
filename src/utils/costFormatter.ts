@@ -1,6 +1,6 @@
 
 import { formatNumber } from './helpers';
-import { useTranslation } from '@/i18n';
+import { getResourceName } from '@/data/gameElements';
 
 /**
  * Форматирует стоимость здания для отображения с учетом языка
@@ -12,7 +12,7 @@ export const formatCost = (cost: any, language: string = 'ru'): string => {
   
   return Object.entries(cost)
     .map(([resourceId, amount]) => {
-      // Получаем название ресурса с учетом языка
+      // Получаем название ресурса с учетом языка из единого источника данных
       const resourceName = getResourceName(resourceId, language);
       
       // Форматируем количество
@@ -21,32 +21,4 @@ export const formatCost = (cost: any, language: string = 'ru'): string => {
       return `${formattedAmount} ${resourceName}`;
     })
     .join(', ');
-};
-
-/**
- * Возвращает название ресурса по его идентификатору с учетом языка
- */
-const getResourceName = (resourceId: string, language: string = 'ru'): string => {
-  // Используем словари для перевода
-  const resourceNamesRu: {[key: string]: string} = {
-    knowledge: 'Знания',
-    usdt: 'USDT',
-    electricity: 'Электричество',
-    computingPower: 'Вычисл. мощность',
-    bitcoin: 'Bitcoin'
-  };
-  
-  const resourceNamesEn: {[key: string]: string} = {
-    knowledge: 'Knowledge',
-    usdt: 'USDT',
-    electricity: 'Electricity',
-    computingPower: 'Computing Power',
-    bitcoin: 'Bitcoin'
-  };
-  
-  // Выбираем словарь в зависимости от языка
-  const names = language === 'ru' ? resourceNamesRu : resourceNamesEn;
-  
-  // Возвращаем перевод или ID ресурса, если перевод не найден
-  return names[resourceId] || resourceId;
 };

@@ -1,3 +1,4 @@
+
 // Базовые типы
 export type ResourceType = 'basic' | 'currency' | 'power' | 'computational' | 'crypto' | 'social' | 'resource';
 
@@ -101,7 +102,6 @@ export interface GameState {
   resources: Record<string, Resource>;
   buildings: Record<string, Building>;
   upgrades: Record<string, Upgrade>;
-  unlocks: Record<string, boolean>;
   miningParams: {
     difficulty: number;
     hashrate: number;

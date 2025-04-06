@@ -1,6 +1,6 @@
 
-import { GameState, Resource, ResourceType } from '../context/types';
-import { unlockSystemService } from './UnlockSystemService';
+import { GameState } from '../context/types';
+import { checkAllUnlocks } from '@/utils/unlockManager';
 import { EffectService } from './EffectService';
 import { updateResources, calculateResourceProduction } from '@/context/reducers/resourceUpdateReducer';
 
@@ -34,7 +34,7 @@ export class GameStateService {
     newState = this.effectService.updateConsumptionEffects(newState);
     
     // Проверяем все разблокировки
-    newState = unlockSystemService.checkAllUnlocks(newState);
+    newState = checkAllUnlocks(newState);
     
     return newState;
   }
@@ -51,7 +51,7 @@ export class GameStateService {
     newState = this.processGameStateUpdate(newState);
     
     // Форсированно проверяем все разблокировки
-    newState = unlockSystemService.forceCheckAllUnlocks(newState);
+    newState = checkAllUnlocks(newState);
     
     return newState;
   }

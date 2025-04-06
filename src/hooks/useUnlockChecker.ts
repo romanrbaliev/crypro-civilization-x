@@ -20,8 +20,8 @@ export const useUnlockChecker = () => {
       dispatch({ type: "CHECK_UNLOCKS" });
     };
     
-    // Проверяем разблокировки каждые 5 секунд
-    const intervalId = setInterval(checkUnlocks, 5000);
+    // Проверяем разблокировки каждые 3 секунды (уменьшил интервал с 5 до 3 для более быстрой реакции)
+    const intervalId = setInterval(checkUnlocks, 3000);
     
     return () => {
       clearInterval(intervalId);
