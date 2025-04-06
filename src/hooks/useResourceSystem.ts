@@ -110,6 +110,27 @@ export const useResourceSystem = () => {
     });
   }, [dispatch]);
   
+  /**
+   * Применяет знания (конвертирует в USDT)
+   */
+  const applyKnowledge = useCallback(() => {
+    dispatch({ type: 'APPLY_KNOWLEDGE' });
+  }, [dispatch]);
+  
+  /**
+   * Применяет все доступные знания
+   */
+  const applyAllKnowledge = useCallback(() => {
+    dispatch({ type: 'APPLY_ALL_KNOWLEDGE' });
+  }, [dispatch]);
+  
+  /**
+   * Обменивает Bitcoin на USDT
+   */
+  const exchangeBitcoin = useCallback(() => {
+    dispatch({ type: 'EXCHANGE_BTC' });
+  }, [dispatch]);
+  
   return {
     updateResources,
     canAfford,
@@ -120,6 +141,9 @@ export const useResourceSystem = () => {
     incrementResource,
     unlockResource,
     recalculateAllProduction,
+    applyKnowledge,
+    applyAllKnowledge,
+    exchangeBitcoin,
     resourceSystem, // Экспортируем сам класс для сложных операций
     resourceFormatter // Экспортируем форматтер для сложных операций
   };

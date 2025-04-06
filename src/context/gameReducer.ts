@@ -7,22 +7,15 @@ import { ensureUnlocksExist } from '@/utils/unlockHelper';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 
 // Импорт редьюсеров для разных типов действий
+import { processPurchaseBuilding, processSellBuilding } from './reducers/building';
+import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { 
-  processLearnCrypto, 
-  processApplyKnowledge, 
+  processIncrementResource, 
+  processUnlockResource,
+  processApplyKnowledge,
   processApplyAllKnowledge,
   processExchangeBitcoin
-} from './reducers/actionsReducer';
-import { 
-  processPurchaseBuilding, 
-  processSellBuilding,
-  processChooseSpecialization 
-} from './reducers/building';
-import { processPurchaseUpgrade } from './reducers/upgradeReducer';
-import { processIncrementResource, processUnlockResource } from './reducers/resourceReducer';
-
-// Импорт вспомогательных функций
-import { updateResources, calculateResourceProduction } from './reducers/resourceUpdateReducer';
+} from './reducers/resourceReducer';
 
 // Импорт унифицированной системы покупки
 import { processPurchase } from './reducers/purchaseSystem/processPurchase';
@@ -153,21 +146,33 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'BUY_BUILDING':
       // Обрабатываем покупку здания и проверяем разблокировки
       console.log("Обработка BUY_BUILDING...");
-      return processPurchaseBuilding(newState, action.payload);
+      const buildingState = processPurchaseBuilding(newState, action.payload);
+      // После покупки здания пересчитываем производство
+      const updatedBuildingState = resourceSystem.recalculateAllResourceProduction(buildingState);
+      return checkAllUnlocks(updatedBuildingState);
     
     case 'SELL_BUILDING':
       // Обрабатываем продажу здания
-      return processSellBuilding(newState, action.payload);
+      const sellState = processSellBuilding(newState, action.payload);
+      // После продажи здания пересчитываем производство
+      const updatedSellState = resourceSystem.recalculateAllResourceProduction(sellState);
+      return checkAllUnlocks(updatedSellState);
     
     case 'RESEARCH_UPGRADE':
     case 'PURCHASE_UPGRADE':
-      return checkAllUnlocks(processPurchaseUpgrade(newState, action.payload));
+      const upgradeState = processPurchaseUpgrade(newState, action.payload);
+      // После покупки улучшения пересчитываем производство
+      const updatedUpgradeState = resourceSystem.recalculateAllResourceProduction(upgradeState);
+      return checkAllUnlocks(updatedUpgradeState);
       
     // Новое унифицированное действие покупки
     case 'PURCHASE_ITEM':
       // Используем унифицированную функцию покупки
       console.log("Обработка PURCHASE_ITEM...");
-      return processPurchase(newState, action.payload);
+      const purchaseState = processPurchase(newState, action.payload);
+      // После покупки пересчитываем производство
+      const updatedPurchaseState = resourceSystem.recalculateAllResourceProduction(purchaseState);
+      return checkAllUnlocks(updatedPurchaseState);
     
     case 'LOAD_GAME':
       console.log("Загрузка игры...");
@@ -201,14 +206,20 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks(newState);
     
     case 'UPDATE_HELPERS':
-      return {
+      const helpersState = {
         ...newState,
         referralHelpers: action.payload.updatedHelpers
       };
+      // После обновления помощников пересчитываем производство
+      const updatedHelpersState = resourceSystem.recalculateAllResourceProduction(helpersState);
+      return checkAllUnlocks(updatedHelpersState);
     
     case 'UNLOCK_RESOURCE':
       // Разблокировка ресурса
-      return checkAllUnlocks(resourceSystem.unlockResource(newState, action.payload));
+      const unlockState = resourceSystem.unlockResource(newState, action.payload);
+      // После разблокировки ресурса пересчитываем производство
+      const updatedUnlockState = resourceSystem.recalculateAllResourceProduction(unlockState);
+      return checkAllUnlocks(updatedUnlockState);
     
     case 'CHECK_UNLOCKS':
       // Добавляем явную обработку действия проверки разблокировок

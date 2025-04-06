@@ -18,3 +18,21 @@ export const processUnlockResource = (
 ): GameState => {
   return resourceSystem.unlockResource(state, payload);
 };
+
+export const processApplyKnowledge = (
+  state: GameState
+): GameState => {
+  return resourceSystem.applyKnowledge(state);
+};
+
+export const processApplyAllKnowledge = (
+  state: GameState
+): GameState => {
+  return resourceSystem.applyAllKnowledge(state);
+};
+
+export const processExchangeBitcoin = (
+  state: GameState
+): GameState => {
+  return resourceSystem.exchangeBitcoin(state);
+};

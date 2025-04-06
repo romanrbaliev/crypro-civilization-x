@@ -1,13 +1,11 @@
 
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { UnlockService } from '@/services/UnlockService';
 import { useResourceSystem } from './useResourceSystem';
 
 export const useGameStateUpdateService = () => {
   const { state, dispatch, isPageVisible } = useGame();
   const { updateResources, recalculateAllProduction } = useResourceSystem();
-  const unlockService = new UnlockService();
   const lastTickTimeRef = useRef<number>(Date.now());
   
   const updateGameState = useCallback(() => {
@@ -45,8 +43,8 @@ export const useGameStateUpdateService = () => {
   }, [state.gameStarted, recalculateAllProduction]);
   
   useEffect(() => {
-    // Запускаем таймер для обновления ресурсов каждые 500ms для более плавного обновления
-    const updateInterval = setInterval(updateGameState, 500);
+    // Запускаем таймер для обновления ресурсов каждые 100ms для более плавного обновления
+    const updateInterval = setInterval(updateGameState, 100);
     
     // Запускаем таймер для проверки разблокировок каждые 5 секунд
     const unlockCheckInterval = setInterval(() => {
@@ -70,6 +68,14 @@ export const useGameStateUpdateService = () => {
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     }
   }, [Object.values(state.buildings).map(b => b.count).join(','), dispatch]);
+  
+  // Эффект для обновления разблокировок при изменении ресурсов
+  useEffect(() => {
+    // Отслеживаем изменения значений ресурсов
+    const resourceValues = Object.values(state.resources).map(r => r.value).join(',');
+    // Проверяем разблокировки при каждом изменении значений ресурсов
+    dispatch({ type: 'CHECK_UNLOCKS' });
+  }, [Object.values(state.resources).map(r => r.value).join(','), dispatch]);
   
   return null;
 };
