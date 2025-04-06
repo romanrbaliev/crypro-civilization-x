@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "@/i18n";
 
 export interface GameEvent {
   id: string;
@@ -16,6 +17,7 @@ interface EventLogProps {
 
 const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { t, language } = useTranslation();
   
   // Автоматическая прокрутка вверх при новых событиях
   useEffect(() => {
@@ -49,13 +51,30 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
     }
   };
   
+  // Получаем локализованный текст для журнала событий
+  const getLogTitle = () => {
+    return language === 'ru' ? 'Журнал событий' : 'Event Log';
+  };
+  
+  const getEventsCountText = (count: number) => {
+    if (language === 'ru') {
+      return `${count} ${count === 1 ? 'событие' : 
+        (count >= 2 && count <= 4) ? 'события' : 'событий'}`;
+    } else {
+      return `${count} ${count === 1 ? 'event' : 'events'}`;
+    }
+  };
+  
+  const getNoEventsText = () => {
+    return language === 'ru' ? 'Пока нет событий' : 'No events yet';
+  };
+  
   return (
     <div className="h-full p-2">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="font-bold text-xs">Журнал событий</h2>
+        <h2 className="font-bold text-xs">{getLogTitle()}</h2>
         <div className="text-xs text-gray-500">
-          {displayEvents.length} {displayEvents.length === 1 ? 'событие' : 
-            (displayEvents.length >= 2 && displayEvents.length <= 4) ? 'события' : 'событий'}
+          {getEventsCountText(displayEvents.length)}
         </div>
       </div>
       
@@ -73,7 +92,7 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
             ))
           ) : (
             <div className="text-center text-gray-500 py-4 text-xs">
-              Пока нет событий
+              {getNoEventsText()}
             </div>
           )}
         </div>

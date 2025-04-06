@@ -43,7 +43,6 @@ const getResourceName = (resourceId: string, language: string = 'ru'): string =>
     bitcoin: 'Bitcoin'
   };
   
-  return language === 'ru' 
-    ? resourceNamesRu[resourceId] || resourceId 
-    : resourceNamesEn[resourceId] || resourceId;
+  const names = language === 'ru' ? resourceNamesRu : resourceNamesEn;
+  return names[resourceId] || resourceId;
 };

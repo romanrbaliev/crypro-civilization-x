@@ -51,6 +51,21 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     cost: newCost
   };
   
+  // Обновляем производство ресурсов
+  if (building.production) {
+    const productionMultiplier = 1; // Базовый множитель, в будущем можно добавить бонусы
+    
+    for (const [resourceId, amount] of Object.entries(building.production)) {
+      if (newState.resources[resourceId]) {
+        newState.resources[resourceId] = {
+          ...newState.resources[resourceId],
+          productionRate: (newState.resources[resourceId].productionRate || 0) + 
+                          Number(amount) * productionMultiplier
+        };
+      }
+    }
+  }
+  
   // Обновляем счетчики и инкрементируем их
   if (buildingId === 'practice') {
     newState.counters.practiceBuilt = {
@@ -73,6 +88,13 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
       value: (newState.counters.walletBuilt?.value || 0) + 1
     };
   }
+  
+  // Отправляем событие о покупке здания
+  const eventMessage = newState.language === 'ru' 
+    ? `Приобретено здание: ${building.name}` 
+    : `Building purchased: ${building.name}`;
+  
+  safeDispatchGameEvent(eventMessage, 'success');
   
   // Проверяем и обновляем все разблокировки после покупки
   const stateWithUnlocks = checkAllUnlocks(newState);

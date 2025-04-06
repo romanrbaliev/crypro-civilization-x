@@ -47,6 +47,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const currentTranslations = translations[language] as TranslationsType;
       let translatedText = currentTranslations[key] || key;
       
+      // Проверяем, был ли выполнен перевод или вернулся оригинальный ключ
+      if (translatedText === key && language === 'en' && translations['ru'][key]) {
+        // Если у нас есть русский перевод, но нет английского, используем ключ
+        translatedText = key;
+      }
+      
       // Замена параметров в переводе, если они есть
       if (params) {
         Object.entries(params).forEach(([paramKey, paramValue]) => {

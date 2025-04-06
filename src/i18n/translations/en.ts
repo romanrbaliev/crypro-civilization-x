@@ -139,5 +139,21 @@ export const en: TranslationsType = {
   'cloudflare.title': 'Server Access Problem',
   'cloudflare.description': 'There might be a Cloudflare error or the server is temporarily unavailable.',
   'cloudflare.refreshButton': 'Refresh Page',
-  'cloudflare.retryButton': 'Retry Connection'
+  'cloudflare.retryButton': 'Retry Connection',
+  
+  // События журнала
+  'event.buildingPurchased': 'Building purchased: {name}',
+  'event.buildingSold': 'Building sold: {name}',
+  'event.researchCompleted': 'Research completed: {name}',
+  'event.resourceGained': 'Gained {amount} {resource}',
+  'event.resourceExchanged': 'Exchanged {amount1} {resource1} for {amount2} {resource2}',
+  'event.unlocked': 'Unlocked: {item}',
+  'event.gameStarted': 'Game started',
+  'event.gameReset': 'Game has been reset',
+  
+  // События журнала - общие
+  'eventLog.title': 'Event Log',
+  'eventLog.empty': 'No events yet',
+  'eventLog.event': 'event',
+  'eventLog.events': 'events'
 };

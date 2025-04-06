@@ -139,5 +139,22 @@ export const ru: TranslationsType = {
   'cloudflare.title': 'Проблема доступа к серверу',
   'cloudflare.description': 'Возможно, возникла ошибка Cloudflare или сервер временно недоступен.',
   'cloudflare.refreshButton': 'Обновить страницу',
-  'cloudflare.retryButton': 'Повторить соединение'
+  'cloudflare.retryButton': 'Повторить соединение',
+  
+  // События журнала
+  'event.buildingPurchased': 'Приобретено здание: {name}',
+  'event.buildingSold': 'Продано здание: {name}',
+  'event.researchCompleted': 'Завершено исследование: {name}',
+  'event.resourceGained': 'Получено {amount} {resource}',
+  'event.resourceExchanged': 'Обменяно {amount1} {resource1} на {amount2} {resource2}',
+  'event.unlocked': 'Разблокировано: {item}',
+  'event.gameStarted': 'Игра начата',
+  'event.gameReset': 'Игра сброшена',
+  
+  // События журнала - общие
+  'eventLog.title': 'Журнал событий',
+  'eventLog.empty': 'Пока нет событий',
+  'eventLog.event': 'событие',
+  'eventLog.events': 'события',
+  'eventLog.eventsMany': 'событий'
 };
