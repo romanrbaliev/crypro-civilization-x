@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -204,21 +205,19 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
                         <th className="text-right p-2">Макс.</th>
                         <th className="text-right p-2">Производство</th>
                         <th className="text-right p-2">Потребление</th>
-                        <th className={`text-right p-2 ${resource.perSecond > 0 ? 'text-green-600' : resource.perSecond < 0 ? 'text-red-600' : ''}`}>
-                          {resource.perSecond.toFixed(3)}
-                        </th>
+                        <th className="text-right p-2">В секунду</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {debugData.resources.map(resource => (
-                        <tr key={resource.id} className="border-b hover:bg-gray-50">
-                          <td className="p-2">{state.resources[resource.id]?.name || resource.id}</td>
-                          <td className="text-right p-2">{resource.value.toFixed(2)}</td>
-                          <td className="text-right p-2">{typeof resource.max === 'number' ? resource.max.toFixed(2) : resource.max}</td>
-                          <td className="text-right p-2">{resource.production.toFixed(3)}</td>
-                          <td className="text-right p-2">{resource.consumption.toFixed(3)}</td>
-                          <td className={`text-right p-2 ${resource.perSecond > 0 ? 'text-green-600' : resource.perSecond < 0 ? 'text-red-600' : ''}`}>
-                            {resource.perSecond.toFixed(3)}
+                      {debugData.resources.map(resourceItem => (
+                        <tr key={resourceItem.id} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{state.resources[resourceItem.id]?.name || resourceItem.id}</td>
+                          <td className="text-right p-2">{resourceItem.value.toFixed(2)}</td>
+                          <td className="text-right p-2">{typeof resourceItem.max === 'number' ? resourceItem.max.toFixed(2) : resourceItem.max}</td>
+                          <td className="text-right p-2">{resourceItem.production.toFixed(3)}</td>
+                          <td className="text-right p-2">{resourceItem.consumption.toFixed(3)}</td>
+                          <td className={`text-right p-2 ${resourceItem.perSecond > 0 ? 'text-green-600' : resourceItem.perSecond < 0 ? 'text-red-600' : ''}`}>
+                            {resourceItem.perSecond.toFixed(3)}
                           </td>
                         </tr>
                       ))}
