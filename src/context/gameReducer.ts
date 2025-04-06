@@ -29,14 +29,16 @@ const processIncrementCounter = (state: GameState, payload: { counterId: string,
   
   // Проверяем, существует ли счетчик
   if (!counters[counterId]) {
-    counters[counterId] = { value: 0 };
+    counters[counterId] = { id: counterId, value: 0 };
   }
   
   // Инкрементируем счетчик
   if (typeof counters[counterId] === 'number') {
-    counters[counterId] = (counters[counterId] as number) + value;
+    // Если счетчик - число, преобразуем его в объект с id и value
+    counters[counterId] = { id: counterId, value: (counters[counterId] as number) + value };
   } else {
-    const counter = { ...(counters[counterId] as object) } as { value: number };
+    // Если счетчик - объект, обновляем только его значение
+    const counter = { ...(counters[counterId] as object) } as { id: string; value: number };
     counter.value = (counter.value || 0) + value;
     counters[counterId] = counter;
   }
