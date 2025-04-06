@@ -153,7 +153,7 @@ export const useResourceSystem = () => {
       .map(b => ({
         name: b.name,
         count: b.count,
-        production: b.production[resourceId] * b.count
+        production: (b.production[resourceId] || 0) * b.count
       }));
     
     // Бонусы от улучшений
@@ -188,7 +188,7 @@ export const useResourceSystem = () => {
     applyKnowledge,
     applyAllKnowledge,
     exchangeBitcoin,
-    getResourceDiagnostics, // Новая функция для диагностики
+    getResourceDiagnostics, // Экспортируем функцию диагностики
     resourceSystem,
     resourceFormatter
   };

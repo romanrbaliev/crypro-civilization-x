@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
-import { Book, AlarmClock, Timer, BarChart2 } from 'lucide-react';
+import { Book, AlarmClock, Timer, BarChart2, Buildings, Zap } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
@@ -24,7 +24,7 @@ const KnowledgeProductionMonitor: React.FC<{
   onOpenChange: (open: boolean) => void;
 }> = ({ open, onOpenChange }) => {
   const { state } = useGame();
-  const { resourceSystem, formatValue } = useResourceSystem();
+  const { resourceSystem, formatValue, getResourceDiagnostics } = useResourceSystem();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastKnowledgeValueRef = useRef<number>(0);
@@ -41,6 +41,9 @@ const KnowledgeProductionMonitor: React.FC<{
     
     setLogs(prevLogs => [newLog, ...prevLogs].slice(0, 100)); // Ограничиваем список 100 записями
   };
+  
+  // Получаем диагностические данные для ресурса знаний
+  const knowledgeDiagnostics = getResourceDiagnostics ? getResourceDiagnostics('knowledge') : null;
   
   // Отслеживаем изменение количества практик
   useEffect(() => {
@@ -73,6 +76,24 @@ const KnowledgeProductionMonitor: React.FC<{
       } else {
         addLog('Практики не построены. Автоматическое производство знаний не активировано.', 'info');
       }
+      
+      // Подробная диагностика компонентов производства
+      if (knowledgeDiagnostics) {
+        addLog(`Структура производства знаний:`, 'info');
+        
+        // Выводим информацию о здании "Практика"
+        const practiceBuildingInfo = knowledgeDiagnostics.buildingProduction.find(b => b.name === 'Практика');
+        if (practiceBuildingInfo) {
+          addLog(`- Практика (${practiceBuildingInfo.count}): ${formatValue(practiceBuildingInfo.production, 'knowledge')}/сек`, 'calculation');
+        }
+        
+        // Выводим бонусы от улучшений
+        if (knowledgeDiagnostics.upgradeBonuses.length > 0) {
+          knowledgeDiagnostics.upgradeBonuses.forEach(upgrade => {
+            addLog(`- Улучшение "${upgrade.name}": эффект ${JSON.stringify(upgrade.effects)}`, 'calculation');
+          });
+        }
+      }
     }
     
     // Запускаем интервал для отслеживания изменений
@@ -93,7 +114,7 @@ const KnowledgeProductionMonitor: React.FC<{
         logIntervalRef.current = null;
       }
     };
-  }, [open, state.resources.knowledge, formatValue]);
+  }, [open, state.resources.knowledge, formatValue, knowledgeDiagnostics]);
   
   // Добавляем обработчик событий TICK
   useEffect(() => {
@@ -111,7 +132,7 @@ const KnowledgeProductionMonitor: React.FC<{
         addLog(`TICK: ${logMessage}`, 'tick');
       } else if (logMessage.includes('resourceUpdateReducer') || logMessage.includes('ResourceSystem')) {
         addLog(`Система: ${logMessage}`, 'calculation');
-      } else if (logMessage.includes('Производство') && logMessage.includes('knowledge')) {
+      } else if (logMessage.includes('ResourceProductionService') && logMessage.includes('знаний')) {
         addLog(`Расчет: ${logMessage}`, 'calculation');
       }
     };
@@ -140,7 +161,7 @@ const KnowledgeProductionMonitor: React.FC<{
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Book className="mr-2 h-5 w-5" />
@@ -158,8 +179,40 @@ const KnowledgeProductionMonitor: React.FC<{
               <span className="font-medium">Производство:</span> {formatValue(state.resources.knowledge?.perSecond || 0, 'knowledge')}/сек
             </div>
           </div>
+          
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div className="bg-slate-100 p-2 rounded">
+              <span className="font-medium flex items-center">
+                <Zap className="h-4 w-4 mr-1 text-amber-500" />
+                Базовое производство:
+              </span> 
+              <div className="text-xs text-gray-500 mt-1">
+                Производство от ручных кликов или базовых источников
+              </div>
+              <div className="mt-1 font-medium">
+                {formatValue(state.resources.knowledge?.baseProduction || 0, 'knowledge')}/сек
+              </div>
+            </div>
+            
+            <div className="bg-slate-100 p-2 rounded">
+              <span className="font-medium flex items-center">
+                <Buildings className="h-4 w-4 mr-1 text-blue-500" />
+                От зданий:
+              </span>
+              <div className="text-xs text-gray-500 mt-1">
+                Производство от всех построенных зданий
+              </div>
+              <div className="mt-1 font-medium">
+                {knowledgeDiagnostics?.buildingProduction?.reduce((sum, b) => sum + b.production, 0) || 0}/сек
+              </div>
+            </div>
+          </div>
+          
           <div className="bg-slate-100 p-2 rounded mb-2">
             <span className="font-medium">Построено практик:</span> {state.buildings.practice?.count || 0}
+            <div className="text-xs text-gray-500 mt-1">
+              Каждая практика дает +1 знание/сек
+            </div>
           </div>
         </div>
         

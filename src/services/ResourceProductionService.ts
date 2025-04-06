@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -28,52 +27,69 @@ export class ResourceProductionService {
       // 1. Проверка специальных случаев для конкретных ресурсов
       switch (resourceId) {
         case 'knowledge':
-          // Считаем базовое производство знаний
-          let knowledgeProduction = resource.baseProduction || 0;
+          // Обеспечиваем, что baseProduction всегда инициализировано
+          let knowledgeBaseProduction = resource.baseProduction || 0;
           
           // Проверяем наличие практики
           if (state.buildings.practice && state.buildings.practice.count > 0) {
             const practiceCount = state.buildings.practice.count;
             const practiceProduction = practiceCount * 1; // 1 знание в секунду за каждую практику
-            knowledgeProduction += practiceProduction;
             
-            console.log(`ResourceProductionService: Практика добавляет ${practiceProduction.toFixed(2)}/сек знаний`);
+            // Важное исправление: НЕ добавляем практики к базовому производству,
+            // а создаем отдельное значение для общего производства
+            const totalProduction = knowledgeBaseProduction + practiceProduction;
+            
+            console.log(`ResourceProductionService: Практика добавляет ${practiceProduction.toFixed(2)}/сек знаний, общее производство: ${totalProduction.toFixed(2)}/сек`);
+            
+            // ИСПРАВЛЕНИЕ: Сохраняем базовое производство отдельно, не модифицируя его
+            resources[resourceId] = {
+              ...resource,
+              baseProduction: knowledgeBaseProduction, // Базовое остается неизменным
+              production: totalProduction, // Общее производство включает практики
+              perSecond: totalProduction // perSecond используется для фактического прироста
+            };
+          } else {
+            // Если практик нет, базовое производство = общему
+            resources[resourceId] = {
+              ...resource,
+              baseProduction: knowledgeBaseProduction,
+              production: knowledgeBaseProduction,
+              perSecond: knowledgeBaseProduction
+            };
           }
           
-          // ИСПРАВЛЕНИЕ: Применяем бонус от исследования "Основы блокчейна" ТОЛЬКО ОДИН РАЗ
-          // Проверяем наличие исследования "Основы блокчейна" для бонуса к производству знаний
+          // ИСПРАВЛЕНИЕ: Применяем бонус от исследования "Основы блокчейна" ПОСЛЕ расчета производства
           const hasBlockchainBasics = state.upgrades.blockchainBasics?.purchased || 
                                      state.upgrades.basicBlockchain?.purchased || 
                                      state.upgrades.blockchain_basics?.purchased;
           
-          // Если есть исследование, увеличиваем производство на 10%
-          if (hasBlockchainBasics) {
-            // Проверим, что изначальное производство больше 0, чтобы избежать лишних бонусов при нуле
-            if (knowledgeProduction > 0) {
-              // Находим базовое значение и применяем только один раз бонус
-              const bonus = knowledgeProduction * 0.1; // +10% бонус
-              knowledgeProduction += bonus;
-              console.log(`ResourceProductionService: "Основы блокчейна" добавляют ${bonus.toFixed(2)}/сек знаний (+10%)`);
-            }
+          // Если есть исследование, увеличиваем общее производство на 10%
+          if (hasBlockchainBasics && resources[resourceId].production > 0) {
+            const originalProduction = resources[resourceId].production;
+            const bonus = originalProduction * 0.1; // +10% бонус
+            const newProduction = originalProduction + bonus;
+            
+            resources[resourceId].production = newProduction;
+            resources[resourceId].perSecond = newProduction;
+            
+            console.log(`ResourceProductionService: "Основы блокчейна" добавляют ${bonus.toFixed(2)}/сек знаний (+10%) к ${originalProduction.toFixed(2)}/сек, итого: ${newProduction.toFixed(2)}/сек`);
           }
           
           // Проверяем наличие интернет-канала для бонуса к производству знаний
           if (state.buildings.internetChannel && state.buildings.internetChannel.count > 0) {
             const internetChannelCount = state.buildings.internetChannel.count;
+            const originalProduction = resources[resourceId].production;
             // Увеличиваем скорость получения знаний на 20% за каждый интернет-канал
-            const internetBonus = knowledgeProduction * 0.2 * internetChannelCount;
-            knowledgeProduction += internetBonus;
+            const internetBonus = originalProduction * 0.2 * internetChannelCount;
+            const newProduction = originalProduction + internetBonus;
             
-            console.log(`ResourceProductionService: Интернет-канал добавляет ${internetBonus.toFixed(2)}/сек знаний (+20% за каждый канал)`);
+            resources[resourceId].production = newProduction;
+            resources[resourceId].perSecond = newProduction;
+            
+            console.log(`ResourceProductionService: Интернет-канал добавляет ${internetBonus.toFixed(2)}/сек знаний (+20% за каждый канал) к ${originalProduction.toFixed(2)}/сек, итого: ${newProduction.toFixed(2)}/сек`);
           }
           
-          console.log(`ResourceProductionService: скорость производства знаний=${knowledgeProduction.toFixed(2)}/сек`);
-          
-          resources[resourceId] = {
-            ...resource,
-            production: knowledgeProduction,
-            perSecond: knowledgeProduction
-          };
+          console.log(`ResourceProductionService: итоговая скорость производства знаний=${resources[resourceId].perSecond.toFixed(2)}/сек, базовое производство=${resources[resourceId].baseProduction.toFixed(2)}/сек`);
           break;
         
         case 'usdt':
