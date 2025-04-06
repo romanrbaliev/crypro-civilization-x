@@ -40,6 +40,7 @@ const KnowledgeProductionMonitor: React.FC<{
   const lastKnowledgeValueRef = useRef<number>(0);
   const practiceBuiltRef = useRef<number>(0);
   const animatorRef = useRef<Animator | null>(null);
+  const knowledgeResource = state.resources.knowledge;
   
   // Состояние для анимации
   const [animationState, setAnimationState] = useState<AnimationState>({
@@ -123,8 +124,8 @@ const KnowledgeProductionMonitor: React.FC<{
       addLog(`Практика построена (${practiceCount}). Начинаем отслеживание производства знаний.`, 'info');
     }
   }, [state.buildings.practice?.count]);
-  
-  // Эффект инициализации - выполняется при открытии монитора или изменении ресурса knowledge
+
+  // Эффект инициализации при открытии монитора
   useEffect(() => {
     if (!open) return;
     
@@ -165,9 +166,31 @@ const KnowledgeProductionMonitor: React.FC<{
         addLog(`Активные бонусы: ${knowledgeDiagnostics.upgradeBonuses.length} улучшений`, 'info');
       }
     }
-  }, [open, formatValue, knowledgeDiagnostics]);
+  }, [open, formatValue, state.resources.knowledge?.unlocked]);
   
-  // Эффект отслеживания изменений - отдельный от инициализации
+  // ВАЖНОЕ ИСПРАВЛЕНИЕ: Отдельный эффект для отслеживания изменений значения знаний 
+  useEffect(() => {
+    if (!open || !knowledgeResource || !knowledgeResource.unlocked) return;
+    
+    // Храним значение в переменной для отладки
+    const currentValue = knowledgeResource.value || 0;
+    const lastValue = lastKnowledgeValueRef.current;
+    
+    // Проверяем на реальное изменение значения с порогом точности
+    if (Math.abs(currentValue - lastValue) > 0.001) {
+      const diff = currentValue - lastValue;
+      
+      addLog(`Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
+      
+      // Запускаем анимацию изменения значения
+      startValueAnimation(lastValue, currentValue);
+      
+      // Обновляем ref с последним значением
+      lastKnowledgeValueRef.current = currentValue;
+    }
+  }, [open, knowledgeResource?.value, formatValue]);
+  
+  // Эффект для установки интервала отслеживания изменений
   useEffect(() => {
     if (!open) return;
     
@@ -176,25 +199,26 @@ const KnowledgeProductionMonitor: React.FC<{
       clearInterval(logIntervalRef.current);
     }
     
-    // Запускаем новый интервал для отслеживания изменений
+    // Запускаем новый интервал для обновления UI и проверки изменений
     logIntervalRef.current = setInterval(() => {
-      const currentValue = state.resources.knowledge?.value || 0;
-      const lastValue = lastKnowledgeValueRef.current;
-      
-      // Используем немного смягченное сравнение для чисел с плавающей запятой
-      // (разница больше 0.001 считается значимой)
-      if (Math.abs(currentValue - lastValue) > 0.001) {
-        const diff = currentValue - lastValue;
+      // Дополнительная проверка по интервалу для подстраховки
+      if (knowledgeResource && knowledgeResource.unlocked) {
+        const currentValue = knowledgeResource.value || 0;
+        const lastValue = lastKnowledgeValueRef.current;
         
-        addLog(`Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
-        
-        // Запускаем анимацию изменения значения
-        startValueAnimation(lastValue, currentValue);
-        
-        // Обновляем ref с последним значением
-        lastKnowledgeValueRef.current = currentValue;
+        if (Math.abs(currentValue - lastValue) > 0.001) {
+          const diff = currentValue - lastValue;
+          
+          addLog(`[Интервал] Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
+          
+          // Запускаем анимацию изменения значения
+          startValueAnimation(lastValue, currentValue);
+          
+          // Обновляем ref с последним значением
+          lastKnowledgeValueRef.current = currentValue;
+        }
       }
-    }, 250); // Сокращаем интервал для более частой проверки
+    }, 200); // Сокращаем интервал для более частой проверки
     
     // Очистка при размонтировании или закрытии
     return () => {
@@ -208,7 +232,7 @@ const KnowledgeProductionMonitor: React.FC<{
         animatorRef.current.stop();
       }
     };
-  }, [open, state.resources.knowledge?.value]); // Отслеживаем напрямую value, а не весь объект
+  }, [open, knowledgeResource, formatValue]);
   
   // Добавляем обработчик событий TICK
   useEffect(() => {
