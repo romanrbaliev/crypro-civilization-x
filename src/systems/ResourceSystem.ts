@@ -1,4 +1,3 @@
-
 import { GameState, Resource } from '@/context/types';
 import { ResourceEvent, ResourceEventType, ResourceMetrics } from '@/types/resources';
 import { ResourceCalculator } from '@/services/ResourceCalculator';
@@ -98,7 +97,7 @@ export class ResourceSystem {
         };
         
         // Отправляем событие в шину событий
-        safeDispatchGameEvent('resourceUpdated', event);
+        safeDispatchGameEvent(`Ресурс ${resourceId} обновлен: ${currentValue.toFixed(2)} -> ${newValue.toFixed(2)}`);
       }
     }
     
@@ -286,7 +285,7 @@ export class ResourceSystem {
     };
     
     // Отправляем событие в шину событий
-    safeDispatchGameEvent('resourceUnlocked', event);
+    safeDispatchGameEvent(`Ресурс ${resourceId} разблокирован`);
     
     // Разблокируем ресурс
     return {
