@@ -17,7 +17,14 @@ export const useResourceSystem = () => {
    * @param deltaTime Прошедшее время в миллисекундах
    */
   const updateResources = useCallback((deltaTime: number) => {
+    if (deltaTime <= 0) return;
+    
+    console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
+    
+    // Применяем обновление ресурсов через ResourceSystem
     const updatedState = resourceSystem.updateResources(state, deltaTime);
+    
+    // Отправляем обновленное состояние в редьюсер
     dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
   }, [state, dispatch, resourceSystem]);
   
@@ -43,7 +50,10 @@ export const useResourceSystem = () => {
    * Обновляет максимальные значения ресурсов
    */
   const updateResourceMaxValues = useCallback(() => {
+    // Обновляем максимальные значения ресурсов через ResourceSystem
     const updatedState = resourceSystem.updateResourceMaxValues(state);
+    
+    // Отправляем обновленное состояние в редьюсер
     dispatch({ type: 'FORCE_RESOURCE_UPDATE', payload: updatedState });
   }, [state, dispatch, resourceSystem]);
   
@@ -80,6 +90,16 @@ export const useResourceSystem = () => {
   }, [dispatch]);
   
   /**
+   * Пересчитывает всё производство ресурсов
+   */
+  const recalculateAllProduction = useCallback(() => {
+    console.log("useResourceSystem: Пересчет всего производства ресурсов");
+    
+    // Принудительно пересчитываем производство
+    dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+  }, [dispatch]);
+  
+  /**
    * Разблокирует ресурс
    * @param resourceId ID ресурса
    */
@@ -99,6 +119,7 @@ export const useResourceSystem = () => {
     formatValue,
     incrementResource,
     unlockResource,
+    recalculateAllProduction,
     resourceSystem, // Экспортируем сам класс для сложных операций
     resourceFormatter // Экспортируем форматтер для сложных операций
   };

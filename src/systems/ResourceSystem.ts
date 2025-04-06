@@ -112,18 +112,25 @@ export class ResourceSystem {
    * Обновляет ресурсы на основе производства и прошедшего времени
    */
   updateResources(state: GameState, deltaTime: number): GameState {
+    // Если дельта времени меньше или равна нулю, просто обновляем производство
     if (deltaTime <= 0) {
       return this.updateResourceProduction(state);
     }
     
     // Преобразуем миллисекунды в секунды
     const deltaSeconds = deltaTime / 1000;
+    
+    // Создаем копию состояния
+    let updatedState = { ...state };
     const resources = { ...state.resources };
+    
+    console.log(`Обновление ресурсов, прошло ${deltaSeconds} секунд`);
     
     // Обрабатываем каждый ресурс
     for (const resourceId in resources) {
       const resource = resources[resourceId];
       
+      // Пропускаем неразблокированные ресурсы
       if (!resource.unlocked) continue;
       
       // Получаем значения производства и потребления
@@ -145,6 +152,10 @@ export class ResourceSystem {
         // Не допускаем отрицательных значений
         newValue = Math.max(0, newValue);
         
+        if (Math.abs(newValue - resource.value) > 0.001) {
+          console.log(`Ресурс ${resourceId}: ${resource.value.toFixed(2)} -> ${newValue.toFixed(2)} (изменение: ${netChange.toFixed(2)}, продукция: ${production}/сек, потребление: ${consumption}/сек)`);
+        }
+        
         // Обновляем ресурс
         resources[resourceId] = {
           ...resource,
@@ -153,10 +164,8 @@ export class ResourceSystem {
       }
     }
     
-    return {
-      ...state,
-      resources
-    };
+    updatedState.resources = resources;
+    return updatedState;
   }
   
   /**
@@ -193,7 +202,7 @@ export class ResourceSystem {
               production: currentProduction + buildingProduction
             };
             
-            console.log(`Здание ${buildingId} производит ${resourceId}: ${buildingProduction} в секунду`);
+            console.log(`Здание ${buildingId} (${building.count} шт.) производит ${resourceId}: ${buildingProduction} в секунду`);
           }
         }
       }
@@ -341,6 +350,9 @@ export class ResourceSystem {
    */
   recalculateAllResourceProduction(state: GameState): GameState {
     console.log("Пересчет производства всех ресурсов");
+    // Сначала обновляем максимальные значения ресурсов
+    state = this.updateResourceMaxValues(state);
+    // Затем пересчитываем производство
     return this.updateResourceProduction(state);
   }
 }

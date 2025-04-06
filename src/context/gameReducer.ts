@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
@@ -107,17 +108,23 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'TICK':
       // Вычисляем прошедшее время
-      const currentTime = Date.now();
+      const currentTime = action.payload?.currentTime || Date.now();
       const deltaTime = currentTime - newState.lastUpdate;
       
-      // Обновляем ресурсы
-      newState = updateResources(newState, deltaTime);
+      if (deltaTime > 0) {
+        // Обновляем ресурсы
+        newState = resourceSystem.updateResources(newState, deltaTime);
+        
+        // Обновляем lastUpdate
+        newState = { ...newState, lastUpdate: currentTime };
+        
+        // Проверяем разблокировки после обновления ресурсов
+        newState = checkAllUnlocks(newState);
+        
+        console.log(`TICK: Обновлены ресурсы, прошло ${deltaTime}ms`);
+      }
       
-      // Обновляем lastUpdate
-      newState = { ...newState, lastUpdate: currentTime };
-      
-      // Проверяем разблокировки
-      return checkAllUnlocks(newState);
+      return newState;
     
     case 'INCREMENT_RESOURCE':
       // Обрабатываем увеличение ресурса и проверяем разблокировки
@@ -156,6 +163,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     case 'LOAD_GAME':
       newState = { ...newState, ...action.payload };
+      // Принудительно пересчитываем производство
+      newState = resourceSystem.recalculateAllResourceProduction(newState);
       // Проверяем разблокировки при загрузке игры
       return checkAllUnlocks(newState);
     
@@ -176,7 +185,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         newState = action.payload;
       } else {
         // Иначе пересчитываем производство
-        newState = calculateResourceProduction(newState);
+        newState = resourceSystem.recalculateAllResourceProduction(newState);
       }
       return checkAllUnlocks(newState);
     

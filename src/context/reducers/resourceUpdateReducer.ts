@@ -7,15 +7,19 @@ const resourceSystem = new ResourceSystem();
 
 // Определяем функцию для обновления ресурсов
 export const updateResources = (state: GameState, deltaTime: number): GameState => {
-  return resourceSystem.updateResources(state, deltaTime);
+  console.log(`resourceUpdateReducer: Обновление ресурсов, прошло ${deltaTime}ms`);
+  
+  // Обновляем ресурсы, используя ResourceSystem
+  const updatedState = resourceSystem.updateResources(state, deltaTime);
+  
+  // Возвращаем обновленное состояние
+  return updatedState;
 };
 
 // Функция для расчета производства ресурсов на основе зданий
 export const calculateResourceProduction = (state: GameState): GameState => {
-  // Сначала обновляем максимальные значения ресурсов
-  state = resourceSystem.updateResourceMaxValues(state);
+  console.log("resourceUpdateReducer: Пересчет производства ресурсов");
   
-  // Затем обновляем ресурсы с нулевой дельтой времени
-  // Это обновит только производство и потребление, но не значения
-  return resourceSystem.updateResources(state, 0);
+  // Полностью пересчитываем производство ресурсов
+  return resourceSystem.recalculateAllResourceProduction(state);
 };
