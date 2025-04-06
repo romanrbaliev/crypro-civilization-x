@@ -1,4 +1,3 @@
-
 import { GameState } from './types';
 
 // Интерфейс MiningParams
@@ -118,7 +117,8 @@ export const initialState: GameState = {
       costMultiplier: 1.12,
       production: { knowledge: 1 },
       consumption: {},
-      effects: {}
+      effects: {},
+      type: 'building'
     },
     generator: {
       id: 'generator',
@@ -131,7 +131,8 @@ export const initialState: GameState = {
       costMultiplier: 1.12,
       production: { electricity: 0.5 },
       consumption: {},
-      effects: {}
+      effects: {},
+      type: 'building'
     },
     homeComputer: {
       id: 'homeComputer',
@@ -144,7 +145,8 @@ export const initialState: GameState = {
       costMultiplier: 1.15,
       production: { computingPower: 2 },
       consumption: { electricity: 1 },
-      effects: {}
+      effects: {},
+      type: 'building'
     },
     cryptoWallet: {
       id: 'cryptoWallet',
@@ -160,7 +162,8 @@ export const initialState: GameState = {
       effects: {
         maxUSDTBoost: 50,
         maxKnowledgePercentBoost: 0.25
-      }
+      },
+      type: 'building'
     },
     internetChannel: {
       id: 'internetChannel',
@@ -176,7 +179,8 @@ export const initialState: GameState = {
       effects: {
         knowledgeProductionBoost: 0.2,
         computingEfficiencyBoost: 0.05
-      }
+      },
+      type: 'building'
     },
     miner: {
       id: 'miner',
@@ -189,7 +193,8 @@ export const initialState: GameState = {
       costMultiplier: 1.15,
       production: { bitcoin: 0.00005 },
       consumption: { electricity: 1, computingPower: 5 },
-      effects: {}
+      effects: {},
+      type: 'building'
     },
     asicMiner: {
       id: 'asicMiner',
@@ -202,7 +207,8 @@ export const initialState: GameState = {
       costMultiplier: 1.15,
       production: { bitcoin: 0.0002 },
       consumption: { electricity: 2, computingPower: 8 },
-      effects: {}
+      effects: {},
+      type: 'building'
     },
     coolingSystem: {
       id: 'coolingSystem',
@@ -217,7 +223,8 @@ export const initialState: GameState = {
       consumption: {},
       effects: {
         computingConsumptionReduction: 0.2
-      }
+      },
+      type: 'building'
     },
     cryptoLibrary: {
       id: 'cryptoLibrary',
@@ -233,7 +240,8 @@ export const initialState: GameState = {
       effects: {
         knowledgeProductionBoost: 0.5,
         maxKnowledgeBoost: 100
-      }
+      },
+      type: 'building'
     },
     enhancedWallet: {
       id: 'enhancedWallet',
@@ -250,7 +258,8 @@ export const initialState: GameState = {
         maxUSDTBoost: 150,
         maxBTCBoost: 1,
         btcExchangeEfficiencyBoost: 0.08
-      }
+      },
+      type: 'building'
     }
   },
   

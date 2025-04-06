@@ -4,13 +4,14 @@ import { checkAffordability } from './checkAffordability';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { EffectsManager } from '@/services/EffectsManager';
+import { PurchasableType } from '@/types/purchasable';
 
 /**
  * Унифицированная функция для обработки покупок зданий и исследований
  */
 export function processPurchase(
   state: GameState, 
-  payload: { itemId: string, itemType: string }
+  payload: { itemId: string, itemType: PurchasableType }
 ): GameState {
   const { itemId, itemType } = payload;
 
