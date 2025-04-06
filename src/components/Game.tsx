@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { useNavigate } from 'react-router-dom';
@@ -34,7 +33,6 @@ const Game: React.FC = () => {
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   
-  // Используем хук для загрузки игры
   const { 
     loadedState, 
     isLoading, 
@@ -42,13 +40,10 @@ const Game: React.FC = () => {
     setGameInitialized 
   } = useGameLoader(hasConnection, setLoadingMessage);
   
-  // Используем хук для автоматического обновления игрового состояния
   useGameStateUpdateService();
   
-  // Используем хук для автоматической проверки разблокировок
   useUnlockChecker();
   
-  // Получаем объект unlocks из состояния для обратной совместимости
   const unlocks = state.unlocks || getUnlocksFromState(state);
   
   const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
@@ -56,7 +51,6 @@ const Game: React.FC = () => {
   const hasUnlockedSpecialization = !!state.specialization;
   const hasUnlockedReferrals = state.upgrades.cryptoCommunity?.purchased === true;
   
-  // Проверяем соединение с сервером
   useEffect(() => {
     const checkConnection = async () => {
       const connected = await checkSupabaseConnection();
@@ -65,7 +59,6 @@ const Game: React.FC = () => {
     
     checkConnection();
     
-    // Периодически проверяем соединение
     const intervalId = setInterval(checkConnection, 30000);
     
     return () => {
@@ -73,17 +66,14 @@ const Game: React.FC = () => {
     };
   }, []);
   
-  // Загружаем сохраненное состояние
   useEffect(() => {
     if (loadedState) {
       dispatch({ type: 'LOAD_GAME', payload: loadedState });
     } else if (gameInitialized && !isLoading) {
-      // Если нет сохранения, запускаем новую игру
       dispatch({ type: 'START_GAME' });
     }
   }, [loadedState, dispatch, gameInitialized, isLoading]);
   
-  // Настраиваем автосохранение
   useGameSaveEvents(state, isLoading, hasConnection, gameInitialized);
   
   useEffect(() => {
@@ -186,12 +176,10 @@ const Game: React.FC = () => {
     );
   };
   
-  // Если игра загружается, показываем экран загрузки
   if (isLoading) {
     return <LoadingScreen message={loadingMessage} />;
   }
   
-  // Если возникла ошибка загрузки, показываем экран ошибки
   if (!hasConnection && !gameInitialized) {
     return (
       <ErrorScreen 
@@ -203,7 +191,6 @@ const Game: React.FC = () => {
     );
   }
   
-  // Показываем игровой экран с единым интерфейсом
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <Header prestigePoints={state.prestigePoints || 0} />
