@@ -6,11 +6,17 @@ import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { useTranslation } from '@/i18n';
 
 export function BuildingsContainer() {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { t } = useTranslation();
   
-  const handlePurchase = (buildingName: string) => {
-    safeDispatchGameEvent(`Построено здание: ${buildingName}`, 'success');
+  const handlePurchase = (buildingName: string, buildingId: string) => {
+    // Отправляем событие для пользовательского интерфейса
+    safeDispatchGameEvent(t('buildings.purchased', { buildingName }), 'success');
+    
+    // Форсированное обновление ресурсов для отражения изменений производства
+    setTimeout(() => {
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+    }, 100);
   };
   
   // Фильтруем только разблокированные здания
@@ -27,7 +33,7 @@ export function BuildingsContainer() {
             <BuildingItem 
               key={building.id} 
               building={building} 
-              onPurchase={() => handlePurchase(building.name)}
+              onPurchase={() => handlePurchase(building.name, building.id)}
             />
           ))}
         </div>

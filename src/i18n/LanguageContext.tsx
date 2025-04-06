@@ -6,7 +6,7 @@ import { Language, TranslationsType } from './types';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const defaultLanguage: Language = 'ru';
@@ -32,15 +32,29 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
+    
+    // Принудительное обновление UI после смены языка
+    setTimeout(() => {
+      window.dispatchEvent(new Event('language-changed'));
+    }, 0);
   };
   
-  // Функция перевода
-  const t = (key: string): string => {
+  // Функция перевода с поддержкой параметров
+  const t = (key: string, params?: Record<string, string | number>): string => {
     if (!key) return '';
     
     try {
       const currentTranslations = translations[language] as TranslationsType;
-      return currentTranslations[key] || key;
+      let translatedText = currentTranslations[key] || key;
+      
+      // Замена параметров в переводе, если они есть
+      if (params) {
+        Object.entries(params).forEach(([paramKey, paramValue]) => {
+          translatedText = translatedText.replace(`{${paramKey}}`, String(paramValue));
+        });
+      }
+      
+      return translatedText;
     } catch (error) {
       console.error(`Translation error for key: ${key}`, error);
       return key;

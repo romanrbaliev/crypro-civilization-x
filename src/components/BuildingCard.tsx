@@ -15,10 +15,10 @@ interface BuildingCardProps {
 
 const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onSelect, isSelected }) => {
   const { id, name, description, count = 0, cost = {}, effects = {} } = building;
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
-  // Форматирование стоимости
-  const formattedCost = formatCost(cost);
+  // Форматирование стоимости с учетом языка
+  const formattedCost = formatCost(cost, language);
   
   // Определение иконки для здания
   const getBuildingIcon = () => {

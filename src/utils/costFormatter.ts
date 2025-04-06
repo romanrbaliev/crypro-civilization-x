@@ -5,15 +5,15 @@ import { useTranslation } from '@/i18n';
 /**
  * Форматирует стоимость здания для отображения
  */
-export const formatCost = (cost: any): string => {
+export const formatCost = (cost: any, language: string = 'ru'): string => {
   if (!cost || Object.keys(cost).length === 0) {
-    return 'Стоимость не определена';
+    return language === 'ru' ? 'Стоимость не определена' : 'Cost not defined';
   }
   
   return Object.entries(cost)
     .map(([resourceId, amount]) => {
       // Получаем название ресурса
-      const resourceName = getResourceName(resourceId);
+      const resourceName = getResourceName(resourceId, language);
       
       // Форматируем количество
       const formattedAmount = formatNumber(Number(amount));
@@ -24,10 +24,10 @@ export const formatCost = (cost: any): string => {
 };
 
 /**
- * Возвращает название ресурса по его идентификатору
+ * Возвращает название ресурса по его идентификатору с учетом языка
  */
-const getResourceName = (resourceId: string): string => {
-  const resourceNames: {[key: string]: string} = {
+const getResourceName = (resourceId: string, language: string = 'ru'): string => {
+  const resourceNamesRu: {[key: string]: string} = {
     knowledge: 'Знания',
     usdt: 'USDT',
     electricity: 'Электричество',
@@ -35,5 +35,15 @@ const getResourceName = (resourceId: string): string => {
     bitcoin: 'Bitcoin'
   };
   
-  return resourceNames[resourceId] || resourceId;
+  const resourceNamesEn: {[key: string]: string} = {
+    knowledge: 'Knowledge',
+    usdt: 'USDT',
+    electricity: 'Electricity',
+    computingPower: 'Computing Power',
+    bitcoin: 'Bitcoin'
+  };
+  
+  return language === 'ru' 
+    ? resourceNamesRu[resourceId] || resourceId 
+    : resourceNamesEn[resourceId] || resourceId;
 };
