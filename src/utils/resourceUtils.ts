@@ -93,24 +93,24 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
         if (effectKey.startsWith('max') && effectKey.endsWith('Boost')) {
           const resourceId = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
           if (newState.resources[resourceId]) {
-            const boostAmount = building.effects[effectKey] * building.count;
+            const boostAmount = Number(building.effects[effectKey]) * building.count;
             newState.resources = {
               ...newState.resources,
               [resourceId]: {
                 ...newState.resources[resourceId],
-                max: newState.resources[resourceId].max + boostAmount
+                max: Number(newState.resources[resourceId].max) + boostAmount
               }
             };
           }
         } else if (effectKey.startsWith('max') && effectKey.endsWith('PercentBoost')) {
           const resourceId = effectKey.replace('max', '').replace('PercentBoost', '').toLowerCase();
           if (newState.resources[resourceId]) {
-            const percentBoost = building.effects[effectKey] * building.count;
+            const percentBoost = Number(building.effects[effectKey]) * building.count;
             newState.resources = {
               ...newState.resources,
               [resourceId]: {
                 ...newState.resources[resourceId],
-                max: newState.resources[resourceId].max * (1 + percentBoost)
+                max: Number(newState.resources[resourceId].max) * (1 + percentBoost)
               }
             };
           }
@@ -128,24 +128,24 @@ export const updateResourceMaxValues = (state: GameState): GameState => {
         if (effectKey.startsWith('max') && effectKey.endsWith('Boost')) {
           const resourceId = effectKey.replace('max', '').replace('Boost', '').toLowerCase();
           if (newState.resources[resourceId]) {
-            const boostAmount = upgrade.effects[effectKey];
+            const boostAmount = Number(upgrade.effects[effectKey]);
             newState.resources = {
               ...newState.resources,
               [resourceId]: {
                 ...newState.resources[resourceId],
-                max: newState.resources[resourceId].max + boostAmount
+                max: Number(newState.resources[resourceId].max) + boostAmount
               }
             };
           }
         } else if (effectKey.startsWith('max') && effectKey.endsWith('PercentBoost')) {
           const resourceId = effectKey.replace('max', '').replace('PercentBoost', '').toLowerCase();
           if (newState.resources[resourceId]) {
-            const percentBoost = upgrade.effects[effectKey];
+            const percentBoost = Number(upgrade.effects[effectKey]);
             newState.resources = {
               ...newState.resources,
               [resourceId]: {
                 ...newState.resources[resourceId],
-                max: newState.resources[resourceId].max * (1 + percentBoost)
+                max: Number(newState.resources[resourceId].max) * (1 + percentBoost)
               }
             };
           }
