@@ -1,76 +1,78 @@
 
-// Безопасная отправка игровых событий
-export const safeDispatchGameEvent = (message: string, type: "success" | "warning" | "info" | "error" = "info") => {
-  try {
-    if (typeof window !== 'undefined') {
-      const gameEventBus = window.gameEventBus || new EventTarget();
-      
-      if (!window.gameEventBus) {
-        window.gameEventBus = gameEventBus;
-      }
-      
-      const event = new CustomEvent('game-event', {
-        detail: { message, type }
-      });
-      
-      gameEventBus.dispatchEvent(event);
-      console.log(`[Event dispatched] ${type}: ${message}`);
-    }
-  } catch (error) {
-    console.error('Error dispatching game event:', error);
-  }
-};
+import { useTranslation } from "@/i18n";
 
-// Функция для проверки и создания шины событий, если она не существует
-export const ensureGameEventBus = (): EventTarget => {
-  if (typeof window !== 'undefined') {
-    if (!window.gameEventBus) {
-      window.gameEventBus = new EventTarget();
-      console.log('GameEventBus создан');
-    }
-    return window.gameEventBus;
-  }
-  
-  // Возвращаем заглушку для серверного рендеринга
-  return new EventTarget();
-};
+export type GameEventType = "info" | "success" | "warning" | "error";
 
-// Функция для подписки на события игры
-export const subscribeToGameEvents = (
-  callback: (event: CustomEvent) => void
-): () => void => {
-  const eventBus = ensureGameEventBus();
-  
-  const handleEvent = (e: Event) => {
-    if (e instanceof CustomEvent) {
-      callback(e);
-    }
-  };
-  
-  eventBus.addEventListener('game-event', handleEvent);
-  
-  // Возвращаем функцию для отписки
-  return () => {
-    eventBus.removeEventListener('game-event', handleEvent);
-  };
-};
+// Интерфейс для параметризованного сообщения события
+interface GameEventData {
+  messageKey: string;
+  type: GameEventType;
+  params?: Record<string, string | number>;
+}
 
-// Отправить событие с деталями
-export const dispatchGameEventWithDetails = (
-  message: string, 
-  type: "success" | "warning" | "info" | "error" = "info",
-  details?: any
+// Функция для отправки событий с переводом и параметрами
+export const safeDispatchGameEvent = (
+  messageOrData: string | GameEventData,
+  type: GameEventType = "info"
 ) => {
-  try {
-    const eventBus = ensureGameEventBus();
-    
-    const event = new CustomEvent('game-event-detail', {
-      detail: { message, type, details }
-    });
-    
-    eventBus.dispatchEvent(event);
-    console.log(`[Event with details dispatched] ${type}: ${message}`, details);
-  } catch (error) {
-    console.error('Error dispatching detailed game event:', error);
+  if (typeof window === "undefined" || !window.gameEventBus) {
+    console.warn("Game event bus not initialized");
+    return;
   }
+
+  try {
+    // Определяем, получили ли мы строку или объект с ключом перевода
+    if (typeof messageOrData === "string") {
+      // Простое сообщение без перевода (для обратной совместимости)
+      const event = new CustomEvent("game-event", {
+        detail: { message: messageOrData, type },
+      });
+      window.gameEventBus.dispatchEvent(event);
+    } else {
+      // Объект с ключом перевода и параметрами
+      const { messageKey, type: eventType, params } = messageOrData;
+      
+      // Динамически получаем текущий язык и функцию перевода
+      const getTranslation = () => {
+        // Получаем язык из локального хранилища
+        const savedLanguage = localStorage.getItem('language') as 'ru' | 'en' || 'ru';
+        
+        // Получаем переводы
+        const translations = require('@/i18n/translations').translations;
+        const currentTranslations = translations[savedLanguage];
+        
+        if (!currentTranslations || !currentTranslations[messageKey]) {
+          return messageKey; // Если перевод не найден, возвращаем ключ
+        }
+        
+        // Получаем шаблон перевода
+        let translatedText = currentTranslations[messageKey];
+        
+        // Заменяем параметры в шаблоне
+        if (params) {
+          Object.entries(params).forEach(([paramKey, paramValue]) => {
+            translatedText = translatedText.replace(`{${paramKey}}`, String(paramValue));
+          });
+        }
+        
+        return translatedText;
+      };
+      
+      // Получаем переведённое сообщение
+      const translatedMessage = getTranslation();
+      
+      // Отправляем событие с переведенным сообщением
+      const event = new CustomEvent("game-event", {
+        detail: { message: translatedMessage, type: eventType },
+      });
+      window.gameEventBus.dispatchEvent(event);
+    }
+  } catch (error) {
+    console.error("Error dispatching game event:", error);
+  }
+};
+
+// Генератор уникальных идентификаторов для событий
+export const generateEventId = (): string => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 };

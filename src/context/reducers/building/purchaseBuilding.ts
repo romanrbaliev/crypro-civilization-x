@@ -89,12 +89,12 @@ export const processPurchaseBuilding = (state: GameState, payload: { buildingId:
     };
   }
   
-  // Отправляем событие о покупке здания с учетом языка
-  const eventMessage = newState.language === 'ru' 
-    ? `Приобретено здание: ${building.name}` 
-    : `Building purchased: ${building.name}`;
-  
-  safeDispatchGameEvent(eventMessage, 'success');
+  // Отправляем событие о покупке здания с учетом языка и используем формат перевода
+  safeDispatchGameEvent({
+    messageKey: 'event.buildingPurchased',
+    type: 'success',
+    params: { name: building.name }
+  });
   
   // Проверяем и обновляем все разблокировки после покупки
   const stateWithUnlocks = checkAllUnlocks(newState);

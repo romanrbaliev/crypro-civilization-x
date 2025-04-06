@@ -22,7 +22,7 @@ export const ru: TranslationsType = {
   'buildings.title': 'Оборудование',
   'buildings.empty': 'У вас пока нет доступных зданий.',
   'buildings.continue': 'Продолжайте накапливать ресурсы, чтобы разблокировать здания.',
-  'buildings.undefined': 'undefined',
+  'buildings.undefined': 'не определена',
   'buildings.practice': 'Практика',
   'buildings.practice.description': 'Автоматически генерирует крипто-знания',
   'buildings.practice.effect': 'Производит +1 знаний/сек',

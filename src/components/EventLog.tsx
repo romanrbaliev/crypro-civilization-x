@@ -53,20 +53,20 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
   
   // Получаем локализованный текст для журнала событий
   const getLogTitle = () => {
-    return language === 'ru' ? 'Журнал событий' : 'Event Log';
+    return t('eventLog.title');
   };
   
   const getEventsCountText = (count: number) => {
     if (language === 'ru') {
-      return `${count} ${count === 1 ? 'событие' : 
-        (count >= 2 && count <= 4) ? 'события' : 'событий'}`;
+      return `${count} ${count === 1 ? t('eventLog.event') : 
+        (count >= 2 && count <= 4) ? t('eventLog.events') : t('eventLog.eventsMany')}`;
     } else {
-      return `${count} ${count === 1 ? 'event' : 'events'}`;
+      return `${count} ${count === 1 ? t('eventLog.event') : t('eventLog.events')}`;
     }
   };
   
   const getNoEventsText = () => {
-    return language === 'ru' ? 'Пока нет событий' : 'No events yet';
+    return t('eventLog.empty');
   };
   
   return (

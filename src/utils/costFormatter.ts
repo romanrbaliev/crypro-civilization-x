@@ -18,7 +18,7 @@ export const formatCost = (cost: any, language: string = 'ru'): string => {
       // Форматируем количество
       const formattedAmount = formatNumber(Number(amount));
       
-      return `${resourceName}: ${formattedAmount}`;
+      return `${formattedAmount} ${resourceName}`;
     })
     .join(', ');
 };
