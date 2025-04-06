@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import * as ResourceCalculations from '@/utils/resourceCalculations';
 
@@ -28,14 +29,16 @@ export class BonusCalculationService {
     
     // Для каждого ресурса вычисляем производство с учетом всех бонусов
     for (const resourceId in resources) {
-      const productionRate = ResourceCalculations.calculateResourceProductionRate(resourceId, newState);
-      const consumptionRate = ResourceCalculations.calculateResourceConsumptionRate(resourceId, newState);
-      
-      resources[resourceId] = {
-        ...resources[resourceId],
-        production: productionRate,
-        perSecond: productionRate - consumptionRate
-      };
+      if (resources[resourceId].unlocked) {
+        const production = ResourceCalculations.calculateProductionBonus(newState, resourceId);
+        const consumption = ResourceCalculations.calculateEfficiencyModifier(newState, resourceId);
+        
+        resources[resourceId] = {
+          ...resources[resourceId],
+          production: production,
+          perSecond: production - consumption
+        };
+      }
     }
     
     newState.resources = resources;

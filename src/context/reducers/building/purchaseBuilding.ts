@@ -2,15 +2,17 @@
 import { GameState } from '../../types';
 import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
 import { checkAllUnlocks } from '@/utils/unlockManager';
-import { processPurchase } from '../purchaseSystem';
+import { processPurchase } from '../purchaseSystem/processPurchase';
 import { PurchasableType } from '@/types/purchasable';
+import { updateResourceMaxValues } from '@/utils/resourceUtils';
 
 // Обертка для совместимости с новой системой покупок
 export const processPurchaseBuilding = (state: GameState, payload: { buildingId: string }): GameState => {
   // Конвертируем старый формат в новый
   const newPayload = {
     itemId: payload.buildingId,
-    itemType: 'building' as PurchasableType
+    itemType: 'building' as PurchasableType,
+    quantity: 1
   };
   
   // Используем новую унифицированную функцию
@@ -60,7 +62,11 @@ export const processSellBuilding = (state: GameState, payload: { buildingId: str
   newState.resources = resources;
   newState.buildings = buildings;
   
-  return checkAllUnlocks(newState);
+  // Обновляем максимальные значения ресурсов
+  const stateWithUpdatedMaxValues = updateResourceMaxValues(newState);
+  
+  // Проверяем разблокировки
+  return checkAllUnlocks(stateWithUpdatedMaxValues);
 };
 
 // Функция для выбора специализации
