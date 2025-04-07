@@ -8,7 +8,6 @@ import { Book } from 'lucide-react';
 
 const LearnButton: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { incrementResource } = useResourceSystem();
   const { t } = useTranslation();
   
   // Определяем базовое производство знаний
@@ -31,8 +30,7 @@ const LearnButton: React.FC = () => {
       const knowledgeBefore = state.resources.knowledge.value || 0;
       console.log(`LearnButton: Текущее значение знаний перед кликом: ${knowledgeBefore}`);
       
-      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Добавляем знания напрямую через диспетчер
-      // вместо вызова incrementResource, что может вызывать конфликты
+      // Добавляем знания напрямую через диспетчер
       dispatch({
         type: 'INCREMENT_RESOURCE',
         payload: {
@@ -43,12 +41,6 @@ const LearnButton: React.FC = () => {
       
       // Открываем монитор производства знаний через событие
       window.dispatchEvent(new CustomEvent('open-knowledge-monitor'));
-      
-      // ДОБАВЛЯЕМ ДИАГНОСТИЧЕСКИЙ ТАЙМЕР: проверяем, обновилось ли значение после клика
-      setTimeout(() => {
-        const knowledgeAfter = state.resources.knowledge?.value || 0;
-        console.log(`LearnButton: Значение знаний через 100мс после клика: ${knowledgeAfter} (было: ${knowledgeBefore}, ожидалось: ${knowledgeBefore + baseProduction})`);
-      }, 100);
       
       console.log(`LearnButton: Отправлена команда INCREMENT_RESOURCE, знания +${baseProduction}`);
     }

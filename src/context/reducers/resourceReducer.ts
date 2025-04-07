@@ -18,8 +18,7 @@ export const processIncrementResource = (
     return state;
   }
   
-  // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Напрямую обновляем значение ресурса
-  // вместо вызова метода ResourceSystem
+  // Получаем текущие значения
   const currentValue = state.resources[resourceId].value || 0;
   const maxValue = state.resources[resourceId].max || Infinity;
   
@@ -36,6 +35,22 @@ export const processIncrementResource = (
       value: newValue
     }
   };
+  
+  // Отправляем событие обновления значения знаний, если это ресурс знаний
+  if (resourceId === 'knowledge' && Math.abs(newValue - currentValue) > 0.000001) {
+    try {
+      window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
+        detail: { 
+          oldValue: currentValue,
+          newValue: newValue,
+          delta: newValue - currentValue,
+          source: 'increment-resource'
+        }
+      }));
+    } catch (e) {
+      console.error("Ошибка при отправке события обновления знаний:", e);
+    }
+  }
   
   // Возвращаем обновленное состояние
   return {

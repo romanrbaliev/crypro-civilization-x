@@ -25,25 +25,29 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
   const expectedIncrement = (knowledgeProduction * deltaTime / 1000);
   console.log(`resourceUpdateReducer: Ожидаемый прирост знаний за ${deltaTime}ms: ${expectedIncrement.toFixed(6)}`);
   
-  // ВАЖНОЕ ИЗМЕНЕНИЕ: Прямое вычисление нового значения для отладки
+  // Вычисляем новое значение
   const calculatedValue = knowledgeBefore + expectedIncrement;
   console.log(`resourceUpdateReducer: Вычисленное новое значение: ${calculatedValue.toFixed(6)}`);
   
   // Обновляем ресурсы, используя ResourceSystem
   const updatedState = { ...state };
   
-  // ВАЖНОЕ ИЗМЕНЕНИЕ: Вместо вызова ResourceSystem, напрямую обновляем ресурсы
-  // Это исключает все возможные источники ошибок в ResourceSystem
+  // Обновляем значение ресурса знаний, если он разблокирован
   if (updatedState.resources.knowledge && updatedState.resources.knowledge.unlocked) {
+    // Максимальное значение для ресурса знаний
+    const maxValue = updatedState.resources.knowledge.max || Infinity;
+    // Проверяем, чтобы новое значение не превышало максимум
+    const newValue = Math.min(calculatedValue, maxValue);
+    
     updatedState.resources = {
       ...updatedState.resources,
       knowledge: {
         ...updatedState.resources.knowledge,
-        value: calculatedValue
+        value: newValue
       }
     };
     
-    console.log(`resourceUpdateReducer: КРИТИЧЕСКИЙ ПУТЬ! Напрямую установлено новое значение знаний: ${calculatedValue.toFixed(6)}`);
+    console.log(`resourceUpdateReducer: Установлено новое значение знаний: ${newValue.toFixed(6)}, ограничено максимумом: ${maxValue}`);
   }
   
   // Логируем состояние знаний после обновления
@@ -59,13 +63,17 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
         detail: { 
           oldValue: knowledgeBefore,
           newValue: knowledgeAfter,
-          delta: knowledgeDelta
+          delta: knowledgeDelta,
+          source: 'resource-update',
+          deltaTime
         }
       }));
       console.log("resourceUpdateReducer: Отправлено событие knowledge-value-updated");
     } catch (e) {
       console.error("resourceUpdateReducer: Ошибка при отправке события:", e);
     }
+  } else if (knowledgeProduction > 0) {
+    console.warn(`resourceUpdateReducer: Внимание! Производство знаний > 0, но значение не изменилось!`);
   }
   
   // Возвращаем обновленное состояние
@@ -76,7 +84,7 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
 export const calculateResourceProduction = (state: GameState): GameState => {
   console.log("resourceUpdateReducer: Пересчет производства ресурсов");
   
-  // ВАЖНОЕ ИЗМЕНЕНИЕ: Отслеживаем знания до пересчета
+  // Отслеживаем знания до пересчета
   const knowledgeBefore = state.resources.knowledge?.value || 0;
   const knowledgeProductionBefore = state.resources.knowledge?.perSecond || 0;
   
@@ -88,10 +96,27 @@ export const calculateResourceProduction = (state: GameState): GameState => {
   
   console.log(`resourceUpdateReducer: Производство знаний: ${knowledgeProductionBefore}/сек -> ${knowledgeProductionAfter}/сек`);
   
+  // Подробный вывод информации о производстве и потреблении всех ресурсов
   for (const resourceId in updatedState.resources) {
     const resource = updatedState.resources[resourceId];
     if (resource.unlocked) {
       console.log(`Ресурс ${resourceId}: производство ${resource.production || 0}/сек, потребление ${resource.consumption || 0}/сек, перерасчет ${resource.perSecond || 0}/сек`);
+    }
+  }
+  
+  // Если это пересчет производства знаний, отправляем специальное событие
+  if (Math.abs(knowledgeProductionAfter - knowledgeProductionBefore) > 0.000001) {
+    try {
+      window.dispatchEvent(new CustomEvent('knowledge-production-updated', { 
+        detail: { 
+          oldValue: knowledgeProductionBefore,
+          newValue: knowledgeProductionAfter,
+          delta: knowledgeProductionAfter - knowledgeProductionBefore
+        }
+      }));
+      console.log("resourceUpdateReducer: Отправлено событие knowledge-production-updated");
+    } catch (e) {
+      console.error("resourceUpdateReducer: Ошибка при отправке события:", e);
     }
   }
   

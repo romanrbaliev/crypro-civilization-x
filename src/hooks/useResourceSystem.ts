@@ -1,3 +1,4 @@
+
 import { useCallback, useMemo } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
@@ -20,8 +21,7 @@ export const useResourceSystem = () => {
     
     console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
     
-    // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Используем TICK для обновления ресурсов
-    // вместо прямого обновления через ResourceSystem
+    // Используем TICK для обновления ресурсов
     dispatch({ 
       type: 'TICK', 
       payload: { 
@@ -89,7 +89,7 @@ export const useResourceSystem = () => {
   const incrementResource = useCallback((resourceId: string, amount: number = 1) => {
     console.log(`useResourceSystem: Увеличение ресурса ${resourceId} на ${amount}`);
     
-    // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Используем INCREMENT_RESOURCE вместо прямого обновления
+    // Используем INCREMENT_RESOURCE
     dispatch({
       type: 'INCREMENT_RESOURCE',
       payload: {
