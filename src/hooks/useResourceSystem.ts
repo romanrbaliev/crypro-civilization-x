@@ -20,18 +20,17 @@ export const useResourceSystem = () => {
     
     console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
     
-    // Прямое обновление ресурсов через ResourceSystem для исключения любых побочных эффектов
-    const updatedState = resourceSystem.updateResources(state, deltaTime);
-    
-    // Отправляем обновленное состояние непосредственно, пропуская стандартный цикл TICK
+    // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Используем TICK для обновления ресурсов
+    // вместо прямого обновления через ResourceSystem
     dispatch({ 
-      type: 'DIRECT_RESOURCE_UPDATE', 
+      type: 'TICK', 
       payload: { 
-        updatedState,
-        deltaTime
+        currentTime: Date.now(),
+        deltaTime: deltaTime,
+        forcedUpdate: true
       } 
     });
-  }, [dispatch, state, resourceSystem]);
+  }, [dispatch]);
   
   /**
    * Проверяет, достаточно ли ресурсов для покупки
@@ -90,33 +89,15 @@ export const useResourceSystem = () => {
   const incrementResource = useCallback((resourceId: string, amount: number = 1) => {
     console.log(`useResourceSystem: Увеличение ресурса ${resourceId} на ${amount}`);
     
-    // Получаем текущее значение для отправки события
-    const currentValue = state.resources[resourceId]?.value || 0;
-    
-    // Создаем новый объект состояния с обновленным ресурсом
-    const newState = resourceSystem.incrementResource(state, { resourceId, amount });
-    
-    // Отправляем действие с обновленным состоянием
+    // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Используем INCREMENT_RESOURCE вместо прямого обновления
     dispatch({
-      type: 'DIRECT_RESOURCE_UPDATE',
-      payload: { updatedState: newState, deltaTime: 0 }
+      type: 'INCREMENT_RESOURCE',
+      payload: {
+        resourceId,
+        amount
+      }
     });
-    
-    // Отправляем событие обновления значения
-    const newValue = newState.resources[resourceId]?.value || 0;
-    try {
-      window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
-        detail: { 
-          oldValue: currentValue,
-          newValue: newValue,
-          delta: amount
-        }
-      }));
-      console.log(`useResourceSystem: Отправлено событие обновления ${resourceId}: ${currentValue} → ${newValue}`);
-    } catch (e) {
-      console.error("useResourceSystem: Ошибка при отправке события:", e);
-    }
-  }, [dispatch, state, resourceSystem]);
+  }, [dispatch]);
   
   /**
    * Пересчитывает всё производство ресурсов
@@ -124,17 +105,12 @@ export const useResourceSystem = () => {
   const recalculateAllProduction = useCallback(() => {
     console.log("useResourceSystem: Пересчет всего производства ресурсов");
     
-    // Напрямую вычисляем новое состояние с обновленным производством
-    const updatedState = resourceSystem.recalculateAllResourceProduction(state);
+    // Пересчитываем производство и отправляем обновленное состояние
+    dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
     
-    // Отправляем обновленное состояние напрямую
-    dispatch({ 
-      type: 'DIRECT_RESOURCE_UPDATE', 
-      payload: { updatedState, deltaTime: 0 } 
-    });
-    
-    return updatedState;
-  }, [dispatch, state, resourceSystem]);
+    // Для совместимости возвращаем текущее состояние
+    return state;
+  }, [dispatch, state]);
   
   /**
    * Разблокирует ресурс

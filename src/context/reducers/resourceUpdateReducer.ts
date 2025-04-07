@@ -15,9 +15,6 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
     return state;
   }
   
-  // Глубокая копия состояния перед обновлением (для сравнения)
-  const stateBefore = JSON.stringify(state.resources.knowledge);
-  
   // Логируем состояние знаний до обновления
   const knowledgeBefore = state.resources.knowledge?.value || 0;
   const knowledgeProduction = state.resources.knowledge?.perSecond || 0;
@@ -33,52 +30,27 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
   console.log(`resourceUpdateReducer: Вычисленное новое значение: ${calculatedValue.toFixed(6)}`);
   
   // Обновляем ресурсы, используя ResourceSystem
-  const updatedState = resourceSystem.updateResources(state, deltaTime);
+  const updatedState = { ...state };
+  
+  // ВАЖНОЕ ИЗМЕНЕНИЕ: Вместо вызова ResourceSystem, напрямую обновляем ресурсы
+  // Это исключает все возможные источники ошибок в ResourceSystem
+  if (updatedState.resources.knowledge && updatedState.resources.knowledge.unlocked) {
+    updatedState.resources = {
+      ...updatedState.resources,
+      knowledge: {
+        ...updatedState.resources.knowledge,
+        value: calculatedValue
+      }
+    };
+    
+    console.log(`resourceUpdateReducer: КРИТИЧЕСКИЙ ПУТЬ! Напрямую установлено новое значение знаний: ${calculatedValue.toFixed(6)}`);
+  }
   
   // Логируем состояние знаний после обновления
   const knowledgeAfter = updatedState.resources.knowledge?.value || 0;
   const knowledgeDelta = knowledgeAfter - knowledgeBefore;
   
   console.log(`resourceUpdateReducer: Знания ПОСЛЕ: ${knowledgeAfter.toFixed(6)}, прирост: ${knowledgeDelta.toFixed(6)} (за ${deltaTime}ms)`);
-  
-  // Проверка на проблему с обновлением
-  if (knowledgeProduction > 0 && Math.abs(knowledgeDelta) < 0.000001 && deltaTime > 100) {
-    console.error("resourceUpdateReducer: КРИТИЧЕСКАЯ ПРОБЛЕМА! Производство положительное, но значение не увеличилось!");
-    console.log("resourceUpdateReducer: Состояние перед:", stateBefore);
-    console.log("resourceUpdateReducer: Состояние после:", JSON.stringify(updatedState.resources.knowledge));
-    console.log("resourceUpdateReducer: Проверяем наличие ограничений по максимуму:", 
-      updatedState.resources.knowledge?.value, "из", updatedState.resources.knowledge?.max);
-    
-    // РЕШЕНИЕ КРИТИЧЕСКОЙ ПРОБЛЕМЫ: Принудительно устанавливаем значение, если обнаружена проблема
-    const fixedState = {
-      ...updatedState,
-      resources: {
-        ...updatedState.resources,
-        knowledge: {
-          ...updatedState.resources.knowledge,
-          value: calculatedValue
-        }
-      }
-    };
-    
-    console.log("resourceUpdateReducer: ПРИМЕНЕНО ПРИНУДИТЕЛЬНОЕ ИСПРАВЛЕНИЕ! Новое значение:", fixedState.resources.knowledge?.value);
-    
-    // Создаем событие обновления значения знаний
-    try {
-      window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
-        detail: { 
-          oldValue: knowledgeBefore,
-          newValue: calculatedValue,
-          delta: calculatedValue - knowledgeBefore
-        }
-      }));
-      console.log("resourceUpdateReducer: Отправлено событие knowledge-value-updated после исправления");
-    } catch (e) {
-      console.error("resourceUpdateReducer: Ошибка при отправке события:", e);
-    }
-    
-    return fixedState;
-  }
   
   // Создаем событие обновления значения знаний
   if (Math.abs(knowledgeDelta) > 0.000001) {

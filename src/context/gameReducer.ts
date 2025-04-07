@@ -1,9 +1,11 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { saveGameToServer } from '@/api/gameStorage';
 import { checkAllUnlocks } from '@/utils/unlockManager';
 import { ensureUnlocksExist } from '@/utils/unlockHelper';
 import { ResourceSystem } from '@/systems/ResourceSystem';
+import { updateResources } from './reducers/resourceUpdateReducer';
 
 // Импорт редьюсеров для разных типов действий
 import { processPurchaseBuilding, processSellBuilding } from './reducers/building';
@@ -101,22 +103,23 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks({ ...newState, gameStarted: true });
     
     case 'TICK':
+      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Полностью переработан обработчик TICK
       // Вычисляем прошедшее время
       const currentTime = action.payload?.currentTime || Date.now();
-      const deltaTime = currentTime - newState.lastUpdate;
+      const deltaTime = action.payload?.deltaTime || (currentTime - newState.lastUpdate);
       
       if (deltaTime > 0) {
         console.log(`TICK: Обновление ресурсов за ${deltaTime}ms`);
         
-        // ВАЖНОЕ ИЗМЕНЕНИЕ: Детальное логирование ресурсов перед обновлением
+        // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Детальное логирование ресурсов перед обновлением
         const knowledgeBefore = newState.resources.knowledge?.value || 0;
         const knowledgeProduction = newState.resources.knowledge?.perSecond || 0;
         
         console.log(`TICK: Знания до обновления: ${knowledgeBefore.toFixed(4)}, производство: ${knowledgeProduction.toFixed(4)}/сек`);
         
         if (action.payload?.skipResourceUpdate !== true) {
-          // Используем новый метод для прямого обновления состояния от ResourceSystem
-          newState = resourceSystem.updateResources(newState, deltaTime);
+          // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Используем упрощенный метод обновления ресурсов
+          newState = updateResources(newState, deltaTime);
           
           const knowledgeAfter = newState.resources.knowledge?.value || 0;
           console.log(`TICK: Знания после обновления: ${knowledgeAfter.toFixed(4)}, разница: ${(knowledgeAfter - knowledgeBefore).toFixed(4)}`);

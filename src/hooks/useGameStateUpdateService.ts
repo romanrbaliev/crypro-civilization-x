@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { useResourceSystem } from './useResourceSystem';
@@ -11,6 +12,8 @@ export const useGameStateUpdateService = () => {
   const tickCountRef = useRef<number>(0);
   // Флаг, указывающий, что монитор знаний открыт
   const monitorIsOpenRef = useRef<boolean>(false);
+  // Счетчик успешных обновлений знаний
+  const successfulUpdatesRef = useRef<number>(0);
   
   const updateGameState = useCallback(() => {
     if (!isPageVisible || !state.gameStarted) {
@@ -18,25 +21,47 @@ export const useGameStateUpdateService = () => {
     }
     
     const currentTime = Date.now();
-    const deltaTime = currentTime - state.lastUpdate;
+    const deltaTime = currentTime - lastTickTimeRef.current;
     
     // Если прошло слишком много времени (например, более минуты),
     // ограничиваем дельту времени, чтобы не было резких скачков
-    const cappedDeltaTime = Math.min(deltaTime, 60000);
+    const cappedDeltaTime = Math.min(deltaTime, 10000); // Ограничиваем 10 секундами
     
-    if (cappedDeltaTime > 0) {
+    if (cappedDeltaTime > 10) { // Обновляемся только если прошло больше 10мс
       // Увеличиваем счетчик тиков и выводим лог каждые 10 тиков
       tickCountRef.current += 1;
       if (tickCountRef.current % 10 === 0) {
         console.log(`Тик #${tickCountRef.current}: Обновление состояния игры, прошло ${cappedDeltaTime}ms`);
       }
       
-      // ВАЖНОЕ ИЗМЕНЕНИЕ: Прямое обновление ресурсов через ResourceSystem
-      updateResources(cappedDeltaTime);
+      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Прямая отправка TICK с deltaTime
+      dispatch({ 
+        type: 'TICK', 
+        payload: { 
+          currentTime,
+          forcedUpdate: true,
+          deltaTime: cappedDeltaTime
+        } 
+      });
+      
+      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Здесь не используем updateResources, так как это будет сделано в обработчике TICK
+      // вместо updateResources(cappedDeltaTime);
+      
+      // Отслеживаем успешные обновления
+      const knowledgeBefore = state.resources.knowledge?.value || 0;
+      setTimeout(() => {
+        const knowledgeAfter = state.resources.knowledge?.value || 0;
+        if (knowledgeAfter > knowledgeBefore) {
+          successfulUpdatesRef.current += 1;
+          if (successfulUpdatesRef.current % 5 === 0) {
+            console.log(`✅ Успешно увеличены знания: ${knowledgeBefore} -> ${knowledgeAfter} (всего успешных обновлений: ${successfulUpdatesRef.current})`);
+          }
+        }
+      }, 50);
       
       lastTickTimeRef.current = currentTime;
     }
-  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch, updateResources]);
+  }, [isPageVisible, state.gameStarted, state.resources.knowledge?.value, dispatch]);
   
   // Инициализация игрового состояния при первой загрузке
   useEffect(() => {
@@ -72,10 +97,19 @@ export const useGameStateUpdateService = () => {
         const currentTime = Date.now();
         const deltaTime = currentTime - lastTickTimeRef.current;
         
-        // Обновляем только если прошло достаточно времени
+        // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Напрямую отправляем TICK вместо вызова updateResources
         if (deltaTime > 50) {
-          updateResources(deltaTime);
+          dispatch({ 
+            type: 'TICK', 
+            payload: { 
+              currentTime,
+              forcedUpdate: true,
+              deltaTime
+            } 
+          });
           lastTickTimeRef.current = currentTime;
+          
+          console.log(`Принудительное обновление через TICK: прошло ${deltaTime}ms`);
         }
       }
     };
@@ -91,14 +125,14 @@ export const useGameStateUpdateService = () => {
       window.removeEventListener('open-knowledge-monitor', handleKnowledgeMonitorOpen);
       window.removeEventListener('monitor-force-update', handleForceUpdate);
     };
-  }, [recalculateAllProduction, updateResources]);
+  }, [recalculateAllProduction, dispatch]);
   
-  // Главный эффект для обновления игры - СУЩЕСТВЕННО УМЕНЬШАЕМ ИНТЕРВАЛ
+  // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Главный эффект для обновления игры - СУЩЕСТВЕННО УМЕНЬШАЕМ ИНТЕРВАЛ
   useEffect(() => {
-    console.log("Запуск системы обновления ресурсов с сокращенным интервалом");
+    console.log("Запуск системы обновления ресурсов с уменьшенным интервалом");
     
-    // Запускаем таймер для обновления ресурсов каждые 50ms для более плавного обновления
-    const updateInterval = setInterval(updateGameState, 50);
+    // Запускаем таймер для обновления ресурсов каждые 100ms для более стабильного обновления
+    const updateInterval = setInterval(updateGameState, 100);
     
     // Запускаем таймер для проверки разблокировок каждые 5 секунд
     const unlockCheckInterval = setInterval(() => {
@@ -111,11 +145,6 @@ export const useGameStateUpdateService = () => {
     const forceUpdateInterval = setInterval(() => {
       if (isPageVisible && state.gameStarted) {
         recalculateAllProduction();
-        
-        // Выводим логи только иногда для снижения шума в консоли
-        if (!monitorIsOpenRef.current) {
-          console.log("Принудительное обновление производства ресурсов");
-        }
       }
     }, 3000);
     

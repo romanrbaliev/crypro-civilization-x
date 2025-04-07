@@ -9,7 +9,39 @@ export const processIncrementResource = (
   state: GameState, 
   payload: { resourceId: string; amount?: number }
 ): GameState => {
-  return resourceSystem.incrementResource(state, payload);
+  const { resourceId, amount = 1 } = payload;
+  console.log(`resourceReducer: Увеличение ресурса ${resourceId} на ${amount}`);
+  
+  // Проверяем существование и разблокировку ресурса
+  if (!state.resources[resourceId] || !state.resources[resourceId].unlocked) {
+    console.warn(`Ресурс ${resourceId} не существует или не разблокирован`);
+    return state;
+  }
+  
+  // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Напрямую обновляем значение ресурса
+  // вместо вызова метода ResourceSystem
+  const currentValue = state.resources[resourceId].value || 0;
+  const maxValue = state.resources[resourceId].max || Infinity;
+  
+  // Вычисляем новое значение, не превышающее максимум
+  const newValue = Math.min(currentValue + amount, maxValue);
+  
+  console.log(`resourceReducer: ${resourceId} ${currentValue} + ${amount} = ${newValue} (макс. ${maxValue})`);
+  
+  // Создаем новый объект ресурсов с обновленным значением
+  const updatedResources = {
+    ...state.resources,
+    [resourceId]: {
+      ...state.resources[resourceId],
+      value: newValue
+    }
+  };
+  
+  // Возвращаем обновленное состояние
+  return {
+    ...state,
+    resources: updatedResources
+  };
 };
 
 export const processUnlockResource = (

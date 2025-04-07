@@ -7,7 +7,7 @@ import { useTranslation } from '@/i18n';
 import { Book } from 'lucide-react';
 
 const LearnButton: React.FC = () => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { incrementResource } = useResourceSystem();
   const { t } = useTranslation();
   
@@ -18,18 +18,37 @@ const LearnButton: React.FC = () => {
     console.log('==== КЛИК ПО КНОПКЕ "ИЗУЧИТЬ КРИПТУ" ====');
     
     // Инкрементируем счетчик кликов
-    const currentValue = state.counters.knowledgeClicks?.value || 0;
+    dispatch({
+      type: 'INCREMENT_COUNTER',
+      payload: {
+        counterId: 'knowledgeClicks',
+        amount: 1
+      }
+    });
     
     if (state.resources.knowledge?.unlocked) {
       // Логируем текущее значение перед изменением
       const knowledgeBefore = state.resources.knowledge.value || 0;
       console.log(`LearnButton: Текущее значение знаний перед кликом: ${knowledgeBefore}`);
       
-      // Добавляем знания - использование прямого метода incrementResource
-      incrementResource('knowledge', baseProduction);
+      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Добавляем знания напрямую через диспетчер
+      // вместо вызова incrementResource, что может вызывать конфликты
+      dispatch({
+        type: 'INCREMENT_RESOURCE',
+        payload: {
+          resourceId: 'knowledge',
+          amount: baseProduction
+        }
+      });
       
       // Открываем монитор производства знаний через событие
       window.dispatchEvent(new CustomEvent('open-knowledge-monitor'));
+      
+      // ДОБАВЛЯЕМ ДИАГНОСТИЧЕСКИЙ ТАЙМЕР: проверяем, обновилось ли значение после клика
+      setTimeout(() => {
+        const knowledgeAfter = state.resources.knowledge?.value || 0;
+        console.log(`LearnButton: Значение знаний через 100мс после клика: ${knowledgeAfter} (было: ${knowledgeBefore}, ожидалось: ${knowledgeBefore + baseProduction})`);
+      }, 100);
       
       console.log(`LearnButton: Отправлена команда INCREMENT_RESOURCE, знания +${baseProduction}`);
     }
