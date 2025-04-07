@@ -21,7 +21,7 @@ export const useResourceSystem = () => {
     
     console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
     
-    // Используем TICK для обновления ресурсов
+    // Используем TICK для обновления ресурсов с принудительным обновлением
     dispatch({ 
       type: 'TICK', 
       payload: { 

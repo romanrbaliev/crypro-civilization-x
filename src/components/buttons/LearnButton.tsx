@@ -39,6 +39,12 @@ const LearnButton: React.FC = () => {
         }
       });
       
+      // Проверяем, увеличилось ли значение знаний
+      setTimeout(() => {
+        const knowledgeAfter = state.resources.knowledge?.value || 0;
+        console.log(`LearnButton: Значение знаний после клика: ${knowledgeAfter} (изменение: ${knowledgeAfter - knowledgeBefore})`);
+      }, 50);
+      
       // Открываем монитор производства знаний через событие
       window.dispatchEvent(new CustomEvent('open-knowledge-monitor'));
       

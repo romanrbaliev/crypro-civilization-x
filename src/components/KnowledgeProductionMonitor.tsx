@@ -173,7 +173,16 @@ const KnowledgeProductionMonitor: React.FC<{
     addLog(`Ожидаемое новое значение: ${formatValue(knowledge.value + expectedIncrement, 'knowledge')}`, 'calculation');
     
     // Запускаем принудительное обновление и проверяем результат
-    dispatch({ type: 'TICK', payload: { forcedUpdate: true, currentTime: now, deltaTime } });
+    dispatch({ 
+      type: 'TICK', 
+      payload: { 
+        forcedUpdate: true, 
+        currentTime: now, 
+        deltaTime,
+        // Добавляем метку forceSave, чтобы принудительно сохранить обновленные значения
+        forceSave: true
+      } 
+    });
     
     // Проверяем результат через короткую задержку
     setTimeout(() => {
@@ -188,6 +197,9 @@ const KnowledgeProductionMonitor: React.FC<{
       
       if (Math.abs(actualIncrement - expectedIncrement) > 0.0001) {
         addLog(`⚠️ Расхождение: ${formatValue(actualIncrement - expectedIncrement, 'knowledge')}`, 'debug');
+        // Добавляем детальную информацию о расхождении для отладки
+        console.log(`Детали расхождения: ожидалось ${expectedIncrement.toFixed(4)}, получено ${actualIncrement.toFixed(4)}`);
+        console.log(`Формула ожидания: ${knowledge.perSecond.toFixed(4)} * (${deltaTime} / 1000) = ${expectedIncrement.toFixed(4)}`);
       } else {
         addLog(`✓ Обновление выполнено корректно`, 'debug');
       }

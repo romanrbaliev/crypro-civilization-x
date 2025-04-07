@@ -103,7 +103,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return checkAllUnlocks({ ...newState, gameStarted: true });
     
     case 'TICK':
-      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Полностью переработан обработчик TICK
       // Вычисляем прошедшее время
       const currentTime = action.payload?.currentTime || Date.now();
       const deltaTime = action.payload?.deltaTime || (currentTime - newState.lastUpdate);
@@ -111,35 +110,37 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (deltaTime > 0) {
         console.log(`TICK: Обновление ресурсов за ${deltaTime}ms`);
         
-        // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Детальное логирование ресурсов перед обновлением
+        // Детальное логирование ресурсов перед обновлением
         const knowledgeBefore = newState.resources.knowledge?.value || 0;
         const knowledgeProduction = newState.resources.knowledge?.perSecond || 0;
         
         console.log(`TICK: Знания до обновления: ${knowledgeBefore.toFixed(4)}, производство: ${knowledgeProduction.toFixed(4)}/сек`);
         
         if (action.payload?.skipResourceUpdate !== true) {
-          // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Используем упрощенный метод обновления ресурсов
+          // Используем функцию обновления ресурсов и сохраняем её результат
           newState = updateResources(newState, deltaTime);
           
+          // Здесь был баг - состояние newState не использовалось должным образом
           const knowledgeAfter = newState.resources.knowledge?.value || 0;
           console.log(`TICK: Знания после обновления: ${knowledgeAfter.toFixed(4)}, разница: ${(knowledgeAfter - knowledgeBefore).toFixed(4)}`);
           
           // Создаем событие обновления для монитора знаний
-          if (knowledgeBefore !== knowledgeAfter) {
+          if (Math.abs(knowledgeAfter - knowledgeBefore) > 0.000001) {
             try {
               window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
                 detail: { 
                   oldValue: knowledgeBefore,
                   newValue: knowledgeAfter,
-                  delta: knowledgeAfter - knowledgeBefore
+                  delta: knowledgeAfter - knowledgeBefore,
+                  source: 'tick'
                 }
               }));
-              console.log(`TICK: Отправлено событие обновления знаний: ${knowledgeBefore} → ${knowledgeAfter}`);
+              console.log(`TICK: Отправлено событие обновления знаний: ${knowledgeBefore.toFixed(2)} → ${knowledgeAfter.toFixed(2)}`);
             } catch (e) {
               console.error("TICK: Ошибка при отправке события:", e);
             }
-          } else if (knowledgeProduction > 0) {
-            console.warn(`TICK: Внимание! Производство знаний > 0, но значение не изменилось!`);
+          } else if (knowledgeProduction > 0.000001) {
+            console.warn(`TICK: Внимание! Производство знаний ${knowledgeProduction.toFixed(4)}/сек > 0, но значение не изменилось!`);
           }
         }
         

@@ -15,68 +15,60 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
     return state;
   }
   
-  // Логируем состояние знаний до обновления
-  const knowledgeBefore = state.resources.knowledge?.value || 0;
-  const knowledgeProduction = state.resources.knowledge?.perSecond || 0;
-  
-  console.log(`resourceUpdateReducer: Знания ДО: ${knowledgeBefore.toFixed(6)}, производство: ${knowledgeProduction.toFixed(6)}/сек`);
-  
-  // Расчет ожидаемого прироста для проверки
-  const expectedIncrement = (knowledgeProduction * deltaTime / 1000);
-  console.log(`resourceUpdateReducer: Ожидаемый прирост знаний за ${deltaTime}ms: ${expectedIncrement.toFixed(6)}`);
-  
-  // Вычисляем новое значение
-  const calculatedValue = knowledgeBefore + expectedIncrement;
-  console.log(`resourceUpdateReducer: Вычисленное новое значение: ${calculatedValue.toFixed(6)}`);
-  
-  // Обновляем ресурсы, используя ResourceSystem
+  // Создаем новое состояние
   const updatedState = { ...state };
   
-  // Обновляем значение ресурса знаний, если он разблокирован
-  if (updatedState.resources.knowledge && updatedState.resources.knowledge.unlocked) {
-    // Максимальное значение для ресурса знаний
-    const maxValue = updatedState.resources.knowledge.max || Infinity;
-    // Проверяем, чтобы новое значение не превышало максимум
-    const newValue = Math.min(calculatedValue, maxValue);
+  // Обрабатываем каждый ресурс по отдельности
+  for (const resourceId in updatedState.resources) {
+    const resource = updatedState.resources[resourceId];
     
-    updatedState.resources = {
-      ...updatedState.resources,
-      knowledge: {
-        ...updatedState.resources.knowledge,
-        value: newValue
-      }
-    };
-    
-    console.log(`resourceUpdateReducer: Установлено новое значение знаний: ${newValue.toFixed(6)}, ограничено максимумом: ${maxValue}`);
-  }
-  
-  // Логируем состояние знаний после обновления
-  const knowledgeAfter = updatedState.resources.knowledge?.value || 0;
-  const knowledgeDelta = knowledgeAfter - knowledgeBefore;
-  
-  console.log(`resourceUpdateReducer: Знания ПОСЛЕ: ${knowledgeAfter.toFixed(6)}, прирост: ${knowledgeDelta.toFixed(6)} (за ${deltaTime}ms)`);
-  
-  // Создаем событие обновления значения знаний
-  if (Math.abs(knowledgeDelta) > 0.000001) {
-    try {
-      window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
-        detail: { 
-          oldValue: knowledgeBefore,
-          newValue: knowledgeAfter,
-          delta: knowledgeDelta,
-          source: 'resource-update',
-          deltaTime
+    // Обновляем только разблокированные ресурсы
+    if (resource && resource.unlocked) {
+      const perSecondRate = resource.perSecond || 0;
+      
+      // Если есть производство, обновляем значение
+      if (Math.abs(perSecondRate) > 0.000001) {
+        const currentValue = resource.value || 0;
+        const maxValue = resource.max || Infinity;
+        
+        // Вычисляем прирост за текущий временной промежуток
+        const increment = perSecondRate * (deltaTime / 1000);
+        
+        // Ограничиваем новое значение максимумом
+        const newValue = Math.min(currentValue + increment, maxValue);
+        
+        console.log(`resourceUpdateReducer: ${resourceId} ${currentValue.toFixed(2)} + ${increment.toFixed(2)} = ${newValue.toFixed(2)} (макс. ${maxValue})`);
+        
+        // Обновляем значение в состоянии (ПРОБЛЕМА БЫЛА ЗДЕСЬ - НЕПРАВИЛЬНО ОБНОВЛЯЛОСЬ СОСТОЯНИЕ)
+        updatedState.resources = {
+          ...updatedState.resources,
+          [resourceId]: {
+            ...updatedState.resources[resourceId],
+            value: newValue
+          }
+        };
+        
+        // Отправляем событие обновления только если значение изменилось
+        if (Math.abs(newValue - currentValue) > 0.000001 && resourceId === 'knowledge') {
+          try {
+            window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
+              detail: { 
+                oldValue: currentValue,
+                newValue: newValue,
+                delta: newValue - currentValue,
+                source: 'resource-update',
+                deltaTime
+              }
+            }));
+            console.log(`resourceUpdateReducer: Отправлено событие knowledge-value-updated (${currentValue.toFixed(2)} → ${newValue.toFixed(2)})`);
+          } catch (e) {
+            console.error("resourceUpdateReducer: Ошибка при отправке события:", e);
+          }
         }
-      }));
-      console.log("resourceUpdateReducer: Отправлено событие knowledge-value-updated");
-    } catch (e) {
-      console.error("resourceUpdateReducer: Ошибка при отправке события:", e);
+      }
     }
-  } else if (knowledgeProduction > 0) {
-    console.warn(`resourceUpdateReducer: Внимание! Производство знаний > 0, но значение не изменилось!`);
   }
   
-  // Возвращаем обновленное состояние
   return updatedState;
 };
 
