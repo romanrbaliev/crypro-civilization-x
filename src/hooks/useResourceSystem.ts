@@ -1,4 +1,3 @@
-
 import { useCallback, useMemo } from 'react';
 import { ResourceSystem } from '@/systems/ResourceSystem';
 import { useGame } from '@/context/hooks/useGame';
@@ -21,16 +20,18 @@ export const useResourceSystem = () => {
     
     console.log(`useResourceSystem: Обновление ресурсов, прошло ${deltaTime}ms`);
     
-    // Отправляем действие TICK с дополнительной отладочной информацией
+    // Прямое обновление ресурсов через ResourceSystem для исключения любых побочных эффектов
+    const updatedState = resourceSystem.updateResources(state, deltaTime);
+    
+    // Отправляем обновленное состояние непосредственно, пропуская стандартный цикл TICK
     dispatch({ 
-      type: 'TICK', 
+      type: 'DIRECT_RESOURCE_UPDATE', 
       payload: { 
-        currentTime: Date.now(), 
-        skipResourceUpdate: false,
-        debug: true // Добавляем флаг для детального логирования
+        updatedState,
+        deltaTime
       } 
     });
-  }, [dispatch]);
+  }, [dispatch, state, resourceSystem]);
   
   /**
    * Проверяет, достаточно ли ресурсов для покупки
@@ -89,37 +90,33 @@ export const useResourceSystem = () => {
   const incrementResource = useCallback((resourceId: string, amount: number = 1) => {
     console.log(`useResourceSystem: Увеличение ресурса ${resourceId} на ${amount}`);
     
-    // Получаем текущее значение для логирования
+    // Получаем текущее значение для отправки события
     const currentValue = state.resources[resourceId]?.value || 0;
-    console.log(`useResourceSystem: Текущее значение ${resourceId}: ${currentValue}`);
     
+    // Создаем новый объект состояния с обновленным ресурсом
+    const newState = resourceSystem.incrementResource(state, { resourceId, amount });
+    
+    // Отправляем действие с обновленным состоянием
     dispatch({
-      type: 'INCREMENT_RESOURCE',
-      payload: { resourceId, amount }
+      type: 'DIRECT_RESOURCE_UPDATE',
+      payload: { updatedState: newState, deltaTime: 0 }
     });
     
-    // Дополнительно запускаем проверку разблокировок после инкремента
-    setTimeout(() => {
-      dispatch({ type: 'CHECK_UNLOCKS' });
-      
-      // И форсируем обновление для монитора
-      const newValue = state.resources[resourceId]?.value || 0;
-      console.log(`useResourceSystem: Новое значение ${resourceId}: ${newValue}`);
-      
-      // Отправляем событие обновления значения
-      try {
-        window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
-          detail: { 
-            oldValue: currentValue,
-            newValue: newValue,
-            delta: newValue - currentValue
-          }
-        }));
-      } catch (e) {
-        console.error("useResourceSystem: Ошибка при отправке события:", e);
-      }
-    }, 50);
-  }, [dispatch, state.resources]);
+    // Отправляем событие обновления значения
+    const newValue = newState.resources[resourceId]?.value || 0;
+    try {
+      window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
+        detail: { 
+          oldValue: currentValue,
+          newValue: newValue,
+          delta: amount
+        }
+      }));
+      console.log(`useResourceSystem: Отправлено событие обновления ${resourceId}: ${currentValue} → ${newValue}`);
+    } catch (e) {
+      console.error("useResourceSystem: Ошибка при отправке события:", e);
+    }
+  }, [dispatch, state, resourceSystem]);
   
   /**
    * Пересчитывает всё производство ресурсов
@@ -127,9 +124,17 @@ export const useResourceSystem = () => {
   const recalculateAllProduction = useCallback(() => {
     console.log("useResourceSystem: Пересчет всего производства ресурсов");
     
-    // Принудительно пересчитываем производство
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-  }, [dispatch]);
+    // Напрямую вычисляем новое состояние с обновленным производством
+    const updatedState = resourceSystem.recalculateAllResourceProduction(state);
+    
+    // Отправляем обновленное состояние напрямую
+    dispatch({ 
+      type: 'DIRECT_RESOURCE_UPDATE', 
+      payload: { updatedState, deltaTime: 0 } 
+    });
+    
+    return updatedState;
+  }, [dispatch, state, resourceSystem]);
   
   /**
    * Разблокирует ресурс

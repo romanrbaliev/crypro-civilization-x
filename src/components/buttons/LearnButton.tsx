@@ -25,18 +25,11 @@ const LearnButton: React.FC = () => {
       const knowledgeBefore = state.resources.knowledge.value || 0;
       console.log(`LearnButton: Текущее значение знаний перед кликом: ${knowledgeBefore}`);
       
-      // Добавляем знания
+      // Добавляем знания - использование прямого метода incrementResource
       incrementResource('knowledge', baseProduction);
       
       // Открываем монитор производства знаний через событие
       window.dispatchEvent(new CustomEvent('open-knowledge-monitor'));
-      
-      // Логируем после инкремента
-      setTimeout(() => {
-        const knowledgeAfter = state.resources.knowledge.value || 0;
-        console.log(`LearnButton: Значение знаний после клика: ${knowledgeAfter}`);
-        console.log(`LearnButton: Разница: ${knowledgeAfter - knowledgeBefore}`);
-      }, 50);
       
       console.log(`LearnButton: Отправлена команда INCREMENT_RESOURCE, знания +${baseProduction}`);
     }

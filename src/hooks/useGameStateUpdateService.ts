@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { useResourceSystem } from './useResourceSystem';
@@ -32,19 +31,12 @@ export const useGameStateUpdateService = () => {
         console.log(`Тик #${tickCountRef.current}: Обновление состояния игры, прошло ${cappedDeltaTime}ms`);
       }
       
-      // Используем более детальное логирование, если монитор знаний открыт
-      dispatch({ 
-        type: 'TICK', 
-        payload: { 
-          currentTime,
-          skipResourceUpdate: false,
-          debug: monitorIsOpenRef.current // Включаем расширенное логирование если монитор открыт
-        } 
-      });
+      // ВАЖНОЕ ИЗМЕНЕНИЕ: Прямое обновление ресурсов через ResourceSystem
+      updateResources(cappedDeltaTime);
       
       lastTickTimeRef.current = currentTime;
     }
-  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch]);
+  }, [isPageVisible, state.gameStarted, state.lastUpdate, dispatch, updateResources]);
   
   // Инициализация игрового состояния при первой загрузке
   useEffect(() => {
@@ -57,10 +49,10 @@ export const useGameStateUpdateService = () => {
       // Добавляем дополнительную проверку после небольшой задержки
       setTimeout(() => {
         console.log("Принудительный пересчет производства после инициализации");
-        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+        recalculateAllProduction();
       }, 500);
     }
-  }, [state.gameStarted, recalculateAllProduction, dispatch]);
+  }, [state.gameStarted, recalculateAllProduction]);
   
   // Добавляем эффект для обработки событий от монитора знаний
   useEffect(() => {
@@ -70,7 +62,7 @@ export const useGameStateUpdateService = () => {
       console.log("Монитор знаний открыт, включаем режим расширенного логирования");
       
       // Принудительно обновляем производство при открытии монитора
-      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+      recalculateAllProduction();
     };
     
     // Функция-обработчик события принудительного обновления
@@ -82,14 +74,7 @@ export const useGameStateUpdateService = () => {
         
         // Обновляем только если прошло достаточно времени
         if (deltaTime > 50) {
-          dispatch({ 
-            type: 'TICK', 
-            payload: { 
-              currentTime,
-              skipResourceUpdate: false,
-              debug: true // Всегда включаем расширенное логирование для этих обновлений
-            } 
-          });
+          updateResources(deltaTime);
           lastTickTimeRef.current = currentTime;
         }
       }
@@ -106,14 +91,14 @@ export const useGameStateUpdateService = () => {
       window.removeEventListener('open-knowledge-monitor', handleKnowledgeMonitorOpen);
       window.removeEventListener('monitor-force-update', handleForceUpdate);
     };
-  }, [dispatch]);
+  }, [recalculateAllProduction, updateResources]);
   
-  // Главный эффект для обновления игры
+  // Главный эффект для обновления игры - СУЩЕСТВЕННО УМЕНЬШАЕМ ИНТЕРВАЛ
   useEffect(() => {
-    console.log("Запуск системы обновления ресурсов");
+    console.log("Запуск системы обновления ресурсов с сокращенным интервалом");
     
-    // Запускаем таймер для обновления ресурсов каждые 100ms для более плавного обновления
-    const updateInterval = setInterval(updateGameState, 100);
+    // Запускаем таймер для обновления ресурсов каждые 50ms для более плавного обновления
+    const updateInterval = setInterval(updateGameState, 50);
     
     // Запускаем таймер для проверки разблокировок каждые 5 секунд
     const unlockCheckInterval = setInterval(() => {
@@ -125,7 +110,7 @@ export const useGameStateUpdateService = () => {
     // Запускаем таймер для принудительного обновления ресурсов каждые 3 секунды
     const forceUpdateInterval = setInterval(() => {
       if (isPageVisible && state.gameStarted) {
-        dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+        recalculateAllProduction();
         
         // Выводим логи только иногда для снижения шума в консоли
         if (!monitorIsOpenRef.current) {
@@ -140,7 +125,7 @@ export const useGameStateUpdateService = () => {
       clearInterval(unlockCheckInterval);
       clearInterval(forceUpdateInterval);
     };
-  }, [updateGameState, isPageVisible, state.gameStarted, dispatch]);
+  }, [updateGameState, isPageVisible, state.gameStarted, dispatch, recalculateAllProduction]);
   
   // Эффект для принудительного обновления производства при изменении зданий
   useEffect(() => {

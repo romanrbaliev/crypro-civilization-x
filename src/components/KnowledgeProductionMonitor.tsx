@@ -41,6 +41,8 @@ const KnowledgeProductionMonitor: React.FC<{
   const practiceBuiltRef = useRef<number>(0);
   const animatorRef = useRef<Animator | null>(null);
   const monitorOpenTimeRef = useRef<number>(0);
+  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const checkUpdateCountdownRef = useRef<number>(0);
   
   // Состояние для анимации
   const [animationState, setAnimationState] = useState<AnimationState>({
@@ -117,6 +119,32 @@ const KnowledgeProductionMonitor: React.FC<{
     animatorRef.current.start();
   };
   
+  // Функция для принудительного изменения значения с анимацией
+  const forceValueUpdate = () => {
+    if (!state.resources.knowledge?.unlocked) return;
+    
+    const currentValue = state.resources.knowledge?.value || 0;
+    const production = state.resources.knowledge?.perSecond || 0;
+    
+    // Если производство положительное, но не запущена анимация
+    if (production > 0 && !animationState.isRunning) {
+      // Расчет ожидаемого нового значения через 100 мс
+      const expectedIncrement = (production * 100 / 1000);
+      const newValue = currentValue + expectedIncrement;
+      
+      addLog(`Принудительное обновление: ${formatValue(currentValue, 'knowledge')} +${formatValue(expectedIncrement, 'knowledge')} = ${formatValue(newValue, 'knowledge')}`, 'calculation');
+      
+      // Запускаем анимацию изменения значения
+      startValueAnimation(currentValue, newValue);
+      
+      // Отправляем событие для обновления игры
+      window.dispatchEvent(new CustomEvent('monitor-force-update'));
+      
+      // Обновляем последнее известное значение
+      lastKnowledgeValueRef.current = newValue;
+    }
+  };
+  
   // Отслеживаем изменение количества практик
   useEffect(() => {
     const practiceCount = state.buildings.practice?.count || 0;
@@ -129,10 +157,18 @@ const KnowledgeProductionMonitor: React.FC<{
 
   // Эффект инициализации при открытии монитора
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Очищаем интервал обновления при закрытии монитора
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+        updateIntervalRef.current = null;
+      }
+      return;
+    }
     
     // Запоминаем время открытия монитора
     monitorOpenTimeRef.current = Date.now();
+    checkUpdateCountdownRef.current = 0;
     
     const knowledge = state.resources.knowledge;
     if (!knowledge || !knowledge.unlocked) return;
@@ -174,12 +210,51 @@ const KnowledgeProductionMonitor: React.FC<{
       }
     }
     
-    // Регистрируем обработчик событий обновления знаний
+    // Устанавливаем интервал для проверки обновлений
+    updateIntervalRef.current = setInterval(() => {
+      checkUpdateCountdownRef.current += 1;
+      
+      // Каждую секунду запрашиваем принудительное обновление
+      if (checkUpdateCountdownRef.current % 20 === 0) {
+        window.dispatchEvent(new CustomEvent('monitor-force-update'));
+      }
+      
+      // Проверка на отсутствие обновлений при наличии производства
+      const production = state.resources.knowledge?.perSecond || 0;
+      if (production > 0 && !animationState.isRunning) {
+        // Каждые 2 секунды проверяем, не зависло ли обновление
+        if (checkUpdateCountdownRef.current % 40 === 0) {
+          const currentValue = state.resources.knowledge?.value || 0;
+          if (Math.abs(currentValue - lastKnowledgeValueRef.current) < 0.0001) {
+            addLog(`Обнаружена возможная проблема: производство > 0, но значение не меняется. Принудительное обновление...`, 'calculation');
+            forceValueUpdate();
+          }
+        }
+      }
+    }, 50); // Проверяем каждые 50 мс
+    
+    return () => {
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+        updateIntervalRef.current = null;
+      }
+    };
+  }, [open, formatValue, knowledgeDiagnostics, state.resources.knowledge]);
+  
+  // Регистрируем обработчик событий обновления знаний
+  useEffect(() => {
     const handleKnowledgeUpdated = (event: CustomEvent) => {
       const { oldValue, newValue, delta } = event.detail;
+      
+      // Пропускаем события с нулевым изменением
+      if (Math.abs(delta) < 0.000001) return;
+      
       addLog(`Событие обновления: ${formatValue(oldValue, 'knowledge')} → ${formatValue(newValue, 'knowledge')} (${delta > 0 ? '+' : ''}${formatValue(delta, 'knowledge')})`, 'production');
       startValueAnimation(oldValue, newValue);
       lastKnowledgeValueRef.current = newValue;
+      
+      // Сбрасываем счетчик проверки
+      checkUpdateCountdownRef.current = 0;
     };
     
     window.addEventListener('knowledge-value-updated', handleKnowledgeUpdated as EventListener);
@@ -187,43 +262,7 @@ const KnowledgeProductionMonitor: React.FC<{
     return () => {
       window.removeEventListener('knowledge-value-updated', handleKnowledgeUpdated as EventListener);
     };
-  }, [open, formatValue, knowledgeDiagnostics]);
-  
-  // Отдельный эффект для отслеживания изменений значения knowledge.value с быстрой периодичностью
-  useEffect(() => {
-    if (!open) return;
-    
-    const checkInterval = setInterval(() => {
-      const knowledgeResource = state.resources.knowledge;
-      if (!knowledgeResource || !knowledgeResource.unlocked) return;
-      
-      const currentValue = knowledgeResource.value || 0;
-      const lastValue = lastKnowledgeValueRef.current;
-      
-      // Проверяем на реальное изменение значения с малым порогом точности
-      if (Math.abs(currentValue - lastValue) > 0.000001) {
-        const diff = currentValue - lastValue;
-        
-        addLog(`[Интервал] Изменение знаний: ${formatValue(lastValue, 'knowledge')} → ${formatValue(currentValue, 'knowledge')} (${diff > 0 ? '+' : ''}${formatValue(diff, 'knowledge')})`, 'production');
-        
-        // Запускаем анимацию изменения значения
-        startValueAnimation(lastValue, currentValue);
-        
-        // Обновляем ref с последним значением
-        lastKnowledgeValueRef.current = currentValue;
-      } else if (knowledgeResource.perSecond > 0) {
-        const elapsedSeconds = (Date.now() - monitorOpenTimeRef.current) / 1000;
-        // Проверяем, не прошло ли уже 3 секунды без изменений
-        if (elapsedSeconds > 3) {
-          addLog(`Внимание: Производство > 0 (${knowledgeResource.perSecond.toFixed(4)}), но значение не меняется уже ${elapsedSeconds.toFixed(1)} сек`, 'calculation');
-        }
-      }
-    }, 50); // Очень короткий интервал для быстрого отслеживания
-    
-    return () => {
-      clearInterval(checkInterval);
-    };
-  }, [open, state.resources.knowledge, formatValue]);
+  }, [formatValue]);
   
   // Отображение разных типов логов
   const getLogIcon = (type: LogEntry['type']) => {
@@ -249,21 +288,6 @@ const KnowledgeProductionMonitor: React.FC<{
     if (!resource || resource.max === undefined || resource.max === Infinity) return 0;
     return (animationState.currentValue / resource.max) * 100;
   };
-  
-  // Модифицируем хук useGameStateUpdateService для более частого обновления
-  useEffect(() => {
-    if (!open) return;
-    
-    // Увеличиваем частоту обновления игрового состояния, когда монитор открыт
-    const forcedUpdateInterval = setInterval(() => {
-      // Имитируем TICK в очень короткие интервалы для обновления UI
-      window.dispatchEvent(new CustomEvent('monitor-force-update'));
-    }, 100); // Более частое обновление, когда монитор открыт
-    
-    return () => {
-      clearInterval(forcedUpdateInterval);
-    };
-  }, [open]);
   
   // Основное представление компонента
   return (
@@ -358,6 +382,14 @@ const KnowledgeProductionMonitor: React.FC<{
               Каждая практика дает +1 знание/сек
             </div>
           </div>
+          
+          {/* Добавляем кнопку для принудительного обновления */}
+          <button
+            onClick={forceValueUpdate}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-4 rounded mb-2"
+          >
+            Принудительно обновить значение
+          </button>
         </div>
         
         <Separator />

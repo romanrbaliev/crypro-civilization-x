@@ -108,35 +108,36 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (deltaTime > 0) {
         console.log(`TICK: Обновление ресурсов за ${deltaTime}ms`);
         
-        // Расширенное логирование для отладки производства знаний
-        const debugMode = action.payload?.debug === true;
+        // ВАЖНОЕ ИЗМЕНЕНИЕ: Детальное логирование ресурсов перед обновлением
+        const knowledgeBefore = newState.resources.knowledge?.value || 0;
+        const knowledgeProduction = newState.resources.knowledge?.perSecond || 0;
         
-        if (debugMode) {
-          const knowledgeBefore = newState.resources.knowledge?.value || 0;
-          const knowledgeProduction = newState.resources.knowledge?.perSecond || 0;
-          
-          console.log(`TICK: Знания до обновления: ${knowledgeBefore}, производство: ${knowledgeProduction}/сек`);
-          
-          // Проверяем количество практик
-          const practiceCount = newState.buildings.practice?.count || 0;
-          if (practiceCount > 0) {
-            console.log(`TICK: Количество практик: ${practiceCount}, базовое производство от практик: ${practiceCount * 1}/сек`);
-          }
-        }
+        console.log(`TICK: Знания до обновления: ${knowledgeBefore.toFixed(4)}, производство: ${knowledgeProduction.toFixed(4)}/сек`);
         
-        // ИЗМЕНЕНО: Вместо прямого вызова updateResources используем ResourceSystem
-        // Также важно убрать дублирование логики между хуком и редьюсером
         if (action.payload?.skipResourceUpdate !== true) {
+          // Используем новый метод для прямого обновления состояния от ResourceSystem
           newState = resourceSystem.updateResources(newState, deltaTime);
-          console.log(`TICK: Обновлены ресурсы, прошло ${deltaTime}ms`);
           
-          // Дополнительное логирование после обновления
-          if (debugMode) {
-            const knowledgeAfter = newState.resources.knowledge?.value || 0;
-            console.log(`TICK: Знания после обновления: ${knowledgeAfter}`);
+          const knowledgeAfter = newState.resources.knowledge?.value || 0;
+          console.log(`TICK: Знания после обновления: ${knowledgeAfter.toFixed(4)}, разница: ${(knowledgeAfter - knowledgeBefore).toFixed(4)}`);
+          
+          // Создаем событие обновления для монитора знаний
+          if (knowledgeBefore !== knowledgeAfter) {
+            try {
+              window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
+                detail: { 
+                  oldValue: knowledgeBefore,
+                  newValue: knowledgeAfter,
+                  delta: knowledgeAfter - knowledgeBefore
+                }
+              }));
+              console.log(`TICK: Отправлено событие обновления знаний: ${knowledgeBefore} → ${knowledgeAfter}`);
+            } catch (e) {
+              console.error("TICK: Ошибка при отправке события:", e);
+            }
+          } else if (knowledgeProduction > 0) {
+            console.warn(`TICK: Внимание! Производство знаний > 0, но значение не изменилось!`);
           }
-        } else {
-          console.log(`TICK: Пропускаем обновление ресурсов, так как skipResourceUpdate = true`);
         }
         
         // Обновляем lastUpdate
@@ -144,10 +145,26 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         
         // Проверяем разблокировки после обновления ресурсов
         newState = checkAllUnlocks(newState);
-      } else {
-        console.log(`TICK: Пропускаем обновление, прошло ${deltaTime}ms`);
       }
       
+      return newState;
+    
+    case 'DIRECT_RESOURCE_UPDATE':
+      if (action.payload?.updatedState) {
+        console.log('DIRECT_RESOURCE_UPDATE: Прямое обновление состояния ресурсов');
+        
+        // Используем предоставленное обновленное состояние напрямую
+        newState = { 
+          ...action.payload.updatedState,
+          // Обновляем lastUpdate только если предоставлен deltaTime
+          lastUpdate: action.payload.deltaTime > 0 
+            ? Date.now() 
+            : newState.lastUpdate
+        };
+        
+        // Проверяем разблокировки после прямого обновления
+        return checkAllUnlocks(newState);
+      }
       return newState;
     
     case 'INCREMENT_RESOURCE':
@@ -239,11 +256,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Принудительно пересчитываем все значения и проверяем разблокировки
       console.log("FORCE_RESOURCE_UPDATE: Принудительное обновление производства ресурсов");
       
-      // Логирование для отладки производства знаний
-      const knowledgeBeforeUpdate = newState.resources.knowledge?.value || 0;
-      const knowledgeProductionBeforeUpdate = newState.resources.knowledge?.perSecond || 0;
-      console.log(`FORCE_RESOURCE_UPDATE: Знания до пересчета: ${knowledgeBeforeUpdate}, производство: ${knowledgeProductionBeforeUpdate}/сек`);
-      
       if (action.payload) {
         // Если передано новое состояние, используем его
         newState = action.payload;
@@ -252,10 +264,20 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         newState = resourceSystem.recalculateAllResourceProduction(newState);
       }
       
-      // Логирование после пересчета
-      const knowledgeAfterUpdate = newState.resources.knowledge?.value || 0;
-      const knowledgeProductionAfterUpdate = newState.resources.knowledge?.perSecond || 0;
-      console.log(`FORCE_RESOURCE_UPDATE: Знания после пересчета: ${knowledgeAfterUpdate}, производство: ${knowledgeProductionAfterUpdate}/сек`);
+      // Генерируем событие обновления для монитора знаний
+      const knowledgeValue = newState.resources.knowledge?.value || 0;
+      try {
+        window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
+          detail: { 
+            oldValue: knowledgeValue,
+            newValue: knowledgeValue,
+            delta: 0
+          }
+        }));
+        console.log(`FORCE_RESOURCE_UPDATE: Отправлено событие обновления знаний (refresh)`);
+      } catch (e) {
+        console.error("FORCE_RESOURCE_UPDATE: Ошибка при отправке события:", e);
+      }
       
       return checkAllUnlocks(newState);
     
