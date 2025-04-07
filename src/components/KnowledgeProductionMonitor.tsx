@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Book, Timer, Settings, BarChart2, ClipboardList, Play, Pause, RefreshCw } from 'lucide-react';
@@ -39,7 +38,6 @@ const KnowledgeProductionMonitor: React.FC<{
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastLogTimeRef = useRef<number>(0);
   
-  // Функция для добавления лога с выводом в консоль
   const addLog = (message: string, type: LogEntry['type'] = 'info', details?: any) => {
     const timestamp = Date.now();
     const newLog: LogEntry = {
@@ -54,14 +52,12 @@ const KnowledgeProductionMonitor: React.FC<{
     
     setLogs(prevLogs => {
       const updatedLogs = [newLog, ...prevLogs];
-      // Ограничиваем количество логов для производительности
       return updatedLogs.length > 500 ? updatedLogs.slice(0, 500) : updatedLogs;
     });
     
     lastLogTimeRef.current = timestamp;
   };
   
-  // Прокрутка журнала при новых записях
   useEffect(() => {
     if (autoScrollEnabled && scrollAreaRef.current && logs.length > 0) {
       setTimeout(() => {
@@ -72,7 +68,6 @@ const KnowledgeProductionMonitor: React.FC<{
     }
   }, [logs, autoScrollEnabled]);
   
-  // Получаем информацию о ресурсе знаний
   const getKnowledgeInfo = () => {
     const knowledge = state.resources.knowledge;
     if (!knowledge || !knowledge.unlocked) return null;
@@ -87,7 +82,6 @@ const KnowledgeProductionMonitor: React.FC<{
     };
   };
   
-  // Подробный анализ производства знаний
   const analyzeKnowledgeProduction = () => {
     const knowledge = getKnowledgeInfo();
     if (!knowledge) {
@@ -95,43 +89,37 @@ const KnowledgeProductionMonitor: React.FC<{
       return;
     }
     
-    // Базовая информация
-    addLog(`=== АНАЛИЗ ПРОИЗВОДСТВА ЗНАНИЙ ===`, 'system');
+    addLog(`=== АНАЛИЗ ПР��ИЗВОДСТВА ЗНАНИЙ ===`, 'system');
     addLog(`Текущее значение: ${formatValue(knowledge.value, 'knowledge')}/${formatValue(knowledge.max, 'knowledge')}`, 'info');
     addLog(`Производство: ${formatValue(knowledge.perSecond, 'knowledge')}/сек`, 'production');
     
-    // Детальный анализ источников производства
     if (detailedMode) {
-      // Анализ производства от зданий
+      addLog(`--- Производство от зданий ---`, 'calculation');
       const buildings = Object.values(state.buildings)
         .filter(b => b.count > 0 && b.production && b.production.knowledge);
       
       if (buildings.length > 0) {
-        addLog(`--- Производство от зданий ---`, 'calculation');
         buildings.forEach(b => {
           const total = (b.production.knowledge || 0) * b.count;
           addLog(`${b.name} (${b.count} шт.): ${formatValue(b.production.knowledge || 0, 'knowledge')} × ${b.count} = ${formatValue(total, 'knowledge')}/сек`, 'calculation');
         });
       }
       
-      // Анализ бонусов от улучшений
+      addLog(`--- Активные бонусы от улучшений ---`, 'calculation');
       const upgrades = Object.values(state.upgrades)
         .filter(u => u.purchased && u.effects);
       
       if (upgrades.length > 0) {
-        addLog(`--- Активные бонусы от улучшений ---`, 'calculation');
         upgrades.forEach(u => {
           addLog(`${u.name}: ${JSON.stringify(u.effects)}`, 'calculation');
         });
       }
       
-      // Проверка расчетов
       addLog(`--- Формула расчета ---`, 'debug');
       addLog(`Базовое производство: ${formatValue(knowledge.baseProduction, 'knowledge')}/сек`, 'debug');
       addLog(`От зданий и улучшений: ${formatValue(knowledge.production - knowledge.baseProduction, 'knowledge')}/сек`, 'debug');
       addLog(`Общее производство (perSecond): ${formatValue(knowledge.perSecond, 'knowledge')}/сек`, 'debug');
       
-      // Прогноз
       const secondsToMax = knowledge.max !== Infinity && knowledge.perSecond > 0 
         ? (knowledge.max - knowledge.value) / knowledge.perSecond 
         : null;
@@ -143,20 +131,15 @@ const KnowledgeProductionMonitor: React.FC<{
       }
     }
     
-    // Состояние счетчиков системы
-    if (detailedMode) {
-      addLog(`--- Счетчики системы ---`, 'system');
-      Object.entries(state.counters).forEach(([key, value]) => {
-        addLog(`${key}: ${value.value}`, 'system');
-      });
-    }
+    addLog(`--- Счетчики системы ---`, 'system');
+    Object.entries(state.counters).forEach(([key, value]) => {
+      addLog(`${key}: ${value.value}`, 'system');
+    });
     
-    // Последние обновления в системе
     addLog(`Последнее обновление состояния: ${new Date(state.lastUpdate).toLocaleTimeString()}`, 'system');
     addLog(`=== КОНЕЦ АНАЛИЗА ===`, 'system');
   };
   
-  // Функция анализа текущего тика обновления
   const analyzeUpdateTick = () => {
     const now = Date.now();
     const knowledge = getKnowledgeInfo();
@@ -172,19 +155,16 @@ const KnowledgeProductionMonitor: React.FC<{
     addLog(`Ожидаемое увеличение: ${formatValue(expectedIncrement, 'knowledge')}`, 'calculation');
     addLog(`Ожидаемое новое значение: ${formatValue(knowledge.value + expectedIncrement, 'knowledge')}`, 'calculation');
     
-    // Запускаем принудительное обновление и проверяем результат
     dispatch({ 
       type: 'TICK', 
       payload: { 
         forcedUpdate: true, 
         currentTime: now, 
         deltaTime,
-        // Добавляем метку forceSave, чтобы принудительно сохранить обновленные значения
         forceSave: true
       } 
     });
     
-    // Проверяем результат через короткую задержку
     setTimeout(() => {
       const updatedKnowledge = state.resources.knowledge;
       if (!updatedKnowledge) return;
@@ -197,9 +177,11 @@ const KnowledgeProductionMonitor: React.FC<{
       
       if (Math.abs(actualIncrement - expectedIncrement) > 0.0001) {
         addLog(`⚠️ Расхождение: ${formatValue(actualIncrement - expectedIncrement, 'knowledge')}`, 'debug');
-        // Добавляем детальную информацию о расхождении для отладки
         console.log(`Детали расхождения: ожидалось ${expectedIncrement.toFixed(4)}, получено ${actualIncrement.toFixed(4)}`);
         console.log(`Формула ожидания: ${knowledge.perSecond.toFixed(4)} * (${deltaTime} / 1000) = ${expectedIncrement.toFixed(4)}`);
+        
+        addLog(`Структура ресурса knowledge:`, 'debug');
+        addLog(`value: ${updatedKnowledge.value}, perSecond: ${updatedKnowledge.perSecond}, max: ${updatedKnowledge.max}`, 'debug');
       } else {
         addLog(`✓ Обновление выполнено корректно`, 'debug');
       }
@@ -208,7 +190,6 @@ const KnowledgeProductionMonitor: React.FC<{
     }, 50);
   };
   
-  // Функция для отслеживания изменений в значении знаний
   const monitorKnowledgeChanges = () => {
     const knowledge = getKnowledgeInfo();
     if (!knowledge) return;
@@ -216,12 +197,10 @@ const KnowledgeProductionMonitor: React.FC<{
     addLog(`Мониторинг знаний: ${formatValue(knowledge.value, 'knowledge')}`, 'production');
   };
   
-  // Функция для обработки выбора интервала логирования
   const handleIntervalChange = (value: string) => {
     const interval = parseInt(value, 10);
     setLogInterval(interval);
     
-    // Перезапускаем интервал с новым значением
     if (logIntervalRef.current) {
       clearInterval(logIntervalRef.current);
       logIntervalRef.current = null;
@@ -234,24 +213,21 @@ const KnowledgeProductionMonitor: React.FC<{
     addLog(`Интервал логирования изменен на ${interval} секунд`, 'system');
   };
   
-  // Функция для запуска логирования
   const startLogging = (interval: number = logInterval) => {
     if (logIntervalRef.current) {
       clearInterval(logIntervalRef.current);
     }
     
-    analyzeKnowledgeProduction(); // Начальный анализ
+    analyzeKnowledgeProduction();
     
     logIntervalRef.current = setInterval(() => {
       if (open) {
         monitorKnowledgeChanges();
         
-        // Полный анализ раз в 3 интервала
         if (Math.floor(Date.now() / 1000) % (interval * 3) < interval) {
           analyzeKnowledgeProduction();
         }
         
-        // Анализ тика в середине периода
         if (Math.floor(Date.now() / 1000) % (interval * 2) < interval) {
           analyzeUpdateTick();
         }
@@ -262,7 +238,6 @@ const KnowledgeProductionMonitor: React.FC<{
     addLog(`Автоматическое логирование запущено (интервал: ${interval} сек)`, 'system');
   };
   
-  // Функция для остановки логирования
   const stopLogging = () => {
     if (logIntervalRef.current) {
       clearInterval(logIntervalRef.current);
@@ -273,13 +248,97 @@ const KnowledgeProductionMonitor: React.FC<{
     addLog('Автоматическое логирование остановлено', 'system');
   };
   
-  // Функция для очистки журнала
   const clearLogs = () => {
     setLogs([]);
     addLog('Журнал очищен', 'system');
   };
   
-  // Запускаем логирование при открытии монитора
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}.${date.getMilliseconds().toString().padStart(3, '0')}`;
+  };
+  
+  const getLogIcon = (type: LogEntry['type']) => {
+    switch (type) {
+      case 'info': return <Book className="h-4 w-4 mr-2 text-blue-500" />;
+      case 'production': return <BarChart2 className="h-4 w-4 mr-2 text-green-500" />;
+      case 'tick': return <Timer className="h-4 w-4 mr-2 text-amber-500" />;
+      case 'calculation': return <ClipboardList className="h-4 w-4 mr-2 text-purple-500" />;
+      case 'system': return <Settings className="h-4 w-4 mr-2 text-gray-500" />;
+      case 'debug': return <RefreshCw className="h-4 w-4 mr-2 text-red-500" />;
+      default: return <Book className="h-4 w-4 mr-2" />;
+    }
+  };
+  
+  const getLogBorderColor = (type: LogEntry['type']) => {
+    switch (type) {
+      case 'info': return 'border-blue-400';
+      case 'production': return 'border-green-400';
+      case 'tick': return 'border-amber-400';
+      case 'calculation': return 'border-purple-400';
+      case 'system': return 'border-gray-400';
+      case 'debug': return 'border-red-400';
+      default: return 'border-blue-400';
+    }
+  };
+  
+  const analyzeResourceUpdates = () => {
+    const knowledge = getKnowledgeInfo();
+    if (!knowledge) return;
+    
+    addLog(`=== ДЕТАЛЬНЫЙ АНАЛИЗ ПРОЦЕССА ОБНОВЛЕНИЯ РЕСУРСОВ ===`, 'system');
+    
+    addLog(`Проверка функций обновления...`, 'debug');
+    
+    const currentValue = knowledge.value;
+    const maxValue = knowledge.max;
+    const perSecondRate = knowledge.perSecond;
+    
+    addLog(`Текущие параметры:`, 'info');
+    addLog(`- Значение знаний: ${formatValue(currentValue, 'knowledge')}`, 'info');
+    addLog(`- Максимум знаний: ${formatValue(maxValue, 'knowledge')}`, 'info');
+    addLog(`- Скорость производства: ${formatValue(perSecondRate, 'knowledge')}/сек`, 'info');
+    
+    addLog(`Тестирование инкремента через 1 секунду...`, 'debug');
+    const testIncrement = perSecondRate * 1;
+    const testNewValue = Math.min(currentValue + testIncrement, maxValue);
+    addLog(`Тестовый инкремент: ${formatValue(testIncrement, 'knowledge')}`, 'calculation');
+    addLog(`Ожидаемое новое значение: ${formatValue(testNewValue, 'knowledge')}`, 'calculation');
+    
+    addLog(`Запуск тестового TICK на 1000 ms...`, 'system');
+    
+    const beforeTest = knowledge.value;
+    
+    dispatch({ 
+      type: 'TICK', 
+      payload: { 
+        forcedUpdate: true, 
+        currentTime: Date.now(), 
+        deltaTime: 1000,
+        forceSave: true
+      } 
+    });
+    
+    setTimeout(() => {
+      const afterTest = state.resources.knowledge?.value || 0;
+      
+      addLog(`Значение до теста: ${formatValue(beforeTest, 'knowledge')}`, 'debug');
+      addLog(`Значение после теста: ${formatValue(afterTest, 'knowledge')}`, 'debug');
+      addLog(`Фактическое увеличение: ${formatValue(afterTest - beforeTest, 'knowledge')}`, 'debug');
+      
+      if (Math.abs((afterTest - beforeTest) - testIncrement) <= 0.001) {
+        addLog(`✅ Тест прошел успешно! Инкремент работает корректно`, 'debug');
+      } else {
+        addLog(`❌ Тест не прошел! Ожидалось увеличение ${formatValue(testIncrement, 'knowledge')}, получено ${formatValue(afterTest - beforeTest, 'knowledge')}`, 'debug');
+        
+        addLog(`Структура ресурса knowledge:`, 'debug');
+        addLog(`value: ${updatedKnowledge.value}, perSecond: ${updatedKnowledge.perSecond}, max: ${updatedKnowledge.max}`, 'debug');
+      }
+      
+      addLog(`=== КОНЕЦ ДЕТАЛЬНОГО АНАЛИЗА ===`, 'system');
+    }, 100);
+  };
+  
   useEffect(() => {
     if (open) {
       addLog(`Монитор производства знаний открыт в ${new Date().toLocaleTimeString()}`, 'system');
@@ -288,7 +347,6 @@ const KnowledgeProductionMonitor: React.FC<{
         startLogging();
       }
     } else {
-      // Останавливаем логирование при закрытии монитора
       if (logIntervalRef.current) {
         clearInterval(logIntervalRef.current);
         logIntervalRef.current = null;
@@ -302,38 +360,6 @@ const KnowledgeProductionMonitor: React.FC<{
       }
     };
   }, [open]);
-  
-  // Форматирование времени для логов
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}.${date.getMilliseconds().toString().padStart(3, '0')}`;
-  };
-  
-  // Получение иконки для типа лога
-  const getLogIcon = (type: LogEntry['type']) => {
-    switch (type) {
-      case 'info': return <Book className="h-4 w-4 mr-2 text-blue-500" />;
-      case 'production': return <BarChart2 className="h-4 w-4 mr-2 text-green-500" />;
-      case 'tick': return <Timer className="h-4 w-4 mr-2 text-amber-500" />;
-      case 'calculation': return <ClipboardList className="h-4 w-4 mr-2 text-purple-500" />;
-      case 'system': return <Settings className="h-4 w-4 mr-2 text-gray-500" />;
-      case 'debug': return <RefreshCw className="h-4 w-4 mr-2 text-red-500" />;
-      default: return <Book className="h-4 w-4 mr-2" />;
-    }
-  };
-  
-  // Получение цвета рамки для типа лога
-  const getLogBorderColor = (type: LogEntry['type']) => {
-    switch (type) {
-      case 'info': return 'border-blue-400';
-      case 'production': return 'border-green-400';
-      case 'tick': return 'border-amber-400';
-      case 'calculation': return 'border-purple-400';
-      case 'system': return 'border-gray-400';
-      case 'debug': return 'border-red-400';
-      default: return 'border-blue-400';
-    }
-  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -366,6 +392,15 @@ const KnowledgeProductionMonitor: React.FC<{
               className="h-8"
             >
               <RefreshCw className="h-3 w-3 mr-1" /> Обновить
+            </Button>
+            
+            <Button 
+              size="sm"
+              onClick={analyzeResourceUpdates}
+              variant="outline"
+              className="h-8"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" /> Диагностика
             </Button>
           </div>
           

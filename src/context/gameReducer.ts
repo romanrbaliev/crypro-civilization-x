@@ -118,9 +118,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         
         if (action.payload?.skipResourceUpdate !== true) {
           // Используем функцию обновления ресурсов и сохраняем её результат
+          // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: используем полностью обновленное состояние
           newState = updateResources(newState, deltaTime);
           
-          // Здесь был баг - состояние newState не использовалось должным образом
           const knowledgeAfter = newState.resources.knowledge?.value || 0;
           console.log(`TICK: Знания после обновления: ${knowledgeAfter.toFixed(4)}, разница: ${(knowledgeAfter - knowledgeBefore).toFixed(4)}`);
           

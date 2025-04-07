@@ -43,6 +43,12 @@ const LearnButton: React.FC = () => {
       setTimeout(() => {
         const knowledgeAfter = state.resources.knowledge?.value || 0;
         console.log(`LearnButton: Значение знаний после клика: ${knowledgeAfter} (изменение: ${knowledgeAfter - knowledgeBefore})`);
+        
+        // Дополнительная диагностика
+        if (Math.abs(knowledgeAfter - knowledgeBefore - baseProduction) > 0.001) {
+          console.warn(`LearnButton: Аномалия при инкременте! Ожидалось ${baseProduction}, получено ${knowledgeAfter - knowledgeBefore}`);
+          console.log('Структура ресурса:', JSON.stringify(state.resources.knowledge));
+        }
       }, 50);
       
       // Открываем монитор производства знаний через событие

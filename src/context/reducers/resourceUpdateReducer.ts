@@ -15,8 +15,8 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
     return state;
   }
   
-  // Создаем новое состояние
-  const updatedState = { ...state };
+  // Создаем глубокую копию состояния
+  const updatedState = JSON.parse(JSON.stringify(state));
   
   // Обрабатываем каждый ресурс по отдельности
   for (const resourceId in updatedState.resources) {
@@ -39,14 +39,8 @@ export const updateResources = (state: GameState, deltaTime: number): GameState 
         
         console.log(`resourceUpdateReducer: ${resourceId} ${currentValue.toFixed(2)} + ${increment.toFixed(2)} = ${newValue.toFixed(2)} (макс. ${maxValue})`);
         
-        // Обновляем значение в состоянии (ПРОБЛЕМА БЫЛА ЗДЕСЬ - НЕПРАВИЛЬНО ОБНОВЛЯЛОСЬ СОСТОЯНИЕ)
-        updatedState.resources = {
-          ...updatedState.resources,
-          [resourceId]: {
-            ...updatedState.resources[resourceId],
-            value: newValue
-          }
-        };
+        // Обновляем значение в состоянии
+        updatedState.resources[resourceId].value = newValue;
         
         // Отправляем событие обновления только если значение изменилось
         if (Math.abs(newValue - currentValue) > 0.000001 && resourceId === 'knowledge') {
