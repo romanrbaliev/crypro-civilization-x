@@ -1,49 +1,20 @@
 
-// Базовые функции для расчета ресурсов
-import { GameState } from "@/context/types";
-import { ResourceSystem } from "@/systems/ResourceSystem";
+import { GameState } from '@/context/types';
+import { ResourceSystem } from '@/systems/ResourceSystem';
 
 // Создаем экземпляр системы ресурсов
 const resourceSystem = new ResourceSystem();
 
 /**
- * Вычисляет общую скорость производства для заданного ресурса
- * @param resourceId ID ресурса
- * @param state Игровое состояние
- * @returns Скорость производства в единицах/сек
+ * Обновляет производство ресурсов
  */
-export const calculateResourceProductionRate = (resourceId: string, state: GameState): number => {
-  // Пересчитываем производство ресурсов
-  const updatedState = resourceSystem.recalculateAllResourceProduction(state);
-  
-  // Возвращаем скорость производства для указанного ресурса
-  return updatedState.resources[resourceId]?.production || 0;
+export const recalculateResourceProduction = (state: GameState): GameState => {
+  return resourceSystem.recalculateAllResourceProduction(state);
 };
 
 /**
- * Вычисляет общую скорость потребления для заданного ресурса
- * @param resourceId ID ресурса
- * @param state Игровое состояние
- * @returns Скорость потребления в единицах/сек
+ * Обновляет ресурсы на основе прошедшего времени
  */
-export const calculateResourceConsumptionRate = (resourceId: string, state: GameState): number => {
-  // Пересчитываем производство ресурсов
-  const updatedState = resourceSystem.recalculateAllResourceProduction(state);
-  
-  // Возвращаем скорость потребления для указанного ресурса
-  return updatedState.resources[resourceId]?.consumption || 0;
-};
-
-/**
- * Вычисляет максимальную вместимость для заданного ресурса
- * @param resourceId ID ресурса
- * @param state Игровое состояние
- * @returns Максимальная вместимость
- */
-export const calculateResourceMaxCapacity = (resourceId: string, state: GameState): number => {
-  // Обновляем максимальные значения ресурсов
-  const updatedState = resourceSystem.updateResourceMaxValues(state);
-  
-  // Возвращаем максимальное значение для указанного ресурса
-  return updatedState.resources[resourceId]?.max || 0;
+export const updateResourceValues = (state: GameState, deltaTime: number): GameState => {
+  return resourceSystem.updateResources(state, deltaTime);
 };

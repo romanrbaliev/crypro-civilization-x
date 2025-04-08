@@ -1,109 +1,22 @@
 
-import { GameState, Resource } from '../types';
-import { calculateResourceProduction } from '@/utils/resourceCalculator';
+import { GameState } from '../types';
 
 /**
- * Функция для обновления ресурсов на основе прошедшего времени
- */
-export const updateResources = (state: GameState, payload: { deltaTime: number }): GameState => {
-  const { deltaTime } = payload;
-  
-  if (deltaTime <= 0 || !state.gameStarted) {
-    return state;
-  }
-  
-  const updatedResources = { ...state.resources };
-  
-  // Обновляем каждый ресурс на основе его скорости производства
-  for (const resourceId in updatedResources) {
-    const resource = updatedResources[resourceId];
-    
-    if (resource && resource.unlocked) {
-      const perSecond = resource.perSecond || 0;
-      
-      if (Math.abs(perSecond) > 0.000001) {
-        const currentValue = resource.value || 0;
-        const maxValue = resource.max || Infinity;
-        
-        // Вычисляем прирост за текущий временной промежуток
-        const increment = perSecond * (deltaTime / 1000);
-        
-        // Ограничиваем новое значение максимумом
-        const newValue = Math.min(currentValue + increment, maxValue);
-        
-        // Обновляем значение ресурса
-        updatedResources[resourceId] = {
-          ...resource,
-          value: newValue
-        };
-      }
-    }
-  }
-  
-  return {
-    ...state,
-    resources: updatedResources
-  };
-};
-
-/**
- * Функция для пересчета производства ресурсов
- */
-export const recalculateProduction = (state: GameState): GameState => {
-  const updatedResources = { ...state.resources };
-  
-  // Пересчитываем производство для каждого ресурса
-  for (const resourceId in updatedResources) {
-    const resource = updatedResources[resourceId];
-    
-    if (resource && resource.unlocked) {
-      // Рассчитываем производство, потребление и чистую скорость
-      const { production, consumption, netPerSecond } = calculateResourceProduction(
-        resourceId, 
-        state.buildings, 
-        state.upgrades
-      );
-      
-      // Обновляем ресурс с новыми значениями
-      updatedResources[resourceId] = {
-        ...resource,
-        production,
-        consumption,
-        perSecond: netPerSecond
-      };
-    }
-  }
-  
-  return {
-    ...state,
-    resources: updatedResources
-  };
-};
-
-/**
- * Функция для увеличения количества ресурса
+ * Увеличивает значение ресурса
  */
 export const incrementResource = (
   state: GameState, 
   payload: { resourceId: string; amount: number }
 ): GameState => {
   const { resourceId, amount } = payload;
-  
-  if (!state.resources[resourceId] || !state.resources[resourceId].unlocked) {
-    return state;
-  }
-  
   const resource = state.resources[resourceId];
-  const currentValue = resource.value || 0;
-  const maxValue = resource.max || Infinity;
   
-  // Вычисляем новое значение, не превышающее максимум
-  const newValue = Math.min(currentValue + amount, maxValue);
-  
-  // Если изменений нет, возвращаем текущее состояние
-  if (Math.abs(newValue - currentValue) < 0.000001) {
+  if (!resource || !resource.unlocked) {
     return state;
   }
+  
+  // Ограничиваем прирост максимальным значением ресурса
+  const newValue = Math.min(resource.value + amount, resource.max);
   
   return {
     ...state,
@@ -118,30 +31,25 @@ export const incrementResource = (
 };
 
 /**
- * Функция для разблокировки ресурса
+ * Разблокирует ресурс
  */
 export const unlockResource = (
   state: GameState, 
   payload: { resourceId: string }
 ): GameState => {
   const { resourceId } = payload;
+  const resource = state.resources[resourceId];
   
-  if (!state.resources[resourceId]) {
+  if (!resource) {
     return state;
   }
   
-  // Если ресурс уже разблокирован, ничего не делаем
-  if (state.resources[resourceId].unlocked) {
-    return state;
-  }
-  
-  // Разблокируем ресурс
   return {
     ...state,
     resources: {
       ...state.resources,
       [resourceId]: {
-        ...state.resources[resourceId],
+        ...resource,
         unlocked: true
       }
     }
@@ -149,39 +57,36 @@ export const unlockResource = (
 };
 
 /**
- * Функция для обмена знаний на USDT
+ * Применяет знания (обменивает на USDT)
  */
 export const applyKnowledge = (state: GameState): GameState => {
   const knowledge = state.resources.knowledge;
   const usdt = state.resources.usdt;
   
-  if (!knowledge || !knowledge.unlocked || knowledge.value < 10) {
+  if (!knowledge || !knowledge.unlocked || !usdt) {
     return state;
   }
   
-  if (!usdt || !usdt.unlocked) {
+  // Рассчитываем, сколько знаний можно обменять (должно быть кратно 10)
+  const knowledgeToApply = Math.floor(knowledge.value / 10) * 10;
+  
+  if (knowledgeToApply < 10) {
     return state;
   }
   
-  // Определяем множитель эффективности конвертации знаний
-  const conversionRate = 0.1; // 10 знаний = 1 USDT
+  // Получаем USDT по курсу 10 знаний = 1 USDT
+  const usdtGained = knowledgeToApply / 10;
   
-  // Эффекты от исследований могут увеличить этот коэффициент
-  let efficiencyMultiplier = 1.0;
+  // Проверяем, разблокирован ли USDT
+  const isUsdtUnlocked = usdt.unlocked;
   
-  // Проверяем, есть ли улучшение эффективности в исследованиях
-  if (state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased) {
-    efficiencyMultiplier += 0.1; // +10% к эффективности
-  }
-  
-  const amountToConvert = Math.floor(knowledge.value / 10) * 10;
-  const usdtToGain = amountToConvert * conversionRate * efficiencyMultiplier;
-  
-  // Результирующее значение знаний
-  const newKnowledgeValue = knowledge.value - amountToConvert;
-  
-  // Результирующее значение USDT
-  const newUsdtValue = Math.min(usdt.value + usdtToGain, usdt.max || Infinity);
+  // Обновляем счетчик применения знаний
+  const newCounters = { ...state.counters };
+  const applyCounter = newCounters.applyKnowledge || { id: 'applyKnowledge', value: 0 };
+  newCounters.applyKnowledge = {
+    ...applyCounter,
+    value: applyCounter.value + 1
+  };
   
   return {
     ...state,
@@ -189,58 +94,57 @@ export const applyKnowledge = (state: GameState): GameState => {
       ...state.resources,
       knowledge: {
         ...knowledge,
-        value: newKnowledgeValue
+        value: knowledge.value - knowledgeToApply
       },
       usdt: {
         ...usdt,
-        value: newUsdtValue
+        unlocked: true,
+        value: usdt.value + usdtGained
       }
-    }
+    },
+    counters: newCounters
   };
 };
 
 /**
- * Функция для обмена всех знаний на USDT
+ * Применяет все доступные знания
  */
 export const applyAllKnowledge = (state: GameState): GameState => {
+  // Просто вызываем обычное применение знаний, т.к. оно уже обрабатывает все доступные знания
   return applyKnowledge(state);
 };
 
 /**
- * Функция для обмена Bitcoin на USDT
+ * Обменивает биткоин на USDT
  */
 export const exchangeBitcoin = (state: GameState): GameState => {
   const bitcoin = state.resources.bitcoin;
   const usdt = state.resources.usdt;
   
-  if (!bitcoin || !bitcoin.unlocked || bitcoin.value <= 0) {
+  if (!bitcoin || !bitcoin.unlocked || bitcoin.value <= 0 || !usdt || !usdt.unlocked) {
     return state;
   }
   
-  if (!usdt || !usdt.unlocked) {
-    return state;
-  }
+  // Текущий курс биткоина (в USDT)
+  const bitcoinRate = 10000;
   
-  // Получаем текущий курс обмена из параметров майнинга
-  const exchangeRate = state.miningParams.exchangeRate || 20000; // Примерный курс по умолчанию
-  // Комиссия биржи
-  const commission = state.miningParams.exchangeCommission || 0.01; // 1% по умолчанию
+  // Вся сумма биткоинов
+  const btcAmount = bitcoin.value;
   
-  // Рассчитываем сумму USDT к получению
-  const usdtToGain = bitcoin.value * exchangeRate * (1 - commission);
+  // Полученные USDT
+  const usdtAmount = btcAmount * bitcoinRate;
   
-  // Обновляем ресурсы
   return {
     ...state,
     resources: {
       ...state.resources,
       bitcoin: {
         ...bitcoin,
-        value: 0 // Обмениваем все Bitcoin
+        value: 0
       },
       usdt: {
         ...usdt,
-        value: Math.min(usdt.value + usdtToGain, usdt.max || Infinity)
+        value: Math.min(usdt.value + usdtAmount, usdt.max)
       }
     }
   };

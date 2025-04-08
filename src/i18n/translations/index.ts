@@ -1,9 +1,9 @@
 
 import { en } from './en';
 import { ru } from './ru';
-import { Translations, Language } from '../types';
+import { TranslationsType, Language } from '../types';
 
-export const translations: Translations = {
+export const translations: Record<Language, TranslationsType> = {
   en,
   ru
 };
