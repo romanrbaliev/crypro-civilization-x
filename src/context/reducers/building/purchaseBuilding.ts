@@ -222,9 +222,7 @@ export const processPurchaseBuilding = (
           production: 2,
           perSecond: 2,
           max: 1000,
-          consumption: {
-            electricity: 1 // Потребляет 1 электричество/сек
-          },
+          consumption: 1, // Потребляет 1 электричество/сек
           unlocked: true
         };
         
@@ -236,9 +234,7 @@ export const processPurchaseBuilding = (
           baseProduction: 2,
           production: 2,
           perSecond: 2,
-          consumption: {
-            electricity: 1
-          }
+          consumption: 1
         };
       }
     } else {
