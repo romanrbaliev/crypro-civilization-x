@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -448,7 +449,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
       newState.upgrades.cryptoCommunity.unlocked = true;
       safeDispatchGameEvent('Разблокировано исследование: Криптосообщество', 'success');
     } else {
-      // Если исследования еще нет, создаем его с пустым effects
+      // Если исследования еще нет, создаем его
       newState.upgrades.cryptoCommunity = {
         id: 'cryptoCommunity',
         name: 'Криптосообщество',
@@ -456,8 +457,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         cost: { knowledge: 500 },
         purchased: false,
         unlocked: true,
-        type: 'research',
-        effects: {} // Добавляем пустой объект effects, чтобы соответствовать типу Upgrade
+        type: 'research'
       };
       safeDispatchGameEvent('Разблокировано исследование: Криптосообщество', 'success');
     }

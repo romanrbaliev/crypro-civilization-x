@@ -1,162 +1,354 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Button from '@/components/Button';
-import GameCanvas from '@/components/GameCanvas';
-import { toast } from 'sonner';
-import { ArrowLeft, Heart, Trophy, Pause, Play } from 'lucide-react';
 
-const Game = () => {
+import React, { useState, useEffect } from "react";
+import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
+import { useNavigate } from "react-router-dom";
+import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
+import EventLog, { GameEvent } from "@/components/EventLog";
+import { generateId } from "@/utils/helpers";
+import Header from "@/components/Header";
+import EquipmentTab from "@/components/EquipmentTab";
+import ResearchTab from "@/components/ResearchTab";
+import ReferralsTab from "@/components/ReferralsTab";
+import SpecializationTab from "@/components/SpecializationTab";
+import ResourceList from "@/components/ResourceList";
+import { Button } from "@/components/ui/button";
+import ActionButtons from "@/components/ActionButtons";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { resetAllGameData } from "@/context/utils/gameStorage";
+import { toast } from "@/hooks/use-toast";
+
+const GameScreen = () => {
+  const { state, dispatch } = useGame();
   const navigate = useNavigate();
-  const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(3);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isGameOver, setIsGameOver] = useState(false);
-  const [highScore, setHighScore] = useState(0);
-
-  // Загрузка рекорда из localStorage
+  const [eventLog, setEventLog] = useState<GameEvent[]>([]);
+  const [selectedTab, setSelectedTab] = useState("equipment");
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  
+  const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
+  const hasUnlockedResearch = state.unlocks.research === true;
+  const hasUnlockedSpecialization = state.unlocks.specialization === true;
+  const hasUnlockedReferrals = state.unlocks.referrals === true || 
+                              state.upgrades.cryptoCommunity?.purchased === true;
+  
   useEffect(() => {
-    const savedHighScore = localStorage.getItem('highScore');
-    if (savedHighScore) {
-      setHighScore(parseInt(savedHighScore));
-    }
-  }, []);
-
-  // Обработчики событий
-  const handleScoreChange = (newScore: number) => {
-    setScore(newScore);
+    dispatch({ type: "START_GAME" });
+  }, [dispatch]);
+  
+  useEffect(() => {
+    console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
+    console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
+  }, [state.unlocks]);
+  
+  const addEvent = (message: string, type: GameEvent["type"] = "info") => {
+    const newEvent: GameEvent = {
+      id: generateId(),
+      timestamp: Date.now(),
+      message,
+      type
+    };
     
-    // Уведомление о достижении определенных отметок
-    if (newScore > 0 && newScore % 100 === 0) {
-      toast.success(`Поздравляем! Счёт: ${newScore}`, {
-        position: 'top-center',
-      });
-    }
-  };
-
-  const handleLivesChange = (newLives: number) => {
-    setLives(newLives);
-    
-    if (newLives < lives) {
-      toast.error('Вы потеряли жизнь!', {
-        position: 'top-center',
-      });
-    }
-  };
-
-  const handleGameOver = (finalScore: number) => {
-    setIsGameOver(true);
-    
-    // Обновление рекорда
-    if (finalScore > highScore) {
-      setHighScore(finalScore);
-      localStorage.setItem('highScore', finalScore.toString());
+    setEventLog(prev => {
+      const isDuplicate = prev.slice(0, 5).some(
+        event => event.message === message && Date.now() - event.timestamp < 3000
+      );
       
-      toast.success(`Новый рекорд: ${finalScore}!`, {
-        position: 'top-center',
-      });
-    }
-    
-    toast(`Игра окончена! Ваш счёт: ${finalScore}`, {
-      position: 'top-center',
+      if (isDuplicate) {
+        return prev;
+      }
+      
+      return [newEvent, ...prev];
     });
   };
-
-  const togglePause = () => {
-    setIsPaused(!isPaused);
+  
+  useEffect(() => {
+    const handleGameEvent = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail) {
+        const { message, type } = event.detail;
+        addEvent(message, type);
+      }
+    };
+    
+    const handleDetailEvent = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail) {
+        const { message, type } = event.detail;
+        addEvent(message, type);
+      }
+    };
+    
+    if (typeof window !== 'undefined' && window.gameEventBus) {
+      window.gameEventBus.addEventListener('game-event', handleGameEvent);
+      window.gameEventBus.addEventListener('game-event-detail', handleDetailEvent);
+      
+      return () => {
+        if (window.gameEventBus) {
+          window.gameEventBus.removeEventListener('game-event', handleGameEvent);
+          window.gameEventBus.removeEventListener('game-event-detail', handleDetailEvent);
+        }
+      };
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (hasUnlockedBuildings) {
+      setSelectedTab("equipment");
+    } else if (hasUnlockedResearch) {
+      setSelectedTab("research");
+    } else if (hasUnlockedReferrals) {
+      setSelectedTab("referrals");
+    }
+    
+    console.log("Обновление выбранной вкладки:", {
+      hasUnlockedBuildings,
+      hasUnlockedResearch,
+      hasUnlockedReferrals,
+      selectedTab
+    });
+  }, [hasUnlockedBuildings, hasUnlockedResearch, hasUnlockedReferrals]);
+  
+  const unlockedResources = Object.values(state.resources).filter(r => r.unlocked);
+  
+  const handleResetGame = () => {
+    dispatch({ type: "RESET_GAME" });
+    setResetConfirmOpen(false);
+    addEvent("Игра полностью сброшена", "info");
   };
-
-  const handleBack = () => {
-    navigate('/');
+  
+  const handleResetAll = async () => {
+    try {
+      await resetAllGameData();
+      toast({
+        title: "Сброс выполнен",
+        description: "Все сохранения успешно удалены. Страница будет перезагружена.",
+        variant: "success",
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Ошибка сброса",
+        description: "Не удалось удалить сохранения игры.",
+        variant: "destructive",
+      });
+    }
   };
-
-  // Индикаторы жизней
-  const renderLives = () => {
-    return Array(lives)
-      .fill(0)
-      .map((_, index) => (
-        <Heart key={index} className="w-6 h-6 text-game-accent animate-pulse-soft" fill="#F43F5E" />
-      ));
+  
+  const renderTabButton = (id: string, label: string, icon: React.ReactNode) => {
+    return (
+      <Button 
+        variant={selectedTab === id ? "default" : "ghost"} 
+        className="justify-start rounded-none section-title h-6 px-3"
+        onClick={() => setSelectedTab(id)}
+      >
+        {icon}
+        {label}
+      </Button>
+    );
   };
-
+  
   return (
-    <div className="relative w-full h-full flex flex-col">
-      {/* Верхняя панель */}
-      <div className="glass p-4 flex justify-between items-center z-10 border-b border-white/20">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleBack} className="rounded-full aspect-square p-2">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex items-center gap-2">{renderLives()}</div>
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
+        <div className="flex justify-between items-center h-full">
+          <div className="flex-1 flex items-center pl-2 gap-2">
+            {/* Удалены компоненты KnowledgeProductionPopup и UnlockStatusPopup */}
+          </div>
+          <div className="flex items-center justify-between px-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
+                  Как играть
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Как играть в Crypto Civilization</DialogTitle>
+                  <DialogDescription>
+                    Руководство по основным механикам игры
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <Tabs defaultValue="basics">
+                  <TabsList className="grid grid-cols-3">
+                    <TabsTrigger value="basics">Основы</TabsTrigger>
+                    <TabsTrigger value="resources">Ресурсы</TabsTrigger>
+                    <TabsTrigger value="buildings">Оборудование</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="basics" className="space-y-4 mt-4">
+                    <h4 className="font-semibold">Начало игры</h4>
+                    <p className="text-sm">
+                      1. Начните с изучения основ криптовалют, нажимая на кнопку "Изучить крипту".<br />
+                      2. Накопив достаточно знаний, вы сможете применить их для получения USDT.<br />
+                      3. Используйте USDT для приобретения оборудования, которое будет автоматически генерировать ресурсы.<br />
+                      4. Постепенно открывайте новые механики и возможности по мере развития.
+                    </p>
+                  </TabsContent>
+                  
+                  <TabsContent value="resources" className="space-y-4 mt-4">
+                    <h4 className="font-semibold">Основные ресурсы</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li><strong>Знания о крипте</strong> - базовый ресурс для исследований и обмена на USDT.</li>
+                      <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
+                      <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
+                      <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
+                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
+                    </ul>
+                  </TabsContent>
+                  
+                  <TabsContent value="buildings" className="space-y-4 mt-4">
+                    <h4 className="font-semibold">Типы оборудования</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li><strong>Практика</strong> - автоматически генерирует знания о криптовалютах.</li>
+                      <li><strong>Генератор</strong> - производит электричество для ваших устройств.</li>
+                      <li><strong>Домашний компьютер</strong> - обеспечивает вычислительную мощность.</li>
+                      <li><strong>Криптокошелек</strong> - увеличивает максимальное хранение USDT.</li>
+                      <li><strong>Интернет-канал</strong> - ускоряет получение знаний.</li>
+                    </ul>
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
+                  Сбросить прогресс
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Сбросить прогресс?</DialogTitle>
+                  <DialogDescription>
+                    Это действие удалит все ваши достижения и начнет игру заново. Это действие нельзя отменить.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setResetConfirmOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button variant="destructive" onClick={handleResetGame}>
+                    Сбросить игру
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
+                  <Settings className="h-3.5 w-3.5 mr-1" />
+                  Настройки
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Настройки</SheetTitle>
+                  <SheetDescription>
+                    Управление игрой и дополнительные опции
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="py-4">
+                  <h3 className="font-medium mb-2">Настройки игры</h3>
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
+                      onClick={() => setResetConfirmOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Сбросить прогресс
+                    </Button>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <h3 className="font-medium mb-2">О игре</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Версия: 0.1.0 (Альфа)<br />
+                    © 2023 Crypto Civilization
+                  </p>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+          <div className="flex-1"></div>
         </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/30 backdrop-blur-sm rounded-full">
-            <Trophy className="w-5 h-5 text-amber-500" />
-            <span className="font-semibold">{highScore}</span>
+      </header>
+      
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-2/5 border-r flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto p-2">
+            <ResourceList resources={unlockedResources} />
           </div>
           
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/30 backdrop-blur-sm rounded-full">
-            <span className="font-semibold">{score}</span>
-          </div>
-          
-          <Button variant="ghost" size="sm" onClick={togglePause} className="rounded-full aspect-square p-2">
-            {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
-          </Button>
-        </div>
-      </div>
-      
-      {/* Игровая область */}
-      <div className="flex-1 p-4">
-        <GameCanvas
-          onScoreChange={handleScoreChange}
-          onLivesChange={handleLivesChange}
-          onGameOver={handleGameOver}
-        />
-      </div>
-      
-      {/* Инструкции для мобильных устройств */}
-      <div className="glass p-4 text-center text-sm z-10 border-t border-white/20">
-        Перемещайте палец для движения. Нажмите, чтобы стрелять.
-      </div>
-      
-      {/* Пауза */}
-      {isPaused && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center animate-fade-in z-20">
-          <div className="glass p-8 rounded-2xl max-w-sm w-full text-center animate-scale-in">
-            <h2 className="text-2xl font-bold mb-4">Пауза</h2>
-            <p className="mb-6 text-gray-700">Игра приостановлена. Нажмите кнопку ниже, чтобы продолжить.</p>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={togglePause}>Продолжить</Button>
-              <Button variant="secondary" onClick={handleBack}>На главную</Button>
+          <div className="border-t mt-auto">
+            <div className="flex flex-col">
+              {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
+              
+              {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
+              
+              {hasUnlockedSpecialization && renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />)}
+              
+              {hasUnlockedReferrals && renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
             </div>
           </div>
         </div>
-      )}
-      
-      {/* Завершение игры */}
-      {isGameOver && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center animate-fade-in z-20">
-          <div className="glass p-8 rounded-2xl max-w-sm w-full text-center animate-scale-in">
-            <h2 className="text-2xl font-bold mb-2">Игра окончена</h2>
-            
-            <div className="mb-6">
-              <p className="text-gray-700">Ваш счёт:</p>
-              <p className="text-3xl font-bold">{score}</p>
+        
+        <div className="w-3/5 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto p-2 flex flex-col">
+            <div className="flex-1 overflow-auto">
+              {selectedTab === "equipment" && hasUnlockedBuildings && (
+                <EquipmentTab onAddEvent={addEvent} />
+              )}
               
-              {score >= highScore && score > 0 && (
-                <div className="mt-2 text-game-secondary font-medium">Новый рекорд!</div>
+              {selectedTab === "research" && hasUnlockedResearch && (
+                <ResearchTab onAddEvent={addEvent} />
+              )}
+              
+              {selectedTab === "specialization" && hasUnlockedSpecialization && (
+                <SpecializationTab onAddEvent={addEvent} />
+              )}
+              
+              {selectedTab === "referrals" && hasUnlockedReferrals && (
+                <ReferralsTab onAddEvent={addEvent} />
               )}
             </div>
             
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => window.location.reload()}>Играть снова</Button>
-              <Button variant="secondary" onClick={handleBack}>На главную</Button>
-            </div>
+            <ActionButtons onAddEvent={addEvent} />
           </div>
         </div>
-      )}
+      </div>
+      
+      <div className="h-24 border-t bg-white flex-shrink-0">
+        <EventLog events={eventLog} />
+      </div>
     </div>
   );
 };
 
-export default Game;
+export default GameScreen;
