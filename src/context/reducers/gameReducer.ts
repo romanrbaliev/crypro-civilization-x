@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from '../types';
 import { processUnlockCheck } from '../reducers/unlockReducer';
 import { processPurchaseBuilding } from '../reducers/buildingReducer';
@@ -41,7 +42,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     
     // Обновление ресурсов на основе прошедшего времени
     case 'UPDATE_RESOURCES':
-      return updateResources(state, action.payload);
+      return updateResources(state, action.payload?.deltaTime || 0);
     
     // Пересчет производства ресурсов
     case 'RECALCULATE_PRODUCTION':
@@ -98,7 +99,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     // Периодическое обновление игры
     case 'TICK':
       const { deltaTime = 0 } = action.payload || {};
-      return updateResources(state, { deltaTime });
+      return updateResources(state, deltaTime);
     
     // Смена языка
     case 'SET_LANGUAGE':
