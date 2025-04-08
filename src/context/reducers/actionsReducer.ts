@@ -1,4 +1,3 @@
-
 import { GameState } from '../types';
 import { safeDispatchGameEvent } from '../utils/eventBusUtils';
 
@@ -266,20 +265,20 @@ export const processMiningPower = (state: GameState): GameState => {
   // Майнинг потребляет вычислительную мощность и дает USDT
   const usdtGain = 1; // Базовое количество USDT за одно нажатие
   
-  // Обновляем ресурсы - создаем копию всех ресурсов
-  const newResources = {
-    ...state.resources,
-    computingPower: {
-      ...state.resources.computingPower,
-      value: state.resources.computingPower.value - requiredComputingPower
-    }
+  // Создаем базовую копию всех ресурсов
+  const newResources = { ...state.resources };
+  
+  // Обновляем вычислительную мощность
+  newResources.computingPower = {
+    ...newResources.computingPower,
+    value: newResources.computingPower.value - requiredComputingPower
   };
   
   // Добавляем USDT, если он уже разблокирован
-  if (state.resources.usdt) {
+  if (newResources.usdt) {
     newResources.usdt = {
-      ...state.resources.usdt,
-      value: Math.min(state.resources.usdt.value + usdtGain, state.resources.usdt.max)
+      ...newResources.usdt,
+      value: Math.min(newResources.usdt.value + usdtGain, newResources.usdt.max)
     };
   } else {
     // Если USDT еще не разблокирован, создаем его
