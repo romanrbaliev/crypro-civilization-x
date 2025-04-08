@@ -1,119 +1,195 @@
 
-import React from 'react';
-import { useGame } from '@/context/hooks/useGame';
-import { useTranslation } from '@/i18n';
+import React, { useState, useEffect } from "react";
+import { useGame } from "@/context/hooks/useGame";
+import { Lightbulb, User, BadgeAlert } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { roles } from "@/utils/gameConfig";
+import { toast } from "@/hooks/use-toast";
 
 interface SpecializationTabProps {
   onAddEvent: (message: string, type: string) => void;
 }
 
-export function SpecializationTab({ onAddEvent }: SpecializationTabProps) {
+const SpecializationTab: React.FC<SpecializationTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
-  const { t } = useTranslation();
   
-  // Специализации
-  const specializations = [
-    {
-      id: 'miner',
-      name: 'Майнер',
-      description: 'Фокусируется на эффективном майнинге криптовалют',
-      effects: [
-        '+25% к эффективности майнинга',
-        '+10% к максимальной вычислительной мощности',
-        '-15% к энергопотреблению майнеров'
-      ]
-    },
-    {
-      id: 'trader',
-      name: 'Трейдер',
-      description: 'Эксперт по торговле и обмену криптовалютами',
-      effects: [
-        '+15% к курсу обмена криптовалют',
-        '-20% комиссия при обмене',
-        '+10% к максимальному хранению валют'
-      ]
-    },
-    {
-      id: 'investor',
-      name: 'Инвестор',
-      description: 'Профессионал в долгосрочных инвестициях',
-      effects: [
-        '+20% к пассивному доходу',
-        '+25% к эффективности стейкинга',
-        '+15% к максимальному хранению всех ресурсов'
-      ]
-    },
-    {
-      id: 'analyst',
-      name: 'Аналитик',
-      description: 'Эксперт по анализу данных и прогнозированию',
-      effects: [
-        '+25% к эффективности исследований',
-        '-20% к стоимости улучшений',
-        '+10% к всем производственным бонусам'
-      ]
-    },
-    {
-      id: 'influencer',
-      name: 'Инфлюенсер',
-      description: 'Специалист по социальному влиянию и сообществам',
-      effects: [
-        '+30% к реферальным бонусам',
-        '+20% к эффективности коллективных проектов',
-        '+15% к репутации в сообществе'
-      ]
+  // Проверяем, доступен ли выбор специализации
+  const canChooseSpecialization = state.unlocks.specialization === true;
+  
+  // Массив доступных ролей
+  const availableRoles = Object.values(roles).filter(role => 
+    // Проверяем, разблокирована ли роль
+    !role.requiredUpgrades || 
+    role.requiredUpgrades.every(upgradeId => state.upgrades[upgradeId]?.purchased)
+  );
+  
+  // Обработчик выбора специализации
+  const handleChooseSpecialization = (roleId: string) => {
+    if (state.specialization === roleId) {
+      toast({
+        title: "Специализация уже выбрана",
+        description: `Вы уже выбрали специализацию ${roles[roleId].name}`,
+        variant: "default",
+      });
+      return;
     }
-  ];
-  
-  const handleChooseSpecialization = (specializationId: string) => {
+    
     dispatch({ 
       type: "CHOOSE_SPECIALIZATION", 
-      payload: { specializationId }
+      payload: { roleId } 
     });
     
-    const spec = specializations.find(s => s.id === specializationId);
-    if (spec) {
-      onAddEvent(`Выбрана специализация: ${spec.name}`, "success");
-    }
+    onAddEvent(`Выбрана специализация: ${roles[roleId].name}`, "success");
   };
   
+  if (!canChooseSpecialization) {
+    return <SpecializationLocked />;
+  }
+  
+  if (availableRoles.length === 0) {
+    return (
+      <div className="text-center py-6 text-gray-500">
+        <User className="h-10 w-10 mx-auto mb-3 opacity-20" />
+        <p className="text-xs">Специализации временно недоступны.<br />Возвращайтесь позже.</p>
+      </div>
+    );
+  }
+  
   return (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold mb-4">Выберите специализацию</h2>
-      <p className="text-sm text-gray-600 mb-6">
-        Специализация определяет уникальные бонусы для вашего развития. 
-        Выбор можно изменить только после престижа.
-      </p>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {availableRoles.map(role => (
+        <SpecializationCard 
+          key={role.id}
+          role={role}
+          isSelected={state.specialization === role.id}
+          onSelect={() => handleChooseSpecialization(role.id)}
+        />
+      ))}
+    </div>
+  );
+};
+
+const SpecializationLocked: React.FC = () => {
+  return (
+    <div className="text-center py-6 text-gray-500">
+      <BadgeAlert className="h-10 w-10 mx-auto mb-3 opacity-20" />
+      <p className="text-xs">Выбор специализации станет доступен позже.<br />Продолжайте развивать свою крипто-цивилизацию.</p>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {specializations.map(spec => (
-          <div 
-            key={spec.id}
-            className={`
-              border rounded-lg p-4 hover:border-blue-500 cursor-pointer transition-colors
-              ${state.player?.specialization === spec.id ? 'bg-blue-50 border-blue-500' : 'bg-white'}
-            `}
-            onClick={() => handleChooseSpecialization(spec.id)}
-          >
-            <h3 className="font-medium text-lg">{spec.name}</h3>
-            <p className="text-sm text-gray-600 mb-2">{spec.description}</p>
-            <div className="mt-2">
-              <span className="text-sm font-semibold">Эффекты:</span>
-              <ul className="mt-1 text-sm">
-                {spec.effects.map((effect, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-green-500 mr-1">•</span>
-                    <span>{effect}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ))}
+      <div className="mt-4">
+        <Badge variant="outline" className="mx-auto">
+          Продолжайте исследования для разблокировки
+        </Badge>
       </div>
     </div>
   );
-}
+};
 
-// Именованный экспорт по умолчанию для обратной совместимости
+const SpecializationCard: React.FC<{ 
+  role: any, 
+  isSelected: boolean,
+  onSelect: () => void 
+}> = ({ role, isSelected, onSelect }) => {
+  const specializations: { [key: string]: { icon: React.ReactNode, color: string } } = {
+    investor: { icon: <span className="text-lg">💼</span>, color: "bg-amber-100 text-amber-800" },
+    trader: { icon: <span className="text-lg">📈</span>, color: "bg-blue-100 text-blue-800" },
+    miner: { icon: <span className="text-lg">⛏️</span>, color: "bg-stone-100 text-stone-800" },
+    influencer: { icon: <span className="text-lg">🌐</span>, color: "bg-purple-100 text-purple-800" },
+    analyst: { icon: <span className="text-lg">📊</span>, color: "bg-green-100 text-green-800" },
+    founder: { icon: <span className="text-lg">🚀</span>, color: "bg-red-100 text-red-800" },
+    arbitrageur: { icon: <span className="text-lg">⚖️</span>, color: "bg-indigo-100 text-indigo-800" },
+  };
+  
+  const spec = specializations[role.id] || { icon: <User size={16} />, color: "bg-gray-100 text-gray-800" };
+  
+  return (
+    <Card className={`overflow-hidden transition-all ${isSelected ? 'border-blue-500 shadow-md' : ''}`}>
+      <CardHeader className={`p-3 ${spec.color}`}>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            {spec.icon} {role.name}
+          </CardTitle>
+          {isSelected && <Badge>Выбрано</Badge>}
+        </div>
+        <CardDescription className="text-[10px] mt-1 line-clamp-2">
+          {role.description}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-3">
+        <h4 className="text-xs font-medium mb-1">Бонусы:</h4>
+        <ul className="space-y-1 text-[10px]">
+          {Object.entries(role.bonuses).map(([key, value]) => {
+            const formattedValue = Number(value) > 0 ? `+${Number(value) * 100}%` : `${Number(value) * 100}%`;
+            const bonusText = formatBonusName(key, formattedValue);
+            return (
+              <li key={key} className="flex items-center gap-1">
+                <span className="h-1 w-1 rounded-full bg-blue-500"></span>
+                {bonusText}
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+      <Separator />
+      <CardFooter className="p-2 flex justify-end">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                size="sm" 
+                variant={isSelected ? "outline" : "default"}
+                onClick={onSelect}
+                className="text-[10px] h-7"
+                disabled={isSelected}
+              >
+                {isSelected ? "Выбрано" : "Выбрать специализацию"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">
+                {isSelected 
+                  ? "Вы уже выбрали эту специализацию" 
+                  : "Выбор специализации даст вам уникальные бонусы"
+                }
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </CardFooter>
+    </Card>
+  );
+};
+
+// Вспомогательная функция для форматирования названий бонусов
+const formatBonusName = (key: string, value: string): string => {
+  const bonusNames: { [key: string]: string } = {
+    stakingIncome: `${value} к пассивному доходу`,
+    maxCrypto: `${value} к макс. хранению криптовалют`,
+    portfolioVolatility: `${value} к волатильности портфеля`,
+    tradingProfit: `${value} к прибыли от трейдинга`,
+    tradeSpeed: `${value} к скорости сделок`,
+    automationBonus: `${value} к автоматизации торговли`,
+    hashrateEfficiency: `${value} к эффективности хешрейта`,
+    energyConsumption: `${value} к энергопотреблению`,
+    blockFindChance: `${value} к шансу нахождения блока`,
+    subscriberGrowth: `${value} к росту подписчиков`,
+    reputationEfficiency: `${value} к эффективности репутации`,
+    marketInfluence: `${value} к влиянию на рынок`,
+    fundingEfficiency: `${value} к эффективности сбора средств`,
+    projectDevelopmentSpeed: `${value} к скорости разработки проектов`,
+    arbitrageProfitBoost: `${value} к прибыли от арбитража`,
+    arbitrageOpportunitySpeed: `${value} к скорости обнаружения арбитража`
+  };
+  
+  return bonusNames[key] || `${key}: ${value}`;
+};
+
 export default SpecializationTab;

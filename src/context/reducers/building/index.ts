@@ -1,7 +1,12 @@
 
-// Экспорт обработчиков для покупки/продажи зданий и выбора специализации
-export { 
-  processPurchaseBuilding, 
+import { processPurchaseBuilding } from './purchaseBuilding';
+import { processSellBuilding } from './sellBuilding';
+import { checkBuildingUnlocks } from './unlockBuildings';
+import { processChooseSpecialization } from './chooseSpecialization';
+
+export {
+  processPurchaseBuilding,
   processSellBuilding,
-  processChooseSpecialization 
-} from './purchaseBuilding';
+  checkBuildingUnlocks,
+  processChooseSpecialization
+};

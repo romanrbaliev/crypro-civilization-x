@@ -7,7 +7,7 @@ export function validateGameState(state: any): boolean {
   if (!state) return false;
   
   // Проверяем наличие ключевых полей
-  const requiredFields = ['resources', 'buildings', 'upgrades'];
+  const requiredFields = ['resources', 'buildings', 'upgrades', 'unlocks'];
   for (const field of requiredFields) {
     if (!state[field] || typeof state[field] !== 'object') {
       console.error(`❌ Отсутствует или некорректно поле ${field}`);
@@ -68,6 +68,11 @@ export function mergeWithInitialState(loadedState: any): GameState {
     console.log('✅ Восстановлены отсутствующие улучшения');
   }
   
+  if (!loadedState.unlocks) {
+    loadedState.unlocks = { ...baseState.unlocks };
+    console.log('✅ Восстановлены отсутствующие разблокировки');
+  }
+  
   // Проверка и добавление новых полей
   if (!loadedState.specializationSynergies) {
     loadedState.specializationSynergies = { ...baseState.specializationSynergies };
@@ -82,13 +87,19 @@ export function mergeWithInitialState(loadedState: any): GameState {
   
   if (!loadedState.referralHelpers) {
     loadedState.referralHelpers = [];
-    console.log('✅ Инициализирован пустой массив помощников');
+    console.log('✅ Инициализирован пустой масс��в помощников');
   }
   
   // Проверка наличия счетчиков
   if (!loadedState.counters) {
     loadedState.counters = { ...baseState.counters };
     console.log('✅ Добавлены отсутствующие счетчики');
+  }
+  
+  // Проверка наличия событий
+  if (!loadedState.eventMessages) {
+    loadedState.eventMessages = { ...baseState.eventMessages };
+    console.log('✅ Добавлены отсутствующие сообщения о событиях');
   }
   
   // Убеждаемся что структура ресурсов и зданий соответствует initialState
@@ -101,7 +112,7 @@ export function mergeWithInitialState(loadedState: any): GameState {
       // USDT должен быть заблокирован, если не выполнены условия
       if (resourceKey === 'usdt') {
         loadedState.resources.usdt.unlocked = false;
-        if (loadedState.counters && loadedState.counters.applyKnowledge && loadedState.counters.applyKnowledge.value >= 1) {
+        if (loadedState.counters && loadedState.counters.applyKnowledge && loadedState.counters.applyKnowledge.value >= 2) {
           loadedState.resources.usdt.unlocked = true;
         }
         console.log(`🔒 Статус разблокировки USDT установлен: ${loadedState.resources.usdt.unlocked}`);
@@ -127,9 +138,10 @@ export function mergeWithInitialState(loadedState: any): GameState {
   
   // Убедимся, что USDT заблокирован при загрузке, если не выполнены условия
   if (loadedState.resources && loadedState.resources.usdt) {
-    if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 1) {
+    if (!loadedState.counters.applyKnowledge || loadedState.counters.applyKnowledge.value < 2) {
       loadedState.resources.usdt.unlocked = false;
-      console.log('🔒 USDT заблокирован при загрузке: не применены знания ни разу');
+      loadedState.unlocks.usdt = false; // Также сбрасываем флаг разблокировки в основной системе
+      console.log('🔒 USDT заблокирован при загрузке: не применены знания дважды');
     }
   }
   

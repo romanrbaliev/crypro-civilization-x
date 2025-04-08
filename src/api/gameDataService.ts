@@ -20,3 +20,6 @@ export {
   clearAllSavedData,
   clearAllSavedDataForAllUsers 
 } from './adminService';
+
+// Обновление импортов в других файлах не требуется,
+// так как мы сохранили те же имена экспортируемых функций

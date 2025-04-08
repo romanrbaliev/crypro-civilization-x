@@ -1,70 +1,38 @@
 
 import { GameState } from '../../types';
+import { safeDispatchGameEvent } from '../../utils/eventBusUtils';
+import { initialPhase2Buildings } from '../../initialState';
 
-// Функция для разблокировки зданий в зависимости от фазы
-export const unlockBuildingsByPhase = (state: GameState, phase: number): GameState => {
-  // Создаем копию текущего состояния
+/**
+ * Проверяет и обрабатывает разблокировку зданий на основе прогресса игры
+ */
+export const checkBuildingUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // Разблокируем здания в зависимости от фазы
-  switch (phase) {
-    case 1:
-      // Фаза 1 - базовые здания
-      newState = unlockPhase1Buildings(newState);
-      break;
-    case 2:
-      // Фаза 2 - здания второго уровня
-      newState = unlockPhase2Buildings(newState);
-      break;
-    case 3:
-      // Фаза 3 - продвинутые здания
-      newState = unlockPhase3Buildings(newState);
-      break;
-    default:
-      break;
+  // Проверяем, нужно ли активировать фазу 2
+  if ((state.resources.usdt?.value >= 25 || state.resources.electricity?.unlocked) && 
+      state.phase < 2) {
+    
+    console.log("unlockBuildings: Активируем фазу 2");
+    
+    // Обновляем фазу
+    newState.phase = 2;
+    
+    // Добавляем здания из фазы 2, если они еще не добавлены
+    if (initialPhase2Buildings) {
+      for (const [buildingId, building] of Object.entries(initialPhase2Buildings)) {
+        // Если здание еще не существует в состоянии, добавляем его
+        if (!newState.buildings[buildingId]) {
+          console.log(`unlockBuildings: Добавляем здание фазы 2: ${buildingId}`);
+          newState.buildings[buildingId] = { ...building };
+        }
+      }
+    }
+    
+    // Уведомляем пользователя
+    safeDispatchGameEvent('Открыта фаза 2: Основы криптоэкономики', 'info');
   }
   
+  // Возвращаем обновленное состояние
   return newState;
-};
-
-// Разблокировка зданий первой фазы
-const unlockPhase1Buildings = (state: GameState): GameState => {
-  return {
-    ...state,
-    buildings: {
-      ...state.buildings,
-      practice: {
-        ...state.buildings.practice,
-        unlocked: true
-      }
-    }
-  };
-};
-
-// Разблокировка зданий второй фазы
-const unlockPhase2Buildings = (state: GameState): GameState => {
-  return {
-    ...state,
-    buildings: {
-      ...state.buildings,
-      generator: {
-        ...state.buildings.generator,
-        unlocked: true
-      }
-    }
-  };
-};
-
-// Разблокировка зданий третьей фазы
-const unlockPhase3Buildings = (state: GameState): GameState => {
-  return {
-    ...state,
-    buildings: {
-      ...state.buildings,
-      homeComputer: {
-        ...state.buildings.homeComputer,
-        unlocked: true
-      }
-    }
-  };
 };

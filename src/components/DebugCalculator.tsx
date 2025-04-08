@@ -4,13 +4,9 @@ import { Button } from '@/components/ui/button';
 import { useGame } from '@/context/hooks/useGame';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isBlockchainBasicsUnlocked } from '@/utils/researchUtils';
-import { getUnlocksFromState } from '@/utils/unlockHelper';
 
 const DebugCalculator = () => {
   const { state, dispatch } = useGame();
-  
-  // Получаем объект unlocks для обратной совместимости
-  const unlocks = state.unlocks || getUnlocksFromState(state);
   
   // Функция для принудительной проверки разблокировок
   const checkUnlocks = () => {
@@ -21,10 +17,10 @@ const DebugCalculator = () => {
   const unlockCryptoWallet = () => {
     if (state.buildings.cryptoWallet) {
       dispatch({ 
-        type: 'UPDATE_BUILDING', 
+        type: 'SET_BUILDING_UNLOCKED', 
         payload: { 
           buildingId: 'cryptoWallet', 
-          updates: { unlocked: true }
+          unlocked: true 
         } 
       });
     }
@@ -32,12 +28,12 @@ const DebugCalculator = () => {
   
   // Функция для принудительной разблокировки основ криптовалют
   const unlockCryptoCurrencyBasics = () => {
-    if (state.upgrades.cryptoBasics) {
+    if (state.upgrades.cryptoCurrencyBasics) {
       dispatch({ 
-        type: 'UPDATE_UPGRADE', 
+        type: 'SET_UPGRADE_UNLOCKED', 
         payload: { 
-          upgradeId: 'cryptoBasics', 
-          updates: { unlocked: true }
+          upgradeId: 'cryptoCurrencyBasics', 
+          unlocked: true 
         } 
       });
     }
@@ -45,10 +41,10 @@ const DebugCalculator = () => {
   
   const researchStatus = () => {
     return {
-      researchUnlocked: Object.values(state.upgrades).some(u => u.unlocked || u.purchased),
+      researchUnlocked: state.unlocks.research === true,
       blockchainBasicsPurchased: isBlockchainBasicsUnlocked(state),
-      cryptoCurrencyBasicsUnlocked: state.upgrades.cryptoBasics?.unlocked,
-      cryptoCurrencyBasicsPurchased: state.upgrades.cryptoBasics?.purchased,
+      cryptoCurrencyBasicsUnlocked: state.upgrades.cryptoCurrencyBasics?.unlocked,
+      cryptoCurrencyBasicsPurchased: state.upgrades.cryptoCurrencyBasics?.purchased,
       cryptoWalletUnlocked: state.buildings.cryptoWallet?.unlocked,
       cryptoWalletCount: state.buildings.cryptoWallet?.count || 0
     };

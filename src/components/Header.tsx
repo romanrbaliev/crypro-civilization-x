@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BitcoinIcon, ArrowLeft, Trophy, Settings, RefreshCcw, BookOpen } from "lucide-react";
+import { BitcoinIcon, ArrowLeft, Trophy, Settings, RefreshCcw } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -69,21 +69,6 @@ const Header: React.FC<HeaderProps> = ({ prestigePoints }) => {
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Кнопка для мониторинга производства знаний */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs flex items-center px-2"
-            onClick={() => {
-              // Генерируем кастомное событие, которое будет отловлено в GameScreen
-              const event = new CustomEvent('open-knowledge-monitor');
-              window.dispatchEvent(event);
-            }}
-          >
-            <BookOpen className="h-4 w-4 mr-1" />
-            Производство знаний
-          </Button>
-          
           {prestigePoints > 0 && (
             <div className="flex items-center space-x-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full">
               <Trophy className="h-4 w-4" />

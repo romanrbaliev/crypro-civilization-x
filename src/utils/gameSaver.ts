@@ -1,46 +1,46 @@
 
 import { GameState } from '@/context/types';
-import { saveGameToServer } from '@/api/gameStorage';
-import { checkAllUnlocks } from '@/utils/unlockManager';
+import { saveGameState } from '@/context/utils/gameStorage';
 
-/**
- * Сохраняет текущее состояние игры
- */
-export const saveGame = async (
-  state: GameState, 
-  hasConnection: boolean = true
-): Promise<boolean> => {
+let lastSaveTime = 0;
+let isSavingInProgress = false;
+
+export const saveGame = async (gameState: GameState, hasConnection: boolean): Promise<boolean> => {
+  if (!hasConnection) {
+    console.log('⚠️ Нет соединения с сервером, сохранение пропущено');
+    return false;
+  }
+  
+  if (isSavingInProgress) {
+    console.log('⏳ Сохранение уже выполняется, пропускаем...');
+    return false;
+  }
+  
+  const now = Date.now();
+  if (now - lastSaveTime < 2000) {
+    console.log(`⏱️ Слишком частые сохранения (прошло ${now - lastSaveTime}мс)`);
+    return false;
+  }
+  
+  isSavingInProgress = true;
+  lastSaveTime = now;
+  
   try {
-    console.log('🔄 Сохранение игры...');
+    console.log(`🔄 Запуск сохранения игры (размер: ~${JSON.stringify(gameState).length}b)`);
     
-    // Проверяем и обновляем все разблокировки перед сохранением
-    const stateWithUnlocks = checkAllUnlocks(state);
+    const success = await saveGameState(gameState);
     
-    // Устанавливаем время последнего сохранения
-    const stateToSave = {
-      ...stateWithUnlocks,
-      lastSaved: Date.now()
-    };
-    
-    // Сохраняем в локальное хранилище в любом случае
-    const serializedState = JSON.stringify(stateToSave);
-    localStorage.setItem('gameState', serializedState);
-    console.log('✅ Игра сохранена локально');
-    
-    // Если есть подключение, сохраняем в облако
-    if (hasConnection) {
-      const serverSaved = await saveGameToServer(stateToSave);
-      if (serverSaved) {
-        console.log('✅ Игра сохранена в облаке');
-      } else {
-        console.warn('⚠️ Не удалось сохранить игру в облаке');
-      }
-      return serverSaved;
+    if (success) {
+      console.log('✅ Игра успешно сохранена');
+      return true;
+    } else {
+      console.warn('⚠️ Возникли проблемы при сохранении игры');
+      return false;
     }
-    
-    return true;
   } catch (error) {
     console.error('❌ Ошибка при сохранении игры:', error);
     return false;
+  } finally {
+    isSavingInProgress = false;
   }
 };

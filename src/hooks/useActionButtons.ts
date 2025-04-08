@@ -1,7 +1,7 @@
+
 import { useCallback, useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import { GameState } from '@/context/types';
-import { ensureUnlocksExist } from '@/utils/unlockHelper';
 
 interface ActionButtonsHookProps {
   onAddEvent: (message: string, type: string) => void;
@@ -9,14 +9,11 @@ interface ActionButtonsHookProps {
 
 // Функция для проверки, разблокирована ли кнопка "Применить знания" на основе счетчика кликов
 const isApplyKnowledgeUnlocked = (state: GameState): boolean => {
-  // Убедимся, что state.unlocks существует перед обращением к нему
-  const safeState = ensureUnlocksExist(state);
-  
-  // Проверяем наличие флага разблокировки (с защитой от undefined)
-  if (safeState.unlocks && safeState.unlocks.applyKnowledge === true) return true;
+  // Проверяем наличие флага разблокировки
+  if (state.unlocks.applyKnowledge === true) return true;
   
   // Проверяем наличие счетчика кликов знаний
-  const counter = safeState.counters.knowledgeClicks;
+  const counter = state.counters.knowledgeClicks;
   
   if (!counter) return false;
   
@@ -29,20 +26,17 @@ const isApplyKnowledgeUnlocked = (state: GameState): boolean => {
 
 export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   const { state, dispatch } = useGame();
-  // Убедимся, что state.unlocks существует перед обращением к нему
-  const safeState = ensureUnlocksExist(state);
-  
-  const [currentExchangeRate, setCurrentExchangeRate] = useState(safeState.miningParams?.exchangeRate || 20000);
+  const [currentExchangeRate, setCurrentExchangeRate] = useState(state.miningParams?.exchangeRate || 20000);
   
   // Получаем состояние зданий и ресурсов
-  const { buildings, resources, unlocks, upgrades } = safeState;
+  const { buildings, resources, unlocks, upgrades } = state;
   
   // Проверяем, должна ли кнопка изучения быть скрыта
   // Кнопка скрывается, если скорость производства знаний >= 10/сек
   const shouldHideLearnButton = (resources.knowledge?.perSecond || 0) >= 10;
   
   // Проверка разблокировки кнопки "Применить знания"
-  const applyKnowledgeUnlocked = isApplyKnowledgeUnlocked(safeState);
+  const applyKnowledgeUnlocked = isApplyKnowledgeUnlocked(state);
   
   // Проверка наличия автомайнера
   const hasAutoMiner = buildings.autoMiner && buildings.autoMiner.count > 0;
@@ -67,9 +61,9 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     // Убираем отправку события в журнал о получении знания
   }, [dispatch]);
   
-  // Обработчик для применения всех знаний
+  // Обработчик для применения всех знаний (теперь это единственная функциональность)
   const handleApplyAllKnowledge = useCallback(() => {
-    // Проверяем, д��статочно ли знаний для конвертации
+    // Проверяем, достаточно ли знаний для конвертации
     if ((resources.knowledge?.value || 0) < 10) {
       onAddEvent(`Недостаточно знаний! Требуется минимум 10`, "error");
       return;
@@ -80,7 +74,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
       knowledgeValue: resources.knowledge?.value,
       usdtValue: resources.usdt?.value,
       usdtUnlocked: resources.usdt?.unlocked,
-      applyKnowledgeCounter: safeState.counters.applyKnowledge,
+      applyKnowledgeCounter: state.counters.applyKnowledge,
       cryptoCurrencyBasicsPurchased: cryptoCurrencyBasicsPurchased,
       knowledgeEfficiencyBonus: knowledgeEfficiencyBonus
     });
@@ -99,7 +93,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     // Количество применённых знаний
     const knowledgeValue = resources.knowledge?.value || 0;
     const conversions = Math.floor(knowledgeValue / 10);
-    const obtainedUsdt = conversions * usdtRate;
+    const obtainedUsdt = Math.floor(conversions * usdtRate);
     
     // Показываем уведомление с учетом бонуса
     onAddEvent(`Все знания успешно применены! Получено ${obtainedUsdt} USDT`, "success");
@@ -108,7 +102,6 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     setTimeout(() => {
       console.log("handleApplyAllKnowledge: Принудительное обновление после APPLY_ALL_KNOWLEDGE");
       dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-      dispatch({ type: "CHECK_UNLOCKS" });
       
       // Проверяем состояние после обновления
       setTimeout(() => {
@@ -120,7 +113,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
         });
       }, 100);
     }, 100);
-  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value, resources.usdt?.value, resources.usdt?.unlocked, safeState.counters.applyKnowledge, state.resources.knowledge?.value, state.resources.usdt?.value, state.resources.usdt?.unlocked, state.counters.applyKnowledge]);
+  }, [dispatch, onAddEvent, cryptoCurrencyBasicsPurchased, knowledgeEfficiencyBonus, resources.knowledge?.value, resources.usdt?.value, resources.usdt?.unlocked, state.counters.applyKnowledge]);
   
   // Обработчик обмена Bitcoin на USDT
   const handleExchangeBitcoin = useCallback(() => {
@@ -129,7 +122,7 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     // Расчет получаемого USDT на основе текущего курса и комиссии
     const bitcoinPrice = currentExchangeRate;
-    const commission = safeState.miningParams?.exchangeCommission || 0.05;
+    const commission = state.miningParams?.exchangeCommission || 0.05;
     
     const usdtAmountBeforeCommission = bitcoinAmount * bitcoinPrice;
     const commissionAmount = usdtAmountBeforeCommission * commission;
@@ -151,12 +144,12 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     
     dispatch({ type: "EXCHANGE_BTC" });
     
-    // Более детальное сообщение для журнали событий
+    // Более детальное сообщение для журнала событий
     onAddEvent(
       `Обменяны ${safeFormatBitcoin(bitcoinAmount)} Bitcoin на ${safeFormatUsdt(finalUsdtAmount)} USDT по курсу ${bitcoinPrice}`, 
       "success"
     );
-  }, [dispatch, onAddEvent, currentExchangeRate, resources.bitcoin?.value, safeState.miningParams?.exchangeCommission]);
+  }, [dispatch, onAddEvent, currentExchangeRate, resources.bitcoin?.value, state.miningParams?.exchangeCommission]);
   
   // Функция проверки доступности кнопки
   const isButtonEnabled = useCallback((resourceId: string, cost: number) => {
@@ -166,10 +159,10 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
   
   // Обновление курса обмена Bitcoin
   useEffect(() => {
-    if (safeState.miningParams?.exchangeRate) {
-      setCurrentExchangeRate(safeState.miningParams.exchangeRate);
+    if (state.miningParams?.exchangeRate) {
+      setCurrentExchangeRate(state.miningParams.exchangeRate);
     }
-  }, [safeState.miningParams?.exchangeRate]);
+  }, [state.miningParams?.exchangeRate]);
   
   return {
     handleLearnClick,
@@ -180,6 +173,6 @@ export const useActionButtons = ({ onAddEvent }: ActionButtonsHookProps) => {
     currentExchangeRate,
     shouldHideLearnButton,
     knowledgeEfficiencyBonus,
-    applyKnowledgeUnlocked: isApplyKnowledgeUnlocked(safeState)
+    applyKnowledgeUnlocked
   };
 };

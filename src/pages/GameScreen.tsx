@@ -1,100 +1,66 @@
+
 import React, { useState, useEffect } from "react";
-import { useGame } from "@/context/hooks/useGame";
-import { Building, Lightbulb, Info, Trash2, Settings, Users, User, BookOpen } from "lucide-react";
+import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
+import { useNavigate } from "react-router-dom";
+import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
-import ResourceList from "@/components/ResourceList";
-import { Button } from "@/components/ui/button";
-import ActionButtons from "@/components/ActionButtons";
-import LanguageSwitch from "@/components/LanguageSwitch";
-import { useTranslation } from "@/i18n";
-import { toast } from "@/components/ui/use-toast";
-import { 
-  Dialog, DialogTrigger, DialogContent, DialogHeader, 
-  DialogTitle, DialogDescription, DialogFooter 
-} from "@/components/ui/dialog";
-import {
-  Sheet, SheetTrigger, SheetContent, SheetHeader,
-  SheetTitle, SheetDescription
-} from "@/components/ui/sheet";
-import {
-  Tabs, TabsList, TabsTrigger, TabsContent
-} from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { clearAllSavedDataForAllUsers } from "@/api/adminService";
-import { getUnlocksFromState } from '@/utils/unlockHelper';
+import Header from "@/components/Header";
 import EquipmentTab from "@/components/EquipmentTab";
 import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";
-import { SpecializationTab } from "@/components/SpecializationTab";
-import Header from "@/components/Header";
-import KnowledgeProductionMonitor from "@/components/KnowledgeProductionMonitor";
-import { useGameUpdater } from "@/hooks/useGameUpdater";
-import LearnButton from "@/components/buttons/LearnButton";
+import SpecializationTab from "@/components/SpecializationTab";
+import ResourceList from "@/components/ResourceList";
+import { Button } from "@/components/ui/button";
+import ActionButtons from "@/components/ActionButtons";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { resetAllGameData } from "@/context/utils/gameStorage";
+import { toast } from "@/hooks/use-toast";
 
-// Функция для сброса данных игры
-const resetAllGameData = async () => {
-  await clearAllSavedDataForAllUsers();
-};
-
-const GameScreen: React.FC = () => {
+const GameScreen = () => {
   const { state, dispatch } = useGame();
-  // Используем новый хук для обновления игры
-  const gameUpdater = useGameUpdater();
-  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [knowledgeMonitorOpen, setKnowledgeMonitorOpen] = useState(false);
-  
-  // Получаем объект unlocks из состояния для обратной совместимости
-  const unlocks = state.unlocks || getUnlocksFromState(state);
   
   const hasUnlockedBuildings = Object.values(state.buildings).some(b => b.unlocked);
-  const hasUnlockedResearch = Object.values(state.upgrades).some(u => u.unlocked || u.purchased);
-  const hasUnlockedSpecialization = !!state.specialization;
-  const hasUnlockedReferrals = state.upgrades.cryptoCommunity?.purchased === true;
+  const hasUnlockedResearch = state.unlocks.research === true;
+  const hasUnlockedSpecialization = state.unlocks.specialization === true;
+  const hasUnlockedReferrals = state.unlocks.referrals === true || 
+                              state.upgrades.cryptoCommunity?.purchased === true;
   
   useEffect(() => {
     dispatch({ type: "START_GAME" });
   }, [dispatch]);
-
-  // Добавляем обработчик события для открытия монитора производства знаний
-  useEffect(() => {
-    const handleOpenKnowledgeMonitor = () => {
-      setKnowledgeMonitorOpen(true);
-    };
-
-    window.addEventListener('open-knowledge-monitor', handleOpenKnowledgeMonitor);
-    
-    return () => {
-      window.removeEventListener('open-knowledge-monitor', handleOpenKnowledgeMonitor);
-    };
-  }, []);
   
   useEffect(() => {
-    console.log("Текущие разблокированные элементы:", 
-      Object.entries(state.resources)
-        .filter(([_, v]) => v.unlocked)
-        .map(([k]) => `ресурс ${k}`).join(', ') + ", " +
-      Object.entries(state.buildings)
-        .filter(([_, v]) => v.unlocked)
-        .map(([k]) => `здание ${k}`).join(', ') + ", " +
-      Object.entries(state.upgrades)
-        .filter(([_, v]) => v.unlocked || v.purchased)
-        .map(([k]) => `исследование ${k}`).join(', ')
-    );
-    console.log("Вкладка исследований разблокирована:", hasUnlockedResearch);
-  }, [state.resources, state.buildings, state.upgrades, hasUnlockedResearch]);
-  
-  // Эффект для принудительной проверки разблокировок при изменении зданий
-  useEffect(() => {
-    const buildingCounts = Object.values(state.buildings).map(b => b.count).join(',');
-    if (buildingCounts !== '0,0,0,0,0,0,0,0,0,0') {
-      console.log("Изменились количества зданий, проверяем раблокировки");
-      dispatch({ type: "CHECK_UNLOCKS" });
-    }
-  }, [Object.values(state.buildings).map(b => b.count).join(','), dispatch]);
+    console.log("Текущие разблокированные функции:", Object.entries(state.unlocks).filter(([_, v]) => v).map(([k]) => k).join(', '));
+    console.log("Вкладка исследований разблокирована:", state.unlocks.research === true);
+  }, [state.unlocks]);
   
   const addEvent = (message: string, type: GameEvent["type"] = "info") => {
     const newEvent: GameEvent = {
@@ -205,90 +171,182 @@ const GameScreen: React.FC = () => {
   };
   
   return (
-    <div className="h-full flex flex-col">
-      {/* Верхняя панель с ресурсами */}
-      <Header 
-        prestigePoints={state.prestigePoints || 0} 
-      />
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+      <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
+        <div className="flex justify-between items-center h-full">
+          <div className="flex-1 flex items-center pl-2 gap-2">
+            {/* Удалены компоненты KnowledgeProductionPopup и UnlockStatusPopup */}
+          </div>
+          <div className="flex items-center justify-between px-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
+                  Как играть
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Как играть в Crypto Civilization</DialogTitle>
+                  <DialogDescription>
+                    Руководство по основным механикам игры
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <Tabs defaultValue="basics">
+                  <TabsList className="grid grid-cols-3">
+                    <TabsTrigger value="basics">Основы</TabsTrigger>
+                    <TabsTrigger value="resources">Ресурсы</TabsTrigger>
+                    <TabsTrigger value="buildings">Оборудование</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="basics" className="space-y-4 mt-4">
+                    <h4 className="font-semibold">Начало игры</h4>
+                    <p className="text-sm">
+                      1. Начните с изучения основ криптовалют, нажимая на кнопку "Изучить крипту".<br />
+                      2. Накопив достаточно знаний, вы сможете применить их для получения USDT.<br />
+                      3. Используйте USDT для приобретения оборудования, которое будет автоматически генерировать ресурсы.<br />
+                      4. Постепенно открывайте новые механики и возможности по мере развития.
+                    </p>
+                  </TabsContent>
+                  
+                  <TabsContent value="resources" className="space-y-4 mt-4">
+                    <h4 className="font-semibold">Основные ресурсы</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li><strong>Знания о крипте</strong> - базовый ресурс для исследований и обмена на USDT.</li>
+                      <li><strong>USDT</strong> - основная валюта для покупки оборудования и улучшений.</li>
+                      <li><strong>Электричество</strong> - необходимо для работы компьютеров и майнинг-ферм.</li>
+                      <li><strong>Вычислительная мощность</strong> - используется для майнинга и анализа данных.</li>
+                      <li><strong>Репутация</strong> - влияет на эффективность социальных взаимодействий.</li>
+                    </ul>
+                  </TabsContent>
+                  
+                  <TabsContent value="buildings" className="space-y-4 mt-4">
+                    <h4 className="font-semibold">Типы оборудования</h4>
+                    <ul className="space-y-2 text-sm">
+                      <li><strong>Практика</strong> - автоматически генерирует знания о криптовалютах.</li>
+                      <li><strong>Генератор</strong> - производит электричество для ваших устройств.</li>
+                      <li><strong>Домашний компьютер</strong> - обеспечивает вычислительную мощность.</li>
+                      <li><strong>Криптокошелек</strong> - увеличивает максимальное хранение USDT.</li>
+                      <li><strong>Интернет-канал</strong> - ускоряет получение знаний.</li>
+                    </ul>
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
+                  Сбросить прогресс
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Сбросить прогресс?</DialogTitle>
+                  <DialogDescription>
+                    Это действие удалит все ваши достижения и начнет игру заново. Это действие нельзя отменить.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setResetConfirmOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button variant="destructive" onClick={handleResetGame}>
+                    Сбросить игру
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-6 px-2">
+                  <Settings className="h-3.5 w-3.5 mr-1" />
+                  Настройки
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Настройки</SheetTitle>
+                  <SheetDescription>
+                    Управление игрой и дополнительные опции
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="py-4">
+                  <h3 className="font-medium mb-2">Настройки игры</h3>
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center"
+                      onClick={() => setResetConfirmOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Сбросить прогресс
+                    </Button>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <h3 className="font-medium mb-2">О игре</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Версия: 0.1.0 (Альфа)<br />
+                    © 2023 Crypto Civilization
+                  </p>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+          <div className="flex-1"></div>
+        </div>
+      </header>
       
-      {/* Основной контент */}
-      <div className="flex-grow flex overflow-hidden">
-        {/* Левая панель с основными действиями */}
-        <div className="w-1/4 min-w-[200px] border-r border-gray-200 flex flex-col">
-          {/* Панель с действиями */}
-          <div className="p-2 flex-grow overflow-auto">
-            <LearnButton />
-            <ActionButtons onAddEvent={addEvent} />
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-2/5 border-r flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto p-2">
+            <ResourceList resources={unlockedResources} />
           </div>
           
-          {/* Панель с ресурсами */}
-          <div className="border-t border-gray-200 p-2 h-2/5 overflow-auto">
-            <ResourceList resources={Object.values(state.resources)} />
+          <div className="border-t mt-auto">
+            <div className="flex flex-col">
+              {hasUnlockedBuildings && renderTabButton("equipment", "Оборудование", <Building className="h-3 w-3 mr-2" />)}
+              
+              {hasUnlockedResearch && renderTabButton("research", "Исследования", <Lightbulb className="h-3 w-3 mr-2" />)}
+              
+              {hasUnlockedSpecialization && renderTabButton("specialization", "Специализация", <User className="h-3 w-3 mr-2" />)}
+              
+              {hasUnlockedReferrals && renderTabButton("referrals", "Рефералы", <Users className="h-3 w-3 mr-2" />)}
+            </div>
           </div>
         </div>
         
-        {/* Основная игровая область */}
-        <div className="flex-grow p-2 overflow-auto">
-          {/* Табы */}
-          <Tabs defaultValue="equipment">
-            <TabsList className="w-full flex justify-start">
-              {hasUnlockedBuildings && (
-                <TabsTrigger value="equipment">
-                  <Building className="h-3 w-3 mr-2" />
-                  {t('tabs.equipment')}
-                </TabsTrigger>
+        <div className="w-3/5 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto p-2 flex flex-col">
+            <div className="flex-1 overflow-auto">
+              {selectedTab === "equipment" && hasUnlockedBuildings && (
+                <EquipmentTab onAddEvent={addEvent} />
               )}
-              {hasUnlockedResearch && (
-                <TabsTrigger value="research">
-                  <Lightbulb className="h-3 w-3 mr-2" />
-                  {t('tabs.research')}
-                </TabsTrigger>
+              
+              {selectedTab === "research" && hasUnlockedResearch && (
+                <ResearchTab onAddEvent={addEvent} />
               )}
-              {hasUnlockedSpecialization && (
-                <TabsTrigger value="specialization">
-                  <User className="h-3 w-3 mr-2" />
-                  {t('tabs.specialization')}
-                </TabsTrigger>
+              
+              {selectedTab === "specialization" && hasUnlockedSpecialization && (
+                <SpecializationTab onAddEvent={addEvent} />
               )}
-              {hasUnlockedReferrals && (
-                <TabsTrigger value="referrals">
-                  <Users className="h-3 w-3 mr-2" />
-                  {t('tabs.referrals')}
-                </TabsTrigger>
+              
+              {selectedTab === "referrals" && hasUnlockedReferrals && (
+                <ReferralsTab onAddEvent={addEvent} />
               )}
-            </TabsList>
+            </div>
             
-            <TabsContent value="equipment" className="h-full overflow-auto">
-              <EquipmentTab onAddEvent={addEvent} />
-            </TabsContent>
-            
-            <TabsContent value="research" className="h-full overflow-auto">
-              <ResearchTab onAddEvent={addEvent} />
-            </TabsContent>
-            
-            <TabsContent value="specialization" className="h-full overflow-auto">
-              <SpecializationTab onAddEvent={addEvent} />
-            </TabsContent>
-            
-            <TabsContent value="referrals" className="h-full overflow-auto">
-              <ReferralsTab onAddEvent={addEvent} />
-            </TabsContent>
-          </Tabs>
-        </div>
-        
-        {/* Правая панель с журналом событий */}
-        <div className="w-1/5 min-w-[200px] border-l border-gray-200 p-2 flex flex-col">
-          <EventLog events={eventLog} />
+            <ActionButtons onAddEvent={addEvent} />
+          </div>
         </div>
       </div>
       
-      {/* Модальные окна */}
-      
-      {/* Компонент монитора производства знаний */}
-      <KnowledgeProductionMonitor 
-        open={knowledgeMonitorOpen} 
-        onOpenChange={setKnowledgeMonitorOpen} 
-      />
+      <div className="h-24 border-t bg-white flex-shrink-0">
+        <EventLog events={eventLog} />
+      </div>
     </div>
   );
 };

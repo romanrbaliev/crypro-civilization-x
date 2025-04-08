@@ -6,7 +6,6 @@ import { checkSupabaseConnection } from '../connectionUtils';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { SAVES_TABLE } from '../apiTypes';
 import { validateGameState, mergeWithInitialState } from './stateUtils';
-import { checkAllUnlocks } from '@/utils/unlockManager';
 
 // Загрузка игры из Supabase
 export const loadGameFromServer = async (): Promise<GameState | null> => {
@@ -56,16 +55,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
             
           if (retryResult.data && retryResult.data.game_data) {
             console.log('✅ Данные успешно загружены после создания таблицы');
-            
-            const gameState = retryResult.data.game_data as any;
-            
-            // Проверка целостности данных
-            if (validateGameState(gameState)) {
-              // Проверяем и обновляем все разблокировки после загрузки
-              const stateWithUnlocks = checkAllUnlocks(gameState);
-              
-              return stateWithUnlocks;
-            }
+            return retryResult.data.game_data as any;
           }
         }
       }
@@ -97,6 +87,21 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
             });
           }
           
+          // Убеждаемся, что USDT имеет правильное состояние разблокировки
+          if (gameState.resources && gameState.resources.usdt) {
+            if (!gameState.counters || 
+                !gameState.counters.applyKnowledge || 
+                gameState.counters.applyKnowledge.value < 2) {
+              gameState.resources.usdt.unlocked = false;
+              
+              if (gameState.unlocks) {
+                gameState.unlocks.usdt = false;
+              }
+              
+              console.log('🔒 USDT заблокирован при загрузке (проверка в loadGameFromServer)');
+            }
+          }
+          
           // Проверяем и восстанавливаем недостающие данные из initialState
           const mergedState = mergeWithInitialState(gameState);
           
@@ -107,10 +112,7 @@ export const loadGameFromServer = async (): Promise<GameState | null> => {
           // Важно: устанавливаем флаг gameStarted
           mergedState.gameStarted = true;
           
-          // Проверяем и обновляем все разблокировки после загрузки
-          const stateWithUnlocks = checkAllUnlocks(mergedState);
-          
-          return stateWithUnlocks;
+          return mergedState;
         } else {
           console.error('❌ Проверка целостности данных из Supabase не пройдена');
           safeDispatchGameEvent(

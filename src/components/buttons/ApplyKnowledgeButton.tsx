@@ -25,15 +25,11 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
   knowledgeValue = 0,
   applyAll = false
 }) => {
-  const buttonText = applyAll ? "Применить все знания" : "Применить знания";
+  const buttonText = "Применить знания";
   
   const bonusText = knowledgeEfficiencyBonus > 0 
     ? `+${knowledgeEfficiencyBonus * 100}% к эффективности`
     : '';
-
-  const disabledReason = knowledgeValue < 10 
-    ? "Требуется 10 знаний" 
-    : "Недостаточно знаний";
   
   return (
     <TooltipProvider>
@@ -51,7 +47,7 @@ export const ApplyKnowledgeButton: React.FC<ApplyKnowledgeButtonProps> = ({
         </TooltipTrigger>
         {disabled && (
           <TooltipContent>
-            <p>{disabledReason}</p>
+            <p>Требуется 10 знаний</p>
           </TooltipContent>
         )}
         {!disabled && bonusText && (

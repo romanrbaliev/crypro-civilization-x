@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -19,8 +18,6 @@ import {
 import {
   ChevronRight
 } from "lucide-react";
-import { formatCost } from "@/utils/costFormatter";
-import { useTranslation } from "@/i18n";
 
 interface BuildingItemProps {
   building: Building;
@@ -30,10 +27,9 @@ interface BuildingItemProps {
 const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => {
   const { state, dispatch } = useGame();
   const [isOpen, setIsOpen] = useState(false);
-  const { t, language } = useTranslation();
   
   const handlePurchase = () => {
-    dispatch({ type: "BUY_BUILDING", payload: { buildingId: building.id } });
+    dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: building.id } });
     if (onPurchase) onPurchase();
   };
   
@@ -44,18 +40,8 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const canAfford = (): boolean => {
-    // Улучшенная проверка на валидность объекта cost
-    if (!building.cost || typeof building.cost !== 'object' || Object.keys(building.cost).length === 0) {
-      return false;
-    }
-    
-    // Проверяем каждый ресурс
-    for (const [resourceId, amount] of Object.entries(building.cost)) {
-      // Дополнительная проверка на валидность значения
-      if (amount === undefined || amount === null || isNaN(Number(amount))) {
-        continue; // Пропускаем невалидные значения
-      }
-      
+    const nextCost = getNextCost();
+    for (const [resourceId, amount] of Object.entries(nextCost)) {
       const resource = state.resources[resourceId];
       if (!resource || resource.value < Number(amount)) {
         return false;
@@ -64,40 +50,32 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     return true;
   };
   
-  // Получение переведенного названия ресурса
+  const getNextCost = () => {
+    const nextCost = {};
+    for (const [resourceId, baseAmount] of Object.entries(building.cost)) {
+      const multiplier = building.costMultiplier || 1.15;
+      const calculatedCost = Math.floor(Number(baseAmount) * Math.pow(multiplier, building.count));
+      nextCost[resourceId] = calculatedCost;
+    }
+    return nextCost;
+  };
+  
   const getResourceName = (resourceId: string): string => {
-    const translationKeys: {[key: string]: string} = {
-      knowledge: 'resources.knowledge',
-      usdt: 'resources.usdt',
-      electricity: 'resources.electricity',
-      computingPower: 'resources.computingPower',
-      bitcoin: 'resources.bitcoin'
+    const resourceNames: {[key: string]: string} = {
+      knowledge: 'Знания',
+      usdt: 'USDT',
+      electricity: 'Электричество',
+      computingPower: 'Вычисл. мощность',
+      bitcoin: 'Bitcoin'
     };
     
-    const translationKey = translationKeys[resourceId];
-    if (translationKey) {
-      return t(translationKey);
-    }
-    
-    return state.resources[resourceId]?.name || resourceId;
+    return resourceNames[resourceId] || 
+           (state.resources[resourceId]?.name || resourceId);
   };
   
   const renderCost = () => {
-    // Улучшенная проверка на валидность объекта cost
-    if (!building.cost || typeof building.cost !== 'object' || Object.keys(building.cost).length === 0) {
-      return <div className="text-red-500 text-[11px]">{t('buildings.cost')} {t('buildings.undefined')}</div>;
-    }
-    
-    // Фильтруем только действительные пары ключ-значение
-    const validCostEntries = Object.entries(building.cost)
-      .filter(([_, amount]) => amount !== undefined && amount !== null && !isNaN(Number(amount)));
-    
-    // Если после фильтрации нет валидных элементов, возвращаем сообщение об ошибке
-    if (validCostEntries.length === 0) {
-      return <div className="text-red-500 text-[11px]">{t('buildings.cost')} {t('buildings.undefined')}</div>;
-    }
-    
-    return validCostEntries.map(([resourceId, amount]) => {
+    const costs = building.count === 0 ? building.cost : getNextCost();
+    return Object.entries(costs).map(([resourceId, amount]) => {
       const resource = state.resources[resourceId];
       if (!resource) return null;
       
@@ -105,7 +83,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <div key={resourceId} className="flex justify-between w-full">
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {getResourceName(resourceId)}
+            {resource.name}
           </span>
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
             {formatNumber(Number(amount))}
@@ -126,7 +104,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <div key={resourceId} className="text-green-600 text-[11px] flex justify-between w-full">
           <span>{resourceName}</span>
-          <span>+{formatNumber(Number(amount))}/{t('resources.perSecond')}</span>
+          <span>+{formatNumber(Number(amount))}/сек</span>
         </div>
       );
     });
@@ -143,7 +121,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <div key={resourceId} className="text-red-500 text-[11px] flex justify-between w-full">
           <span>{resourceName}</span>
-          <span>-{formatNumber(Number(amount))}/{t('resources.perSecond')}</span>
+          <span>-{formatNumber(Number(amount))}/сек</span>
         </div>
       );
     });
@@ -154,16 +132,16 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return null;
     }
     
-    // Для каждого здания определяем набор эффектов с учетом перевода
+    // Специальные случаи для отдельных зданий
     if (building.id === 'cryptoWallet') {
       return (
         <>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.cryptoWallet.effect1').split(':')[0]}</span>
+            <span>Макс. USDT</span>
             <span>+50</span>
           </div>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.cryptoWallet.effect2').split(':')[0]}</span>
+            <span>Макс. знаний</span>
             <span>+25%</span>
           </div>
         </>
@@ -172,28 +150,28 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.internetChannel.effect1').split(':')[0]}</span>
+            <span>Прирост знаний</span>
             <span>+20%</span>
           </div>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.internetChannel.effect2').split(':')[0]}</span>
+            <span>Эфф. вычислений</span>
             <span>+5%</span>
           </div>
         </>
       );
-    } else if (building.id === 'enhancedWallet' || building.id === 'improvedWallet') {
+    } else if (building.id === 'enhancedWallet') {
       return (
         <>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.improvedWallet.effect1').split(':')[0]}</span>
+            <span>Макс. USDT</span>
             <span>+150</span>
           </div>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.improvedWallet.effect2').split(':')[0]}</span>
+            <span>Макс. BTC</span>
             <span>+1</span>
           </div>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.improvedWallet.effect3').split(':')[0]}</span>
+            <span>Эфф. обмена BTC</span>
             <span>+8%</span>
           </div>
         </>
@@ -202,11 +180,11 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.cryptoLibrary.effect1').split(':')[0]}</span>
+            <span>Прирост знаний</span>
             <span>+50%</span>
           </div>
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>{t('buildings.cryptoLibrary.effect2').split(':')[0]}</span>
+            <span>Макс. знаний</span>
             <span>+100</span>
           </div>
         </>
@@ -214,18 +192,20 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     } else if (building.id === 'coolingSystem') {
       return (
         <div className="text-blue-600 text-[11px] flex justify-between w-full">
-          <span>{t('buildings.coolingSystem.effect').split(':')[0]}</span>
+          <span>Потр. выч. мощности</span>
           <span>-20%</span>
         </div>
       );
     }
     
+    // Обработка обычных эффектов
     return Object.entries(building.effects).map(([effectId, value]) => {
+      // Форматируем название эффекта
       const effectName = formatEffectName(effectId);
-      const numValue = Number(value);
+      // Форматируем значение (добавляем знак + для положительных значений и % для процентов)
       const formattedValue = effectId.includes('Boost') || effectId.includes('Reduction') ? 
-        `${numValue > 0 ? '+' : ''}${(numValue * 100).toFixed(0)}%` : 
-        `${numValue > 0 ? '+' : ''}${formatNumber(numValue)}`;
+        `${value > 0 ? '+' : ''}${(Number(value) * 100).toFixed(0)}%` : 
+        `${value > 0 ? '+' : ''}${formatNumber(Number(value))}`;
       
       return (
         <div key={effectId} className="text-blue-600 text-[11px] flex justify-between w-full">
@@ -234,17 +214,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
         </div>
       );
     });
-  };
-  
-  // Получение переведенного названия и описания здания
-  const getBuildingName = () => {
-    const translationKey = `buildings.${building.id}`;
-    return t(translationKey) !== translationKey ? t(translationKey) : building.name;
-  };
-  
-  const getBuildingDescription = () => {
-    const translationKey = `buildings.${building.id}.description`;
-    return t(translationKey) !== translationKey ? t(translationKey) : building.description;
   };
   
   return (
@@ -258,7 +227,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
           <div className="flex-1">
             <div className="flex justify-between items-center w-full">
               <h3 className="text-xs font-medium">
-                {getBuildingName()} {building.count > 0 && <span className="text-gray-500">×{building.count}</span>}
+                {building.name} {building.count > 0 && <span className="text-gray-500">×{building.count}</span>}
               </h3>
             </div>
           </div>
@@ -268,11 +237,11 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       
       <CollapsibleContent>
         <div className="p-2 pt-0">
-          <p className="text-[11px] text-gray-500 mt-1 mb-2">{getBuildingDescription()}</p>
+          <p className="text-[11px] text-gray-500 mt-1 mb-2">{building.description}</p>
           
           <div className="space-y-2">
             <div className="space-y-1">
-              <h4 className="text-[11px] font-medium">{t('buildings.cost')}:</h4>
+              <h4 className="text-[11px] font-medium">Стоимость:</h4>
               {renderCost()}
             </div>
             
@@ -280,21 +249,21 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
               <div className="border-t pt-2 mt-2">
                 {renderProduction() && (
                   <>
-                    <h4 className="text-[11px] font-medium mb-1">{t('buildings.produces')}:</h4>
+                    <h4 className="text-[11px] font-medium mb-1">Производит:</h4>
                     {renderProduction()}
                   </>
                 )}
                 
                 {renderConsumption() && (
                   <>
-                    <h4 className="text-[11px] font-medium mb-1 mt-1">{t('buildings.consumes')}:</h4>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">Потребляет:</h4>
                     {renderConsumption()}
                   </>
                 )}
                 
                 {renderEffects() && (
                   <>
-                    <h4 className="text-[11px] font-medium mb-1 mt-1">{t('buildings.effects')}:</h4>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">Эффекты:</h4>
                     {renderEffects()}
                   </>
                 )}
@@ -309,7 +278,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                 size="sm"
                 className="text-xs"
               >
-                {t('buildings.buy')}
+                Купить
               </Button>
               
               <Button
@@ -319,7 +288,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                 size="sm"
                 className="text-xs"
               >
-                {t('buildings.sell')}
+                Продать
               </Button>
             </div>
           </div>

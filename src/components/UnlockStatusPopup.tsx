@@ -1,43 +1,99 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Unlock } from 'lucide-react';
 import { useGame } from '@/context/hooks/useGame';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from '@/i18n';
+import { debugUnlockStatus } from '@/utils/debugCalculator';
+import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
-interface UnlockStatusPopupProps {
-  message: string;
-  onComplete: () => void;
-}
-
-const UnlockStatusPopup: React.FC<UnlockStatusPopupProps> = ({ message, onComplete }) => {
-  const { state } = useGame();
-  const { t } = useTranslation();
-  const [visible, setVisible] = useState(true);
+const UnlockStatusPopup = () => {
+  const { state, forceUpdate } = useGame();
+  const [statusSteps, setStatusSteps] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(false);
-      setTimeout(onComplete, 300); // Задержка для анимации исчезновения
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+  const updateStatus = async () => {
+    try {
+      setLoading(true);
+      
+      // Форсируем обновление состояния игры
+      forceUpdate();
+      
+      // Небольшая задержка, чтобы обновление успело применится
+      setTimeout(() => {
+        try {
+          // Получаем отчет о статусе разблокировок
+          const { steps } = debugUnlockStatus(state);
+          setStatusSteps(steps);
+        } catch (error) {
+          console.error('Ошибка при анализе разблокировок:', error);
+          setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);
+        } finally {
+          setLoading(false);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Ошибка при обновлении статуса:', error);
+      setLoading(false);
+    }
+  };
+  
+  // Обновляем статус при открытии popover
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      updateStatus();
+    }
+  };
   
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          className="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
+    <Popover onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-8 px-2 text-xs gap-1 bg-white"
         >
-          <div className="bg-blue-100 text-blue-800 px-6 py-3 rounded-lg shadow-lg max-w-md text-center">
-            <span className="text-lg font-bold">{message}</span>
+          <Unlock className="h-3.5 w-3.5" /> 
+          Статус разблокировок
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-96 p-0">
+        <div className="p-4 bg-white rounded-md">
+          <h3 className="text-sm font-bold text-gray-700 mb-2">Статус разблокировок контента</h3>
+          
+          <div className="mt-2 p-2 bg-gray-50 rounded border text-xs text-gray-600 max-h-80 overflow-y-auto whitespace-pre-line">
+            {loading ? (
+              <div className="text-center py-2">Загрузка данных...</div>
+            ) : (
+              statusSteps.map((step, index) => (
+                <div key={index} className={
+                  step.includes('✅') ? 'text-green-600' : 
+                  step.includes('❌') ? 'text-red-500' : 
+                  step.startsWith('•') ? 'pl-2' :
+                  step.startsWith('📊') || step.startsWith('🔓') || step.startsWith('🏗️') || step.startsWith('📚') ? 'font-semibold mt-2' : ''
+                }>
+                  {step}
+                </div>
+              ))
+            )}
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          
+          <div className="mt-3 flex justify-end">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="text-xs" 
+              onClick={updateStatus}
+            >
+              Обновить статус
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
