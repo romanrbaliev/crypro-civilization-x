@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
 import { Building, Lightbulb, Info, Trash2, Settings, Users, User } from "lucide-react";
 import EventLog, { GameEvent } from "@/components/EventLog";
 import { generateId } from "@/utils/helpers";
-import Header from "@/components/Header";
 import EquipmentTab from "@/components/EquipmentTab";
 import ResearchTab from "@/components/ResearchTab";
 import ReferralsTab from "@/components/ReferralsTab";

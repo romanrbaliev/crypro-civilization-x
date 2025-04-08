@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 
@@ -457,7 +456,8 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
         cost: { knowledge: 500 },
         purchased: false,
         unlocked: true,
-        type: 'research'
+        type: 'research',
+        effects: [] // Добавляем пустой массив эффектов
       };
       safeDispatchGameEvent('Разблокировано исследование: Криптосообщество', 'success');
     }
@@ -470,7 +470,7 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
 export const checkActionUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
   
-  // Разблокировка исследований (вкладка исследований) после 5 применений знаний ИЛИ при наличии генератора
+  // Разблоки��овка исследований (вкладка исследований) после 5 применений знаний ИЛИ при наличии генератора
   if (!newState.unlocks.research && 
       ((newState.counters.applyKnowledge?.value || 0) >= 5 || 
        newState.buildings.generator?.count > 0)) {

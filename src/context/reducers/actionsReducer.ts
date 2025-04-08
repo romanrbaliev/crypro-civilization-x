@@ -266,7 +266,7 @@ export const processMiningPower = (state: GameState): GameState => {
   // Майнинг потребляет вычислительную мощность и дает USDT
   const usdtGain = 1; // Базовое количество USDT за одно нажатие
   
-  // Обновляем ресурсы
+  // Обновляем ресурсы - создаем копию всех ресурсов
   const newResources = {
     ...state.resources,
     computingPower: {
