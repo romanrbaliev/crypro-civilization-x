@@ -15,8 +15,9 @@ export class ResourceProductionService {
     // Принудительно проверяем разблокировку майнера при наличии исследования "Основы криптовалют"
     this.checkMinerUnlock(state);
     
-    // Проверяем, какие ресурсы закончились
+    // Проверяем, какие ресурсы закончились или недоступны
     const resourcesExhausted = this.checkExhaustedResources(state);
+    const resourcesUnavailable = this.checkUnavailableResources(state);
     
     // Рассчитываем базовое производство и потребление для каждого ресурса
     for (const resourceId in resources) {
@@ -196,10 +197,17 @@ export class ResourceProductionService {
           // Биткоин от майнеров
           let bitcoinProduction = resource.baseProduction || 0;
           
+          // ИСПРАВЛЕНО: Проверяем и недоступность ресурса computingPower, не только его нехватку
           // Проверяем, не закончилось ли электричество или вычислительная мощность
-          const resourcesAvailable = !resourcesExhausted.includes('electricity') && !resourcesExhausted.includes('computingPower');
+          const isElectricityResourceAvailable = !resourcesExhausted.includes('electricity') && 
+                                                !resourcesUnavailable.includes('electricity');
+          const isComputingPowerResourceAvailable = !resourcesExhausted.includes('computingPower') && 
+                                                   !resourcesUnavailable.includes('computingPower');
           
-          if (resourcesAvailable && state.buildings.miner && state.buildings.miner.count > 0) {
+          // Для производства биткоина нужны и электричество, и вычислительная мощность
+          const resourcesAvailableForMining = isElectricityResourceAvailable && isComputingPowerResourceAvailable;
+          
+          if (resourcesAvailableForMining && state.buildings.miner && state.buildings.miner.count > 0) {
             const minerCount = state.buildings.miner.count;
             // Базовое производство: 0.00005 BTC в секунду на майнер
             let miningEfficiency = state.miningParams?.miningEfficiency || 1;
@@ -207,8 +215,20 @@ export class ResourceProductionService {
             bitcoinProduction += minerProduction;
             
             console.log(`ResourceProductionService: Майнеры производят ${minerProduction.toFixed(6)}/сек Bitcoin (эффективность: ${miningEfficiency})`);
-          } else if (!resourcesAvailable) {
-            console.log('ResourceProductionService: Недостаточно ресурсов, майнинг Bitcoin приостановлен');
+          } else {
+            // Логируем точную причину остановки майнинга
+            if (!isElectricityResourceAvailable) {
+              console.log('ResourceProductionService: Недостаточно электричества для майнинга Bitcoin');
+            }
+            if (!isComputingPowerResourceAvailable) {
+              console.log('ResourceProductionService: Недостаточно вычислительной мощности для майнинга Bitcoin');
+            }
+            if (!state.buildings.miner || state.buildings.miner.count === 0) {
+              console.log('ResourceProductionService: Нет доступных майнеров для производства Bitcoin');
+            }
+            
+            // Устанавливаем производство в ноль
+            bitcoinProduction = 0;
           }
           
           resources[resourceId] = {
@@ -245,6 +265,27 @@ export class ResourceProductionService {
     }
     
     return exhaustedResources;
+  }
+  
+  /**
+   * Проверяет, какие требуемые ресурсы недоступны (еще не разблокированы)
+   * Добавлен новый метод для проверки недоступных ресурсов
+   */
+  private checkUnavailableResources(state: GameState): string[] {
+    const unavailableResources: string[] = [];
+    
+    // Список всех возможных ресурсов
+    const requiredResources = ['electricity', 'computingPower', 'bitcoin'];
+    
+    for (const resourceId of requiredResources) {
+      // Ресурс считается недоступным, если он не существует или не разблокирован
+      if (!state.resources[resourceId] || !state.resources[resourceId].unlocked) {
+        unavailableResources.push(resourceId);
+        console.log(`ResourceProductionService: Ресурс ${resourceId} недоступен (не разблокирован)`);
+      }
+    }
+    
+    return unavailableResources;
   }
   
   /**

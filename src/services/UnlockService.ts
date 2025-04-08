@@ -31,22 +31,33 @@ export class UnlockService {
     console.log("UnlockService: Проверка разблокировок зданий");
     const shouldUnlockPractice = this.shouldUnlockPractice(state);
     const shouldUnlockGenerator = this.shouldUnlockGenerator(state);
-    console.log("UnlockService - shouldUnlockPractice:", {
-      applyKnowledge: this.getApplyKnowledgeCount(state),
-      practiceExists: !!state.buildings.practice,
-      practiceUnlocked: state.buildings.practice?.unlocked ? "Да" : "Нет",
-      practiceInUnlocks: state.unlocks.practice ? "Да" : "Нет",
-      result: shouldUnlockPractice
-    });
-    console.log("UnlockService - shouldUnlockGenerator:", {
-      usdtValue: state.resources.usdt?.value || 0,
-      usdtUnlocked: state.resources.usdt?.unlocked || false,
-      generatorUnlocked: state.buildings.generator?.unlocked ? "Да" : "Нет",
-      result: shouldUnlockGenerator
+    const shouldUnlockHomeComputer = this.shouldUnlockHomeComputer(state);
+    const shouldUnlockCryptoWallet = this.shouldUnlockCryptoWallet(state);
+    const shouldUnlockInternetChannel = this.shouldUnlockInternetChannel(state);
+    const shouldUnlockMiner = this.shouldUnlockMiner(state);
+    
+    console.log("UnlockService - разблокировка зданий:", {
+      practice: shouldUnlockPractice,
+      generator: shouldUnlockGenerator,
+      homeComputer: shouldUnlockHomeComputer,
+      cryptoWallet: shouldUnlockCryptoWallet,
+      internetChannel: shouldUnlockInternetChannel,
+      miner: shouldUnlockMiner
     });
     
-    // Проверка разблокировки улучшений и действий
-    console.log("UnlockService: Проверка разблокировок улучшений и действий");
+    // Проверка разблокировки улучшений
+    console.log("UnlockService: Проверка разблокировок улучшений");
+    const shouldUnlockBlockchainBasics = this.shouldUnlockBlockchainBasics(state);
+    const shouldUnlockCryptoWalletSecurity = this.shouldUnlockCryptoWalletSecurity(state);
+    const shouldUnlockCryptoCurrencyBasics = this.shouldUnlockCryptoCurrencyBasics(state);
+    const shouldUnlockAlgorithmOptimization = this.shouldUnlockAlgorithmOptimization(state);
+    
+    console.log("UnlockService - разблокировка улучшений:", {
+      blockchainBasics: shouldUnlockBlockchainBasics,
+      cryptoWalletSecurity: shouldUnlockCryptoWalletSecurity,
+      cryptoCurrencyBasics: shouldUnlockCryptoCurrencyBasics,
+      algorithmOptimization: shouldUnlockAlgorithmOptimization
+    });
     
     // Используем утилиту unlockManager для проверки всех разблокировок
     return checkAllUnlocks(state);
@@ -97,12 +108,64 @@ export class UnlockService {
   }
   
   /**
+   * Проверяет условия для разблокировки криптокошелька (после исследования "Основы блокчейна")
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockCryptoWallet(state: GameState): boolean {
+    return (state.upgrades.blockchainBasics?.purchased === true || 
+            state.upgrades.basicBlockchain?.purchased === true); // Требуется исследование "Основы блокчейна"
+  }
+  
+  /**
+   * Проверяет условия для разблокировки интернет-канала (после покупки домашнего компьютера)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockInternetChannel(state: GameState): boolean {
+    return (state.buildings.homeComputer?.count > 0);
+  }
+  
+  /**
+   * Проверяет условия для разблокировки майнера (после "Основы криптовалют")
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockMiner(state: GameState): boolean {
+    return (state.upgrades.cryptoCurrencyBasics?.purchased === true || 
+            state.upgrades.cryptoBasics?.purchased === true);
+  }
+  
+  /**
    * Проверяет условия для разблокировки основ блокчейна (куплен генератор)
    * Добавлено согласно базе знаний
    */
   private shouldUnlockBlockchainBasics(state: GameState): boolean {
     return (state.buildings.generator?.count > 0) && 
            (state.buildings.generator?.unlocked === true); // Требуется покупка генератора
+  }
+  
+  /**
+   * Проверяет условия для разблокировки безопасности криптокошельков (после покупки криптокошелька)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockCryptoWalletSecurity(state: GameState): boolean {
+    return (state.buildings.cryptoWallet?.count > 0 || 
+            state.buildings.wallet?.count > 0);
+  }
+  
+  /**
+   * Проверяет условия для разблокировки основ криптовалют (после достижения 2 уровня криптокошелька)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockCryptoCurrencyBasics(state: GameState): boolean {
+    return (state.buildings.cryptoWallet?.count >= 2 || 
+            state.buildings.wallet?.count >= 2);
+  }
+  
+  /**
+   * Проверяет условия для разблокировки оптимизации алгоритмов (после покупки майнера)
+   * Добавлено согласно базе знаний
+   */
+  private shouldUnlockAlgorithmOptimization(state: GameState): boolean {
+    return (state.buildings.miner?.count > 0);
   }
   
   /**
