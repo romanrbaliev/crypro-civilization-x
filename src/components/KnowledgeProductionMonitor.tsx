@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { Book, Timer, Settings, BarChart2, ClipboardList, Play, Pause, RefreshCw } from 'lucide-react';
@@ -331,8 +332,10 @@ const KnowledgeProductionMonitor: React.FC<{
       } else {
         addLog(`❌ Тест не прошел! Ожидалось увеличение ${formatValue(testIncrement, 'knowledge')}, получено ${formatValue(afterTest - beforeTest, 'knowledge')}`, 'debug');
         
+        // Исправлено: используем state.resources.knowledge вместо переменной updatedKnowledge
+        const currentKnowledge = state.resources.knowledge;
         addLog(`Структура ресурса knowledge:`, 'debug');
-        addLog(`value: ${updatedKnowledge.value}, perSecond: ${updatedKnowledge.perSecond}, max: ${updatedKnowledge.max}`, 'debug');
+        addLog(`value: ${currentKnowledge?.value}, perSecond: ${currentKnowledge?.perSecond}, max: ${currentKnowledge?.max}`, 'debug');
       }
       
       addLog(`=== КОНЕЦ ДЕТАЛЬНОГО АНАЛИЗА ===`, 'system');
