@@ -5,7 +5,6 @@ import { ResourceContainer } from './ResourceContainer';
 import { BuildingsContainer } from './BuildingsContainer';
 import ActionButtons from './ActionButtons';
 import EventLog from './EventLog';
-import { GameHeader } from './GameHeader';
 import { ResearchContainer } from './ResearchContainer';
 import { useGameSaver } from '../hooks/useGameSaver';
 import { useGameStateUpdateService } from '../hooks/useGameStateUpdateService';
@@ -40,7 +39,10 @@ export function Game() {
   return (
     <div className="container mx-auto p-4 flex flex-col md:flex-row gap-4">
       <div className="w-full md:w-2/3 space-y-4">
-        <GameHeader />
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h1 className="text-xl font-bold">Криптоидл</h1>
+          <p className="text-gray-600">Фаза: {state.phase}</p>
+        </div>
         
         <ActionButtons onAddEvent={() => {}} />
         
