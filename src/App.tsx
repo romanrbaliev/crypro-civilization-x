@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,13 +7,12 @@ import GameScreen from "./pages/GameScreen";
 import StartScreen from "./pages/StartScreen";
 import NotFound from "./pages/NotFound";
 import { GameProvider } from "./context/GameContext";
-import { LanguageProvider } from "./i18n"; // Импортируем языковой провайдер
+import { LanguageProvider } from "./i18n";
 import { isTelegramWebAppAvailable } from "./utils/helpers";
 import { ensureGameEventBus } from "./context/utils/eventBusUtils";
 import { checkSupabaseConnection, createSavesTableIfNotExists, getUserIdentifier } from "./api/gameDataService";
 import "./index.css";
 
-// Создаем клиент для запросов
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -46,7 +44,7 @@ if (typeof window !== 'undefined') {
   console.log("Инициализация игры, создание GameEventBus");
 }
 
-const App = () => {
+const App: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -162,7 +160,6 @@ const App = () => {
     setTimeout(syncHelperData, 2000);
   }, []);
   
-  // Добавим отладочную информацию
   console.log("Текущее состояние приложения:", {
     isOnline,
     isSupabaseConnected,
@@ -243,10 +240,8 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<StartScreen />} />
                 <Route path="/game" element={<GameScreen />} />
-                <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-            <Toaster />
           </TooltipProvider>
         </GameProvider>
       </LanguageProvider>

@@ -1,4 +1,4 @@
 
-export * from './types';
-export * from './translations';
-export * from './LanguageContext';
+export { useTranslation } from './LanguageContext';
+export { LanguageProvider } from './LanguageContext';
+export type { Language } from './types';

@@ -29,14 +29,18 @@ import ReferralsTab from "@/components/ReferralsTab";
 import { SpecializationTab } from "@/components/SpecializationTab";
 import Header from "@/components/Header";
 import KnowledgeProductionMonitor from "@/components/KnowledgeProductionMonitor";
+import { useGameUpdater } from "@/hooks/useGameUpdater";
+import LearnButton from "@/components/buttons/LearnButton";
 
 // Функция для сброса данных игры
 const resetAllGameData = async () => {
   await clearAllSavedDataForAllUsers();
 };
 
-const GameScreen = () => {
+const GameScreen: React.FC = () => {
   const { state, dispatch } = useGame();
+  // Используем новый хук для обновления игры
+  const gameUpdater = useGameUpdater();
   const { t } = useTranslation();
   const [eventLog, setEventLog] = useState<GameEvent[]>([]);
   const [selectedTab, setSelectedTab] = useState("equipment");
@@ -87,7 +91,7 @@ const GameScreen = () => {
   useEffect(() => {
     const buildingCounts = Object.values(state.buildings).map(b => b.count).join(',');
     if (buildingCounts !== '0,0,0,0,0,0,0,0,0,0') {
-      console.log("Изменились количества зданий, проверяем ра��блокировки");
+      console.log("Изменились количества зданий, проверяем раблокировки");
       dispatch({ type: "CHECK_UNLOCKS" });
     }
   }, [Object.values(state.buildings).map(b => b.count).join(','), dispatch]);
@@ -201,59 +205,84 @@ const GameScreen = () => {
   };
   
   return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      {/* Используем обновленный Header */}
+    <div className="h-full flex flex-col">
+      {/* Верхняя панель с ресурсами */}
       <Header 
         prestigePoints={state.prestigePoints || 0} 
       />
       
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-2/5 border-r flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-2">
-            <ResourceList resources={unlockedResources} />
+      {/* Основной контент */}
+      <div className="flex-grow flex overflow-hidden">
+        {/* Левая панель с основными действиями */}
+        <div className="w-1/4 min-w-[200px] border-r border-gray-200 flex flex-col">
+          {/* Панель с действиями */}
+          <div className="p-2 flex-grow overflow-auto">
+            <LearnButton />
+            <ActionButtons onAddEvent={addEvent} />
           </div>
           
-          <div className="border-t mt-auto">
-            <div className="flex flex-col">
-              {hasUnlockedBuildings && renderTabButton("equipment", t('tabs.equipment'), <Building className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedResearch && renderTabButton("research", t('tabs.research'), <Lightbulb className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedSpecialization && renderTabButton("specialization", t('tabs.specialization'), <User className="h-3 w-3 mr-2" />)}
-              
-              {hasUnlockedReferrals && renderTabButton("referrals", t('tabs.referrals'), <Users className="h-3 w-3 mr-2" />)}
-            </div>
+          {/* Панель с ресурсами */}
+          <div className="border-t border-gray-200 p-2 h-2/5 overflow-auto">
+            <ResourceList resources={Object.values(state.resources)} />
           </div>
         </div>
         
-        <div className="w-3/5 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-2 flex flex-col">
-            <div className="flex-1 overflow-auto">
-              {selectedTab === "equipment" && hasUnlockedBuildings && (
-                <EquipmentTab onAddEvent={addEvent} />
+        {/* Основная игровая область */}
+        <div className="flex-grow p-2 overflow-auto">
+          {/* Табы */}
+          <Tabs defaultValue="equipment">
+            <TabsList className="w-full flex justify-start">
+              {hasUnlockedBuildings && (
+                <TabsTrigger value="equipment">
+                  <Building className="h-3 w-3 mr-2" />
+                  {t('tabs.equipment')}
+                </TabsTrigger>
               )}
-              
-              {selectedTab === "research" && hasUnlockedResearch && (
-                <ResearchTab onAddEvent={addEvent} />
+              {hasUnlockedResearch && (
+                <TabsTrigger value="research">
+                  <Lightbulb className="h-3 w-3 mr-2" />
+                  {t('tabs.research')}
+                </TabsTrigger>
               )}
-              
-              {selectedTab === "specialization" && hasUnlockedSpecialization && (
-                <SpecializationTab onAddEvent={addEvent} />
+              {hasUnlockedSpecialization && (
+                <TabsTrigger value="specialization">
+                  <User className="h-3 w-3 mr-2" />
+                  {t('tabs.specialization')}
+                </TabsTrigger>
               )}
-              
-              {selectedTab === "referrals" && hasUnlockedReferrals && (
-                <ReferralsTab onAddEvent={addEvent} />
+              {hasUnlockedReferrals && (
+                <TabsTrigger value="referrals">
+                  <Users className="h-3 w-3 mr-2" />
+                  {t('tabs.referrals')}
+                </TabsTrigger>
               )}
-            </div>
+            </TabsList>
             
-            <ActionButtons onAddEvent={addEvent} />
-          </div>
+            <TabsContent value="equipment" className="h-full overflow-auto">
+              <EquipmentTab onAddEvent={addEvent} />
+            </TabsContent>
+            
+            <TabsContent value="research" className="h-full overflow-auto">
+              <ResearchTab onAddEvent={addEvent} />
+            </TabsContent>
+            
+            <TabsContent value="specialization" className="h-full overflow-auto">
+              <SpecializationTab onAddEvent={addEvent} />
+            </TabsContent>
+            
+            <TabsContent value="referrals" className="h-full overflow-auto">
+              <ReferralsTab onAddEvent={addEvent} />
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        {/* Правая панель с журналом событий */}
+        <div className="w-1/5 min-w-[200px] border-l border-gray-200 p-2 flex flex-col">
+          <EventLog events={eventLog} />
         </div>
       </div>
       
-      <div className="h-24 border-t bg-white flex-shrink-0">
-        <EventLog events={eventLog} />
-      </div>
+      {/* Модальные окна */}
       
       {/* Компонент монитора производства знаний */}
       <KnowledgeProductionMonitor 

@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { Resource } from '@/context/types';
-import { formatNumber } from '@/utils/helpers';
 import { Zap, TrendingUp } from 'lucide-react';
 import { useTranslation } from '@/i18n';
-import { useResourceSystem } from '@/hooks/useResourceSystem';
+import { useResources } from '@/hooks/useResources';
 
 interface ResourceContainerProps {
   resource: Resource;
@@ -18,21 +17,10 @@ export const ResourceContainer: React.FC<ResourceContainerProps> = ({
   className = ""
 }) => {
   const { t } = useTranslation();
-  const { formatValue } = useResourceSystem();
+  const { formatValue } = useResources();
   
-  // Функция для получения ключа перевода ресурса
-  const getResourceTranslationKey = (resourceId: string): string => {
-    // Мэппинг ID ресурсов в ключи перевода
-    const resourceKeyMap: Record<string, string> = {
-      'knowledge': 'resources.knowledge',
-      'usdt': 'resources.usdt',
-      'electricity': 'resources.electricity', 
-      'computingPower': 'resources.computingPower',
-      'bitcoin': 'resources.bitcoin'
-    };
-    
-    return resourceKeyMap[resourceId] || `resources.${resourceId}`;
-  };
+  // Получаем ключ перевода ресурса
+  const resourceKey = `resources.${resource.id}` as any;
   
   return (
     <div 
@@ -43,7 +31,7 @@ export const ResourceContainer: React.FC<ResourceContainerProps> = ({
     >
       <div>
         <div className="text-sm font-medium">
-          {t(getResourceTranslationKey(resource.id) as any)}
+          {t(resourceKey)}
         </div>
         <div className="text-lg font-semibold">
           {formatValue(resource.value, resource.id)}
@@ -59,7 +47,7 @@ export const ResourceContainer: React.FC<ResourceContainerProps> = ({
         <div className={`px-2 py-1 rounded-md flex items-center text-xs
           ${resource.perSecond > 0 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
           {resource.perSecond > 0 ? <TrendingUp size={12} className="mr-1" /> : <Zap size={12} className="mr-1" />}
-          {formatValue(resource.perSecond, resource.id)}/{t('resources.perSecond')}
+          {formatValue(Math.abs(resource.perSecond), resource.id)}/{t('resources.perSecond')}
         </div>
       )}
     </div>

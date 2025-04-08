@@ -2,20 +2,19 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/context/hooks/useGame';
-import { useResourceSystem } from '@/hooks/useResourceSystem';
+import { useResources } from '@/hooks/useResources';
 import { useTranslation } from '@/i18n';
 import { Book } from 'lucide-react';
 
 const LearnButton: React.FC = () => {
   const { state, dispatch } = useGame();
+  const { incrementResource } = useResources();
   const { t } = useTranslation();
   
-  // Определяем базовое производство знаний
+  // Базовое производство знаний при клике
   const baseProduction = 1;
   
   const handleClick = () => {
-    console.log('==== КЛИК ПО КНОПКЕ "ИЗУЧИТЬ КРИПТУ" ====');
-    
     // Инкрементируем счетчик кликов
     dispatch({
       type: 'INCREMENT_COUNTER',
@@ -26,35 +25,8 @@ const LearnButton: React.FC = () => {
     });
     
     if (state.resources.knowledge?.unlocked) {
-      // Логируем текущее значение перед изменением
-      const knowledgeBefore = state.resources.knowledge.value || 0;
-      console.log(`LearnButton: Текущее значение знаний перед кликом: ${knowledgeBefore}`);
-      
-      // Добавляем знания напрямую через диспетчер
-      dispatch({
-        type: 'INCREMENT_RESOURCE',
-        payload: {
-          resourceId: 'knowledge',
-          amount: baseProduction
-        }
-      });
-      
-      // Проверяем, увеличилось ли значение знаний
-      setTimeout(() => {
-        const knowledgeAfter = state.resources.knowledge?.value || 0;
-        console.log(`LearnButton: Значение знаний после клика: ${knowledgeAfter} (изменение: ${knowledgeAfter - knowledgeBefore})`);
-        
-        // Дополнительная диагностика
-        if (Math.abs(knowledgeAfter - knowledgeBefore - baseProduction) > 0.001) {
-          console.warn(`LearnButton: Аномалия при инкременте! Ожидалось ${baseProduction}, получено ${knowledgeAfter - knowledgeBefore}`);
-          console.log('Структура ресурса:', JSON.stringify(state.resources.knowledge));
-        }
-      }, 50);
-      
-      // Открываем монитор производства знаний через событие
-      window.dispatchEvent(new CustomEvent('open-knowledge-monitor'));
-      
-      console.log(`LearnButton: Отправлена команда INCREMENT_RESOURCE, знания +${baseProduction}`);
+      // Добавляем знания
+      incrementResource('knowledge', baseProduction);
     }
   };
   

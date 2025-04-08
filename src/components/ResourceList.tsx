@@ -6,7 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { useGame } from "@/context/hooks/useGame";
 import { Button } from "@/components/ui/button";
 import { CircleDollarSign } from "lucide-react";
-import { useResourceSystem } from "@/hooks/useResourceSystem";
+import { useResources } from "@/hooks/useResources";
+import { useTranslation } from "@/i18n";
 
 interface ResourceListProps {
   resources: Resource[];
@@ -15,29 +16,21 @@ interface ResourceListProps {
 // Используем memo для предотвращения лишних перерисовок
 const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   const { dispatch, state } = useGame();
-  const { formatValue } = useResourceSystem();
+  const { incrementResource } = useResources();
+  const { t } = useTranslation();
   
   // Фильтруем только разблокированные ресурсы
   const unlockedResources = resources.filter(resource => resource.unlocked);
   
-  // Заполнение USDT до максимального значения
+  // Заполнение USDT до максимального значения (тестовая функция)
   const handleFillUsdt = () => {
     if (state.resources.usdt && state.resources.usdt.unlocked) {
-      // Используем максимальное значение USDT из состояния
       const maxUsdt = state.resources.usdt.max || 0;
       const currentValue = state.resources.usdt.value || 0;
-      
-      // Добавляем ровно столько USDT, сколько не хватает до максимума
       const amountToAdd = maxUsdt - currentValue;
       
       if (amountToAdd > 0) {
-        dispatch({
-          type: "INCREMENT_RESOURCE",
-          payload: {
-            resourceId: "usdt",
-            amount: amountToAdd
-          }
-        });
+        incrementResource("usdt", amountToAdd);
       }
     }
   };
@@ -45,7 +38,7 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
   if (unlockedResources.length === 0) {
     return (
       <div className="text-center py-4 text-sm text-gray-500">
-        Нет доступных ресурсов
+        {t('resources.noResourcesAvailable')}
       </div>
     );
   }
@@ -59,11 +52,7 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
         {unlockedResources.map((resource, index) => (
           <React.Fragment key={resource.id}>
             <div className="py-1">
-              <ResourceDisplay 
-                resource={resource} 
-                formattedValue={formatValue(resource.value !== null && resource.value !== undefined ? resource.value : 0, resource.id)}
-                formattedPerSecond={formatValue(resource.perSecond !== null && resource.perSecond !== undefined ? resource.perSecond : 0, resource.id)}
-              />
+              <ResourceDisplay resource={resource} />
             </div>
             {index < unlockedResources.length - 1 && (
               <Separator className="my-0.5" />
@@ -72,7 +61,7 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
         ))}
       </div>
       
-      {/* Кнопка заполнения USDT (только если USDT разблокирован) */}
+      {/* Кнопка заполнения USDT (только для тестирования) */}
       {isUsdtUnlocked && (
         <div className="mt-2 pt-2 border-t border-gray-200">
           <Button 
@@ -82,7 +71,7 @@ const ResourceList: React.FC<ResourceListProps> = memo(({ resources }) => {
             className="w-full text-xs flex items-center justify-center"
           >
             <CircleDollarSign className="h-3 w-3 mr-1" />
-            Full USDT (Тест)
+            {t('debug.fillUsdt')}
           </Button>
         </div>
       )}

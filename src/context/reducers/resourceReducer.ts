@@ -1,89 +1,247 @@
 
-import { GameState } from '../types';
-import { ResourceSystem } from '@/systems/ResourceSystem';
+import { GameState, Resource } from '../types';
+import { calculateResourceProduction } from '@/utils/resourceCalculator';
 
-// Создаем статический экземпляр для использования вне компонентов
-const resourceSystem = new ResourceSystem();
-
-export const processIncrementResource = (
-  state: GameState, 
-  payload: { resourceId: string; amount?: number }
-): GameState => {
-  const { resourceId, amount = 1 } = payload;
-  console.log(`resourceReducer: Увеличение ресурса ${resourceId} на ${amount}`);
+/**
+ * Функция для обновления ресурсов на основе прошедшего времени
+ */
+export const updateResources = (state: GameState, payload: { deltaTime: number }): GameState => {
+  const { deltaTime } = payload;
   
-  // Проверяем существование и разблокировку ресурса
-  if (!state.resources[resourceId] || !state.resources[resourceId].unlocked) {
-    console.warn(`Ресурс ${resourceId} не существует или не разблокирован`);
+  if (deltaTime <= 0 || !state.gameStarted) {
     return state;
   }
   
-  // Получаем текущие значения
-  const currentValue = state.resources[resourceId].value || 0;
-  const maxValue = state.resources[resourceId].max || Infinity;
+  const updatedResources = { ...state.resources };
   
-  // Вычисляем новое значение, не превышающее максимум
-  const newValue = Math.min(currentValue + amount, maxValue);
-  
-  console.log(`resourceReducer: ${resourceId} ${currentValue} + ${amount} = ${newValue} (макс. ${maxValue})`);
-  
-  // Создаем новый объект ресурсов с обновленным значением
-  const updatedResources = {
-    ...state.resources,
-    [resourceId]: {
-      ...state.resources[resourceId],
-      value: newValue
-    }
-  };
-  
-  // Отправляем событие обновления значения знаний, если это ресурс знаний
-  if (resourceId === 'knowledge' && Math.abs(newValue - currentValue) > 0.000001) {
-    try {
-      window.dispatchEvent(new CustomEvent('knowledge-value-updated', { 
-        detail: { 
-          oldValue: currentValue,
-          newValue: newValue,
-          delta: newValue - currentValue,
-          source: 'increment-resource'
-        }
-      }));
-    } catch (e) {
-      console.error("Ошибка при отправке события обновления знаний:", e);
+  // Обновляем каждый ресурс на основе его скорости производства
+  for (const resourceId in updatedResources) {
+    const resource = updatedResources[resourceId];
+    
+    if (resource && resource.unlocked) {
+      const perSecond = resource.perSecond || 0;
+      
+      if (Math.abs(perSecond) > 0.000001) {
+        const currentValue = resource.value || 0;
+        const maxValue = resource.max || Infinity;
+        
+        // Вычисляем прирост за текущий временной промежуток
+        const increment = perSecond * (deltaTime / 1000);
+        
+        // Ограничиваем новое значение максимумом
+        const newValue = Math.min(currentValue + increment, maxValue);
+        
+        // Обновляем значение ресурса
+        updatedResources[resourceId] = {
+          ...resource,
+          value: newValue
+        };
+      }
     }
   }
   
-  // Возвращаем обновленное состояние
   return {
     ...state,
     resources: updatedResources
   };
 };
 
-export const processUnlockResource = (
+/**
+ * Функция для пересчета производства ресурсов
+ */
+export const recalculateProduction = (state: GameState): GameState => {
+  const updatedResources = { ...state.resources };
+  
+  // Пересчитываем производство для каждого ресурса
+  for (const resourceId in updatedResources) {
+    const resource = updatedResources[resourceId];
+    
+    if (resource && resource.unlocked) {
+      // Рассчитываем производство, потребление и чистую скорость
+      const { production, consumption, netPerSecond } = calculateResourceProduction(
+        resourceId, 
+        state.buildings, 
+        state.upgrades
+      );
+      
+      // Обновляем ресурс с новыми значениями
+      updatedResources[resourceId] = {
+        ...resource,
+        production,
+        consumption,
+        perSecond: netPerSecond
+      };
+    }
+  }
+  
+  return {
+    ...state,
+    resources: updatedResources
+  };
+};
+
+/**
+ * Функция для увеличения количества ресурса
+ */
+export const incrementResource = (
+  state: GameState, 
+  payload: { resourceId: string; amount: number }
+): GameState => {
+  const { resourceId, amount } = payload;
+  
+  if (!state.resources[resourceId] || !state.resources[resourceId].unlocked) {
+    return state;
+  }
+  
+  const resource = state.resources[resourceId];
+  const currentValue = resource.value || 0;
+  const maxValue = resource.max || Infinity;
+  
+  // Вычисляем новое значение, не превышающее максимум
+  const newValue = Math.min(currentValue + amount, maxValue);
+  
+  // Если изменений нет, возвращаем текущее состояние
+  if (Math.abs(newValue - currentValue) < 0.000001) {
+    return state;
+  }
+  
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      [resourceId]: {
+        ...resource,
+        value: newValue
+      }
+    }
+  };
+};
+
+/**
+ * Функция для разблокировки ресурса
+ */
+export const unlockResource = (
   state: GameState, 
   payload: { resourceId: string }
 ): GameState => {
-  return resourceSystem.unlockResource(state, payload);
+  const { resourceId } = payload;
+  
+  if (!state.resources[resourceId]) {
+    return state;
+  }
+  
+  // Если ресурс уже разблокирован, ничего не делаем
+  if (state.resources[resourceId].unlocked) {
+    return state;
+  }
+  
+  // Разблокируем ресурс
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      [resourceId]: {
+        ...state.resources[resourceId],
+        unlocked: true
+      }
+    }
+  };
 };
 
-export const processApplyKnowledge = (
-  state: GameState
-): GameState => {
-  // Применяем знания и обновляем разблокировки
-  const updatedState = resourceSystem.applyKnowledge(state);
-  return updatedState;
+/**
+ * Функция для обмена знаний на USDT
+ */
+export const applyKnowledge = (state: GameState): GameState => {
+  const knowledge = state.resources.knowledge;
+  const usdt = state.resources.usdt;
+  
+  if (!knowledge || !knowledge.unlocked || knowledge.value < 10) {
+    return state;
+  }
+  
+  if (!usdt || !usdt.unlocked) {
+    return state;
+  }
+  
+  // Определяем множитель эффективности конвертации знаний
+  const conversionRate = 0.1; // 10 знаний = 1 USDT
+  
+  // Эффекты от исследований могут увеличить этот коэффициент
+  let efficiencyMultiplier = 1.0;
+  
+  // Проверяем, есть ли улучшение эффективности в исследованиях
+  if (state.upgrades.cryptoBasics && state.upgrades.cryptoBasics.purchased) {
+    efficiencyMultiplier += 0.1; // +10% к эффективности
+  }
+  
+  const amountToConvert = Math.floor(knowledge.value / 10) * 10;
+  const usdtToGain = amountToConvert * conversionRate * efficiencyMultiplier;
+  
+  // Результирующее значение знаний
+  const newKnowledgeValue = knowledge.value - amountToConvert;
+  
+  // Результирующее значение USDT
+  const newUsdtValue = Math.min(usdt.value + usdtToGain, usdt.max || Infinity);
+  
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      knowledge: {
+        ...knowledge,
+        value: newKnowledgeValue
+      },
+      usdt: {
+        ...usdt,
+        value: newUsdtValue
+      }
+    }
+  };
 };
 
-export const processApplyAllKnowledge = (
-  state: GameState
-): GameState => {
-  // Применяем все знания и обновляем разблокировки
-  const updatedState = resourceSystem.applyAllKnowledge(state);
-  return updatedState;
+/**
+ * Функция для обмена всех знаний на USDT
+ */
+export const applyAllKnowledge = (state: GameState): GameState => {
+  return applyKnowledge(state);
 };
 
-export const processExchangeBitcoin = (
-  state: GameState
-): GameState => {
-  return resourceSystem.exchangeBitcoin(state);
+/**
+ * Функция для обмена Bitcoin на USDT
+ */
+export const exchangeBitcoin = (state: GameState): GameState => {
+  const bitcoin = state.resources.bitcoin;
+  const usdt = state.resources.usdt;
+  
+  if (!bitcoin || !bitcoin.unlocked || bitcoin.value <= 0) {
+    return state;
+  }
+  
+  if (!usdt || !usdt.unlocked) {
+    return state;
+  }
+  
+  // Получаем текущий курс обмена из параметров майнинга
+  const exchangeRate = state.miningParams.exchangeRate || 20000; // Примерный курс по умолчанию
+  // Комиссия биржи
+  const commission = state.miningParams.exchangeCommission || 0.01; // 1% по умолчанию
+  
+  // Рассчитываем сумму USDT к получению
+  const usdtToGain = bitcoin.value * exchangeRate * (1 - commission);
+  
+  // Обновляем ресурсы
+  return {
+    ...state,
+    resources: {
+      ...state.resources,
+      bitcoin: {
+        ...bitcoin,
+        value: 0 // Обмениваем все Bitcoin
+      },
+      usdt: {
+        ...usdt,
+        value: Math.min(usdt.value + usdtToGain, usdt.max || Infinity)
+      }
+    }
+  };
 };
