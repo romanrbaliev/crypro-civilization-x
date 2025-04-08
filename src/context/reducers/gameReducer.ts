@@ -1,19 +1,24 @@
-
 import { GameState, GameAction } from '../types';
-import { processUnlockCheck } from './unlockReducer';
-import { processPurchaseBuilding } from './buildingReducer';
-import { processPurchaseUpgrade } from './upgradeReducer';
+import { processUnlockCheck } from '../reducers/unlockReducer';
+import { processPurchaseBuilding } from '../reducers/buildingReducer';
+import { processPurchaseUpgrade } from '../reducers/upgradeReducer';
 import { 
-  updateResources, 
-  recalculateProduction, 
-  incrementResource,
+  incrementResource, 
   unlockResource, 
   applyKnowledge, 
   applyAllKnowledge,
   exchangeBitcoin 
-} from './resourceReducer';
-import { processAddEvent, processEventCleanup } from './eventReducer';
-import { processIncrementCounter } from './counterReducer';
+} from '../reducers/resourceReducer';
+import { processAddEvent, processEventCleanup } from '../reducers/eventReducer';
+import { processIncrementCounter } from '../reducers/counterReducer';
+import { updateResources } from '../reducers/resourceUpdateReducer';
+import { ResourceSystem } from '@/systems/ResourceSystem';
+
+// Создаем функцию для пересчета производства
+const recalculateProduction = (state: GameState): GameState => {
+  const resourceSystem = new ResourceSystem();
+  return resourceSystem.recalculateAllResourceProduction(state);
+};
 
 // Редьюсер для обработки всех игровых действий
 export const gameReducer = (state: GameState, action: GameAction): GameState => {

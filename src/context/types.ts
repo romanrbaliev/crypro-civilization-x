@@ -81,14 +81,15 @@ export interface ReferralHelper {
   respondedAt?: number;
 }
 
+// Добавляем интерфейс GameEvent
 export interface GameEvent {
   id: string;
-  type: string;
   message: string;
+  type: string;
   timestamp: number;
 }
 
-// Тип для игрового состояния
+// Обновляем GameState, добавляя events
 export interface GameState {
   gameStarted: boolean;
   lastUpdate: number;
@@ -130,6 +131,7 @@ export interface GameState {
   
   // Добавляем обра��ную совместимость
   unlocks?: Record<string, boolean>;
+  events: GameEvent[];
 }
 
 // Типы для контекста игры

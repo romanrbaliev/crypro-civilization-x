@@ -11,11 +11,11 @@ import { updateResources } from './reducers/resourceUpdateReducer';
 import { processPurchaseBuilding, processSellBuilding } from './reducers/building';
 import { processPurchaseUpgrade } from './reducers/upgradeReducer';
 import { 
-  processIncrementResource, 
-  processUnlockResource,
-  processApplyKnowledge,
-  processApplyAllKnowledge,
-  processExchangeBitcoin
+  incrementResource as processIncrementResource, 
+  unlockResource as processUnlockResource,
+  applyKnowledge as processApplyKnowledge,
+  applyAllKnowledge as processApplyAllKnowledge,
+  exchangeBitcoin as processExchangeBitcoin
 } from './reducers/resourceReducer';
 
 // Импорт унифицированной системы покупки

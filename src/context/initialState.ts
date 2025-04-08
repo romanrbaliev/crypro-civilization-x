@@ -453,5 +453,6 @@ export const initialState: GameState = {
   
   referralCode: null,
   referrals: [],
-  referralHelpers: []
+  referralHelpers: [],
+  events: []
 };
