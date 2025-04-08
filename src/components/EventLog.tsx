@@ -65,14 +65,14 @@ const EventLog: React.FC<EventLogProps> = ({ events, maxEvents = 50 }) => {
             displayEvents.map(event => (
               <div 
                 key={event.id} 
-                className={`text-xs p-1.5 border-l-2 ${getEventStyle(event.type)} bg-gray-50 animate-fade-in`}
+                className={`text-[10px] leading-tight p-1 border-l-2 ${getEventStyle(event.type)} bg-gray-50 animate-fade-in`}
               >
-                <span className="text-xs text-gray-500 mr-2">{formatTime(event.timestamp)}</span>
+                <span className="text-[9px] text-gray-500 mr-1">{formatTime(event.timestamp)}</span>
                 {event.message}
               </div>
             ))
           ) : (
-            <div className="text-center text-gray-500 py-4 text-xs">
+            <div className="text-center text-gray-500 py-4 text-[10px]">
               Пока нет событий
             </div>
           )}
