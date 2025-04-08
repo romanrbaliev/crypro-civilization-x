@@ -1,41 +1,38 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getResourceFormat } from '@/utils/resourceFormatConfig';
 
 /**
- * Хук для плавной анимации изменения значения ресурса
+ * Хук для обновления значения ресурса с регулярным интервалом
  * @param targetValue Целевое значение
  * @param resourceId ID ресурса
- * @returns Текущее анимированное значение
+ * @returns Текущее отображаемое значение
  */
 export const useResourceAnimation = (targetValue: number, resourceId: string): number => {
   const [displayValue, setDisplayValue] = useState(targetValue);
+  const lastUpdateRef = useRef<number>(Date.now());
   
   // Получаем конфигурацию обновления для ресурса
   const resourceFormat = getResourceFormat(resourceId);
-  const updateFrequency = resourceFormat.updateFrequency || 50; // По умолчанию 50мс (20 обновлений в секунду)
+  // Устанавливаем частоту обновления на 5 раз в секунду (200мс)
+  const updateFrequency = 200;
   
   useEffect(() => {
-    // Если разница слишком маленькая, сразу обновляем значение
-    if (Math.abs(targetValue - displayValue) < 0.01) {
+    // Обновляем значение сразу, если разница слишком маленькая
+    if (Math.abs(targetValue - displayValue) < 0.001) {
       setDisplayValue(targetValue);
       return;
     }
     
-    // Создаем интервал для плавной анимации
+    // Создаем интервал для регулярного обновления
     const interval = setInterval(() => {
-      setDisplayValue(prev => {
-        // Вычисляем шаг изменения (10% от разницы)
-        const step = (targetValue - prev) * 0.1;
-        
-        // Если шаг очень маленький, завершаем анимацию
-        if (Math.abs(step) < 0.01) {
-          clearInterval(interval);
-          return targetValue;
-        }
-        
-        return prev + step;
-      });
+      const currentTime = Date.now();
+      // Проверяем, прошло ли достаточно времени с последнего обновления
+      if (currentTime - lastUpdateRef.current >= updateFrequency) {
+        // Прямое обновление без анимации
+        setDisplayValue(targetValue);
+        lastUpdateRef.current = currentTime;
+      }
     }, updateFrequency);
     
     // Очищаем интервал при размонтировании или изменении целевого значения

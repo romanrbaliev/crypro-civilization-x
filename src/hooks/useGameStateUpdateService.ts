@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@/context/hooks/useGame';
 import { useResourceSystem } from './useResourceSystem';
@@ -25,16 +24,17 @@ export const useGameStateUpdateService = () => {
     
     // Если прошло слишком много времени (например, более минуты),
     // ограничиваем дельту времени, чтобы не было резких скачков
-    const cappedDeltaTime = Math.min(deltaTime, 10000); // Ограничиваем 10 секундами
+    const cappedDeltaTime = Math.min(deltaTime, 5000); // Ограничиваем 5 секундами
     
-    if (cappedDeltaTime > 10) { // Обновляемся только если прошло больше 10мс
-      // Увеличиваем счетчик тиков и выводим лог каждые 10 тиков
+    // Снижаем порог обновления до 5мс для более частых обновлений
+    if (cappedDeltaTime > 5) { 
+      // Увеличиваем счетчик тиков и выводим лог каждые 100 тиков
       tickCountRef.current += 1;
-      if (tickCountRef.current % 10 === 0) {
+      if (tickCountRef.current % 100 === 0) {
         console.log(`Тик #${tickCountRef.current}: Обновление состояния игры, прошло ${cappedDeltaTime}ms`);
       }
       
-      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Прямая отправка TICK с deltaTime
+      // Отправка TICK с deltaTime
       dispatch({ 
         type: 'TICK', 
         payload: { 
@@ -44,20 +44,17 @@ export const useGameStateUpdateService = () => {
         } 
       });
       
-      // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Здесь не используем updateResources, так как это будет сделано в обработчике TICK
-      // вместо updateResources(cappedDeltaTime);
-      
       // Отслеживаем успешные обновления
       const knowledgeBefore = state.resources.knowledge?.value || 0;
       setTimeout(() => {
         const knowledgeAfter = state.resources.knowledge?.value || 0;
         if (knowledgeAfter > knowledgeBefore) {
           successfulUpdatesRef.current += 1;
-          if (successfulUpdatesRef.current % 5 === 0) {
-            console.log(`✅ Успешно увеличены знания: ${knowledgeBefore} -> ${knowledgeAfter} (всего успешных обновлений: ${successfulUpdatesRef.current})`);
+          if (successfulUpdatesRef.current % 10 === 0) {
+            console.log(`✅ Успешное обновление знаний: ${knowledgeBefore.toFixed(2)} -> ${knowledgeAfter.toFixed(2)} (всего успешных: ${successfulUpdatesRef.current})`);
           }
         }
-      }, 50);
+      }, 10); // Уменьшаем задержку проверки
       
       lastTickTimeRef.current = currentTime;
     }
@@ -97,8 +94,7 @@ export const useGameStateUpdateService = () => {
         const currentTime = Date.now();
         const deltaTime = currentTime - lastTickTimeRef.current;
         
-        // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Напрямую отправляем TICK вместо вызова updateResources
-        if (deltaTime > 50) {
+        if (deltaTime > 10) { // Снижаем порог до 10мс
           dispatch({ 
             type: 'TICK', 
             payload: { 
@@ -127,12 +123,12 @@ export const useGameStateUpdateService = () => {
     };
   }, [recalculateAllProduction, dispatch]);
   
-  // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Главный эффект для обновления игры - СУЩЕСТВЕННО УМЕНЬШАЕМ ИНТЕРВАЛ
+  // Главный эффект для обновления игры с частотой 5 раз в секунду (200мс)
   useEffect(() => {
-    console.log("Запуск системы обновления ресурсов с уменьшенным интервалом");
+    console.log("Запуск системы обновления ресурсов с повышенной частотой (5 раз/сек)");
     
-    // Запускаем таймер для обновления ресурсов каждые 100ms для более стабильного обновления
-    const updateInterval = setInterval(updateGameState, 100);
+    // Запускаем таймер для обновления ресурсов каждые 200мс (5 раз в секунду)
+    const updateInterval = setInterval(updateGameState, 200);
     
     // Запускаем таймер для проверки разблокировок каждые 5 секунд
     const unlockCheckInterval = setInterval(() => {

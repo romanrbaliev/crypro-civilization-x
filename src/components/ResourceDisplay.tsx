@@ -20,16 +20,16 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   const resourceRef = useRef<HTMLDivElement>(null);
   const { formatValue, resourceFormatter } = useResourceSystem();
   
-  // Используем хук анимации для плавного обновления отображаемого значения
-  // Проверяем, что значение определено перед передачей его в хук
+  // Используем хук обновления для отображаемого значения
+  // с частотой 5 раз в секунду вместо плавной анимации
   const safeValue = value !== null && value !== undefined ? value : 0;
-  const animatedValue = useResourceAnimation(safeValue, id);
+  const displayValue = useResourceAnimation(safeValue, id);
   
   // Определяем отрицательную скорость производства
   const isNegativeRate = perSecond < 0;
   
   // Форматирование значений с учетом типа ресурса
-  const formattedValue = propFormattedValue || formatValue(animatedValue, id);
+  const formattedValue = propFormattedValue || formatValue(displayValue, id);
   
   // Форматируем максимальное значение всегда без десятичных знаков
   const formattedMax = max === Infinity 
