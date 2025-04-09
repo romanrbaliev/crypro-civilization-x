@@ -1,3 +1,4 @@
+
 import { GameState, GameAction } from './types';
 import { initialState } from './initialState';
 import { GameStateService } from '@/services/GameStateService';
@@ -171,12 +172,23 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
     case "PURCHASE_UPGRADE": {
       // Покупаем улучшение
       newState = processPurchaseUpgrade(state, action.payload);
+      console.log("gameReducer: Завершена покупка улучшения", action.payload.upgradeId);
       
-      // ИСПРАВЛЕНИЕ: Убираем двойное применение эффектов "Основы блокчейна"
-      // Все эффекты улучшения будут применены в processPurchaseUpgrade и затем через gameStateService
+      // Специальная обработка для исследования "Криптосообщество"
+      const isCryptoCommunity = ['cryptoCommunity', 'community', 'socialNetworking'].includes(action.payload.upgradeId);
+      if (isCryptoCommunity) {
+        console.log("gameReducer: Активация флага референсов после покупки Криптосообщества");
+        newState = {
+          ...newState,
+          unlocks: {
+            ...newState.unlocks,
+            referrals: true
+          }
+        };
+      }
       
       // Проверяем особый случай для "Основ криптовалют" для принудительной разблокировки майнера
-      if (action.payload.upgradeId === 'cryptoCurrencyBasics' || action.payload.upgradeId === 'cryptoBasics') {
+      if (['cryptoCurrencyBasics', 'cryptoBasics'].includes(action.payload.upgradeId)) {
         console.log("gameReducer: Дополнительная обработка для Основ криптовалют");
         // Принудительно проверяем и устанавливаем разблокировки для майнера и биткоина
         newState = gameStateService.performFullStateSync(newState);
@@ -320,6 +332,43 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
           usdtUnlocked: newState.resources.usdt?.unlocked,
           applyKnowledgeCounter: newState.counters.applyKnowledge
         });
+        
+        // Проверяем, разблокирован ли USDT
+        if (!newState.resources.usdt || !newState.resources.usdt.unlocked) {
+          console.log("gameReducer: USDT не разблокирован после APPLY_ALL_KNOWLEDGE, принудительно разблокируем");
+          
+          // Создаем или обновляем ресурс USDT
+          const updatedResources = { ...newState.resources };
+          if (!updatedResources.usdt) {
+            updatedResources.usdt = {
+              id: 'usdt',
+              name: 'USDT',
+              description: 'Стейблкоин, привязанный к стоимости доллара США',
+              value: 1, // Даем базовую награду
+              baseProduction: 0,
+              production: 0,
+              perSecond: 0,
+              max: 50,
+              unlocked: true,
+              type: 'currency',
+              icon: 'dollar'
+            };
+          } else {
+            updatedResources.usdt = {
+              ...updatedResources.usdt,
+              unlocked: true
+            };
+          }
+          
+          newState = {
+            ...newState,
+            resources: updatedResources,
+            unlocks: {
+              ...newState.unlocks,
+              usdt: true
+            }
+          };
+        }
         
         // Принудительно выполняем полный цикл проверки разблокировок
         return gameStateService.performFullStateSync(newState);

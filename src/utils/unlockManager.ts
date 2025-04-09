@@ -1,3 +1,4 @@
+
 import { GameState } from '@/context/types';
 
 /**
@@ -169,6 +170,8 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   if (hasBlockchainBasics) {
     if (newState.buildings.cryptoWallet) {
       newState.buildings.cryptoWallet.unlocked = true;
+    } else if (newState.buildings.wallet) {
+      newState.buildings.wallet.unlocked = true;
     }
   }
   
@@ -212,7 +215,8 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
   }
   
   // Разблокировка "Улучшенного кошелька" (после 5-го уровня Криптокошелька)
-  if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count >= 5) {
+  const walletLevel = state.buildings.cryptoWallet?.count || state.buildings.wallet?.count || 0;
+  if (walletLevel >= 5) {
     if (newState.buildings.enhancedWallet) {
       newState.buildings.enhancedWallet.unlocked = true;
     }
@@ -227,35 +231,43 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
   
   // Разблокировка "Основы блокчейна" (после покупки Генератора)
   if (state.buildings.generator && state.buildings.generator.count > 0) {
-    const blockchainBasicsId = 
-      newState.upgrades.blockchainBasics ? 'blockchainBasics' : 
-      newState.upgrades.basicBlockchain ? 'basicBlockchain' : 
-      'blockchain_basics';
+    // Проверяем все возможные ID для этого улучшения
+    const blockchainBasicsIds = ['blockchainBasics', 'basicBlockchain', 'blockchain_basics'];
     
-    if (newState.upgrades[blockchainBasicsId]) {
-      newState.upgrades[blockchainBasicsId].unlocked = true;
+    for (const id of blockchainBasicsIds) {
+      if (newState.upgrades[id]) {
+        newState.upgrades[id].unlocked = true;
+      }
     }
   }
   
   // Разблокировка "Безопасность криптокошельков" (после покупки Криптокошелька)
-  if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0) {
-    const walletSecurityId = 
-      newState.upgrades.cryptoWalletSecurity ? 'cryptoWalletSecurity' : 
-      'walletSecurity';
+  const hasWallet = 
+    (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count > 0) || 
+    (state.buildings.wallet && state.buildings.wallet.count > 0);
+  
+  if (hasWallet) {
+    // Проверяем все возможные ID для этого улучшения
+    const walletSecurityIds = ['cryptoWalletSecurity', 'walletSecurity'];
     
-    if (newState.upgrades[walletSecurityId]) {
-      newState.upgrades[walletSecurityId].unlocked = true;
+    for (const id of walletSecurityIds) {
+      if (newState.upgrades[id]) {
+        newState.upgrades[id].unlocked = true;
+      }
     }
   }
   
   // Разблокировка "Основы криптовалют" (после 2-го уровня Криптокошелька)
-  if (state.buildings.cryptoWallet && state.buildings.cryptoWallet.count >= 2) {
-    const cryptoBasicsId = 
-      newState.upgrades.cryptoCurrencyBasics ? 'cryptoCurrencyBasics' : 
-      'cryptoBasics';
+  const walletLevel = state.buildings.cryptoWallet?.count || state.buildings.wallet?.count || 0;
+  
+  if (walletLevel >= 2) {
+    // Проверяем все возможные ID для этого улучшения
+    const cryptoBasicsIds = ['cryptoCurrencyBasics', 'cryptoBasics'];
     
-    if (newState.upgrades[cryptoBasicsId]) {
-      newState.upgrades[cryptoBasicsId].unlocked = true;
+    for (const id of cryptoBasicsIds) {
+      if (newState.upgrades[id]) {
+        newState.upgrades[id].unlocked = true;
+      }
     }
   }
   
@@ -294,6 +306,21 @@ export const checkUpgradeUnlocks = (state: GameState): GameState => {
     }
   }
   
+  // ВАЖНО: Исправляем разблокировку "Криптосообщество"
+  const practiceLevel = state.buildings.practice?.count || 0;
+  
+  // После покупки 3 уровня практики разблокируем криптосообщество
+  if (practiceLevel >= 3) {
+    // Проверяем все возможные ID для этого улучшения
+    const communitiesIds = ['cryptoCommunity', 'community', 'socialNetworking'];
+    
+    for (const id of communitiesIds) {
+      if (newState.upgrades[id]) {
+        newState.upgrades[id].unlocked = true;
+      }
+    }
+  }
+  
   return newState;
 };
 
@@ -316,6 +343,16 @@ export const checkActionUnlocks = (state: GameState): GameState => {
     newState.unlocks.research = true;
   }
   
+  // Разблокировка вкладки рефералов
+  const hasCryptoCommunity = 
+    state.upgrades.cryptoCommunity?.purchased || 
+    state.upgrades.community?.purchased || 
+    state.upgrades.socialNetworking?.purchased;
+  
+  if (hasCryptoCommunity) {
+    newState.unlocks.referrals = true;
+  }
+  
   return newState;
 };
 
@@ -323,7 +360,10 @@ export const checkActionUnlocks = (state: GameState): GameState => {
 export const checkSpecialUnlocks = (state: GameState): GameState => {
   let newState = {...state};
   
-  // Пока нет специальных разблокировок
+  // Разблокировка вкладки специализаций
+  if ((state.resources.knowledge?.value || 0) >= 1000) {
+    newState.unlocks.specializations = true;
+  }
   
   return newState;
 };
@@ -482,7 +522,8 @@ export const debugUnlockStatus = (state: GameState): {
   }
   
   // Здание: Crypto Wallet
-  if (state.buildings.cryptoWallet?.unlocked) {
+  const walletId = state.buildings.cryptoWallet ? 'cryptoWallet' : 'wallet';
+  if (state.buildings[walletId]?.unlocked) {
     unlocked.push("Здание: Криптокошелек");
     steps.push("• ✅ Криптокошелек разблокирован");
   } else {
@@ -557,7 +598,8 @@ export const debugUnlockStatus = (state: GameState): {
   } else {
     locked.push("Здание: Улучшенный кошелек");
     steps.push("• ❌ Улучшенный кошелек заблокирован");
-    steps.push(`  Требуется: 5+ уровень криптокошелька (текущее: ${state.buildings.cryptoWallet?.count || 0})`);
+    const walletLevel = state.buildings.cryptoWallet?.count || state.buildings.wallet?.count || 0;
+    steps.push(`  Требуется: 5+ уровень криптокошелька (текущее: ${walletLevel})`);
   }
   
   // Анализ разблокировок исследований
@@ -565,24 +607,41 @@ export const debugUnlockStatus = (state: GameState): {
   
   // Функция для удобного добавления информации о исследованиях
   const analyzeUpgrade = (
-    id: string, 
+    idOptions: string[], 
     name: string, 
     condition: string, 
     conditionMet: boolean
   ) => {
-    if (state.upgrades[id]?.unlocked) {
-      unlocked.push(`Исследование: ${name}`);
-      steps.push(`• ✅ ${name} разблокировано`);
-    } else {
-      locked.push(`Исследование: ${name}`);
-      steps.push(`• ❌ ${name} заблокировано`);
-      steps.push(`  Требуется: ${condition} (${conditionMet ? '✅' : '❌'})`);
+    let upgradeExists = false;
+    let upgradeUnlocked = false;
+    let existingId = '';
+    
+    for (const id of idOptions) {
+      if (state.upgrades[id]) {
+        upgradeExists = true;
+        existingId = id;
+        if (state.upgrades[id].unlocked) {
+          upgradeUnlocked = true;
+          break;
+        }
+      }
+    }
+    
+    if (upgradeExists) {
+      if (upgradeUnlocked) {
+        unlocked.push(`Исследование: ${name}`);
+        steps.push(`• ✅ ${name} разблокировано`);
+      } else {
+        locked.push(`Исследование: ${name}`);
+        steps.push(`• ❌ ${name} заблокировано`);
+        steps.push(`  Требуется: ${condition} (${conditionMet ? '✅' : '❌'})`);
+      }
     }
   };
   
   // Исследование: Blockchain Basics
   analyzeUpgrade(
-    'blockchainBasics', 
+    ['blockchainBasics', 'basicBlockchain', 'blockchain_basics'], 
     'Основы блокчейна', 
     'Покупка генератора', 
     (state.buildings.generator?.count || 0) > 0
@@ -590,23 +649,23 @@ export const debugUnlockStatus = (state: GameState): {
   
   // Исследование: Crypto Wallet Security
   analyzeUpgrade(
-    'cryptoWalletSecurity', 
+    ['cryptoWalletSecurity', 'walletSecurity'], 
     'Безопасность криптокошельков', 
     'Покупка криптокошелька', 
-    (state.buildings.cryptoWallet?.count || 0) > 0
+    (state.buildings.cryptoWallet?.count || 0) > 0 || (state.buildings.wallet?.count || 0) > 0
   );
   
   // Исследование: Cryptocurrency Basics
   analyzeUpgrade(
-    'cryptoCurrencyBasics', 
+    ['cryptoCurrencyBasics', 'cryptoBasics'], 
     'Основы криптовалют', 
     '2+ уровень криптокошелька', 
-    (state.buildings.cryptoWallet?.count || 0) >= 2
+    (state.buildings.cryptoWallet?.count || 0) >= 2 || (state.buildings.wallet?.count || 0) >= 2
   );
   
   // Исследование: Algorithm Optimization
   analyzeUpgrade(
-    'algorithmOptimization', 
+    ['algorithmOptimization'], 
     'Оптимизация алгоритмов', 
     'Покупка майнера', 
     (state.buildings.miner?.count || 0) > 0
@@ -614,7 +673,7 @@ export const debugUnlockStatus = (state: GameState): {
   
   // Исследование: Proof of Work
   analyzeUpgrade(
-    'proofOfWork', 
+    ['proofOfWork'], 
     'Proof of Work', 
     'Изучение "Оптимизация алгоритмов"', 
     !!state.upgrades.algorithmOptimization?.purchased
@@ -622,7 +681,7 @@ export const debugUnlockStatus = (state: GameState): {
   
   // Исследование: Energy Efficient Components
   analyzeUpgrade(
-    'energyEfficientComponents', 
+    ['energyEfficientComponents'], 
     'Энергоэффективные компоненты', 
     'Покупка системы охлаждения', 
     (state.buildings.coolingSystem?.count || 0) > 0
@@ -630,7 +689,7 @@ export const debugUnlockStatus = (state: GameState): {
   
   // Исследование: Crypto Trading
   analyzeUpgrade(
-    'cryptoTrading', 
+    ['cryptoTrading'], 
     'Криптовалютный трейдинг', 
     'Покупка улучшенного кошелька', 
     (state.buildings.enhancedWallet?.count || 0) > 0
@@ -638,10 +697,18 @@ export const debugUnlockStatus = (state: GameState): {
   
   // Исследование: Trading Bot
   analyzeUpgrade(
-    'tradingBot', 
+    ['tradingBot'], 
     'Торговый бот', 
     'Изучение "Криптовалютный трейдинг"', 
     !!state.upgrades.cryptoTrading?.purchased
+  );
+  
+  // Исследование: Crypto Community
+  analyzeUpgrade(
+    ['cryptoCommunity', 'community', 'socialNetworking'], 
+    'Криптосообщество', 
+    'Достижение 3+ уровня практики', 
+    (state.buildings.practice?.count || 0) >= 3
   );
   
   // Общая информация
@@ -651,3 +718,4 @@ export const debugUnlockStatus = (state: GameState): {
   
   return { unlocked, locked, steps };
 };
+

@@ -1,3 +1,4 @@
+
 import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
@@ -106,7 +107,42 @@ export function GameProvider({ children }: GameProviderProps) {
   // Apply loaded state
   useEffect(() => {
     if (loadedState && !isLoading && gameInitialized) {
+      console.log("GameContext: Загрузка сохраненного состояния");
+      
+      // Убедимся, что все необходимые флаги разблокировок установлены
+      if (loadedState.buildings && loadedState.buildings.practice && loadedState.buildings.practice.count > 0) {
+        if (!loadedState.unlocks.research) {
+          console.log("GameContext: Принудительная разблокировка исследований");
+          loadedState.unlocks.research = true;
+        }
+      }
+      
+      // Принудительно разблокируем ресурсы на основе зданий
+      if (loadedState.buildings && loadedState.buildings.generator && loadedState.buildings.generator.count > 0) {
+        if (!loadedState.unlocks.electricity) {
+          console.log("GameContext: Принудительная разблокировка электричества");
+          loadedState.unlocks.electricity = true;
+        }
+        
+        if (loadedState.resources.electricity && !loadedState.resources.electricity.unlocked) {
+          loadedState.resources.electricity.unlocked = true;
+        }
+      }
+      
       dispatch({ type: 'LOAD_GAME', payload: loadedState });
+      dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+      
+      // Выводим отладочную информацию о разблокированных функциях
+      setTimeout(() => {
+        console.log("Текущие разблокированные функции:", 
+          Object.entries(loadedState.unlocks)
+            .filter(([_, value]) => value === true)
+            .map(([key]) => key)
+            .join(", ")
+        );
+        
+        console.log("Вкладка исследований разблокирована:", loadedState.unlocks.research === true);
+      }, 1000);
       
       setTimeout(() => {
         saveGame(state, hasConnection);

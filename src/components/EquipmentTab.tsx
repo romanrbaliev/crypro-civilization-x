@@ -13,16 +13,9 @@ interface EquipmentTabProps {
 const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state } = useGame();
 
-  // Отображаем все разблокированные здания включая практику
+  // Отображаем все разблокированные здания
   const unlockedBuildings = Object.values(state.buildings)
-    .filter(b => b.unlocked)
-    // Дополнительная проверка для системы охлаждения
-    .filter(b => {
-      if (b.id === "coolingSystem") {
-        return state.buildings.homeComputer && state.buildings.homeComputer.count >= 2;
-      }
-      return true;
-    });
+    .filter(b => b.unlocked);
 
   console.log("EquipmentTab: Разблокированные здания:", unlockedBuildings.map(b => b.id));
 

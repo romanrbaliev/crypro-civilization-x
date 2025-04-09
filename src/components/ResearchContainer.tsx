@@ -18,6 +18,15 @@ export function ResearchContainer() {
     upgrade => upgrade.unlocked && !upgrade.purchased
   );
   
+  // Логируем наличие исследования "Криптосообщество"
+  const cryptoCommunity = Object.values(state.upgrades).find(
+    upgrade => ['cryptoCommunity', 'community', 'socialNetworking'].includes(upgrade.id)
+  );
+  
+  console.log("ResearchContainer: Наличие криптосообщества:", 
+    cryptoCommunity ? `${cryptoCommunity.id} (разблокировано: ${cryptoCommunity.unlocked})` : "Отсутствует"
+  );
+  
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm">
       <h2 className="text-lg font-medium mb-3">Исследования</h2>

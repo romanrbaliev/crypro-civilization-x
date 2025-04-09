@@ -14,19 +14,6 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Проверяем состояние флага research в unlocks
   const researchUnlocked = state.unlocks.research === true;
   
-  // Определяем базовое исследование
-  const isInitialResearch = (upgradeId: string) => {
-    return upgradeId === 'basicBlockchain' || 
-           upgradeId === 'blockchain_basics' || 
-           upgradeId === 'blockchainBasics';
-  };
-  
-  // Проверяем, куплены ли "Основы блокчейна"
-  const basicBlockchainPurchased = Object.values(state.upgrades)
-    .some(upgrade => 
-      isInitialResearch(upgrade.id) && upgrade.purchased
-    );
-  
   // Фильтруем доступные исследования
   const unlockedUpgrades = Object.values(state.upgrades)
     .filter(upgrade => upgrade.unlocked && !upgrade.purchased);
@@ -34,6 +21,9 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   // Купленные исследования
   const purchasedUpgrades = Object.values(state.upgrades)
     .filter(upgrade => upgrade.purchased);
+  
+  console.log("ResearchTab: Разблокированные исследования:", unlockedUpgrades.map(u => u.id));
+  console.log("ResearchTab: Флаг разблокировки исследований:", researchUnlocked);
   
   // Если исследования не разблокированы, показываем пустой экран
   if (!researchUnlocked) {
