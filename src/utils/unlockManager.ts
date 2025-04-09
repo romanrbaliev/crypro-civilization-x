@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 
 /**
@@ -363,4 +362,292 @@ export const initializeActionUnlocks = (state: GameState): GameState => {
   newState.unlocks.learn = true;
   
   return newState;
+};
+
+/**
+ * Анализирует текущий статус разблокировок контента в игре.
+ * Возвращает списки разблокированных и заблокированных элементов, а также подробные шаги анализа.
+ */
+export const debugUnlockStatus = (state: GameState): { 
+  unlocked: string[], 
+  locked: string[], 
+  steps: string[] 
+} => {
+  const unlocked: string[] = [];
+  const locked: string[] = [];
+  const steps: string[] = [];
+  
+  // Заголовок отчета
+  steps.push("📊 Анализ статуса разблокировок:");
+  
+  // Анализ разблокировок ресурсов
+  steps.push("🔓 Статус разблокировки ресурсов:");
+  
+  // Ресурс: Knowledge
+  if (state.resources.knowledge?.unlocked) {
+    unlocked.push("Ресурс: Знания");
+    steps.push("• ✅ Знания разблокированы");
+  } else {
+    locked.push("Ресурс: Знания");
+    steps.push("• ❌ Знания заблокированы");
+  }
+  
+  // Ресурс: USDT
+  if (state.resources.usdt?.unlocked) {
+    unlocked.push("Ресурс: USDT");
+    steps.push("• ✅ USDT разблокирован");
+  } else {
+    locked.push("Ресурс: USDT");
+    steps.push("• ❌ USDT заблокирован");
+    steps.push(`  Требуется: 1+ применений знаний (текущее: ${state.counters.applyKnowledge?.value || 0})`);
+  }
+  
+  // Ресурс: Electricity
+  if (state.resources.electricity?.unlocked) {
+    unlocked.push("Ресурс: Электричество");
+    steps.push("• ✅ Электричество разблокировано");
+  } else {
+    locked.push("Ресурс: Электричество");
+    steps.push("• ❌ Электричество заблокировано");
+    steps.push(`  Требуется: Покупка генератора (текущее: ${state.buildings.generator?.count || 0})`);
+  }
+  
+  // Ресурс: Computing Power
+  if (state.resources.computingPower?.unlocked) {
+    unlocked.push("Ресурс: Вычислительная мощность");
+    steps.push("• ✅ Вычислительная мощность разблокирована");
+  } else {
+    locked.push("Ресурс: Вычислительная мощность");
+    steps.push("• ❌ Вычислительная мощность заблокирована");
+    steps.push(`  Требуется: Покупка домашнего компьютера (текущее: ${state.buildings.homeComputer?.count || 0})`);
+  }
+  
+  // Ресурс: Bitcoin
+  if (state.resources.bitcoin?.unlocked) {
+    unlocked.push("Ресурс: Bitcoin");
+    steps.push("• ✅ Bitcoin разблокирован");
+  } else {
+    locked.push("Ресурс: Bitcoin");
+    steps.push("• ❌ Bitcoin заблокирован");
+    const hasBasics = state.upgrades.cryptoCurrencyBasics?.purchased || state.upgrades.cryptoBasics?.purchased;
+    steps.push(`  Требуется: Исследование основ криптовалют (${hasBasics ? '✅' : '❌'}) и покупка майнера (${state.buildings.miner?.count || 0})`);
+  }
+  
+  // Анализ разблокировок действий
+  steps.push("\n🔓 Статус разблокировки действий:");
+  
+  // Действие: Learn
+  if (state.unlocks.learn) {
+    unlocked.push("Действие: Изучить крипту");
+    steps.push("• ✅ Изучить крипту разблокировано");
+  } else {
+    locked.push("Действие: Изучить крипту");
+    steps.push("• ❌ Изучить крипту заблокировано");
+  }
+  
+  // Действие: Apply Knowledge
+  if (state.unlocks.applyKnowledge) {
+    unlocked.push("Действие: Применить знания");
+    steps.push("• ✅ Применить знания разблокировано");
+  } else {
+    locked.push("Действие: Применить знания");
+    steps.push("• ❌ Применить знания заблокировано");
+    const knowledgeClicks = typeof state.counters.knowledgeClicks === 'object' 
+      ? state.counters.knowledgeClicks.value 
+      : (state.counters.knowledgeClicks || 0);
+    steps.push(`  Требуется: 3+ нажатий на "Изучить" (текущее: ${knowledgeClicks})`);
+  }
+  
+  // Анализ разблокировок зданий
+  steps.push("\n🏗️ Статус разблокировки зданий:");
+  
+  // Здание: Practice
+  if (state.buildings.practice?.unlocked) {
+    unlocked.push("Здание: Практика");
+    steps.push("• ✅ Практика разблокирована");
+  } else {
+    locked.push("Здание: Практика");
+    steps.push("• ❌ Практика заблокирована");
+    steps.push(`  Требуется: 2+ применений знаний (текущее: ${state.counters.applyKnowledge?.value || 0})`);
+  }
+  
+  // Здание: Generator
+  if (state.buildings.generator?.unlocked) {
+    unlocked.push("Здание: Генератор");
+    steps.push("• ✅ Генератор разблокирован");
+  } else {
+    locked.push("Здание: Генератор");
+    steps.push("• ❌ Генератор заблокирован");
+    steps.push(`  Требуется: 11+ USDT (текущее: ${state.resources.usdt?.value || 0})`);
+  }
+  
+  // Здание: Crypto Wallet
+  if (state.buildings.cryptoWallet?.unlocked) {
+    unlocked.push("Здание: Криптокошелек");
+    steps.push("• ✅ Криптокошелек разблокирован");
+  } else {
+    locked.push("Здание: Криптокошелек");
+    steps.push("• ❌ Криптокошелек заблокирован");
+    const hasBlockchainBasics = 
+      state.upgrades.blockchainBasics?.purchased || 
+      state.upgrades.basicBlockchain?.purchased;
+    steps.push(`  Требуется: Изучение "Основы блокчейна" (${hasBlockchainBasics ? '✅' : '❌'})`);
+  }
+  
+  // Здание: Home Computer
+  if (state.buildings.homeComputer?.unlocked) {
+    unlocked.push("Здание: Домашний компьютер");
+    steps.push("• ✅ Домашний компьютер разблокирован");
+  } else {
+    locked.push("Здание: Домашний компьютер");
+    steps.push("• ❌ Домашний компьютер заблокирован");
+    steps.push(`  Требуется: 50+ электричества (текущее: ${state.resources.electricity?.value || 0})`);
+  }
+  
+  // Здание: Internet Channel
+  if (state.buildings.internetChannel?.unlocked) {
+    unlocked.push("Здание: Интернет-канал");
+    steps.push("• ✅ Интернет-канал разблокирован");
+  } else {
+    locked.push("Здание: Интернет-канал");
+    steps.push("• ❌ Интернет-канал заблокирован");
+    steps.push(`  Требуется: Покупка домашнего компьютера (${state.buildings.homeComputer?.count || 0})`);
+  }
+  
+  // Здание: Miner
+  if (state.buildings.miner?.unlocked) {
+    unlocked.push("Здание: Майнер");
+    steps.push("• ✅ Майнер разблокирован");
+  } else {
+    locked.push("Здание: Майнер");
+    steps.push("• ❌ Майнер заблокирован");
+    const hasCryptoBasics = 
+      state.upgrades.cryptoCurrencyBasics?.purchased || 
+      state.upgrades.cryptoBasics?.purchased;
+    steps.push(`  Требуется: Изучение "Основы криптовалют" (${hasCryptoBasics ? '✅' : '❌'})`);
+  }
+  
+  // Здание: Crypto Library
+  if (state.buildings.cryptoLibrary?.unlocked) {
+    unlocked.push("Здание: Криптобиблиотека");
+    steps.push("• ✅ Криптобиблиотека разблокирована");
+  } else {
+    locked.push("Здание: Криптобиблиотека");
+    steps.push("• ❌ Криптобиблиотека заблокирована");
+    const hasCryptoBasics = 
+      state.upgrades.cryptoCurrencyBasics?.purchased || 
+      state.upgrades.cryptoBasics?.purchased;
+    steps.push(`  Требуется: Изучение "Основы криптовалют" (${hasCryptoBasics ? '✅' : '❌'})`);
+  }
+  
+  // Здание: Cooling System
+  if (state.buildings.coolingSystem?.unlocked) {
+    unlocked.push("Здание: Система охлаждения");
+    steps.push("• ✅ Система охлаждения разблокирована");
+  } else {
+    locked.push("Здание: Система охлаждения");
+    steps.push("• ❌ Система охлаждения заблокирована");
+    steps.push(`  Требуется: 2+ уровень домашнего компьютера (текущее: ${state.buildings.homeComputer?.count || 0})`);
+  }
+  
+  // Здание: Enhanced Wallet
+  if (state.buildings.enhancedWallet?.unlocked) {
+    unlocked.push("Здание: Улучшенный кошелек");
+    steps.push("• ✅ Улучшенный кошелек разблокирован");
+  } else {
+    locked.push("Здание: Улучшенный кошелек");
+    steps.push("• ❌ Улучшенный кошелек заблокирован");
+    steps.push(`  Требуется: 5+ уровень криптокошелька (текущее: ${state.buildings.cryptoWallet?.count || 0})`);
+  }
+  
+  // Анализ разблокировок исследований
+  steps.push("\n📚 Статус разблокировки исследований:");
+  
+  // Функция для удобного добавления информации о исследованиях
+  const analyzeUpgrade = (
+    id: string, 
+    name: string, 
+    condition: string, 
+    conditionMet: boolean
+  ) => {
+    if (state.upgrades[id]?.unlocked) {
+      unlocked.push(`Исследование: ${name}`);
+      steps.push(`• ✅ ${name} разблокировано`);
+    } else {
+      locked.push(`Исследование: ${name}`);
+      steps.push(`• ❌ ${name} заблокировано`);
+      steps.push(`  Требуется: ${condition} (${conditionMet ? '✅' : '❌'})`);
+    }
+  };
+  
+  // Исследование: Blockchain Basics
+  analyzeUpgrade(
+    'blockchainBasics', 
+    'Основы блокчейна', 
+    'Покупка генератора', 
+    (state.buildings.generator?.count || 0) > 0
+  );
+  
+  // Исследование: Crypto Wallet Security
+  analyzeUpgrade(
+    'cryptoWalletSecurity', 
+    'Безопасность криптокошельков', 
+    'Покупка криптокошелька', 
+    (state.buildings.cryptoWallet?.count || 0) > 0
+  );
+  
+  // Исследование: Cryptocurrency Basics
+  analyzeUpgrade(
+    'cryptoCurrencyBasics', 
+    'Основы криптовалют', 
+    '2+ уровень криптокошелька', 
+    (state.buildings.cryptoWallet?.count || 0) >= 2
+  );
+  
+  // Исследование: Algorithm Optimization
+  analyzeUpgrade(
+    'algorithmOptimization', 
+    'Оптимизация алгоритмов', 
+    'Покупка майнера', 
+    (state.buildings.miner?.count || 0) > 0
+  );
+  
+  // Исследование: Proof of Work
+  analyzeUpgrade(
+    'proofOfWork', 
+    'Proof of Work', 
+    'Изучение "Оптимизация алгоритмов"', 
+    !!state.upgrades.algorithmOptimization?.purchased
+  );
+  
+  // Исследование: Energy Efficient Components
+  analyzeUpgrade(
+    'energyEfficientComponents', 
+    'Энергоэффективные компоненты', 
+    'Покупка системы охлаждения', 
+    (state.buildings.coolingSystem?.count || 0) > 0
+  );
+  
+  // Исследование: Crypto Trading
+  analyzeUpgrade(
+    'cryptoTrading', 
+    'Криптовалютный трейдинг', 
+    'Покупка улучшенного кошелька', 
+    (state.buildings.enhancedWallet?.count || 0) > 0
+  );
+  
+  // Исследование: Trading Bot
+  analyzeUpgrade(
+    'tradingBot', 
+    'Торговый бот', 
+    'Изучение "Криптовалютный трейдинг"', 
+    !!state.upgrades.cryptoTrading?.purchased
+  );
+  
+  // Общая информация
+  steps.push("\n🔍 Итоговая статистика:");
+  steps.push(`• Разблокировано: ${unlocked.length} элементов`);
+  steps.push(`• Заблокировано: ${locked.length} элементов`);
+  
+  return { unlocked, locked, steps };
 };
