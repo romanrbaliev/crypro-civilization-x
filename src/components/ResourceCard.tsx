@@ -13,6 +13,7 @@ import {
   HardDriveIcon,
   BitcoinIcon
 } from 'lucide-react';
+import { t } from '@/localization';
 
 interface ResourceCardProps {
   resource: Resource;
@@ -59,19 +60,8 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
   const safeFormattedMax = max !== Infinity && max > 0 ? formatResourceValue(max, id) : "∞";
   const safeFormattedPerSecond = formatResourceValue(perSecond, id);
   
-  // Преобразуем название ресурса для отображения
-  let displayName = name;
-  if (id === 'usdt') {
-    displayName = 'USDT';
-  } else if (id === 'bitcoin') {
-    displayName = 'Bitcoin';
-  } else if (id === 'knowledge') {
-    displayName = 'Знания';
-  } else if (id === 'electricity') {
-    displayName = 'Электричество';
-  } else if (id === 'computingPower') {
-    displayName = 'Вычисл. мощность';
-  }
+  // Получаем локализованное название ресурса
+  const displayName = t(`resources.${id}.name`);
   
   return (
     <Card className="mb-2 bg-white relative">
@@ -101,9 +91,9 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
         )}
         
         <div className="flex justify-between items-center mt-1 text-xs">
-          <span className="text-gray-500">Производство:</span>
+          <span className="text-gray-500">{t("ui.states.sections.produces")}</span>
           <span className={perSecond >= 0 ? "text-green-600" : "text-red-500"}>
-            {perSecond >= 0 ? "+" : ""}{safeFormattedPerSecond}/сек
+            {perSecond >= 0 ? "+" : ""}{safeFormattedPerSecond}/{t("common.perSecond")}
           </span>
         </div>
       </CardContent>

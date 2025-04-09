@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Building } from '@/context/types';
 import { formatCost } from '@/utils/costFormatter';
 import { Building as BuildingIcon, Zap, BarChart2, CpuIcon, Bitcoin } from 'lucide-react';
+import { t } from '@/localization';
 
 interface BuildingCardProps {
   building: Building;
@@ -39,48 +40,48 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onS
   const getBuildingEffects = () => {
     const effectDescriptions: string[] = [];
     
-    // Специальные описания эффектов для конкретных зданий
     switch (id) {
       case 'practice':
-        effectDescriptions.push('Производит +1 знаний/сек');
+        effectDescriptions.push(t("buildings.practice.effect"));
         break;
       case 'generator':
-        effectDescriptions.push('Производит +0.5 электричества/сек');
+        effectDescriptions.push(t("buildings.generator.effect"));
         break;
       case 'homeComputer':
-        effectDescriptions.push('Производит +2 вычисл. мощности/сек');
-        effectDescriptions.push('Потребляет 1 электричества/сек');
+        effectDescriptions.push(t("buildings.homeComputer.effect"));
         break;
       case 'miner':
       case 'autoMiner':
-        effectDescriptions.push('Производит +0.00005 BTC/сек');
-        effectDescriptions.push('Потребляет 1 электричества/сек');
-        effectDescriptions.push('Потребляет 5 вычисл. мощности/сек');
+        effectDescriptions.push(t("buildings.miner.effect"));
         break;
       case 'cryptoWallet':
-        effectDescriptions.push('+50 к макс. USDT');
-        effectDescriptions.push('+25% к макс. знаниям');
+        effectDescriptions.push(t("buildings.cryptoWallet.effect1"));
+        effectDescriptions.push(t("buildings.cryptoWallet.effect2"));
         break;
       case 'internetChannel':
-        effectDescriptions.push('+20% к скорости получения знаний');
-        effectDescriptions.push('+5% к производству вычисл. мощности');
+        effectDescriptions.push(t("buildings.internetChannel.effect1"));
+        effectDescriptions.push(t("buildings.internetChannel.effect2"));
         break;
       case 'coolingSystem':
-        effectDescriptions.push('-20% к потреблению вычисл. мощности');
+        effectDescriptions.push(t("buildings.coolingSystem.effect"));
         break;
-      case 'improvedWallet':
-        effectDescriptions.push('+150 к макс. USDT');
-        effectDescriptions.push('+1 к макс. BTC');
-        effectDescriptions.push('+8% к обмену BTC на USDT');
+      case 'enhancedWallet':
+        effectDescriptions.push(t("buildings.enhancedWallet.effect1"));
+        effectDescriptions.push(t("buildings.enhancedWallet.effect2"));
+        effectDescriptions.push(t("buildings.enhancedWallet.effect3"));
         break;
       case 'cryptoLibrary':
-        effectDescriptions.push('+50% к скорости получения знаний');
-        effectDescriptions.push('+100 к макс. знаниям');
+        effectDescriptions.push(t("buildings.cryptoLibrary.effect1"));
+        effectDescriptions.push(t("buildings.cryptoLibrary.effect2"));
         break;
     }
     
     return effectDescriptions;
   };
+  
+  // Получаем локализованные название и описание
+  const displayName = t(`buildings.${id}.name`);
+  const displayDescription = t(`buildings.${id}.description`);
   
   const borderColor = isSelected 
     ? "border-blue-500"
@@ -98,8 +99,8 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onS
           <div className="flex items-center gap-2">
             {getBuildingIcon()}
             <div>
-              <div className="text-sm font-medium">{name}</div>
-              <div className="text-xs text-gray-500">Количество: {count}</div>
+              <div className="text-sm font-medium">{displayName}</div>
+              <div className="text-xs text-gray-500">{t("ui.states.sections.count")}: {count}</div>
             </div>
           </div>
           <div className="text-sm font-medium text-green-600">
@@ -108,11 +109,11 @@ const BuildingCard: React.FC<BuildingCardProps> = ({ building, isAffordable, onS
         </div>
         
         <CardDescription className="text-xs mt-2">
-          {description}
+          {displayDescription}
         </CardDescription>
         
         <div className="mt-2 text-xs">
-          <div className="font-semibold text-gray-700">Эффекты:</div>
+          <div className="font-semibold text-gray-700">{t("ui.states.sections.effects")}:</div>
           <ul className="list-disc list-inside">
             {getBuildingEffects().map((effect, index) => (
               <li key={index} className="text-gray-600">{effect}</li>

@@ -5,6 +5,7 @@ import BuildingItem from "@/components/BuildingItem";
 import ResourceForecast from "@/components/ResourceForecast";
 import { useGame } from "@/context/hooks/useGame";
 import { Building, Resource } from "@/context/types";
+import { t } from "@/localization";
 
 interface EquipmentTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -27,7 +28,7 @@ const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
             <BuildingItem 
               key={building.id} 
               building={building} 
-              onPurchase={() => onAddEvent(`Построено оборудование: ${building.name}`, "success")} 
+              onPurchase={() => onAddEvent(t("events.buildingPurchase", [t(`buildings.${building.id}.name`)]), "success")} 
             />
           ))}
         </div>
@@ -45,14 +46,14 @@ const EmptyBuildingsState = ({ knowledge, knowledgePerSecond }: { knowledge: Res
   return (
     <div className="text-center py-6 text-gray-500">
       <BuildingIcon className="h-10 w-10 mx-auto mb-3 opacity-20" />
-      <p className="text-xs">У вас пока нет доступного оборудования.<br />Продолжайте набирать знания и ресурсы.</p>
+      <p className="text-xs">{t("ui.states.empty.buildings")}</p>
       
       {knowledge.value < 15 && knowledgePerSecond > 0 && (
         <div className="mt-3">
           <ResourceForecast 
             resource={knowledge} 
             targetValue={15} 
-            label="До открытия «Практика»" 
+            label={`До открытия «${t("buildings.practice.name")}»`} 
           />
         </div>
       )}

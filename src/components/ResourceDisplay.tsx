@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { Resource } from "@/context/types";
 import { formatResourceValue } from "@/utils/resourceFormatConfig";
 import { useResourceAnimation } from "@/hooks/useResourceAnimation";
+import { t } from "@/localization";
 
 interface ResourceDisplayProps {
   resource: Resource;
@@ -66,19 +67,8 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
   const debugPerSecond = safePerSecond !== null ? safePerSecond.toFixed(3) : "0.000";
   const debugInfo = `ID: ${id}, Значение: ${debugValue}, Производство: ${debugPerSecond}/сек`;
 
-  // Преобразуем название ресурса
-  let displayName = name;
-  if (id === 'usdt') {
-    displayName = 'USDT';
-  } else if (id === 'bitcoin') {
-    displayName = 'Bitcoin';
-  } else if (id === 'knowledge') {
-    displayName = 'Знания';
-  } else if (id === 'electricity') {
-    displayName = 'Электричество';
-  } else if (id === 'computingPower') {
-    displayName = 'Вычисл. мощность';
-  }
+  // Получаем локализованное название ресурса
+  const displayName = t(`resources.${id}.name`);
 
   return (
     <div className="w-full text-xs" ref={resourceRef} title={debugInfo}>
@@ -94,7 +84,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ resource, formattedVa
       {safePerSecond !== 0 && (
         <div className="flex items-center justify-end">
           <div className={`text-[8px] ${isNegativeRate ? 'text-red-500' : 'text-green-500'}`}>
-            {isNegativeRate ? "" : "+"}{formattedPerSecond}/сек
+            {isNegativeRate ? "" : "+"}{formattedPerSecond}/{t("common.perSecond")}
           </div>
         </div>
       )}

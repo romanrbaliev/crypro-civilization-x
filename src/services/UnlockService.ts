@@ -45,4 +45,3 @@ export class UnlockService {
     return typeof counter === 'object' ? counter.value : counter;
   }
 }
-

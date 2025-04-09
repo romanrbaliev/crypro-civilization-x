@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Building } from "@/context/types";
@@ -9,7 +10,6 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
-import { formatEffectName } from "@/utils/researchUtils";
 import {
   Collapsible,
   CollapsibleContent,
@@ -18,6 +18,7 @@ import {
 import {
   ChevronRight
 } from "lucide-react";
+import { t } from "@/localization";
 
 interface BuildingItemProps {
   building: Building;
@@ -61,16 +62,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
   };
   
   const getResourceName = (resourceId: string): string => {
-    const resourceNames: {[key: string]: string} = {
-      knowledge: 'Знания',
-      usdt: 'USDT',
-      electricity: 'Электричество',
-      computingPower: 'Вычисл. мощность',
-      bitcoin: 'Bitcoin'
-    };
-    
-    return resourceNames[resourceId] || 
-           (state.resources[resourceId]?.name || resourceId);
+    return t(`resources.${resourceId}.name`);
   };
   
   const renderCost = () => {
@@ -83,7 +75,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <div key={resourceId} className="flex justify-between w-full">
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
-            {resource.name}
+            {getResourceName(resourceId)}
           </span>
           <span className={`${hasEnough ? 'text-gray-600' : 'text-red-500'} text-[11px]`}>
             {formatNumber(Number(amount))}
@@ -104,7 +96,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <div key={resourceId} className="text-green-600 text-[11px] flex justify-between w-full">
           <span>{resourceName}</span>
-          <span>+{formatNumber(Number(amount))}/сек</span>
+          <span>+{formatNumber(Number(amount))}/{t("common.perSecond")}</span>
         </div>
       );
     });
@@ -121,7 +113,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       return (
         <div key={resourceId} className="text-red-500 text-[11px] flex justify-between w-full">
           <span>{resourceName}</span>
-          <span>-{formatNumber(Number(amount))}/сек</span>
+          <span>-{formatNumber(Number(amount))}/{t("common.perSecond")}</span>
         </div>
       );
     });
@@ -133,88 +125,101 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
     }
     
     // Специальные случаи для отдельных зданий
-    if (building.id === 'cryptoWallet') {
-      return (
-        <>
+    switch (building.id) {
+      case 'cryptoWallet':
+        return (
+          <>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.cryptoWallet.effect1").split("+")[0]}</span>
+              <span>+{t("buildings.cryptoWallet.effect1").split("+")[1]}</span>
+            </div>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.cryptoWallet.effect2").split("+")[0]}</span>
+              <span>+{t("buildings.cryptoWallet.effect2").split("+")[1]}</span>
+            </div>
+          </>
+        );
+      case 'internetChannel':
+        return (
+          <>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.internetChannel.effect1").split("+")[0]}</span>
+              <span>+{t("buildings.internetChannel.effect1").split("+")[1]}</span>
+            </div>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.internetChannel.effect2").split("+")[0]}</span>
+              <span>+{t("buildings.internetChannel.effect2").split("+")[1]}</span>
+            </div>
+          </>
+        );
+      case 'coolingSystem':
+        return (
           <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Макс. USDT</span>
-            <span>+50</span>
+            <span>{t("buildings.coolingSystem.effect").split("-")[0]}</span>
+            <span>-{t("buildings.coolingSystem.effect").split("-")[1]}</span>
           </div>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Макс. знаний</span>
-            <span>+25%</span>
-          </div>
-        </>
-      );
-    } else if (building.id === 'internetChannel') {
-      return (
-        <>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Прирост знаний</span>
-            <span>+20%</span>
-          </div>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Эфф. вычислений</span>
-            <span>+5%</span>
-          </div>
-        </>
-      );
-    } else if (building.id === 'enhancedWallet') {
-      return (
-        <>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Макс. USDT</span>
-            <span>+150</span>
-          </div>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Макс. BTC</span>
-            <span>+1</span>
-          </div>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Эфф. обмена BTC</span>
-            <span>+8%</span>
-          </div>
-        </>
-      );
-    } else if (building.id === 'cryptoLibrary') {
-      return (
-        <>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Прирост знаний</span>
-            <span>+50%</span>
-          </div>
-          <div className="text-blue-600 text-[11px] flex justify-between w-full">
-            <span>Макс. знаний</span>
-            <span>+100</span>
-          </div>
-        </>
-      );
-    } else if (building.id === 'coolingSystem') {
-      return (
-        <div className="text-blue-600 text-[11px] flex justify-between w-full">
-          <span>Потр. выч. мощности</span>
-          <span>-20%</span>
-        </div>
-      );
+        );
+      case 'enhancedWallet':
+        return (
+          <>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.enhancedWallet.effect1").split("+")[0]}</span>
+              <span>+{t("buildings.enhancedWallet.effect1").split("+")[1]}</span>
+            </div>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.enhancedWallet.effect2").split("+")[0]}</span>
+              <span>+{t("buildings.enhancedWallet.effect2").split("+")[1]}</span>
+            </div>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.enhancedWallet.effect3").split("+")[0]}</span>
+              <span>+{t("buildings.enhancedWallet.effect3").split("+")[1]}</span>
+            </div>
+          </>
+        );
+      case 'cryptoLibrary':
+        return (
+          <>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.cryptoLibrary.effect1").split("+")[0]}</span>
+              <span>+{t("buildings.cryptoLibrary.effect1").split("+")[1]}</span>
+            </div>
+            <div className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{t("buildings.cryptoLibrary.effect2").split("+")[0]}</span>
+              <span>+{t("buildings.cryptoLibrary.effect2").split("+")[1]}</span>
+            </div>
+          </>
+        );
+      default:
+        // Стандартная обработка для других зданий
+        return Object.entries(building.effects).map(([effectId, value]) => {
+          // Получаем понятное название эффекта
+          let effectName = effectId;
+          let formattedValue = '';
+          
+          // Обработка особых эффектов
+          if (effectId.includes('Boost') || effectId.includes('boost')) {
+            effectName = effectId.replace(/Boost|boost/, ' бонус');
+            formattedValue = `+${(Number(value) * 100).toFixed(0)}%`;
+          } else if (effectId.includes('Max') || effectId.includes('max')) {
+            effectName = effectId.replace(/Max|max/, ' максимум');
+            formattedValue = `+${formatNumber(Number(value))}`;
+          } else {
+            formattedValue = `${Number(value) > 0 ? '+' : ''}${formatNumber(Number(value))}`;
+          }
+          
+          return (
+            <div key={effectId} className="text-blue-600 text-[11px] flex justify-between w-full">
+              <span>{effectName}</span>
+              <span>{formattedValue}</span>
+            </div>
+          );
+        });
     }
-    
-    // Обработка обычных эффектов
-    return Object.entries(building.effects).map(([effectId, value]) => {
-      // Форматируем название эффекта
-      const effectName = formatEffectName(effectId);
-      // Форматируем значение (добавляем знак + для положительных значений и % для процентов)
-      const formattedValue = effectId.includes('Boost') || effectId.includes('Reduction') ? 
-        `${value > 0 ? '+' : ''}${(Number(value) * 100).toFixed(0)}%` : 
-        `${value > 0 ? '+' : ''}${formatNumber(Number(value))}`;
-      
-      return (
-        <div key={effectId} className="text-blue-600 text-[11px] flex justify-between w-full">
-          <span>{effectName}</span>
-          <span>{formattedValue}</span>
-        </div>
-      );
-    });
   };
+  
+  // Получаем локализованное имя и описание
+  const name = t(`buildings.${building.id}.name`);
+  const description = t(`buildings.${building.id}.description`);
   
   return (
     <Collapsible
@@ -227,7 +232,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
           <div className="flex-1">
             <div className="flex justify-between items-center w-full">
               <h3 className="text-xs font-medium">
-                {building.name} {building.count > 0 && <span className="text-gray-500">×{building.count}</span>}
+                {name} {building.count > 0 && <span className="text-gray-500">×{building.count}</span>}
               </h3>
             </div>
           </div>
@@ -237,11 +242,11 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
       
       <CollapsibleContent>
         <div className="p-2 pt-0">
-          <p className="text-[11px] text-gray-500 mt-1 mb-2">{building.description}</p>
+          <p className="text-[11px] text-gray-500 mt-1 mb-2">{description}</p>
           
           <div className="space-y-2">
             <div className="space-y-1">
-              <h4 className="text-[11px] font-medium">Стоимость:</h4>
+              <h4 className="text-[11px] font-medium">{t("ui.states.sections.cost")}</h4>
               {renderCost()}
             </div>
             
@@ -249,21 +254,21 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
               <div className="border-t pt-2 mt-2">
                 {renderProduction() && (
                   <>
-                    <h4 className="text-[11px] font-medium mb-1">Производит:</h4>
+                    <h4 className="text-[11px] font-medium mb-1">{t("ui.states.sections.produces")}</h4>
                     {renderProduction()}
                   </>
                 )}
                 
                 {renderConsumption() && (
                   <>
-                    <h4 className="text-[11px] font-medium mb-1 mt-1">Потребляет:</h4>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">{t("ui.states.sections.consumes")}</h4>
                     {renderConsumption()}
                   </>
                 )}
                 
                 {renderEffects() && (
                   <>
-                    <h4 className="text-[11px] font-medium mb-1 mt-1">Эффекты:</h4>
+                    <h4 className="text-[11px] font-medium mb-1 mt-1">{t("ui.states.sections.effects")}</h4>
                     {renderEffects()}
                   </>
                 )}
@@ -278,7 +283,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                 size="sm"
                 className="text-xs"
               >
-                Купить
+                {t("ui.actions.buy")}
               </Button>
               
               <Button
@@ -288,7 +293,7 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => 
                 size="sm"
                 className="text-xs"
               >
-                Продать
+                {t("ui.actions.sell")}
               </Button>
             </div>
           </div>

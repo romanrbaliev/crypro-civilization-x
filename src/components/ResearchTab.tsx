@@ -3,6 +3,7 @@ import React from "react";
 import { useGame } from "@/context/hooks/useGame";
 import UpgradeItem from "./UpgradeItem";
 import { Beaker } from "lucide-react";
+import { t } from "@/localization";
 
 interface ResearchTabProps {
   onAddEvent: (message: string, type: string) => void;
@@ -16,9 +17,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
   
   // Определяем базовое исследование
   const isInitialResearch = (upgradeId: string) => {
-    return upgradeId === 'basicBlockchain' || 
-           upgradeId === 'blockchain_basics' || 
-           upgradeId === 'blockchainBasics';
+    return upgradeId === 'blockchainBasics';
   };
   
   // Проверяем, куплены ли "Основы блокчейна"
@@ -41,8 +40,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
       <div className="text-center py-6 text-gray-500">
         <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
         <p className="text-xs">
-          Исследования пока недоступны.<br />
-          Продолжайте развиваться для открытия новых технологий.
+          {t("ui.states.empty.research")}
         </p>
       </div>
     );
@@ -54,15 +52,14 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
         <div className="text-center py-6 text-gray-500">
           <Beaker className="h-10 w-10 mx-auto mb-3 opacity-20" />
           <p className="text-xs">
-            Исследования пока недоступны.<br />
-            Продолжайте развиваться для открытия новых технологий.
+            {t("ui.states.empty.research")}
           </p>
         </div>
       ) : (
         <>
           {unlockedUpgrades.length > 0 && (
             <div className="mb-4">
-              <h2 className="text-sm font-medium mb-2">Доступные исследования</h2>
+              <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.availableResearch")}</h2>
               <div className="space-y-1">
                 {unlockedUpgrades.map(upgrade => (
                   <UpgradeItem 
@@ -77,7 +74,7 @@ const ResearchTab: React.FC<ResearchTabProps> = ({ onAddEvent }) => {
           
           {purchasedUpgrades.length > 0 && (
             <div>
-              <h2 className="text-sm font-medium mb-2">Завершенные исследования</h2>
+              <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.completedResearch")}</h2>
               <div className="space-y-1">
                 {purchasedUpgrades.map(upgrade => (
                   <UpgradeItem 
