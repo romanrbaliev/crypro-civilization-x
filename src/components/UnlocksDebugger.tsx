@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { debugUnlockStatus } from '@/utils/debugCalculator';
+import { debugUnlockStatus } from '@/utils/unlockManager';
 import { 
   getUnlockedBuildingsByGroup, 
   getUnlockedUpgradesByGroup 
@@ -30,7 +30,11 @@ const UnlocksDebugger: React.FC = () => {
   
   const checkUnlocks = () => {
     const result = debugUnlockStatus(state);
-    setDebugInfo(result);
+    setDebugInfo({
+      unlocked: result.unlocked || [],
+      locked: result.locked || [],
+      steps: result.steps || []
+    });
   };
   
   // Автоматически обновляем данные при открытии окна

@@ -367,39 +367,138 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
   return checkAllUnlocks(newState);
 };
 
+// Добавим специальные функции для проверки конкретных типов разблокировок
+export const checkBuildingUnlocks = (state: GameState): GameState => {
+  let newState = { ...state };
+  
+  // Фильтруем только правила для зданий
+  const buildingRules = unlockRules.filter(rule => rule.targetType === 'building');
+  
+  for (const rule of buildingRules) {
+    const isUnlocked = checkUnlockRule(newState, rule);
+    
+    if (isUnlocked && newState.buildings[rule.targetId] && !newState.buildings[rule.targetId].unlocked) {
+      newState = applyUnlock(newState, rule);
+    }
+  }
+  
+  return newState;
+};
+
+export const checkResourceUnlocks = (state: GameState): GameState => {
+  // В нашей системе нет отдельных правил для ресурсов, но функция нужна
+  // для обратной совместимости с unlockSystem.ts
+  return state;
+};
+
+export const checkUpgradeUnlocks = (state: GameState): GameState => {
+  let newState = { ...state };
+  
+  // Фильтруем только правила для улучшений
+  const upgradeRules = unlockRules.filter(rule => rule.targetType === 'upgrade');
+  
+  for (const rule of upgradeRules) {
+    const isUnlocked = checkUnlockRule(newState, rule);
+    
+    if (isUnlocked && newState.upgrades[rule.targetId] && !newState.upgrades[rule.targetId].unlocked) {
+      newState = applyUnlock(newState, rule);
+    }
+  }
+  
+  return newState;
+};
+
+export const checkActionUnlocks = (state: GameState): GameState => {
+  // В нашей системе действия включены в общие правила, но функция нужна
+  // для обратной совместимости с unlockSystem.ts
+  return state;
+};
+
+export const checkSpecialUnlocks = (state: GameState): GameState => {
+  let newState = { ...state };
+  
+  // Фильтруем только правила для фич
+  const featureRules = unlockRules.filter(rule => rule.targetType === 'feature');
+  
+  for (const rule of featureRules) {
+    const isUnlocked = checkUnlockRule(newState, rule);
+    
+    if (isUnlocked && !newState.unlocks[rule.targetId]) {
+      newState = applyUnlock(newState, rule);
+    }
+  }
+  
+  return newState;
+};
+
 /**
  * Функция для отладки статуса разблокировок
  * @param state Текущее состояние
  * @returns Объект с информацией о статусе разблокировок
  */
 export const debugUnlockStatus = (state: GameState) => {
-  const result = {
-    buildings: {} as Record<string, { unlocked: boolean, conditions: boolean }>,
-    upgrades: {} as Record<string, { unlocked: boolean, conditions: boolean }>,
-    features: {} as Record<string, { unlocked: boolean, conditions: boolean }>
-  };
+  const unlocked: string[] = [];
+  const locked: string[] = [];
+  const steps: string[] = [];
   
-  for (const rule of unlockRules) {
+  steps.push("🔓 Анализ статуса разблокировок:");
+  
+  // Проверяем здания
+  steps.push("🏗️ Здания:");
+  for (const rule of unlockRules.filter(r => r.targetType === 'building')) {
     const conditionsMet = checkUnlockRule(state, rule);
-    let currentUnlocked = false;
+    const currentUnlocked = state.buildings[rule.targetId]?.unlocked || false;
     
-    switch (rule.targetType) {
-      case 'building':
-        currentUnlocked = state.buildings[rule.targetId]?.unlocked || false;
-        result.buildings[rule.targetId] = { unlocked: currentUnlocked, conditions: conditionsMet };
-        break;
-        
-      case 'upgrade':
-        currentUnlocked = state.upgrades[rule.targetId]?.unlocked || false;
-        result.upgrades[rule.targetId] = { unlocked: currentUnlocked, conditions: conditionsMet };
-        break;
-        
-      case 'feature':
-        currentUnlocked = state.unlocks[rule.targetId] || false;
-        result.features[rule.targetId] = { unlocked: currentUnlocked, conditions: conditionsMet };
-        break;
+    steps.push(`• ${rule.targetId}: ${conditionsMet ? '✅' : '❌'} условия, ${currentUnlocked ? '✅' : '❌'} разблокировано`);
+    
+    if (currentUnlocked) {
+      unlocked.push(`Здание: ${rule.targetId}`);
+    } else {
+      locked.push(`Здание: ${rule.targetId}`);
     }
   }
   
-  return result;
+  // Проверяем улучшения
+  steps.push("📚 Исследования:");
+  for (const rule of unlockRules.filter(r => r.targetType === 'upgrade')) {
+    const conditionsMet = checkUnlockRule(state, rule);
+    const currentUnlocked = state.upgrades[rule.targetId]?.unlocked || false;
+    
+    steps.push(`• ${rule.targetId}: ${conditionsMet ? '✅' : '❌'} условия, ${currentUnlocked ? '✅' : '❌'} разблокировано`);
+    
+    if (currentUnlocked) {
+      unlocked.push(`Исследование: ${rule.targetId}`);
+    } else {
+      locked.push(`Исследование: ${rule.targetId}`);
+    }
+  }
+  
+  // Проверяем фичи
+  steps.push("📊 Функции:");
+  for (const rule of unlockRules.filter(r => r.targetType === 'feature')) {
+    const conditionsMet = checkUnlockRule(state, rule);
+    const currentUnlocked = state.unlocks[rule.targetId] || false;
+    
+    steps.push(`• ${rule.targetId}: ${conditionsMet ? '✅' : '❌'} условия, ${currentUnlocked ? '✅' : '❌'} разблокировано`);
+    
+    if (currentUnlocked) {
+      unlocked.push(`Функция: ${rule.targetId}`);
+    } else {
+      locked.push(`Функция: ${rule.targetId}`);
+    }
+  }
+  
+  // Добавляем специальную проверку для криптосообщества
+  const isCryptoCommunityUnlocked = state.upgrades['cryptoCommunity']?.unlocked || false;
+  steps.push(`• Особая проверка cryptoCommunity: ${isCryptoCommunityUnlocked ? '✅' : '❌'} разблокировано`);
+  
+  // Возвращаем результат анализа
+  return {
+    buildings: {},
+    upgrades: {},
+    features: {},
+    unlocked,
+    locked,
+    steps
+  };
 };

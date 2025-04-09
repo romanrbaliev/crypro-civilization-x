@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Unlock } from 'lucide-react';
 import { useGame } from '@/context/hooks/useGame';
-import { debugUnlockStatus } from '@/utils/debugCalculator';
+import { debugUnlockStatus } from '@/utils/unlockManager';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -26,8 +26,8 @@ const UnlockStatusPopup = () => {
       setTimeout(() => {
         try {
           // Получаем отчет о статусе разблокировок
-          const { steps } = debugUnlockStatus(state);
-          setStatusSteps(steps);
+          const result = debugUnlockStatus(state);
+          setStatusSteps(result.steps || []);
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);
