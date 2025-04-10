@@ -75,7 +75,7 @@ export const pluralize = (count: number, key: string): string => {
   }
   
   // Для английского языка
-  if (currentLanguage === 'en') {
+  if (currentLanguage === 'en' as SupportedLanguage) {
     return count === 1 ? forms[0] : forms[1];
   }
   
