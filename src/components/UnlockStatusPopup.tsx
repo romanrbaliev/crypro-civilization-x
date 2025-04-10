@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/popover';
 
 const UnlockStatusPopup = () => {
-  const { state, forceUpdate } = useGame();
+  const { state, dispatch, forceUpdate } = useGame();
   const [statusSteps, setStatusSteps] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
@@ -20,7 +20,7 @@ const UnlockStatusPopup = () => {
       setLoading(true);
       
       // Форсируем обновление состояния игры
-      forceUpdate();
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
       
       // Небольшая задержка, чтобы обновление успело применится
       setTimeout(() => {
@@ -29,15 +29,7 @@ const UnlockStatusPopup = () => {
           const result = debugUnlockStatus(state);
           setStatusSteps(result.steps || []);
           
-          // Консольный лог для отладки
-          console.log("Здания с условиями разблокировки:", 
-            unlockRules.filter(r => r.targetType === 'building').map(r => ({
-              id: r.targetId,
-              conditions: r
-            }))
-          );
-          
-          // Проверка статуса ключевых зданий
+          // Проверяем конкретные проблемные здания
           console.log("Статус enhancedWallet:", {
             exists: !!state.buildings.enhancedWallet,
             unlocked: state.buildings.enhancedWallet?.unlocked,
@@ -54,6 +46,20 @@ const UnlockStatusPopup = () => {
             exists: !!state.buildings.coolingSystem,
             unlocked: state.buildings.coolingSystem?.unlocked,
             computerLevel: state.buildings.homeComputer?.count
+          });
+          
+          // Проверяем наличие ID здания в state.buildings
+          console.log("Проверка наличия зданий в state:", {
+            enhancedWallet: 'enhancedWallet' in state.buildings,
+            cryptoLibrary: 'cryptoLibrary' in state.buildings,
+            coolingSystem: 'coolingSystem' in state.buildings
+          });
+          
+          // Проверяем, соответствуют ли условия для разблокировки
+          console.log("Условия разблокировки:", {
+            enhancedWalletCondition: state.buildings.cryptoWallet?.count >= 5,
+            cryptoLibraryCondition: state.upgrades.cryptoCurrencyBasics?.purchased === true,
+            coolingSystemCondition: state.buildings.homeComputer?.count >= 2
           });
           
         } catch (error) {
@@ -74,6 +80,47 @@ const UnlockStatusPopup = () => {
     if (open) {
       updateStatus();
     }
+  };
+  
+  // Принудительно разблокируем проблемные элементы
+  const forceUnlockAll = () => {
+    // Улучшенный кошелек
+    if (state.buildings.enhancedWallet) {
+      dispatch({ 
+        type: "SET_BUILDING_UNLOCKED", 
+        payload: { buildingId: "enhancedWallet", unlocked: true } 
+      });
+    }
+    
+    // Криптобиблиотека
+    if (state.buildings.cryptoLibrary) {
+      dispatch({ 
+        type: "SET_BUILDING_UNLOCKED", 
+        payload: { buildingId: "cryptoLibrary", unlocked: true } 
+      });
+    }
+    
+    // Система охлаждения
+    if (state.buildings.coolingSystem) {
+      dispatch({ 
+        type: "SET_BUILDING_UNLOCKED", 
+        payload: { buildingId: "coolingSystem", unlocked: true } 
+      });
+    }
+    
+    // Крипто-сообщество
+    if (state.upgrades.cryptoCommunity) {
+      dispatch({ 
+        type: "SET_UPGRADE_UNLOCKED", 
+        payload: { upgradeId: "cryptoCommunity", unlocked: true } 
+      });
+    }
+    
+    // Обновляем состояние
+    setTimeout(() => {
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      updateStatus();
+    }, 100);
   };
   
   return (
@@ -101,7 +148,7 @@ const UnlockStatusPopup = () => {
                   step.includes('✅') ? 'text-green-600' : 
                   step.includes('❌') ? 'text-red-500' : 
                   step.startsWith('•') ? 'pl-2' :
-                  step.startsWith('📊') || step.startsWith('🔓') || step.startsWith('🏗️') || step.startsWith('📚') ? 'font-semibold mt-2' : ''
+                  step.startsWith('📊') || step.startsWith('🔓') || step.startsWith('🏗️') || step.startsWith('📚') || step.startsWith('🔍') ? 'font-semibold mt-2' : ''
                 }>
                   {step}
                 </div>
@@ -109,7 +156,15 @@ const UnlockStatusPopup = () => {
             )}
           </div>
           
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-xs" 
+              onClick={forceUnlockAll}
+            >
+              Принудительно разблокировать
+            </Button>
             <Button 
               variant="secondary" 
               size="sm" 
@@ -124,13 +179,5 @@ const UnlockStatusPopup = () => {
     </Popover>
   );
 };
-
-// Получаем правила разблокировки для консольного лога
-const unlockRules = [
-  // Правила для ключевых зданий
-  { targetId: 'enhancedWallet', targetType: 'building', buildings: [{ id: 'cryptoWallet', minCount: 5 }] },
-  { targetId: 'cryptoLibrary', targetType: 'building', upgrades: [{ id: 'cryptoCurrencyBasics', purchased: true }] },
-  { targetId: 'coolingSystem', targetType: 'building', buildings: [{ id: 'homeComputer', minCount: 2 }] }
-];
 
 export default UnlockStatusPopup;
