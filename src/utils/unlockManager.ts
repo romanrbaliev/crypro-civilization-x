@@ -1,4 +1,3 @@
-
 import { GameState, Building, Upgrade } from '@/context/types';
 
 // Типы условий для разблокировки
@@ -462,7 +461,7 @@ export const debugUnlockStatus = (state: GameState) => {
   // Проверяем улучшения
   steps.push("📚 Исследования:");
   for (const rule of unlockRules.filter(r => r.targetType === 'upgrade')) {
-    const conditionsMet = checkUnlockRule(newState, rule);
+    const conditionsMet = checkUnlockRule(state, rule);
     const currentUnlocked = state.upgrades[rule.targetId]?.unlocked || false;
     
     steps.push(`• ${rule.targetId}: ${conditionsMet ? '✅' : '❌'} условия, ${currentUnlocked ? '✅' : '❌'} разблокировано`);
@@ -477,7 +476,7 @@ export const debugUnlockStatus = (state: GameState) => {
   // Проверяем фичи
   steps.push("📊 Функции:");
   for (const rule of unlockRules.filter(r => r.targetType === 'feature')) {
-    const conditionsMet = checkUnlockRule(newState, rule);
+    const conditionsMet = checkUnlockRule(state, rule);
     const currentUnlocked = state.unlocks[rule.targetId] || false;
     
     steps.push(`• ${rule.targetId}: ${conditionsMet ? '✅' : '❌'} условия, ${currentUnlocked ? '✅' : '❌'} разблокировано`);
@@ -500,3 +499,6 @@ export const debugUnlockStatus = (state: GameState) => {
     steps
   };
 };
+
+// Экспортируем все необходимые функции
+export { checkUnlockRule, applyUnlock };
