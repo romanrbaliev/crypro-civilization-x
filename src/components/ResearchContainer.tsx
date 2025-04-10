@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useGameState } from '@/context/GameStateContext';
-import { Upgrade } from '@/context/types';
+import { Upgrade, GameState } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { formatNumber } from '@/utils/helpers';
 import { t } from '@/localization';

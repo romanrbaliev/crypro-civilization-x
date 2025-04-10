@@ -1,165 +1,125 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import BuildingItem from "./BuildingItem";
-import { getCategoryBuildings, isUnlockedBuilding } from "@/utils/buildingUtils";
+import { canAffordBuilding } from "@/utils/buildingUtils";
 import { Building } from "lucide-react";
 import { t } from "@/localization";
 
-const EquipmentTab: React.FC = () => {
+// Добавляем интерфейс с onAddEvent
+interface EquipmentTabProps {
+  onAddEvent?: (message: string, type: string) => void;
+}
+
+const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
   const { state, dispatch } = useGame();
   const [unlockedBuildings, setUnlockedBuildings] = useState<string[]>([]);
-  
-  // Проверяем при каждом изменении состояния игры, какие здания разблокированы
+
   useEffect(() => {
-    // Получаем список разблокированных ID зданий
-    const unlocked = Object.values(state.buildings)
-      .filter(building => building.unlocked)
-      .map(building => building.id);
-    
-    setUnlockedBuildings(unlocked);
-    console.log("EquipmentTab: Разблокированные здания:", unlocked);
-    
-    // Принудительно проверяем есть ли проблемные здания, которые уже должны быть разблокированы
-    const shouldCheckBuildings = ['enhancedWallet', 'cryptoLibrary', 'coolingSystem'];
-    for (const id of shouldCheckBuildings) {
-      if (!unlocked.includes(id)) {
-        // Проверяем условия для каждого здания
-        if (id === 'enhancedWallet' && state.buildings.cryptoWallet?.count >= 5) {
-          console.log(`EquipmentTab: ${id} должен быть разблокирован (кошелек: ${state.buildings.cryptoWallet.count})`);
-          if (state.buildings[id]) {
-            dispatch({ 
-              type: "SET_BUILDING_UNLOCKED", 
-              payload: { buildingId: id, unlocked: true } 
-            });
-          }
-        } else if (id === 'cryptoLibrary' && state.upgrades.cryptoCurrencyBasics?.purchased) {
-          console.log(`EquipmentTab: ${id} должен быть разблокирован (основы крипты: куплены)`);
-          if (state.buildings[id]) {
-            dispatch({ 
-              type: "SET_BUILDING_UNLOCKED", 
-              payload: { buildingId: id, unlocked: true } 
-            });
-          }
-        } else if (id === 'coolingSystem' && state.buildings.homeComputer?.count >= 2) {
-          console.log(`EquipmentTab: ${id} должен быть разблокирован (компьютер: ${state.buildings.homeComputer.count})`);
-          if (state.buildings[id]) {
-            dispatch({ 
-              type: "SET_BUILDING_UNLOCKED", 
-              payload: { buildingId: id, unlocked: true } 
-            });
-          }
+    // Функция для проверки и разблокировки зданий
+    const checkAndUnlockBuildings = () => {
+      const newUnlockedBuildings: string[] = [];
+      
+      for (const buildingId in state.buildings) {
+        const building = state.buildings[buildingId];
+        if (building.unlocked && !unlockedBuildings.includes(buildingId)) {
+          newUnlockedBuildings.push(buildingId);
         }
       }
-    }
-  }, [state.buildings, state.upgrades, dispatch]);
-  
-  // Получаем все здания в каждой категории
-  const basicBuildings = getCategoryBuildings(state, ["practice", "generator"]);
-  const productionBuildings = getCategoryBuildings(state, ["cryptoWallet", "homeComputer", "internetChannel"]);
-  const advancedBuildings = getCategoryBuildings(state, ["miner", "cryptoLibrary", "coolingSystem", "enhancedWallet"]);
-  
-  // Проверяем, есть ли разблокированные здания
-  const hasUnlockedBuildings = unlockedBuildings.length > 0;
-  
-  // Принудительно проверяем наличие каждого проблемного здания
-  useEffect(() => {
-    const criticalBuildings = {
-      enhancedWallet: 'Улучшенный кошелек',
-      cryptoLibrary: 'Криптобиблиотека',
-      coolingSystem: 'Система охлаждения'
+      
+      if (newUnlockedBuildings.length > 0) {
+        setUnlockedBuildings(prevUnlockedBuildings => [...prevUnlockedBuildings, ...newUnlockedBuildings]);
+      }
     };
     
-    Object.entries(criticalBuildings).forEach(([id, name]) => {
-      const building = state.buildings[id];
-      
-      if (building) {
-        console.log(`EquipmentTab: ${name} (${id}): unlocked=${building.unlocked}, в списке=${unlockedBuildings.includes(id)}`);
-        
-        // Если здание существует, но не разблокировано, и должно быть разблокировано
-        if (!building.unlocked) {
-          if (id === 'enhancedWallet' && state.buildings.cryptoWallet?.count >= 5) {
-            console.log(`EquipmentTab: ${id} должен быть принудительно разблокирован`);
-            dispatch({ 
-              type: "SET_BUILDING_UNLOCKED", 
-              payload: { buildingId: id, unlocked: true } 
-            });
-          } else if (id === 'cryptoLibrary' && state.upgrades.cryptoCurrencyBasics?.purchased) {
-            console.log(`EquipmentTab: ${id} должен быть принудительно разблокирован`);
-            dispatch({ 
-              type: "SET_BUILDING_UNLOCKED", 
-              payload: { buildingId: id, unlocked: true } 
-            });
-          } else if (id === 'coolingSystem' && state.buildings.homeComputer?.count >= 2) {
-            console.log(`EquipmentTab: ${id} должен быть принудительно разблокирован`);
-            dispatch({ 
-              type: "SET_BUILDING_UNLOCKED", 
-              payload: { buildingId: id, unlocked: true } 
-            });
-          }
-        }
-      } else {
-        console.log(`EquipmentTab: ${name} (${id}) не найден в state.buildings`);
-      }
-    });
-  }, [state.buildings, state.upgrades, unlockedBuildings, dispatch]);
+    // Вызываем проверку при монтировании компонента и при каждом обновлении состояния игры
+    checkAndUnlockBuildings();
+  }, [state.buildings, unlockedBuildings]);
   
-  if (!hasUnlockedBuildings) {
-    return (
-      <div className="text-center py-6 text-gray-500">
-        <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
-        <p className="text-xs">
-          {t("ui.states.empty.buildings")}
-        </p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    // Функция для принудительной проверки разблокировок
+    const forceCheckUnlocks = () => {
+      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+    };
+    
+    // Устанавливаем интервал для периодической проверки (каждые 5 секунд)
+    const intervalId = setInterval(forceCheckUnlocks, 5000);
+    
+    // Очищаем интервал при размонтировании компонента
+    return () => clearInterval(intervalId);
+  }, [dispatch]);
+  
+  // Получаем все разблокированные здания
+  const allUnlockedBuildings = Object.values(state.buildings).filter(b => b.unlocked);
+  
+  // Группируем здания по категориям
+  const basicBuildings = allUnlockedBuildings.filter(b => 
+    ['practice', 'generator', 'cryptoWallet'].includes(b.id)
+  );
+  
+  const computerBuildings = allUnlockedBuildings.filter(b => 
+    ['homeComputer', 'miningRig', 'internetConnection', 'coolingSystem'].includes(b.id)
+  );
+  
+  const advancedBuildings = allUnlockedBuildings.filter(b => 
+    ['improvedWallet', 'cryptoLibrary', 'server'].includes(b.id)
+  );
   
   return (
     <div className="space-y-4">
-      {/* Базовые здания */}
-      {basicBuildings.length > 0 && (
-        <div>
-          <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.basicEquipment")}</h2>
-          <div className="space-y-1">
-            {basicBuildings.map(building => (
-              <BuildingItem 
-                key={building.id} 
-                building={building} 
-              />
-            ))}
-          </div>
+      {allUnlockedBuildings.length === 0 ? (
+        <div className="text-center py-6 text-gray-500">
+          <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
+          <p className="text-xs">
+            {t("ui.states.empty.buildings")}
+          </p>
         </div>
-      )}
-      
-      {/* Здания производства */}
-      {productionBuildings.length > 0 && (
-        <div>
-          <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.productionEquipment")}</h2>
-          <div className="space-y-1">
-            {productionBuildings.map(building => (
-              <BuildingItem 
-                key={building.id} 
-                building={building} 
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Продвинутые здания */}
-      {advancedBuildings.length > 0 && (
-        <div>
-          <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.advancedEquipment")}</h2>
-          <div className="space-y-1">
-            {advancedBuildings.map(building => (
-              <BuildingItem 
-                key={building.id} 
-                building={building} 
-              />
-            ))}
-          </div>
-        </div>
+      ) : (
+        <>
+          {basicBuildings.length > 0 && (
+            <div>
+              <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.basicEquipment")}</h2>
+              <div className="space-y-1">
+                {basicBuildings.map(building => (
+                  <BuildingItem 
+                    key={building.id} 
+                    building={building} 
+                    onAddEvent={onAddEvent}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {computerBuildings.length > 0 && (
+            <div>
+              <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.computerEquipment")}</h2>
+              <div className="space-y-1">
+                {computerBuildings.map(building => (
+                  <BuildingItem 
+                    key={building.id} 
+                    building={building} 
+                    onAddEvent={onAddEvent}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {advancedBuildings.length > 0 && (
+            <div>
+              <h2 className="text-sm font-medium mb-2">{t("ui.states.sections.advancedEquipment")}</h2>
+              <div className="space-y-1">
+                {advancedBuildings.map(building => (
+                  <BuildingItem 
+                    key={building.id} 
+                    building={building} 
+                    onAddEvent={onAddEvent}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

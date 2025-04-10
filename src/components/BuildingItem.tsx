@@ -1,37 +1,30 @@
-
-import React, { useState } from "react";
+import React from "react";
+import { Building as BuildingIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  Collapsible, 
+  CollapsibleContent, 
+  CollapsibleTrigger 
+} from "@/components/ui/collapsible";
+import { ChevronRight } from "lucide-react";
 import { Building } from "@/context/types";
 import { useGame } from "@/context/hooks/useGame";
 import { formatNumber } from "@/utils/helpers";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from "@/components/ui/collapsible";
-import {
-  ChevronRight
-} from "lucide-react";
+import { canAffordBuilding } from "@/utils/buildingUtils";
 import { t } from "@/localization";
 
-interface BuildingItemProps {
+export interface BuildingItemProps {
   building: Building;
-  onPurchase?: () => void;
+  onAddEvent?: (message: string, type: string) => void;
 }
 
-const BuildingItem: React.FC<BuildingItemProps> = ({ building, onPurchase }) => {
+const BuildingItem: React.FC<BuildingItemProps> = ({ building, onAddEvent }) => {
   const { state, dispatch } = useGame();
   const [isOpen, setIsOpen] = useState(false);
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: building.id } });
-    if (onPurchase) onPurchase();
+    if (onAddEvent) onAddEvent(t("ui.actions.buy"), "success");
   };
   
   const handleSell = () => {
