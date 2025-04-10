@@ -28,6 +28,34 @@ const UnlockStatusPopup = () => {
           // Получаем отчет о статусе разблокировок
           const result = debugUnlockStatus(state);
           setStatusSteps(result.steps || []);
+          
+          // Консольный лог для отладки
+          console.log("Здания с условиями разблокировки:", 
+            unlockRules.filter(r => r.targetType === 'building').map(r => ({
+              id: r.targetId,
+              conditions: r
+            }))
+          );
+          
+          // Проверка статуса ключевых зданий
+          console.log("Статус enhancedWallet:", {
+            exists: !!state.buildings.enhancedWallet,
+            unlocked: state.buildings.enhancedWallet?.unlocked,
+            walletLevel: state.buildings.cryptoWallet?.count
+          });
+          
+          console.log("Статус cryptoLibrary:", {
+            exists: !!state.buildings.cryptoLibrary,
+            unlocked: state.buildings.cryptoLibrary?.unlocked,
+            hasUpgrade: state.upgrades.cryptoCurrencyBasics?.purchased
+          });
+          
+          console.log("Статус coolingSystem:", {
+            exists: !!state.buildings.coolingSystem,
+            unlocked: state.buildings.coolingSystem?.unlocked,
+            computerLevel: state.buildings.homeComputer?.count
+          });
+          
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);
@@ -96,5 +124,13 @@ const UnlockStatusPopup = () => {
     </Popover>
   );
 };
+
+// Получаем правила разблокировки для консольного лога
+const unlockRules = [
+  // Правила для ключевых зданий
+  { targetId: 'enhancedWallet', targetType: 'building', buildings: [{ id: 'cryptoWallet', minCount: 5 }] },
+  { targetId: 'cryptoLibrary', targetType: 'building', upgrades: [{ id: 'cryptoCurrencyBasics', purchased: true }] },
+  { targetId: 'coolingSystem', targetType: 'building', buildings: [{ id: 'homeComputer', minCount: 2 }] }
+];
 
 export default UnlockStatusPopup;

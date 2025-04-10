@@ -1,3 +1,4 @@
+
 import { GameState, Building, Upgrade } from '@/context/types';
 
 // Типы условий для разблокировки
@@ -33,7 +34,7 @@ export interface UnlockRule {
 
 // Список всех правил разблокировки в игре
 const unlockRules: UnlockRule[] = [
-  // Разблокировка "Практика" после 2 применений знаний (исправлено с 3 нажатий на "Изучить")
+  // Разблокировка "Практика" после 2 применений знаний
   {
     targetId: 'practice',
     targetType: 'building',
@@ -111,7 +112,7 @@ const unlockRules: UnlockRule[] = [
     targetType: 'building',
     upgrades: [{ id: 'cryptoCurrencyBasics', purchased: true }]
   },
-  // Разблокировка "Proof of Work" после покупки "Оптимизация алгоритмов" (исправлено с 3 уровня компьютера)
+  // Разблокировка "Proof of Work" после покупки "Оптимизация алгоритмов"
   {
     targetId: 'proofOfWork',
     targetType: 'upgrade',
@@ -130,7 +131,6 @@ const unlockRules: UnlockRule[] = [
     buildings: [{ id: 'coolingSystem', minCount: 1 }]
   },
   // Разблокировка "Улучшенный кошелек" после достижения 5 уровня "Криптокошелек"
-  // Исправлено на корректный ID здания enhancedWallet
   {
     targetId: 'enhancedWallet',
     targetType: 'building',

@@ -2,7 +2,8 @@
 import { GameState } from '@/context/types';
 import { 
   checkAllUnlocks, 
-  rebuildAllUnlocks
+  rebuildAllUnlocks,
+  debugUnlockStatus 
 } from '@/utils/unlockManager';
 
 /**
@@ -43,5 +44,13 @@ export class UnlockService {
     const counter = state.counters.knowledgeClicks;
     if (!counter) return 0;
     return typeof counter === 'object' ? counter.value : counter;
+  }
+  
+  /**
+   * Выполняет отладку разблокировок и возвращает отчет
+   */
+  debugUnlocks(state: GameState) {
+    console.log("UnlockService: Отладка разблокировок");
+    return debugUnlockStatus(state);
   }
 }

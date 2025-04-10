@@ -35,6 +35,42 @@ const UnlocksDebugger: React.FC = () => {
       locked: result.locked || [],
       steps: result.steps || []
     });
+    
+    // Дополнительно проверяем проблемные здания в консоли
+    console.log("UnlocksDebugger: Проверка статуса ключевых зданий");
+    
+    console.log("enhancedWallet (Улучшенный кошелек):", {
+      exists: !!state.buildings.enhancedWallet,
+      unlocked: state.buildings.enhancedWallet?.unlocked,
+      count: state.buildings.enhancedWallet?.count,
+      cryptoWalletLevel: state.buildings.cryptoWallet?.count,
+      conditionMet: state.buildings.cryptoWallet?.count >= 5
+    });
+    
+    console.log("cryptoLibrary (Криптобиблиотека):", {
+      exists: !!state.buildings.cryptoLibrary,
+      unlocked: state.buildings.cryptoLibrary?.unlocked,
+      count: state.buildings.cryptoLibrary?.count,
+      cryptoBasicsPurchased: state.upgrades.cryptoCurrencyBasics?.purchased,
+      conditionMet: state.upgrades.cryptoCurrencyBasics?.purchased === true
+    });
+    
+    console.log("coolingSystem (Система охлаждения):", {
+      exists: !!state.buildings.coolingSystem,
+      unlocked: state.buildings.coolingSystem?.unlocked,
+      count: state.buildings.coolingSystem?.count,
+      homeComputerLevel: state.buildings.homeComputer?.count,
+      conditionMet: state.buildings.homeComputer?.count >= 2
+    });
+    
+    console.log("cryptoCommunity (Крипто-сообщество):", {
+      exists: !!state.upgrades.cryptoCommunity,
+      unlocked: state.upgrades.cryptoCommunity?.unlocked,
+      purchased: state.upgrades.cryptoCommunity?.purchased,
+      usdtAmount: state.resources.usdt?.value,
+      cryptoBasicsPurchased: state.upgrades.cryptoCurrencyBasics?.purchased,
+      conditionMet: state.resources.usdt?.value >= 30 && state.upgrades.cryptoCurrencyBasics?.purchased === true
+    });
   };
   
   // Автоматически обновляем данные при открытии окна
@@ -46,6 +82,7 @@ const UnlocksDebugger: React.FC = () => {
   
   // Принудительно проверяем все разблокировки
   const forceCheckAll = () => {
+    console.log("UnlocksDebugger: Принудительная проверка разблокировок");
     dispatch({ type: "FORCE_RESOURCE_UPDATE" });
     setTimeout(() => {
       checkUnlocks();

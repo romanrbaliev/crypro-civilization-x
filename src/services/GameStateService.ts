@@ -96,6 +96,21 @@ export class GameStateService {
         console.log("GameStateService: Автомайнер (ID: autoMiner) принудительно разблокирован");
       }
       
+      // Принудительно разблокируем криптобиблиотеку
+      if (newState.buildings.cryptoLibrary) {
+        newState.buildings.cryptoLibrary = {
+          ...newState.buildings.cryptoLibrary,
+          unlocked: true
+        };
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          cryptoLibrary: true
+        };
+        
+        console.log("GameStateService: Криптобиблиотека принудительно разблокирована");
+      }
+      
       // Принудительно разблокируем Bitcoin
       if (!newState.resources.bitcoin) {
         // Создаем ресурс если не существует
@@ -181,6 +196,9 @@ export class GameStateService {
       // Полная перепроверка всех разблокировок
       newState = this.unlockService.rebuildAllUnlocks(newState);
       
+      // Проверка и принудительная разблокировка особых элементов
+      newState = this.checkAndForceUnlockSpecialBuildings(newState);
+      
       // Принудительная проверка всех зданий, требующих ресурсы для работы
       newState = this.checkEquipmentStatus(newState);
       
@@ -203,15 +221,120 @@ export class GameStateService {
   }
   
   /**
+   * Принудительно проверяет и разблокирует специальные здания
+   */
+  private checkAndForceUnlockSpecialBuildings(state: GameState): GameState {
+    let newState = {...state};
+    
+    // Проверяем условие для "Улучшенного кошелька" (уровень криптокошелька >= 5)
+    if (newState.buildings.cryptoWallet && newState.buildings.cryptoWallet.count >= 5) {
+      if (newState.buildings.enhancedWallet) {
+        newState.buildings.enhancedWallet.unlocked = true;
+        console.log("GameStateService: Улучшенный кошелек принудительно разблокирован");
+      }
+      
+      if (newState.buildings.improvedWallet) {
+        newState.buildings.improvedWallet.unlocked = true;
+        console.log("GameStateService: Улучшенный кошелек (improvedWallet) принудительно разблокирован");
+      }
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        enhancedWallet: true,
+        improvedWallet: true
+      };
+    }
+    
+    // Проверяем условие для Криптобиблиотеки (куплены Основы криптовалют)
+    if ((newState.upgrades.cryptoCurrencyBasics?.purchased === true) || 
+        (newState.upgrades.cryptoBasics?.purchased === true)) {
+      if (newState.buildings.cryptoLibrary) {
+        newState.buildings.cryptoLibrary.unlocked = true;
+        console.log("GameStateService: Криптобиблиотека принудительно разблокирована");
+      }
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        cryptoLibrary: true
+      };
+    }
+    
+    // Проверяем условие для Системы охлаждения (уровень домашнего компьютера >= 2)
+    if (newState.buildings.homeComputer && newState.buildings.homeComputer.count >= 2) {
+      if (newState.buildings.coolingSystem) {
+        newState.buildings.coolingSystem.unlocked = true;
+        console.log("GameStateService: Система охлаждения принудительно разблокирована");
+      }
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        coolingSystem: true
+      };
+    }
+    
+    // Проверяем условие для Крипто-сообщества (USDT >= 30 и куплены Основы криптовалют)
+    const hasCryptoBasics = newState.upgrades.cryptoCurrencyBasics?.purchased === true || 
+                           newState.upgrades.cryptoBasics?.purchased === true;
+    const hasEnoughUsdt = newState.resources.usdt?.value >= 30;
+    
+    if (hasEnoughUsdt && hasCryptoBasics) {
+      if (newState.upgrades.cryptoCommunity) {
+        newState.upgrades.cryptoCommunity.unlocked = true;
+        console.log("GameStateService: Крипто-сообщество принудительно разблокировано");
+      }
+      
+      newState.unlocks = {
+        ...newState.unlocks,
+        cryptoCommunity: true
+      };
+    }
+    
+    return newState;
+  }
+  
+  /**
    * Обрабатывает покупку здания
    */
   processBuildingPurchase(state: GameState, buildingId: string): GameState {
     try {
-      // Обновляем все ресурсы по��ле покупки здания
+      // Обновляем все ресурсы после покупки здания
       let newState = this.updateResourceProduction(state);
       
       // Обновляем все максимальные значения ресурсов
       newState = updateResourceMaxValues(newState);
+      
+      // Проверяем особые случаи для зданий
+      if (buildingId === 'homeComputer' && newState.buildings.homeComputer.count >= 2) {
+        // Проверяем и разблокируем систему охлаждения если уровень компьютера >= 2
+        if (newState.buildings.coolingSystem) {
+          newState.buildings.coolingSystem.unlocked = true;
+          console.log("GameStateService: Система охлаждения разблокирована после покупки 2 компьютеров");
+        }
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          coolingSystem: true
+        };
+      }
+      
+      if (buildingId === 'cryptoWallet' && newState.buildings.cryptoWallet.count >= 5) {
+        // Проверяем и разблокируем улучшенный кошелек если уровень кошелька >= 5
+        if (newState.buildings.enhancedWallet) {
+          newState.buildings.enhancedWallet.unlocked = true;
+          console.log("GameStateService: Улучшенный кошелек разблокирован после покупки 5 криптокошельков");
+        }
+        
+        if (newState.buildings.improvedWallet) {
+          newState.buildings.improvedWallet.unlocked = true;
+          console.log("GameStateService: Улучшенный кошелек (improvedWallet) разблокирован после покупки 5 криптокошельков");
+        }
+        
+        newState.unlocks = {
+          ...newState.unlocks,
+          enhancedWallet: true,
+          improvedWallet: true
+        };
+      }
       
       // Проверяем все разблокировки
       newState = this.unlockService.checkAllUnlocks(newState);
@@ -244,71 +367,41 @@ export class GameStateService {
       if (upgradeId === 'cryptoCurrencyBasics' || upgradeId === 'cryptoBasics') {
         console.log("GameStateService: Особая обработка для улучшения 'Основы криптовалют'");
         
-        // Принудительно разблокируем майнер по всем возможным ID
+        // Принудительно разблокируем майнер и криптобиблиотеку
         if (newState.buildings.miner) {
-          newState.buildings.miner = {
-            ...newState.buildings.miner,
-            unlocked: true
-          };
-          
-          newState.unlocks = {
-            ...newState.unlocks,
-            miner: true
-          };
-          
-          console.log("GameStateService: Майнер (ID: miner) принудительно разблокирован");
+          newState.buildings.miner.unlocked = true;
+          newState.unlocks.miner = true;
+          console.log("GameStateService: Майнер принудительно разблокирован");
         }
         
-        if (newState.buildings.autoMiner) {
-          newState.buildings.autoMiner = {
-            ...newState.buildings.autoMiner,
-            unlocked: true
-          };
-          
-          newState.unlocks = {
-            ...newState.unlocks,
-            autoMiner: true
-          };
-          
-          console.log("GameStateService: Автомайнер (ID: autoMiner) принудительно разблокирован");
+        if (newState.buildings.cryptoLibrary) {
+          newState.buildings.cryptoLibrary.unlocked = true;
+          newState.unlocks.cryptoLibrary = true;
+          console.log("GameStateService: Криптобиблиотека принудительно разблокирована");
         }
         
         // Принудительно разблокируем Bitcoin
-        if (!newState.resources.bitcoin) {
-          // Создаем ресурс если не существует
-          newState.resources.bitcoin = {
-            id: 'bitcoin',
-            name: 'Bitcoin',
-            description: 'Bitcoin - первая и основная криптовалюта',
-            type: 'currency',
-            icon: 'bitcoin',
-            value: 0,
-            baseProduction: 0,
-            production: 0,
-            perSecond: 0,
-            max: 0.01,
-            unlocked: true
-          };
-          
-          console.log("GameStateService: Ресурс Bitcoin создан");
-        } else {
-          // Разблокируем существующий ресурс
-          newState.resources.bitcoin = {
-            ...newState.resources.bitcoin,
-            unlocked: true
-          };
-          
-          console.log("GameStateService: Существующий ресурс Bitcoin разблокирован");
+        if (newState.resources.bitcoin) {
+          newState.resources.bitcoin.unlocked = true;
+          newState.unlocks.bitcoin = true;
+          console.log("GameStateService: Bitcoin принудительно разблокирован");
         }
         
-        // Устанавливаем флаг разблокировки Bitcoin
-        newState.unlocks = {
-          ...newState.unlocks,
-          bitcoin: true
-        };
+        // Проверяем условие для Крипто-сообщества (USDT >= 30)
+        if (newState.resources.usdt?.value >= 30) {
+          if (newState.upgrades.cryptoCommunity) {
+            newState.upgrades.cryptoCommunity.unlocked = true;
+            console.log("GameStateService: Крипто-сообщество разблокировано после покупки Основ криптовалют");
+          }
+          
+          newState.unlocks = {
+            ...newState.unlocks,
+            cryptoCommunity: true
+          };
+        }
         
         // Отправляем уведомление пользователю
-        safeDispatchGameEvent("Майнер и Bitcoin разблокированы!", "info");
+        safeDispatchGameEvent("Майнер, Криптобиблиотека и Bitcoin разблокированы!", "info");
       }
       
       // Обновляем все максимальные значения ресурсов
@@ -397,14 +490,16 @@ export class GameStateService {
       }
       
       // Улучшенный кошелек добавляет +150 к макс. USDT
-      if (state.buildings.improvedWallet) {
-        const improvedWalletCount = state.buildings.improvedWallet.count || 0;
+      if (state.buildings.improvedWallet || state.buildings.enhancedWallet) {
+        const improvedWalletCount = (state.buildings.improvedWallet?.count || 0) + 
+                                  (state.buildings.enhancedWallet?.count || 0);
         additionalMax += 150 * improvedWalletCount;
       }
     } else if (resourceId === 'bitcoin') {
       // Улучшенный кошелек добавляет +1 к макс. BTC
-      if (state.buildings.improvedWallet) {
-        const improvedWalletCount = state.buildings.improvedWallet.count || 0;
+      if (state.buildings.improvedWallet || state.buildings.enhancedWallet) {
+        const improvedWalletCount = (state.buildings.improvedWallet?.count || 0) + 
+                                  (state.buildings.enhancedWallet?.count || 0);
         additionalMax += 1 * improvedWalletCount;
       }
     } else if (resourceId === 'knowledge') {
