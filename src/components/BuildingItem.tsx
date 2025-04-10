@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Building as BuildingIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -16,15 +16,17 @@ import { t } from "@/localization";
 export interface BuildingItemProps {
   building: Building;
   onAddEvent?: (message: string, type: string) => void;
+  onPurchase?: () => void;
 }
 
-const BuildingItem: React.FC<BuildingItemProps> = ({ building, onAddEvent }) => {
+const BuildingItem: React.FC<BuildingItemProps> = ({ building, onAddEvent, onPurchase }) => {
   const { state, dispatch } = useGame();
   const [isOpen, setIsOpen] = useState(false);
   
   const handlePurchase = () => {
     dispatch({ type: "PURCHASE_BUILDING", payload: { buildingId: building.id } });
     if (onAddEvent) onAddEvent(t("ui.actions.buy"), "success");
+    if (onPurchase) onPurchase();
   };
   
   const handleSell = () => {
@@ -117,7 +119,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onAddEvent }) => 
       return null;
     }
     
-    // Специальные случаи для отдельных зданий
     switch (building.id) {
       case 'cryptoWallet':
         return (
@@ -183,13 +184,10 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onAddEvent }) => 
           </>
         );
       default:
-        // Стандартная обработка для других зданий
         return Object.entries(building.effects).map(([effectId, value]) => {
-          // Получаем понятное название эффекта
           let effectName = effectId;
           let formattedValue = '';
           
-          // Обработка особых эффектов
           if (effectId.includes('Boost') || effectId.includes('boost')) {
             effectName = effectId.replace(/Boost|boost/, ' бонус');
             formattedValue = `+${(Number(value) * 100).toFixed(0)}%`;
@@ -210,7 +208,6 @@ const BuildingItem: React.FC<BuildingItemProps> = ({ building, onAddEvent }) => 
     }
   };
   
-  // Получаем локализованное имя и описание
   const name = t(`buildings.${building.id}.name`);
   const description = t(`buildings.${building.id}.description`);
   

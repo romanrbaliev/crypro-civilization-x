@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame";
 import BuildingItem from "./BuildingItem";
@@ -5,7 +6,7 @@ import { canAffordBuilding } from "@/utils/buildingUtils";
 import { Building } from "lucide-react";
 import { t } from "@/localization";
 
-// Добавляем интерфейс с onAddEvent
+// Интерфейс с onAddEvent
 interface EquipmentTabProps {
   onAddEvent?: (message: string, type: string) => void;
 }
