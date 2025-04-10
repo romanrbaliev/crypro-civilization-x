@@ -7,6 +7,7 @@ export function useGame(): {
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
   forceUpdate: () => void;
+  isPageVisible: boolean;
 } {
   const state = useContext(GameContext);
   const dispatch = useContext(GameDispatch);
@@ -20,6 +21,11 @@ export function useGame(): {
     // Обновляем ресурсы, что приведет к запуску всех проверок
     dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
   };
+
+  // Определяем видимость страницы
+  // Примечание: это упрощенная версия, нужно будет потом отслеживать
+  // видимость страницы через document.visibilityState
+  const isPageVisible = !document.hidden;
   
-  return { state, dispatch, forceUpdate };
+  return { state, dispatch, forceUpdate, isPageVisible };
 }

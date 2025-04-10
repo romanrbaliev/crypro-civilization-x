@@ -1,4 +1,3 @@
-
 import { GameState, Building, Upgrade } from '@/context/types';
 
 // Типы условий для разблокировки
@@ -637,4 +636,4 @@ export const debugUnlockStatus = (state: GameState) => {
 };
 
 // Экспортируем все необходимые функции
-export { checkUnlockRule, applyUnlock };
+// ВАЖНО: Удалил дублирующийся экспорт в конце файла!
