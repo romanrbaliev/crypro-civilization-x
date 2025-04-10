@@ -1,29 +1,39 @@
 
-import { useContext } from 'react';
-import { GameContext, GameDispatch } from '../GameContext';
-import { GameAction, GameState } from '../types';
+import { useContext, useEffect } from 'react';
+import { GameContext } from '../GameContext';
+import { ReferralHelper } from '../types';
+import useVisibilityOptimizer from '@/hooks/useVisibilityOptimizer';
 
-export function useGame(): {
-  state: GameState;
-  dispatch: React.Dispatch<GameAction>;
-  forceUpdate: () => void;
-  isPageVisible: boolean;
-} {
-  const state = useContext(GameContext);
-  const dispatch = useContext(GameDispatch);
+export const useGame = () => {
+  const context = useContext(GameContext);
   
-  if (state === undefined || dispatch === undefined) {
+  if (!context) {
+    console.error("GameContext не найден. Убедитесь, что компонент находится внутри GameProvider");
     throw new Error('useGame must be used within a GameProvider');
   }
-  
-  // Функция для принудительного обновления состояния игры
-  const forceUpdate = () => {
-    // Обновляем ресурсы, что приведет к запуску всех проверок
-    dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
-  };
 
-  // Определяем видимость страницы
-  const isPageVisible = typeof document !== 'undefined' ? !document.hidden : true;
+  // Применяем оптимизатор видимости
+  const isPageVisible = useVisibilityOptimizer();
   
-  return { state, dispatch, forceUpdate, isPageVisible };
-}
+  // Добавим удобную функцию для принудительного обновления состояния игры
+  const forceUpdate = () => {
+    console.log("Принудительное обновление ресурсов");
+    context.dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
+  };
+  
+  // Добавим функцию для обновления помощников из базы данных
+  const updateHelpers = (updatedHelpers: ReferralHelper[]) => {
+    context.dispatch({ 
+      type: 'UPDATE_HELPERS', 
+      payload: { updatedHelpers } 
+    });
+  };
+  
+  return {
+    ...context,
+    forceUpdate,
+    updateHelpers,
+    isPageVisible,
+    resourceUpdateActive: false // Всегда возвращаем false, так как useFrequentUpdate больше не используется
+  };
+};

@@ -1,13 +1,12 @@
 
 import React from 'react';
 import { useGameState } from '@/context/GameStateContext';
-import { Upgrade, GameState } from '@/context/types';
+import { Upgrade } from '@/context/types';
 import { safeDispatchGameEvent } from '@/context/utils/eventBusUtils';
 import { formatNumber } from '@/utils/helpers';
 import { t } from '@/localization';
 
 export function ResearchContainer() {
-  // Используем обновленный хук с правильным доступом к state и dispatch
   const { state, dispatch } = useGameState();
   
   const handlePurchase = (upgrade: Upgrade) => {
@@ -70,7 +69,7 @@ export function ResearchContainer() {
 }
 
 // Функция для проверки возможности приобретения исследования
-function canAfford(upgrade: Upgrade, state: GameState): boolean {
+function canAfford(upgrade: Upgrade, state: any): boolean {
   for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
     const resource = state.resources[resourceId];
     if (!resource || resource.value < Number(amount)) {

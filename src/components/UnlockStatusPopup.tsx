@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/popover';
 
 const UnlockStatusPopup = () => {
-  const { state, dispatch, forceUpdate } = useGame();
+  const { state, forceUpdate } = useGame();
   const [statusSteps, setStatusSteps] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
@@ -20,7 +20,7 @@ const UnlockStatusPopup = () => {
       setLoading(true);
       
       // Форсируем обновление состояния игры
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
+      forceUpdate();
       
       // Небольшая задержка, чтобы обновление успело применится
       setTimeout(() => {
@@ -28,50 +28,6 @@ const UnlockStatusPopup = () => {
           // Получаем отчет о статусе разблокировок
           const result = debugUnlockStatus(state);
           setStatusSteps(result.steps || []);
-          
-          // Проверяем конкретные проблемные здания
-          console.log("Статус enhancedWallet:", {
-            exists: !!state.buildings.enhancedWallet,
-            unlocked: state.buildings.enhancedWallet?.unlocked,
-            walletLevel: state.buildings.cryptoWallet?.count
-          });
-          
-          console.log("Статус cryptoLibrary:", {
-            exists: !!state.buildings.cryptoLibrary,
-            unlocked: state.buildings.cryptoLibrary?.unlocked,
-            hasUpgrade: state.upgrades.cryptoCurrencyBasics?.purchased
-          });
-          
-          console.log("Статус coolingSystem:", {
-            exists: !!state.buildings.coolingSystem,
-            unlocked: state.buildings.coolingSystem?.unlocked,
-            computerLevel: state.buildings.homeComputer?.count
-          });
-          
-          console.log("Статус майнера (miner):", {
-            exists: !!state.buildings.miner,
-            unlocked: state.buildings.miner?.unlocked,
-            cryptoBasics: state.upgrades.cryptoCurrencyBasics?.purchased
-          });
-          
-          // Проверяем наличие ID здания в state.buildings
-          console.log("Проверка наличия зданий в state:", {
-            enhancedWallet: 'enhancedWallet' in state.buildings,
-            cryptoLibrary: 'cryptoLibrary' in state.buildings,
-            coolingSystem: 'coolingSystem' in state.buildings,
-            miner: 'miner' in state.buildings,
-            miningRig: 'miningRig' in state.buildings
-          });
-          
-          // Проверяем, соответствуют ли условия для разблокировки
-          console.log("Условия разблокировки:", {
-            enhancedWalletCondition: state.buildings.cryptoWallet?.count >= 5,
-            cryptoLibraryCondition: state.upgrades.cryptoCurrencyBasics?.purchased === true,
-            coolingSystemCondition: state.buildings.homeComputer?.count >= 2,
-            minerCondition: state.upgrades.cryptoCurrencyBasics?.purchased === true || 
-                           state.upgrades.cryptoBasics?.purchased === true
-          });
-          
         } catch (error) {
           console.error('Ошибка при анализе разблокировок:', error);
           setStatusSteps(['Произошла ошибка при анализе разблокировок: ' + error]);
@@ -90,63 +46,6 @@ const UnlockStatusPopup = () => {
     if (open) {
       updateStatus();
     }
-  };
-  
-  // Принудительно разблокируем проблемные элементы
-  const forceUnlockAll = () => {
-    // Улучшенный кошелек
-    if (state.buildings.enhancedWallet) {
-      dispatch({ 
-        type: "SET_BUILDING_UNLOCKED", 
-        payload: { buildingId: "enhancedWallet", unlocked: true } 
-      });
-    }
-    
-    // Криптобиблиотека
-    if (state.buildings.cryptoLibrary) {
-      dispatch({ 
-        type: "SET_BUILDING_UNLOCKED", 
-        payload: { buildingId: "cryptoLibrary", unlocked: true } 
-      });
-    }
-    
-    // Система охлаждения
-    if (state.buildings.coolingSystem) {
-      dispatch({ 
-        type: "SET_BUILDING_UNLOCKED", 
-        payload: { buildingId: "coolingSystem", unlocked: true } 
-      });
-    }
-    
-    // Крипто-сообщество
-    if (state.upgrades.cryptoCommunity) {
-      dispatch({ 
-        type: "SET_UPGRADE_UNLOCKED", 
-        payload: { upgradeId: "cryptoCommunity", unlocked: true } 
-      });
-    }
-    
-    // Майнер
-    if (state.buildings.miner) {
-      dispatch({
-        type: "SET_BUILDING_UNLOCKED",
-        payload: { buildingId: "miner", unlocked: true }
-      });
-    }
-    
-    // MiningRig (альтернативное название майнера)
-    if (state.buildings.miningRig) {
-      dispatch({
-        type: "SET_BUILDING_UNLOCKED",
-        payload: { buildingId: "miningRig", unlocked: true }
-      });
-    }
-    
-    // Обновляем состояние
-    setTimeout(() => {
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-      updateStatus();
-    }, 100);
   };
   
   return (
@@ -174,7 +73,7 @@ const UnlockStatusPopup = () => {
                   step.includes('✅') ? 'text-green-600' : 
                   step.includes('❌') ? 'text-red-500' : 
                   step.startsWith('•') ? 'pl-2' :
-                  step.startsWith('📊') || step.startsWith('🔓') || step.startsWith('🏗️') || step.startsWith('📚') || step.startsWith('🔍') ? 'font-semibold mt-2' : ''
+                  step.startsWith('📊') || step.startsWith('🔓') || step.startsWith('🏗️') || step.startsWith('📚') ? 'font-semibold mt-2' : ''
                 }>
                   {step}
                 </div>
@@ -182,15 +81,7 @@ const UnlockStatusPopup = () => {
             )}
           </div>
           
-          <div className="mt-3 flex justify-end gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs" 
-              onClick={forceUnlockAll}
-            >
-              Принудительно разблокировать
-            </Button>
+          <div className="mt-3 flex justify-end">
             <Button 
               variant="secondary" 
               size="sm" 

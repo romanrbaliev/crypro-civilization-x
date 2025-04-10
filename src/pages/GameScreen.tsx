@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGame } from "@/context/hooks/useGame"; // Исправление импорта
 import { useNavigate } from "react-router-dom";
@@ -38,7 +37,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { resetAllGameData } from "@/context/utils/gameStorage";
 import { toast } from "@/hooks/use-toast";
-import UnlockStatusPopup from "@/components/UnlockStatusPopup";
 
 const GameScreen = () => {
   const { state, dispatch } = useGame();
@@ -170,21 +168,12 @@ const GameScreen = () => {
     );
   };
   
-  // Принудительно проверяем разблокировки каждые 5 секунд
-  useEffect(() => {
-    const checkInterval = setInterval(() => {
-      dispatch({ type: "FORCE_RESOURCE_UPDATE" });
-    }, 5000);
-    
-    return () => clearInterval(checkInterval);
-  }, [dispatch]);
-  
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       <header className="bg-white border-b shadow-sm py-0.5 flex-shrink-0 h-8">
         <div className="flex justify-between items-center h-full">
           <div className="flex-1 flex items-center pl-2 gap-2">
-            <UnlockStatusPopup />
+            {/* Удалены компоненты KnowledgeProductionPopup и UnlockStatusPopup */}
           </div>
           <div className="flex items-center justify-between px-2">
             <Dialog>

@@ -1,3 +1,4 @@
+
 import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
 import { GameState, GameAction, Resource, Building, Upgrade } from './types';
 import { initialState } from './initialState';
@@ -23,8 +24,7 @@ export interface GameContextProps {
   dispatch: React.Dispatch<GameAction>;
 }
 
-export const GameContext = createContext<GameState | undefined>(undefined);
-export const GameDispatch = createContext<React.Dispatch<GameAction> | undefined>(undefined);
+export const GameContext = createContext<GameContextProps | undefined>(undefined);
 
 const SAVE_INTERVAL = 15 * 1000;
 
@@ -72,10 +72,12 @@ export function GameProvider({ children }: GameProviderProps) {
   
   const isMountedRef = React.useRef(false);
   
+  // Initialize event bus
   useEffect(() => {
     ensureGameEventBus();
   }, []);
   
+  // Initialize Telegram
   useEffect(() => {
     if (isMountedRef.current) return;
     isMountedRef.current = true;
@@ -83,6 +85,7 @@ export function GameProvider({ children }: GameProviderProps) {
     initializeTelegram();
   }, []);
   
+  // Sync referral data
   useEffect(() => {
     const syncHelperData = async () => {
       try {
@@ -101,10 +104,12 @@ export function GameProvider({ children }: GameProviderProps) {
     setTimeout(syncHelperData, 2000);
   }, []);
   
+  // Apply loaded state
   useEffect(() => {
     if (loadedState && !isLoading && gameInitialized) {
       console.log("GameContext: Загрузка сохраненного состояния");
       
+      // Убедимся, что все необходимые флаги разблокировок установлены
       if (loadedState.buildings && loadedState.buildings.practice && loadedState.buildings.practice.count > 0) {
         if (!loadedState.unlocks.research) {
           console.log("GameContext: Принудительная разблокировка исследований");
@@ -112,6 +117,7 @@ export function GameProvider({ children }: GameProviderProps) {
         }
       }
       
+      // Принудительно разблокируем ресурсы на основе зданий
       if (loadedState.buildings && loadedState.buildings.generator && loadedState.buildings.generator.count > 0) {
         if (!loadedState.unlocks.electricity) {
           console.log("GameContext: Принудительная разблокировка электричества");
@@ -126,6 +132,7 @@ export function GameProvider({ children }: GameProviderProps) {
       dispatch({ type: 'LOAD_GAME', payload: loadedState });
       dispatch({ type: 'FORCE_RESOURCE_UPDATE' });
       
+      // Выводим отладочную информацию о разблокированных функциях
       setTimeout(() => {
         console.log("Текущие разблокированные функции:", 
           Object.entries(loadedState.unlocks)
@@ -143,6 +150,7 @@ export function GameProvider({ children }: GameProviderProps) {
     }
   }, [loadedState, isLoading, gameInitialized]);
   
+  // Main game update interval
   useEffect(() => {
     if (!state.gameStarted || isLoading) return;
     
@@ -153,6 +161,7 @@ export function GameProvider({ children }: GameProviderProps) {
     return () => clearInterval(intervalId);
   }, [state.gameStarted, isLoading]);
   
+  // Auto-save interval
   useEffect(() => {
     if (!state.gameStarted || isLoading || !hasConnection || !gameInitialized) return;
     
@@ -172,16 +181,22 @@ export function GameProvider({ children }: GameProviderProps) {
     };
   }, [state, isLoading, hasConnection, gameInitialized]);
   
+  // Set up event listeners for save triggers
   useGameSaveEvents(state, isLoading, hasConnection, gameInitialized);
   
+  // Set up event listeners for connection changes
   useConnectionEvents(state, isLoading, hasConnection, (connected) => {
+    // This is a workaround since we can't use the setter from useConnectionStatus
+    // In a real refactor, we might want to further restructure the hooks
     if (connected !== hasConnection) {
       window.dispatchEvent(new CustomEvent('connection-changed', { detail: { connected } }));
     }
   });
   
+  // Set up event listeners for referral status updates
   useReferralEvents(state, dispatch, isLoading);
   
+  // Render error screen if cloudflare error
   if (isInitialized && cloudflareError) {
     return (
       <ErrorScreen 
@@ -198,6 +213,7 @@ export function GameProvider({ children }: GameProviderProps) {
     );
   }
 
+  // Render error screen if no connection
   if (isInitialized && (!hasConnection)) {
     return (
       <ErrorScreen 
@@ -207,19 +223,20 @@ export function GameProvider({ children }: GameProviderProps) {
     );
   }
 
+  // Render loading screen while loading
   if (isLoading) {
     return <LoadingScreen message={loadingMessage} />;
   }
   
+  // Render game with context
   return (
-    <GameContext.Provider value={state}>
-      <GameDispatch.Provider value={dispatch}>
-        <GameEventSystem />
-        {children}
-        <Toaster />
-      </GameDispatch.Provider>
+    <GameContext.Provider value={{ state, dispatch }}>
+      <GameEventSystem />
+      {children}
+      <Toaster />
     </GameContext.Provider>
   );
 }
 
+// Экспортируем хук useGame
 export { useGame } from './hooks/useGame';

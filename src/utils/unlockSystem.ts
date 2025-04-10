@@ -10,11 +10,7 @@ import {
   checkResourceUnlocks as checkResourceUnlocksManager,
   checkUpgradeUnlocks as checkUpgradeUnlocksManager,
   checkActionUnlocks as checkActionUnlocksManager,
-  checkSpecialUnlocks as checkSpecialUnlocksManager,
-  rebuildAllUnlocks,
-  debugUnlockStatus,
-  checkUnlockRule,
-  applyUnlock
+  checkSpecialUnlocks as checkSpecialUnlocksManager
 } from './unlockManager';
 
 // Проверяет все возможные разблокировки
@@ -53,6 +49,3 @@ export const checkActionUnlocks = (state: GameState): GameState => {
   console.log('unlockSystem: checkActionUnlocks вызван');
   return checkActionUnlocksManager(state);
 };
-
-// Экспортируем функцию отладки и вспомогательные функции, а также rebuildAllUnlocks
-export { debugUnlockStatus, checkUnlockRule, applyUnlock, rebuildAllUnlocks };

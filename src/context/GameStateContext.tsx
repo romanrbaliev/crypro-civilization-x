@@ -1,24 +1,14 @@
 
 import React, { useContext } from 'react';
-import { GameContext, GameDispatch } from './GameContext';
-import { GameState, GameAction } from './types';
+import { GameContext } from './GameContext';
 
-// Создаем интерфейс для useGameState
-export interface GameStateContextProps {
-  state: GameState;
-  dispatch: React.Dispatch<GameAction>;
-}
-
-// Исправляем хук useGameState для возврата правильной структуры
-export const useGameState = (): GameStateContextProps => {
-  const state = useContext(GameContext);
-  const dispatch = useContext(GameDispatch);
-  
-  if (!state || !dispatch) {
+// Переиспользуем GameContext для совместимости
+export const useGameState = () => {
+  const context = useContext(GameContext);
+  if (!context) {
     throw new Error('useGameState must be used within a GameProvider');
   }
-  
-  return { state, dispatch };
+  return context;
 };
 
 // Для обратной совместимости с существующим кодом

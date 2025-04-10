@@ -33,7 +33,7 @@ export interface UnlockRule {
 
 // Список всех правил разблокировки в игре
 const unlockRules: UnlockRule[] = [
-  // Разблокировка "Практика" после 2 применений знаний
+  // Разблокировка "Практика" после 2 применений знаний (исправлено с 3 нажатий на "Изучить")
   {
     targetId: 'practice',
     targetType: 'building',
@@ -111,7 +111,7 @@ const unlockRules: UnlockRule[] = [
     targetType: 'building',
     upgrades: [{ id: 'cryptoCurrencyBasics', purchased: true }]
   },
-  // Разблокировка "Proof of Work" после покупки "Оптимизация алгоритмов"
+  // Разблокировка "Proof of Work" после покупки "Оптимизация алгоритмов" (исправлено с 3 уровня компьютера)
   {
     targetId: 'proofOfWork',
     targetType: 'upgrade',
@@ -130,6 +130,7 @@ const unlockRules: UnlockRule[] = [
     buildings: [{ id: 'coolingSystem', minCount: 1 }]
   },
   // Разблокировка "Улучшенный кошелек" после достижения 5 уровня "Криптокошелек"
+  // Исправлено на корректный ID здания enhancedWallet
   {
     targetId: 'enhancedWallet',
     targetType: 'building',
@@ -168,7 +169,7 @@ const unlockRules: UnlockRule[] = [
  * @param rule Правило разблокировки
  * @returns Результат проверки
  */
-export const checkUnlockRule = (state: GameState, rule: UnlockRule): boolean => {
+const checkUnlockRule = (state: GameState, rule: UnlockRule): boolean => {
   // Проверка условий зданий
   if (rule.buildings) {
     for (const condition of rule.buildings) {
@@ -224,7 +225,7 @@ export const checkUnlockRule = (state: GameState, rule: UnlockRule): boolean => 
  * @param rule Правило разблокировки
  * @returns Обновленное состояние
  */
-export const applyUnlock = (state: GameState, rule: UnlockRule): GameState => {
+const applyUnlock = (state: GameState, rule: UnlockRule): GameState => {
   let newState = { ...state };
   
   switch (rule.targetType) {
@@ -282,22 +283,6 @@ export const applyUnlock = (state: GameState, rule: UnlockRule): GameState => {
  */
 export const checkAllUnlocks = (state: GameState): GameState => {
   let newState = { ...state };
-  let hasChanges = false;
-  
-  // Добавляем логирование для проверки зданий
-  console.log("Проверка разблокировок. Текущие здания:", Object.entries(state.buildings)
-    .map(([id, building]) => `${id}: count=${building.count}, unlocked=${building.unlocked}`)
-    .join(', '));
-  
-  // Дополнительная проверка для проблемных зданий
-  const criticalBuildings = ['enhancedWallet', 'cryptoLibrary', 'coolingSystem'];
-  for (const id of criticalBuildings) {
-    if (state.buildings[id]) {
-      console.log(`Состояние здания ${id}: unlocked=${state.buildings[id].unlocked}`);
-    } else {
-      console.log(`Здание ${id} не найдено в state.buildings`);
-    }
-  }
   
   for (const rule of unlockRules) {
     const isUnlocked = checkUnlockRule(newState, rule);
@@ -310,112 +295,25 @@ export const checkAllUnlocks = (state: GameState): GameState => {
         case 'building':
           if (newState.buildings[rule.targetId] && !newState.buildings[rule.targetId].unlocked) {
             needToApply = true;
-            console.log(`Условия для разблокировки здания ${rule.targetId} выполнены, применение...`);
           }
           break;
           
         case 'upgrade':
           if (newState.upgrades[rule.targetId] && !newState.upgrades[rule.targetId].unlocked) {
             needToApply = true;
-            console.log(`Условия для разблокировки улучшения ${rule.targetId} выполнены, применение...`);
           }
           break;
           
         case 'feature':
           if (!newState.unlocks[rule.targetId]) {
             needToApply = true;
-            console.log(`Условия для разблокировки функции ${rule.targetId} выполнены, применение...`);
           }
           break;
       }
       
       if (needToApply) {
-        const prevState = newState;
         newState = applyUnlock(newState, rule);
-        hasChanges = true;
-        
-        // Проверяем применилась ли разблокировка
-        if (rule.targetType === 'building' && 
-            prevState.buildings[rule.targetId]?.unlocked !== newState.buildings[rule.targetId]?.unlocked) {
-          console.log(`Разблокировка здания ${rule.targetId} успешно применена`);
-        } else if (rule.targetType === 'upgrade' && 
-                  prevState.upgrades[rule.targetId]?.unlocked !== newState.upgrades[rule.targetId]?.unlocked) {
-          console.log(`Разблокировка улучшения ${rule.targetId} успешно применена`);
-        }
       }
-    } else if (rule.targetId === 'enhancedWallet' || rule.targetId === 'cryptoLibrary' || 
-              rule.targetId === 'coolingSystem' || rule.targetId === 'cryptoCommunity') {
-      // Отладочная информация для проблемных элементов
-      console.log(`Условия для разблокировки ${rule.targetId} НЕ выполнены. Проверка деталей:`);
-      
-      // Проверка условий зданий
-      if (rule.buildings) {
-        for (const condition of rule.buildings) {
-          const building = newState.buildings[condition.id];
-          console.log(`- Требуется: ${condition.id} (кол-во >= ${condition.minCount}), ` +
-                     `Фактически: ${building ? building.count : 'отсутствует'}`);
-        }
-      }
-      
-      // Проверка условий улучшений
-      if (rule.upgrades) {
-        for (const condition of rule.upgrades) {
-          const upgrade = newState.upgrades[condition.id];
-          console.log(`- Требуется: ${condition.id} (куплено=${condition.purchased}), ` +
-                     `Фактически: ${upgrade ? `куплено=${upgrade.purchased}` : 'отсутствует'}`);
-        }
-      }
-    }
-  }
-  
-  // Принудительно разблокируем проблемные здания если выполнены их условия
-  newState = forceUnlockCriticalBuildings(newState);
-  
-  if (hasChanges) {
-    console.log("В результате проверки были применены разблокировки");
-  } else {
-    console.log("Проверка завершена, новых разблокировок не применено");
-  }
-  
-  return newState;
-};
-
-/**
- * Принудительно разблокирует критические здания, если выполнены их условия
- */
-const forceUnlockCriticalBuildings = (state: GameState): GameState => {
-  let newState = { ...state };
-  
-  // Проверка для Улучшенного кошелька (EnhancedWallet)
-  if (newState.buildings.cryptoWallet && newState.buildings.cryptoWallet.count >= 5) {
-    if (newState.buildings.enhancedWallet) {
-      console.log("Принудительно разблокируем Улучшенный кошелек (enhancedWallet)");
-      newState.buildings.enhancedWallet.unlocked = true;
-    }
-  }
-  
-  // Проверка для Криптобиблиотеки (CryptoLibrary)
-  if (newState.upgrades.cryptoCurrencyBasics && newState.upgrades.cryptoCurrencyBasics.purchased) {
-    if (newState.buildings.cryptoLibrary) {
-      console.log("Принудительно разблокируем Криптобиблиотеку (cryptoLibrary)");
-      newState.buildings.cryptoLibrary.unlocked = true;
-    }
-  }
-  
-  // Проверка для Системы охлаждения (CoolingSystem)
-  if (newState.buildings.homeComputer && newState.buildings.homeComputer.count >= 2) {
-    if (newState.buildings.coolingSystem) {
-      console.log("Принудительно разблокируем Систему охлаждения (coolingSystem)");
-      newState.buildings.coolingSystem.unlocked = true;
-    }
-  }
-  
-  // Проверка для Крипто-сообщества (CryptoCommunity)
-  if (newState.upgrades.cryptoCurrencyBasics && newState.upgrades.cryptoCurrencyBasics.purchased && 
-      newState.resources.usdt && newState.resources.usdt.value >= 30) {
-    if (newState.upgrades.cryptoCommunity) {
-      console.log("Принудительно разблокируем Крипто-сообщество (cryptoCommunity)");
-      newState.upgrades.cryptoCommunity.unlocked = true;
     }
   }
   
@@ -428,8 +326,6 @@ const forceUnlockCriticalBuildings = (state: GameState): GameState => {
  * @returns Обновленное состояние
  */
 export const rebuildAllUnlocks = (state: GameState): GameState => {
-  console.log("Запущена полная перепроверка всех разблокировок");
-  
   // Сброс текущих разблокировок зданий
   let newState: GameState = {
     ...state,
@@ -459,7 +355,7 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
   };
   
   // Особые начальные разблокировки
-  // Сохраняем изначально доступные здания
+  // Разблокируем изначально доступные здания
   if (newState.buildings['practice']) {
     newState.buildings['practice'] = {
       ...newState.buildings['practice'],
@@ -468,12 +364,7 @@ export const rebuildAllUnlocks = (state: GameState): GameState => {
   }
   
   // Проверяем и применяем все остальные разблокировки
-  newState = checkAllUnlocks(newState);
-  
-  // Принудительно разблокируем критические здания
-  newState = forceUnlockCriticalBuildings(newState);
-  
-  return newState;
+  return checkAllUnlocks(newState);
 };
 
 // Добавим специальные функции для проверки конкретных типов разблокировок
@@ -490,9 +381,6 @@ export const checkBuildingUnlocks = (state: GameState): GameState => {
       newState = applyUnlock(newState, rule);
     }
   }
-  
-  // Принудительно разблокируем критические здания
-  newState = forceUnlockCriticalBuildings(newState);
   
   return newState;
 };
@@ -604,29 +492,6 @@ export const debugUnlockStatus = (state: GameState) => {
   const isCryptoCommunityUnlocked = state.upgrades['cryptoCommunity']?.unlocked || false;
   steps.push(`• Особая проверка cryptoCommunity: ${isCryptoCommunityUnlocked ? '✅' : '❌'} разблокировано`);
   
-  // Проверка статуса проблемных зданий
-  steps.push("🔍 Детальная проверка проблемных элементов:");
-  
-  // EnhancedWallet
-  const walletLevel = state.buildings.cryptoWallet?.count || 0;
-  steps.push(`• enhancedWallet: уровень кошелька=${walletLevel}, требуется 5, ` + 
-             `unlocked=${state.buildings.enhancedWallet?.unlocked ? '✅' : '❌'}`);
-  
-  // CryptoLibrary
-  const cryptoBasics = state.upgrades.cryptoCurrencyBasics?.purchased || false;
-  steps.push(`• cryptoLibrary: основы криптовалют куплены=${cryptoBasics ? '✅' : '❌'}, ` + 
-             `unlocked=${state.buildings.cryptoLibrary?.unlocked ? '✅' : '❌'}`);
-  
-  // CoolingSystem
-  const computerLevel = state.buildings.homeComputer?.count || 0;
-  steps.push(`• coolingSystem: уровень компьютера=${computerLevel}, требуется 2, ` + 
-             `unlocked=${state.buildings.coolingSystem?.unlocked ? '✅' : '❌'}`);
-  
-  // CryptoCommunity
-  const usdtAmount = state.resources.usdt?.value || 0;
-  steps.push(`• cryptoCommunity: USDT=${usdtAmount}, требуется 30, основы криптовалют=${cryptoBasics ? '✅' : '❌'}, ` + 
-             `unlocked=${state.upgrades.cryptoCommunity?.unlocked ? '✅' : '❌'}`);
-  
   // Возвращаем результат анализа
   return {
     unlocked,
@@ -636,4 +501,4 @@ export const debugUnlockStatus = (state: GameState) => {
 };
 
 // Экспортируем все необходимые функции
-// ВАЖНО: Удалил дублирующийся экспорт в конце файла!
+export { checkUnlockRule, applyUnlock };
