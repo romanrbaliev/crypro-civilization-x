@@ -1,3 +1,4 @@
+
 import { GameState, Building, Upgrade } from '@/context/types';
 
 // Типы условий для разблокировки
@@ -33,11 +34,11 @@ export interface UnlockRule {
 
 // Список всех правил разблокировки в игре
 const unlockRules: UnlockRule[] = [
-  // Разблокировка "Практика" после 3 нажатий на "Изучить"
+  // Разблокировка "Практика" после 2 применений знаний (исправлено с 3 нажатий на "Изучить")
   {
     targetId: 'practice',
     targetType: 'building',
-    counters: [{ id: 'knowledgeClicks', minValue: 3 }]
+    counters: [{ id: 'applyKnowledge', minValue: 2 }]
   },
   // Разблокировка "Применить знания" после 3 нажатий на "Изучить"
   {
@@ -111,11 +112,11 @@ const unlockRules: UnlockRule[] = [
     targetType: 'building',
     upgrades: [{ id: 'cryptoCurrencyBasics', purchased: true }]
   },
-  // Разблокировка "Proof of Work" после достижения 3 уровня "Домашний компьютер"
+  // Разблокировка "Proof of Work" после покупки "Оптимизация алгоритмов" (исправлено с 3 уровня компьютера)
   {
     targetId: 'proofOfWork',
     targetType: 'upgrade',
-    buildings: [{ id: 'homeComputer', minCount: 3 }]
+    upgrades: [{ id: 'algorithmOptimization', purchased: true }]
   },
   // Разблокировка "Система охлаждения" после достижения 2 уровня "Домашний компьютер"
   {
@@ -130,6 +131,7 @@ const unlockRules: UnlockRule[] = [
     buildings: [{ id: 'coolingSystem', minCount: 1 }]
   },
   // Разблокировка "Улучшенный кошелек" после достижения 5 уровня "Криптокошелек"
+  // Исправлено на корректный ID здания enhancedWallet
   {
     targetId: 'enhancedWallet',
     targetType: 'building',
@@ -460,7 +462,7 @@ export const debugUnlockStatus = (state: GameState) => {
   // Проверяем улучшения
   steps.push("📚 Исследования:");
   for (const rule of unlockRules.filter(r => r.targetType === 'upgrade')) {
-    const conditionsMet = checkUnlockRule(state, rule);
+    const conditionsMet = checkUnlockRule(newState, rule);
     const currentUnlocked = state.upgrades[rule.targetId]?.unlocked || false;
     
     steps.push(`• ${rule.targetId}: ${conditionsMet ? '✅' : '❌'} условия, ${currentUnlocked ? '✅' : '❌'} разблокировано`);
@@ -475,7 +477,7 @@ export const debugUnlockStatus = (state: GameState) => {
   // Проверяем фичи
   steps.push("📊 Функции:");
   for (const rule of unlockRules.filter(r => r.targetType === 'feature')) {
-    const conditionsMet = checkUnlockRule(state, rule);
+    const conditionsMet = checkUnlockRule(newState, rule);
     const currentUnlocked = state.unlocks[rule.targetId] || false;
     
     steps.push(`• ${rule.targetId}: ${conditionsMet ? '✅' : '❌'} условия, ${currentUnlocked ? '✅' : '❌'} разблокировано`);
