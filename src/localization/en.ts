@@ -13,7 +13,7 @@ export const en = {
       name: "USDT",
       description: "Stablecoin pegged to US dollar"
     },
-    btc: {
+    bitcoin: {
       name: "Bitcoin",
       description: "Main cryptocurrency mined through mining"
     },

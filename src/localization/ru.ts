@@ -13,7 +13,7 @@ export const ru = {
       name: "USDT",
       description: "Стейблкоин, привязанный к доллару США"
     },
-    btc: {
+    bitcoin: {
       name: "Bitcoin",
       description: "Основная криптовалюта, добываемая майнингом"
     },

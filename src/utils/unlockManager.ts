@@ -1,4 +1,3 @@
-
 import { GameState, Building, Upgrade } from '@/context/types';
 
 // Типы условий для разблокировки
@@ -494,9 +493,6 @@ export const debugUnlockStatus = (state: GameState) => {
   
   // Возвращаем результат анализа
   return {
-    buildings: {},
-    upgrades: {},
-    features: {},
     unlocked,
     locked,
     steps
