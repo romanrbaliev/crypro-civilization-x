@@ -1,4 +1,3 @@
-
 import { GameState } from '@/context/types';
 import { ResourceProductionService } from './ResourceProductionService';
 import { BonusCalculationService } from './BonusCalculationService';
@@ -95,19 +94,19 @@ export class GameStateService {
         console.log("GameStateService: Майнер (ID: miner) принудительно разблокирован");
       }
       
-      // Второй вариант - 'autoMiner'
-      if (newState.buildings.autoMiner) {
-        newState.buildings.autoMiner = {
-          ...newState.buildings.autoMiner,
+      // Второй вариант - 'miningRig'
+      if (newState.buildings.miningRig) {
+        newState.buildings.miningRig = {
+          ...newState.buildings.miningRig,
           unlocked: true
         };
         
         newState.unlocks = {
           ...newState.unlocks,
-          autoMiner: true
+          miningRig: true
         };
         
-        console.log("GameStateService: Автомайнер (ID: autoMiner) принудительно разблокирован");
+        console.log("GameStateService: Майнинг-риг (ID: miningRig) принудительно разблокирован");
       }
       
       // Принудительно разблокируем криптобиблиотеку
@@ -161,7 +160,7 @@ export class GameStateService {
       
       // Теперь проверим, есть ли сам майнер в зданиях
       // Если его нет в списке зданий - добавим базовую версию
-      if (!newState.buildings.miner && !newState.buildings.autoMiner) {
+      if (!newState.buildings.miner && !newState.buildings.miningRig) {
         console.log("GameStateService: Майнер отсутствует в списке зданий, создаем его");
         
         // Создаем майнер с базовыми параметрами - без свойств, которых нет в интерфейсе Building

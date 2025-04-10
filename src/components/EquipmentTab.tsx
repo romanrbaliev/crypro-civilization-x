@@ -49,25 +49,47 @@ const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
     return () => clearInterval(intervalId);
   }, [dispatch]);
   
-  // Получаем все разблокированные здания
-  const allUnlockedBuildings = Object.values(state.buildings).filter(b => b.unlocked);
+  // Важное изменение: получаем все здания, которые когда-либо были разблокированы
+  // Это гарантирует, что они не исчезнут из интерфейса
+  const getAllVisibleBuildings = () => {
+    // Объединяем здания, у которых флаг unlocked=true и здания, которые были ранее разблокированы
+    const visibleBuildingIds = new Set([
+      ...unlockedBuildings,
+      ...Object.keys(state.buildings).filter(id => state.buildings[id].unlocked)
+    ]);
+    
+    // Преобразуем ID в объекты зданий
+    return Array.from(visibleBuildingIds).map(id => state.buildings[id]);
+  };
+  
+  // Получаем все видимые здания
+  const allVisibleBuildings = getAllVisibleBuildings();
   
   // Группируем здания по категориям
-  const basicBuildings = allUnlockedBuildings.filter(b => 
+  const basicBuildings = allVisibleBuildings.filter(b => 
     ['practice', 'generator', 'cryptoWallet'].includes(b.id)
   );
   
-  const computerBuildings = allUnlockedBuildings.filter(b => 
-    ['homeComputer', 'miningRig', 'internetConnection', 'coolingSystem'].includes(b.id)
+  const computerBuildings = allVisibleBuildings.filter(b => 
+    ['homeComputer', 'miningRig', 'internetConnection', 'coolingSystem', 'miner'].includes(b.id)
   );
   
-  const advancedBuildings = allUnlockedBuildings.filter(b => 
-    ['improvedWallet', 'cryptoLibrary', 'server'].includes(b.id)
+  const advancedBuildings = allVisibleBuildings.filter(b => 
+    ['improvedWallet', 'enhancedWallet', 'cryptoLibrary', 'server'].includes(b.id)
   );
+  
+  // Для отладки выводим в консоль количество видимых зданий
+  console.log("EquipmentTab: Всего видимых зданий:", allVisibleBuildings.length);
+  console.log("EquipmentTab: Разблокированных ранее:", unlockedBuildings);
+  console.log("EquipmentTab: По категориям:", {
+    basic: basicBuildings.map(b => b.id),
+    computer: computerBuildings.map(b => b.id),
+    advanced: advancedBuildings.map(b => b.id)
+  });
   
   return (
     <div className="space-y-4">
-      {allUnlockedBuildings.length === 0 ? (
+      {allVisibleBuildings.length === 0 ? (
         <div className="text-center py-6 text-gray-500">
           <Building className="h-10 w-10 mx-auto mb-3 opacity-20" />
           <p className="text-xs">

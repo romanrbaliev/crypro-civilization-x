@@ -48,18 +48,28 @@ const UnlockStatusPopup = () => {
             computerLevel: state.buildings.homeComputer?.count
           });
           
+          console.log("Статус майнера (miner):", {
+            exists: !!state.buildings.miner,
+            unlocked: state.buildings.miner?.unlocked,
+            cryptoBasics: state.upgrades.cryptoCurrencyBasics?.purchased
+          });
+          
           // Проверяем наличие ID здания в state.buildings
           console.log("Проверка наличия зданий в state:", {
             enhancedWallet: 'enhancedWallet' in state.buildings,
             cryptoLibrary: 'cryptoLibrary' in state.buildings,
-            coolingSystem: 'coolingSystem' in state.buildings
+            coolingSystem: 'coolingSystem' in state.buildings,
+            miner: 'miner' in state.buildings,
+            miningRig: 'miningRig' in state.buildings
           });
           
           // Проверяем, соответствуют ли условия для разблокировки
           console.log("Условия разблокировки:", {
             enhancedWalletCondition: state.buildings.cryptoWallet?.count >= 5,
             cryptoLibraryCondition: state.upgrades.cryptoCurrencyBasics?.purchased === true,
-            coolingSystemCondition: state.buildings.homeComputer?.count >= 2
+            coolingSystemCondition: state.buildings.homeComputer?.count >= 2,
+            minerCondition: state.upgrades.cryptoCurrencyBasics?.purchased === true || 
+                           state.upgrades.cryptoBasics?.purchased === true
           });
           
         } catch (error) {
@@ -113,6 +123,22 @@ const UnlockStatusPopup = () => {
       dispatch({ 
         type: "SET_UPGRADE_UNLOCKED", 
         payload: { upgradeId: "cryptoCommunity", unlocked: true } 
+      });
+    }
+    
+    // Майнер
+    if (state.buildings.miner) {
+      dispatch({
+        type: "SET_BUILDING_UNLOCKED",
+        payload: { buildingId: "miner", unlocked: true }
+      });
+    }
+    
+    // MiningRig (альтернативное название майнера)
+    if (state.buildings.miningRig) {
+      dispatch({
+        type: "SET_BUILDING_UNLOCKED",
+        payload: { buildingId: "miningRig", unlocked: true }
       });
     }
     
