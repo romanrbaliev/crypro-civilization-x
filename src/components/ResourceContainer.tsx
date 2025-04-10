@@ -4,6 +4,7 @@ import { useGameState } from '@/context/GameStateContext';
 import { formatNumber } from '@/utils/helpers';
 
 export function ResourceContainer() {
+  // Используем обновленный хук с правильным доступом к state
   const { state } = useGameState();
   
   // Фильтруем только разблокированные ресурсы

@@ -6,13 +6,7 @@ import { getCategoryBuildings, isUnlockedBuilding } from "@/utils/buildingUtils"
 import { Building } from "lucide-react";
 import { t } from "@/localization";
 
-// Определяем правильный тип для BuildingItem, без onAddEvent
-// поскольку в компоненте BuildingItem этого свойства нет
-interface EquipmentTabProps {
-  onAddEvent: (message: string, type: string) => void;
-}
-
-const EquipmentTab: React.FC<EquipmentTabProps> = ({ onAddEvent }) => {
+const EquipmentTab: React.FC = () => {
   const { state, dispatch } = useGame();
   const [unlockedBuildings, setUnlockedBuildings] = useState<string[]>([]);
   

@@ -7,6 +7,7 @@ import { formatNumber } from '@/utils/helpers';
 import { t } from '@/localization';
 
 export function ResearchContainer() {
+  // Используем обновленный хук с правильным доступом к state и dispatch
   const { state, dispatch } = useGameState();
   
   const handlePurchase = (upgrade: Upgrade) => {
@@ -69,7 +70,7 @@ export function ResearchContainer() {
 }
 
 // Функция для проверки возможности приобретения исследования
-function canAfford(upgrade: Upgrade, state: any): boolean {
+function canAfford(upgrade: Upgrade, state: GameState): boolean {
   for (const [resourceId, amount] of Object.entries(upgrade.cost)) {
     const resource = state.resources[resourceId];
     if (!resource || resource.value < Number(amount)) {

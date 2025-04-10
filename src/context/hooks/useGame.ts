@@ -23,9 +23,7 @@ export function useGame(): {
   };
 
   // Определяем видимость страницы
-  // Примечание: это упрощенная версия, нужно будет потом отслеживать
-  // видимость страницы через document.visibilityState
-  const isPageVisible = !document.hidden;
+  const isPageVisible = typeof document !== 'undefined' ? !document.hidden : true;
   
   return { state, dispatch, forceUpdate, isPageVisible };
 }
